@@ -3,6 +3,7 @@ import json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WEB = "/opt/web"
+sys.path.insert(0, WEB)
 NODES = os.path.join(WEB, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
 JOBS = {}
@@ -180,33 +181,10 @@ def _valid_host(h):
 import socket as _socket
 
 def open_firewall(ip, port):
-    try:
-        servers = json.load(open("/opt/web/servers.json", encoding="utf-8")).get("servers", [])
-    except Exception:
-        servers = []
-    inst = next((s for s in servers if s.get("ip") == ip), None)
-    if not inst:
-        return ("skip", "不是腾讯云的机器，没法自动开端口")
-    region = inst.get("regionId") or "ap-singapore"
-    iid = inst.get("id")
-    try:
-        sys.path.insert(0, "/opt/web")
-        import usage as _u
-        cfg = json.load(open("/opt/web/tc.json", encoding="utf-8"))
-        sid, sk = cfg["secret_id"], cfg["secret_key"]
-        r = _u.call("DescribeFirewallRules", {"InstanceId": iid, "Limit": 100, "Offset": 0}, sid, sk, region)
-        for x in (r.get("Response") or {}).get("FirewallRuleSet", []):
-            if str(x.get("Port")) == str(port) and (x.get("Protocol") or "").upper() == "TCP":
-                return ("already", "TCP %s 已经是放行状态" % port)
-        c = _u.call("CreateFirewallRules", {"InstanceId": iid, "FirewallRules": [{
-            "Protocol": "TCP", "Port": str(port), "CidrBlock": "0.0.0.0/0",
-            "Action": "ACCEPT", "FirewallRuleDescription": "sing-box"}]}, sid, sk, region)
-        e = (c.get("Response") or {}).get("Error")
-        if e:
-            return ("fail", (e.get("Message") or "")[:120])
-        return ("opened", "已在控制台自动放行 TCP %s" % port)
-    except Exception as e:
-        return ("fail", str(e)[:120])
+    import providers
+    st, msg, who = providers.open_port(ip, port)
+    return (st, msg)
+
 
 def port_reachable(host, port, timeout=6):
     try:
@@ -342,35 +320,14 @@ class H(BaseHTTPRequestHandler):
 
         if path == "/resetpw":
             ip = (body.get("ip") or "").strip()
-            try:
-                servers = json.load(open("/opt/web/servers.json", encoding="utf-8")).get("servers", [])
-            except Exception:
-                servers = []
-            inst = next((s for s in servers if s.get("ip") == ip), None)
-            if not inst:
-                return self._json(404, {"ok": False, "error": "这台不是腾讯云的机器，没法自动重置密码"})
-            pw = "Tz" + uuid.uuid4().hex[:10] + "!9a"
-            region = inst.get("regionId") or "ap-singapore"
-            try:
-                sys.path.insert(0, "/opt/web")
-                import usage as _u
-                cfg = json.load(open("/opt/web/tc.json", encoding="utf-8"))
-            except Exception as e:
-                return self._json(500, {"ok": False, "error": "读不到腾讯云配置"})
-            r1 = _u.call("ResetInstancesPassword", {"InstanceIds": [inst["id"]], "Password": pw, "UserName": "root"}, cfg["secret_id"], cfg["secret_key"], region)
-            e1 = r1.get("Response", {}).get("Error")
-            if e1:
-                code = e1.get("Code", "")
-                msg = e1.get("Message", "")
-                if "NoPermission" in code or "Unauthorized" in code:
-                    return self._json(403, {"ok": False, "error": "没有重置密码的权限。需要在控制台给这个子账号加「轻量应用服务器全读写」策略。"})
-                return self._json(500, {"ok": False, "error": "重置失败：" + msg[:120]})
-            try:
-                r2 = _u.call("RebootInstances", {"InstanceIds": [inst["id"]]}, cfg["secret_id"], cfg["secret_key"], region)
-                e2 = r2.get("Response", {}).get("Error")
-            except Exception as e:
-                e2 = {"Code": "EXC", "Message": str(e)[:80]}
-            return self._json(200, {"ok": True, "password": pw, "reboot": (e2 is None), "name": inst.get("name", "")})
+            import providers
+            st, msg, extra, who = providers.reset_password(ip)
+            if st == "skip":
+                return self._json(404, {"ok": False, "error": msg})
+            if st == "fail":
+                return self._json(403 if ("权限" in msg) else 500, {"ok": False, "error": msg})
+            return self._json(200, {"ok": True, "password": extra.get("password", ""),
+                                    "reboot": extra.get("reboot", False), "provider": who})
 
         if path == "/addnode":
             ip = (body.get("ip") or "").strip()

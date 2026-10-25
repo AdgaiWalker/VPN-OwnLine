@@ -34,11 +34,15 @@ apt update && apt install -y caddy
 
 ```bash
 mkdir -p /opt/web
+cp -r server/providers /opt/web/
 cp server/*.py server/*.sh /opt/web/
 cp web/index.html /opt/web/
 chmod 755 /opt/web/*.sh
 cp config/*.example.json /opt/web/   # 去掉 .example 并按需修改
 ```
+
+`providers/` 是云厂商适配层。没有云账号也能跑——`generic` 会兜底，
+只是少了"自动开防火墙 / 自动重置密码"。
 
 ## 第 4 步：接上订阅
 
@@ -80,3 +84,12 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Clash' https://v.example.com/s/<tok
 2. 关联策略 `QcloudLighthouseReadOnlyAccess`
 3. 拿到 SecretId / SecretKey，写入 `/opt/web/tc.json`，`chmod 600`
 4. 若要自动化密码重置，再关联 `QcloudLighthouseFullAccess`
+
+
+## 第 8 步：验收
+
+```bash
+./scripts/verify.sh https://v.example.com 你的用户名 你的密码 你的token
+```
+
+全部 ✅ 才算装好。清单见 [07-ACCEPTANCE.md](07-ACCEPTANCE.md)。
