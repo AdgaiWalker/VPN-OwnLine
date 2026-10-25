@@ -2,6 +2,8 @@
 
 > 这不是一个"下载即用"的产品，是一份**把决策、代价、失败模式都写清楚的做法**。
 > 代码是这套做法的参考实现，可以照着搭，也可以只读文档、自己实现。
+>
+> 如果只读一页：**[docs/08-LESSONS.md](docs/08-LESSONS.md)**——三个最贵的 bug，与技术无关。
 
 ---
 
@@ -87,6 +89,7 @@ docs/
   05-COSTS-RISKS.md     成本、风险、合规
   06-WHEN-NOT-TO-USE.md 什么时候别用
   07-ACCEPTANCE.md      验收清单（人工 + AI 交付）
+  08-LESSONS.md         三个最贵的 bug（只读一页就读这个）
   DEPLOY.md             从零部署
   OPS.md                日常运维与排障
   RESTORE.md            灾难恢复
