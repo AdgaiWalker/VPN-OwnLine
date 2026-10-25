@@ -82,7 +82,7 @@ docs/
   00-WHY.md             每个技术选择的理由和代价（ADR）
   01-TOPOLOGY.md        三种拓扑，怎么选
   02-PROVIDERS.md       云厂商接入规范，怎么加一家
-  03-FAILURE-MODES.md   13 个真实踩过的坑
+  03-FAILURE-MODES.md   14 个真实踩过的坑
   04-SECURITY.md        威胁模型
   05-COSTS-RISKS.md     成本、风险、合规
   06-WHEN-NOT-TO-USE.md 什么时候别用

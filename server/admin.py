@@ -321,7 +321,9 @@ class H(BaseHTTPRequestHandler):
         if path == "/resetpw":
             ip = (body.get("ip") or "").strip()
             import providers
-            st, msg, extra, who = providers.reset_password(ip)
+            st, msg, extra, who = providers.reset_password(ip, dry_run=bool(body.get("dry_run")))
+            if st == "dry":
+                return self._json(200, {"ok": True, "dry_run": True, "would": msg, "provider": who})
             if st == "skip":
                 return self._json(404, {"ok": False, "error": msg})
             if st == "fail":

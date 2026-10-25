@@ -127,10 +127,12 @@ class Provider(Base):
 
     # ---------- 写 ----------
 
-    def open_port(self, ip, port):
+    def open_port(self, ip, port, dry_run=False):
         inst = self._find(ip)
         if not inst:
             return ("skip", "")
+        if dry_run:
+            return ("dry", "会在腾讯云放行 TCP %s（未执行）" % port)
         region = inst.get("regionId") or "ap-singapore"
         iid = inst.get("id")
         try:
@@ -148,10 +150,12 @@ class Provider(Base):
         except Exception as e:
             return ("fail", str(e)[:120])
 
-    def reset_password(self, ip):
+    def reset_password(self, ip, dry_run=False):
         inst = self._find(ip)
         if not inst:
             return ("skip", "", {})
+        if dry_run:
+            return ("dry", "会把 %s 的 root 密码重置并重启（未执行）" % inst.get("name", ip), {})
         region = inst.get("regionId") or "ap-singapore"
         pw = "Tz" + _uuid.uuid4().hex[:10] + "!9a"
         try:

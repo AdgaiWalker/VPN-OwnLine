@@ -20,13 +20,18 @@ class Provider:
         """返回 {ip: {"used","total","start","end","overflow","region"}}。"""
         return {}
 
-    def open_port(self, ip, port):
-        """返回 (状态, 说明)。状态取值：opened / already / fail / skip。
+    def open_port(self, ip, port, dry_run=False):
+        """返回 (状态, 说明)。状态取值：opened / already / fail / skip / dry。
+
+        dry_run=True 时只描述"会做什么"，绝不产生副作用。
 
         skip 表示"这家云不管这台机器"，调用方会继续问下一个 provider。
         """
         return ("skip", "")
 
-    def reset_password(self, ip):
-        """返回 (状态, 说明, 附加数据)，附加数据里可带 {"password": 新密码}。"""
+    def reset_password(self, ip, dry_run=False):
+        """返回 (状态, 说明, 附加数据)，附加数据里可带 {"password": 新密码}。
+
+        dry_run=True 时只描述"会做什么"，绝不产生副作用。
+        """
         return ("skip", "", {})
