@@ -1,0 +1,5 @@
+[Unit]
+Description=Tencent Lighthouse traffic refresh
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/web/usage_refresh.py

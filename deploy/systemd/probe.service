@@ -1,0 +1,7 @@
+[Unit]
+Description=Proxy node status probe
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/web/probe.py

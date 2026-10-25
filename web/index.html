@@ -1,0 +1,655 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#f4f5f7" media="(prefers-color-scheme:light)">
+<meta name="theme-color" content="#0b0c0f" media="(prefers-color-scheme:dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="梯子">
+<link rel="apple-touch-icon" href="icon.png">
+<title>梯子</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --card:#fff; --fg:#0f1115; --muted:#5b6270; --line:#e3e6ec;
+    --accent:#2563eb; --accentfg:#fff; --ok:#15803d; --bad:#b91c1c; --danger:#b91c1c;
+    --bar:#eef0f4; --r:16px; --ease:cubic-bezier(.22,1,.36,1);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{ --bg:#0b0c0f; --card:#15171c; --fg:#eef1f6; --muted:#9aa1ad; --line:#262a33;
+      --accent:#6b9bff; --accentfg:#0b0c0f; --ok:#4ade80; --bad:#ff6b6b; --danger:#ff7b7b; --bar:#20242c; }
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;padding:24px 16px 40px;background:var(--bg);color:var(--fg);
+    font:17px/1.5 -apple-system,BlinkMacSystemFont,system-ui,"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    display:flex;justify-content:center;-webkit-font-smoothing:antialiased;min-height:100vh}
+  main{width:100%;max-width:440px}
+  header{display:flex;align-items:center;justify-content:space-between;margin:0 2px 16px;
+    animation:fadeUp .35s var(--ease) both}
+  h1{margin:0;font-size:26px;font-weight:700;letter-spacing:-.3px}
+  .pill{font-size:13px;font-weight:600;color:var(--muted);background:var(--card);
+    border:1px solid var(--line);border-radius:999px;padding:5px 11px;white-space:nowrap;transition:color .2s}
+  .pill.ok{color:var(--ok)} .pill.bad{color:var(--bad)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+    padding:18px;margin-bottom:12px;animation:fadeUp .35s var(--ease) both}
+  .card:nth-of-type(1){animation-delay:.02s}
+  .card:nth-of-type(2){animation-delay:.06s}
+  .card:nth-of-type(3){animation-delay:.1s}
+  .card:nth-of-type(4){animation-delay:.14s}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .lead{margin:0 0 14px;font-size:15px;color:var(--muted)}
+  .lead b{color:var(--accent);font-weight:600}
+  .btn{display:flex;align-items:center;justify-content:center;min-height:50px;padding:12px 16px;
+    border-radius:12px;font-size:17px;font-weight:600;text-decoration:none;text-align:center;
+    border:1px solid var(--line);color:var(--fg);background:transparent;width:100%;font-family:inherit;
+    cursor:pointer;margin-bottom:10px;transition:transform .12s var(--ease),opacity .12s}
+  .btn:last-child{margin-bottom:0}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}
+  .btn:active{transform:scale(.98);opacity:.85}
+  .btn[disabled]{opacity:.5;pointer-events:none}
+  .copyrow{display:flex;align-items:center;gap:10px;margin-top:12px;padding-top:14px;border-top:1px solid var(--line)}
+  .copyrow code{flex:1;min-width:0;font:13px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;
+    color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .tiny{flex:none;min-height:44px;padding:0 16px;border-radius:11px;border:1px solid var(--line);
+    background:transparent;color:var(--accent);font-size:15px;font-weight:600;font-family:inherit;
+    cursor:pointer;transition:transform .12s var(--ease)}
+  .tiny:active{transform:scale(.96)}
+  .note{margin:10px 0 0;font-size:13px;line-height:1.5;color:var(--muted)}
+  .skeleton{padding:10px 0;font-size:15px;color:var(--muted)}
+  .link{border:0;background:none;color:var(--accent);font-size:15px;font-weight:600;
+    font-family:inherit;padding:6px 2px;cursor:pointer;text-decoration:underline}
+  .cardtitle{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.4px;margin:0 0 6px}
+  .node{display:flex;align-items:center;gap:12px;min-height:56px;padding:10px 0;border-bottom:1px solid var(--line)}
+  .node:last-child{border-bottom:0;padding-bottom:0}
+  .node:first-child{padding-top:0}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none;transition:background .25s}
+  .dot.ok{background:var(--ok)} .dot.bad{background:var(--bad)}
+  .nmeta{flex:1;min-width:0}
+  .nmeta b{display:block;font-size:17px;font-weight:600;letter-spacing:-.2px}
+  .nmeta small{display:block;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .more{flex:none;width:44px;height:44px;border:0;background:transparent;color:var(--muted);
+    font-size:20px;line-height:1;font-family:inherit;cursor:pointer;border-radius:11px;
+    display:flex;align-items:center;justify-content:center;transition:background .15s}
+  .more:active{background:var(--bar)}
+  .empty{text-align:center;padding:18px 0 8px;color:var(--muted);font-size:15px}
+  .empty .ico{width:44px;height:44px;margin:0 auto 10px;border-radius:50%;
+    border:1.5px dashed var(--line);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:20px}
+  .q{padding:12px 0;border-bottom:1px solid var(--line)}
+  .q:first-child{padding-top:0} .q:last-child{border-bottom:0;padding-bottom:0}
+  .qhead{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .qhead b{font-size:17px;font-weight:600} .qhead span{font-size:13px;color:var(--muted)}
+  .bar{height:6px;border-radius:3px;background:var(--bar);overflow:hidden;margin:8px 0 6px}
+  .bar i{display:block;height:100%;width:0;border-radius:3px;background:var(--ok);
+    transition:width .7s var(--ease)}
+  .bar i.warn{background:var(--bad)}
+  .q small{font-size:13px;color:var(--muted)}
+  details.manage{padding:0}
+  details.manage>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
+    min-height:52px;padding:0 18px;font-size:17px;font-weight:600;cursor:pointer}
+  details.manage>summary::-webkit-details-marker{display:none}
+  details.manage>summary::after{content:"›";font-size:22px;color:var(--muted);transform:rotate(90deg);
+    transition:transform .22s var(--ease)}
+  details.manage[open]>summary::after{transform:rotate(-90deg)}
+  .panel{padding:0 18px 18px;border-top:1px solid var(--line);animation:panelIn .22s var(--ease)}
+  @keyframes panelIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .panel h3{margin:18px 0 10px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.4px}
+  .panel h3:first-child{margin-top:16px}
+  .field{margin-bottom:10px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input,.field select{width:100%;min-height:46px;padding:10px 12px;border-radius:11px;
+    border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:17px;
+    font-family:inherit;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .inner>summary{list-style:none;min-height:44px;display:flex;align-items:center;font-size:15px;
+    color:var(--muted);cursor:pointer}
+  .inner>summary::-webkit-details-marker{display:none}
+  .inner>summary::before{content:"▸";margin-right:6px;font-size:12px;transition:transform .2s}
+  .inner[open]>summary::before{content:"▾"}
+  .qr{width:100%;max-width:200px;display:block;margin:0 auto;border-radius:10px;background:#fff;padding:8px}
+  ol{margin:0;padding-left:20px;font-size:15px;line-height:1.9}
+  .hitem{padding:9px 0;border-bottom:1px solid var(--line);font-size:15px}
+  .hitem:last-child{border-bottom:0}
+  .hitem.bad b{color:var(--bad)} .hitem.ok b{color:var(--ok)}
+  .hitem i{display:block;font-size:13px;color:var(--muted);font-style:normal;margin-top:2px}
+  footer{text-align:center;font-size:13px;color:var(--muted);margin-top:18px}
+  /* 弹层 */
+  .sheetwrap{position:fixed;inset:0;background:rgba(0,0,0,.32);display:flex;align-items:flex-end;
+    justify-content:center;opacity:0;transition:opacity .22s var(--ease);z-index:50;padding:0}
+  .sheetwrap.show{opacity:1}
+  .sheet{background:var(--card);width:100%;max-width:440px;border-radius:20px 20px 0 0;
+    padding:22px 18px calc(18px + env(safe-area-inset-bottom));transform:translateY(100%);
+    transition:transform .28s var(--ease)}
+  .sheetwrap.show .sheet{transform:none}
+  .sheet h2{margin:0 0 8px;font-size:19px;font-weight:700;letter-spacing:-.2px;text-align:center}
+  .sheet p{margin:0 0 18px;font-size:15px;color:var(--muted);text-align:center;line-height:1.5}
+  .sheetbtns{display:flex;flex-direction:column;gap:8px}
+  .sbtn{min-height:50px;border-radius:13px;border:1px solid var(--line);background:transparent;
+    color:var(--fg);font-size:17px;font-weight:600;font-family:inherit;cursor:pointer;
+    transition:transform .12s var(--ease)}
+  .sbtn:active{transform:scale(.98)}
+  .sbtn.danger{color:var(--danger);border-color:var(--line)}
+  .sbtn.ok{background:var(--accent);border-color:var(--accent);color:var(--accentfg)}
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+.srvrow{display:flex;align-items:center;gap:10px;width:100%;text-align:left;min-height:60px;padding:10px 12px;margin-bottom:8px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--fg);font-family:inherit;cursor:pointer;transition:border-color .15s}
+.srvrow b{display:block;font-size:17px;font-weight:600}
+.srvrow small{display:block;font-size:13px;color:var(--muted)}
+.srvrow .chk{flex:none;width:22px;height:22px;border-radius:50%;border:1.5px solid var(--line);margin-left:auto;transition:all .15s}
+.srvrow.sel{border-color:var(--accent)}
+.srvrow.sel .chk{border-color:var(--accent);background:var(--accent);box-shadow:inset 0 0 0 4px var(--card)}
+.srvrow.used{opacity:.5}
+.steps{display:flex;flex-direction:column;margin:6px 0 14px}
+.stp{display:flex;align-items:center;gap:10px;font-size:15px;padding:7px 0;color:var(--muted);transition:color .2s}
+.stp .ic{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s}
+.stp.cur{color:var(--fg);font-weight:600}
+.stp.cur .ic{border-color:var(--accent)}
+.stp.cur .ic::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite}
+.stp.done{color:var(--fg)}
+.stp.done .ic{border-color:var(--ok);background:var(--ok)}
+.stp.done .ic::after{content:"✓";color:#fff;font-size:11px;font-weight:700}
+.stp.err{color:var(--fg);font-weight:600}
+.stp.err .ic{border-color:var(--bad);background:var(--bad)}
+.stp.err .ic::after{content:"✗";color:#fff;font-size:11px;font-weight:700}
+@keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
+.logbox{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);background:var(--bar);border-radius:10px;padding:10px;max-height:104px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.sec{border-top:1px solid var(--line);margin-top:14px}
+.sec:first-child{border-top:0;margin-top:12px}
+.sec>summary{list-style:none;min-height:44px;display:flex;align-items:center;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.4px;cursor:pointer}
+.sec>summary::-webkit-details-marker{display:none}
+.sec>summary::before{content:"▸";margin-right:6px;font-size:11px}
+.sec[open]>summary::before{content:"▾"}
+.sec h3{margin:6px 0 10px}
+.warn{background:rgba(185,28,28,.08);border:1px solid rgba(185,28,28,.3);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.5;margin:8px 0 4px}
+.warn b{color:var(--bad)}
+.srvrow.used b{color:var(--muted)}
+#w1next[disabled]{opacity:.45;pointer-events:none}
+.cardhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.ghostbtn{min-height:44px;padding:0 8px;border:0;background:none;color:var(--accent);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}
+.sheet .field{text-align:left}
+.sheet .field input{text-align:left}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>梯子</h1>
+    <span class="pill" id="pill">…</span>
+  </header>
+
+  <section class="card">
+    <p class="lead" id="devhint">选择下面的按钮导入</p>
+    <a class="btn primary" id="btn-sr" href="#">一键导入 · Shadowrocket</a>
+    <a class="btn" id="btn-clash" href="#">一键导入 · Clash 系</a>
+    <div class="copyrow">
+      <code id="suburl">https://v.example.com/s/CHANGEME0000</code>
+      <button class="tiny" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
+    </div>
+    <p class="note" id="fallback"></p>
+  </section>
+
+  <section class="card"><div id="quota"><div class="skeleton">读取中…</div></div></section>
+
+  <section class="card">
+    <div class="cardhead"><div class="cardtitle">节点</div><button class="ghostbtn" onclick="openAdd()">＋ 添加</button></div>
+    <div id="nodes"><div class="skeleton">读取中…</div></div>
+  </section>
+
+  <details class="card manage">
+    <summary>管理</summary>
+    <div class="panel">
+      <details class="sec" open>
+        <summary>常用</summary>
+        <h3>添加节点</h3>
+      <div id="w1">
+        <div id="srvlist"><div class="skeleton">读取服务器…</div></div>
+        <div class="warn" id="srvwarn" style="display:none"></div>
+        <button class="btn primary" id="w1next" style="margin-top:4px" onclick="wizGoto(2)">下一步</button>
+      </div>
+      <div id="w2" style="display:none">
+        <div class="field"><label id="w2label">服务器地址</label><input id="f-ip" placeholder="IP 或域名，例如 sg.example.com" inputmode="url" autocapitalize="off" autocorrect="off"></div>
+        <div class="field"><label>root 密码</label><input id="f-pass" type="password" placeholder="服务器的 root 密码"></div>
+        <div class="field"><label>名称（可选）</label><input id="f-name" placeholder="比如 东京"></div>
+        <details class="inner"><summary>高级</summary>
+          <div class="field" style="margin-top:8px"><label>用户名</label><input id="f-user" value="root"></div>
+          <div class="field"><label>端口</label><input id="f-port" value="443"></div>
+        </details>
+        <button class="btn primary" style="margin-top:12px" id="btn-add" onclick="startInstall()">开始安装</button>
+        <button class="btn" onclick="wizGoto(1)">返回</button>
+      </div>
+      <div id="w3" style="display:none">
+        <div class="steps" id="steps"></div>
+        <details class="inner" id="logwrap"><summary>原始输出</summary><div class="logbox" id="logbox"></div></details>
+        <button class="btn" id="w3back" style="margin-top:12px;display:none" onclick="wizGoto(1)">返回</button>
+      </div>
+        <h3>换设备</h3>
+        <img class="qr" src="qr-sub.png" alt="订阅二维码">
+        <p class="note">用新设备扫这个码，一次导入全部节点。</p>
+      </details>
+
+      <details class="sec">
+        <summary>维护</summary>
+        <h3>一键体检</h3>
+        <button class="btn" onclick="health()">开始检查</button>
+        <div id="health"></div>
+        <h3>作废旧订阅</h3>
+        <p class="note">有人还在用你的节点时，点这个。旧地址立刻失效，所有设备都要重新导入。</p>
+        <button class="btn" style="margin-top:10px" onclick="rotate()">作废旧订阅</button>
+      </details>
+
+      <details class="sec">
+        <summary>帮助</summary>
+        <h3>装客户端</h3>
+        <ol id="clients">
+          <li data-os="ios"><b>iPhone / iPad</b> · App Store 搜 Shadowrocket（约 ¥18）或 Stash</li>
+          <li data-os="mac"><b>Mac</b> · Shadowrocket（App Store）或 Clash Verge Rev（免费）</li>
+          <li data-os="win"><b>Windows</b> · Clash Verge Rev（免费，GitHub）</li>
+          <li data-os="android"><b>Android</b> · FlClash（免费，GitHub）</li>
+          <li data-os="linux"><b>Linux</b> · Clash Verge Rev 或 mihomo</li>
+        </ol>
+        <h3>备用格式</h3>
+        <p class="note"><code id="fc" style="word-break:break-all">…</code>（Clash）<br>
+        <code id="fs" style="word-break:break-all">…</code>（小火箭）</p>
+      </details>
+    </div>
+  </details>
+
+  <footer>数据每 10 分钟自动更新</footer>
+</main>
+<script>
+var NODES=[], STATUS={};
+var WIZ={srv:null,servers:[],job:null,timer:null};
+var INSTALLING=false;
+function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function cp(t,el){ if(navigator.clipboard){ navigator.clipboard.writeText(t).then(function(){ var o=el.textContent; el.textContent='已复制'; setTimeout(function(){el.textContent=o},1400); }); } }
+function setPill(txt,cls){ var p=document.getElementById('pill'); if(!p) return; p.textContent=txt; p.className='pill'+(cls?(' '+cls):''); }
+
+function dialog(o){
+  o=o||{};
+  return new Promise(function(resolve){
+    var w=document.createElement('div');
+    w.className='sheetwrap';
+    var msg=(o.message||'').replace(/\n/g,'<br>');
+    w.innerHTML='<div class="sheet"><h2>'+esc(o.title||'')+'</h2>'+
+      (msg?'<p>'+msg+'</p>':'')+
+      '<div class="sheetbtns">'+
+        (o.cancelText===null?'':'<button class="sbtn cancel">'+esc(o.cancelText||'取消')+'</button>')+
+        '<button class="sbtn '+(o.danger?'danger':'ok')+'">'+esc(o.confirmText||'好')+'</button>'+
+      '</div></div>';
+    document.body.appendChild(w);
+    requestAnimationFrame(function(){ w.classList.add('show'); });
+    var done=false;
+    function close(v){ if(done) return; done=true; w.classList.remove('show'); setTimeout(function(){ w.remove(); },260); resolve(v); }
+    w.querySelector('.sbtn.ok,.sbtn.danger').addEventListener('click',function(){ close(true); });
+    var c=w.querySelector('.sbtn.cancel'); if(c) c.addEventListener('click',function(){ close(false); });
+    w.addEventListener('click',function(e){ if(e.target===w) close(false); });
+    document.addEventListener('keydown',function k(e){ if(e.key==='Escape'){ document.removeEventListener('keydown',k); close(false); } });
+  });
+}
+
+function render(){
+  var box=document.getElementById('nodes');
+  if(!NODES.length){
+    box.innerHTML='<div class="empty"><div class="ico">＋</div>还没有节点<br><span style="font-size:13px">在下面「管理」里添加一台服务器</span></div>';
+    return;
+  }
+  box.innerHTML=NODES.map(function(n,i){
+    return '<div class="node"><span class="dot" id="d'+i+'"></span>'+
+      '<div class="nmeta"><b>'+esc(n.name)+'</b><small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small></div>'+
+      '<button class="more" aria-label="更多" onclick="nodeMenu('+i+')">⋯</button></div>';
+  }).join('');
+  paintStatus();
+}
+function paintStatus(){
+  var ok=0;
+  NODES.forEach(function(n,i){
+    var d=document.getElementById('d'+i), s=document.getElementById('s'+i);
+    if(!d||!s) return;
+    var st=STATUS[n.name];
+    if(!st){ d.className='dot'; s.textContent='检查中…'; return; }
+    d.className='dot '+(st.ok?'ok':'bad');
+    s.textContent = st.ok ? ('在线 '+st.ms+'ms') : (st.reason==='port'?'不通 · 端口没放行':(st.reason==='tls'?'不通 · 服务没起来':'不通'));
+    if(st.ok) ok++;
+  });
+  if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 在线', ok===NODES.length?'ok':'bad');
+}
+function load(){
+  fetch('api/nodes',{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(ns){ NODES=ns; render(); poll(); loadServers(); loadQuota(); })
+    .catch(function(){ document.getElementById('nodes').innerHTML='<div class="skeleton">读不到节点列表<br><button class="link" onclick="load()">重试</button></div>'; setPill('离线','bad'); });
+}
+function poll(){
+  fetch('status.json',{cache:'no-store'}).then(function(r){return r.json()})
+    .then(function(s){ STATUS=s; paintStatus(); })
+    .catch(function(){ setPill('状态未知',''); });
+}
+function loadQuota(){
+  Promise.all([
+    fetch('quota.json',{cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {nodes:[]}}),
+    fetch('usage.json',{cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {}})
+  ]).then(function(res){
+    var q=res[0]||{}, u=res[1]||{}, box=document.getElementById('quota');
+    if(!NODES.length){ box.innerHTML='<div class="skeleton">暂无节点</div>'; return; }
+    var today=new Date(); today.setHours(0,0,0,0);
+    box.innerHTML=NODES.map(function(node){
+      var us=u[node.host]||{};
+      var qn=(q.nodes||[]).filter(function(x){return x.name===node.name})[0]||{};
+      var total=us.total||qn.quota||0;
+      var used=(us.used!==undefined)?us.used:null;
+      var pct=(used!==null&&total)?Math.min(100,(used/total*100)):0;
+      var exp=us.expire||'';
+      var dl='到期日未知';
+      if(exp){ var d=new Date(exp+'T00:00:00'); var days=Math.round((d-today)/86400000); dl='到期 '+exp+' · '+(days>0?('剩 '+days+' 天'):'已到期'); }
+      var resetStr='';
+      if(us.end){ var e=new Date(us.end+'T00:00:00'); var rd=Math.round((e-today)/86400000); resetStr=(parseInt(us.end.slice(5,7),10)+'月'+parseInt(us.end.slice(8,10),10)+'日重置')+(rd>=0?(' · 还有 '+rd+' 天'):''); }
+      var right = used!==null ? (used+' / '+total+' GB') : (total? (total+' GB/月') : '—');
+      return '<div class="q"><div class="qhead"><b>'+esc(node.name)+'</b><span>'+right+'</span></div>'+
+        '<div class="bar"><i class="'+(pct>85?'warn':'')+'" data-w="'+Math.max(pct,0.6).toFixed(1)+'%"></i></div>'+
+        '<small>'+dl+(resetStr?('　·　'+resetStr):'')+'</small></div>';
+    }).join('');
+    requestAnimationFrame(function(){
+      var arr=box.querySelectorAll('.bar i');
+      for(var i=0;i<arr.length;i++){ arr[i].style.width=arr[i].getAttribute('data-w'); }
+    });
+  });
+}
+function setNextEnabled(on){ var b=document.getElementById('w1next'); if(b){ b.disabled=!on; } }
+function loadServers(){
+  fetch('servers.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
+    WIZ.servers=d.servers||[];
+    var box=document.getElementById('srvlist'); if(!box) return;
+    if(!WIZ.servers.length){ box.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步用「高级」手动填 IP</div>'; return; }
+    box.innerHTML=WIZ.servers.map(function(s,i){
+      var used=NODES.some(function(n){return n.host===s.ip});
+      return '<button class="srvrow'+(used?' used':'')+'" data-i="'+i+'" onclick="pickSrv('+i+')"><span><b>'+esc(s.name||s.ip)+'</b><small>'+s.ip+' · '+s.region+(used?' · 已在用':'')+'</small></span><i class="chk"></i></button>';
+    }).join('') + '<button class="srvrow" data-i="-1" onclick="pickSrv(-1)"><span><b>＋ 其他服务器</b><small>手动填地址 · 不一定是腾讯云</small></span><i class="chk"></i></button>';
+    WIZ.srv=null; setNextEnabled(false);
+  }).catch(function(){ var b=document.getElementById('srvlist'); if(b) b.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步用「高级」手动填 IP</div>'; });
+}
+function pickSrv(i){
+  WIZ.srv=i;
+  var rows=document.querySelectorAll('.srvrow');
+  for(var k=0;k<rows.length;k++){ rows[k].classList.toggle('sel', parseInt(rows[k].getAttribute('data-i'))===i); }
+  var ip=document.getElementById('f-ip'), nm=document.getElementById('f-name'), lb=document.getElementById('w2label'), warn=document.getElementById('srvwarn');
+  if(warn){ warn.style.display='none'; warn.innerHTML=''; }
+  if(i<0){ if(ip) ip.value=''; if(lb) lb.textContent='服务器地址'; if(nm){ nm.value=''; nm.placeholder='比如 东京'; } setNextEnabled(true); if(ip) setTimeout(function(){ip.focus();},150); return; }
+  var s=WIZ.servers[i]; if(!s) return;
+  if(ip) ip.value=s.ip;
+  if(lb) lb.textContent='服务器地址 · '+(s.name||s.ip);
+  if(nm&&!nm.value) nm.placeholder=s.name||s.ip;
+  var used=NODES.some(function(n){return n.host===s.ip});
+  if(warn&&used){ warn.style.display=''; warn.innerHTML='⚠️ 这台正在服役。重装会换掉密钥，<b>所有已连接的设备会立刻断线</b>，之后要重新导入订阅。'; }
+  setNextEnabled(true);
+}
+function wizGoto(n){
+  ['w1','w2','w3'].forEach(function(id,i){ var el=document.getElementById(id); if(el) el.style.display=(i===n-1)?'':'none'; });
+  var w=document.getElementById('w3back'); if(w&&n!==3) w.style.display='none';
+}
+function renderSteps(cur,done,failed){
+  var names=['连接服务器','下载并安装 sing-box','启动服务','检查端口'];
+  var el=document.getElementById('steps'); if(!el) return;
+  el.innerHTML=names.map(function(n,i){
+    var s=i+1, cls=(done||s<cur)?'done':(s===cur?(failed?'err':'cur'):'');
+    return '<div class="stp '+cls+'"><span class="ic"></span><span>'+n+'</span></div>';
+  }).join('');
+}
+function startInstall(){
+  var pass=document.getElementById('f-pass').value;
+  var ip=document.getElementById('f-ip').value.trim();
+  var user=document.getElementById('f-user').value.trim()||'root';
+  var port=document.getElementById('f-port').value.trim()||'443';
+  var name=document.getElementById('f-name').value.trim();
+  if(!pass){ dialog({title:'还差一步',message:'请输入服务器 root 密码',cancelText:null,confirmText:'好'}); return; }
+  if(!ip){ dialog({title:'还差一步',message:'请选择一台服务器，或点「其他服务器」手动填地址',cancelText:null,confirmText:'好'}); return; }
+  if(!name){ var s=WIZ.servers[WIZ.srv]; name=(s&&s.name)||ip; }
+  var used=NODES.some(function(n){return n.host===ip});
+  if(used){
+    dialog({title:'确认重装？',message:'这台机器上已经有节点在跑。重装会生成新密钥，现有设备会立刻断线。',confirmText:'我确定，重装',danger:true})
+      .then(function(y){ if(y) doInstall(name,ip,user,port,pass); });
+  } else doInstall(name,ip,user,port,pass);
+}
+function doInstall(name,ip,user,port,pass){
+  WIZ.last={name:name,ip:ip,user:user,port:port};
+  var btn=document.getElementById('btn-add'); if(btn) btn.disabled=true;
+  fetch('api/addnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,ip:ip,user:user,pass:pass,port:port})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(btn) btn.disabled=false;
+      if(!d.ok){ dialog({title:'无法开始',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+      WIZ.job=d.job; INSTALLING=true; rememberJob(d.job);
+      wizGoto(3); renderSteps(1,false);
+      var lb=document.getElementById('logbox'); if(lb) lb.textContent='';
+      WIZ.timer=setInterval(pollJob,1500); pollJob();
+    }).catch(function(e){ if(btn) btn.disabled=false; dialog({title:'无法开始',message:String(e),cancelText:null,confirmText:'好'}); });
+}
+function autoFixPrompt(){
+  var a=WIZ.last; if(!a) return;
+  choose('要不要我自动修？', '我会把「'+a.name+'」的 root 密码重置成一个随机密码，然后重启这台机器（约 90 秒），再用新密码装节点。\n\n机器会短暂断网，上面的服务会中断一次。', [{label:'自动重置并重装'}])
+    .then(function(k){ if(k===0) autoFix(); });
+}
+function autoFix(){
+  var a=WIZ.last; if(!a) return;
+  fetch('api/resetpw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ip:a.ip})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(!d.ok){ dialog({title:'没法自动修',message:d.error||'未知原因',cancelText:null,confirmText:'好'}); return; }
+      wizGoto(3); renderSteps(1,false);
+      document.getElementById('logwrap').open=true;
+      var lb=document.getElementById('logbox'); if(lb) lb.textContent='密码已重置，正在重启服务器…';
+      var n=90; INSTALLING=true; setPill('重启中 '+n+'s','');
+      var t=setInterval(function(){
+        n--;
+        if(lb) lb.textContent='正在重启服务器… '+n+' 秒后自动重装';
+        setPill('重启中 '+n+'s','');
+        if(n<=0){ clearInterval(t); INSTALLING=false; doInstall(a.name,a.ip,'root',a.port,d.password); }
+      },1000);
+    }).catch(function(e){ dialog({title:'没法自动修',message:String(e),cancelText:null,confirmText:'好'}); });
+}
+function pollJob(){
+  if(!WIZ.job) return;
+  fetch('api/job?id='+WIZ.job,{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+    var step=Math.max(1,j.step||1);
+    renderSteps(step, j.state==='done', j.state==='error');
+    if(INSTALLING) setPill('安装中 '+step+'/4','');
+    var lb=document.getElementById('logbox');
+    if(lb&&j.log){ lb.textContent=j.log.join('\n'); lb.scrollTop=lb.scrollHeight; }
+    if(j.state==='done'){
+      clearInterval(WIZ.timer); WIZ.timer=null; INSTALLING=false; forgetJob();
+      var extra = j.warn==='port_blocked' ? ('\n\n但 '+j.node.port+' 端口从公网连不进来。\n去腾讯云控制台 → 这台服务器 → 防火墙 → 放行 TCP '+j.node.port) : '';
+      dialog({title:'装好了',message:'「'+j.node.name+'」已加入订阅，客户端刷新即可看到。'+extra,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+    } else if(j.state==='error'){
+      clearInterval(WIZ.timer); WIZ.timer=null; INSTALLING=false; forgetJob();
+      var lw=document.getElementById('logwrap'); if(lw) lw.open=true;
+      var wb=document.getElementById('w3back'); if(wb) wb.style.display='';
+      dialog({title:'安装没成功',message:(j.hint||'看下面的原始输出。'),cancelText:null,confirmText:'好'}).then(function(){ if((j.hint||'').indexOf('密码')>=0) autoFixPrompt(); });
+    }
+  }).catch(function(){});
+}
+function rememberJob(id){ try{ localStorage.setItem('sb_job', id); }catch(e){} }
+function forgetJob(){ try{ localStorage.removeItem('sb_job'); }catch(e){} }
+function resumeJob(){
+  var id=null; try{ id=localStorage.getItem('sb_job'); }catch(e){}
+  if(!id) return;
+  fetch('api/job?id='+id,{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+    if(!j.ok||j.state==='done'||j.state==='error'){ forgetJob(); return; }
+    WIZ.job=id; INSTALLING=true; wizGoto(3); renderSteps(j.step||1,false);
+    WIZ.timer=setInterval(pollJob,1500); pollJob();
+  }).catch(function(){});
+}
+function choose(title,message,actions){
+  return new Promise(function(resolve){
+    var w=document.createElement('div'); w.className='sheetwrap';
+    w.innerHTML='<div class="sheet"><h2>'+esc(title)+'</h2>'+(message?'<p>'+esc(message).replace(/\n/g,'<br>')+'</p>':'')+
+      '<div class="sheetbtns">'+actions.map(function(a,i){return '<button class="sbtn '+(a.danger?'danger':'')+'" data-i="'+i+'">'+esc(a.label)+'</button>';}).join('')+
+      '<button class="sbtn cancel">取消</button></div></div>';
+    document.body.appendChild(w); requestAnimationFrame(function(){w.classList.add('show');});
+    var done=false;
+    function close(v){ if(done) return; done=true; w.classList.remove('show'); setTimeout(function(){w.remove();},260); resolve(v); }
+    var bs=w.querySelectorAll('.sbtn[data-i]');
+    for(var i=0;i<bs.length;i++){ (function(b){ b.onclick=function(){ close(parseInt(b.getAttribute('data-i'))); }; })(bs[i]); }
+    w.querySelector('.sbtn.cancel').onclick=function(){ close(-1); };
+    w.addEventListener('click',function(e){ if(e.target===w) close(-1); });
+  });
+}
+function formSheet(title,fields,confirmText){
+  return new Promise(function(resolve){
+    var w=document.createElement('div'); w.className='sheetwrap';
+    w.innerHTML='<div class="sheet" style="text-align:left"><h2 style="text-align:left">'+esc(title)+'</h2>'+
+      fields.map(function(f,i){return '<div class="field"><label>'+esc(f.label)+'</label><input id="sf'+i+'" type="'+(f.type||'text')+'" value="'+esc(f.value===undefined?'':String(f.value))+'" placeholder="'+esc(f.ph||'')+'"></div>';}).join('')+
+      '<div class="sheetbtns" style="margin-top:6px"><button class="sbtn cancel">取消</button><button class="sbtn ok">'+esc(confirmText||'保存')+'</button></div></div>';
+    document.body.appendChild(w); requestAnimationFrame(function(){w.classList.add('show');});
+    var done=false;
+    function close(v){ if(done) return; done=true; w.classList.remove('show'); setTimeout(function(){w.remove();},260); resolve(v); }
+    w.querySelector('.sbtn.ok').onclick=function(){ var vals=fields.map(function(f,i){ return document.getElementById('sf'+i).value.trim(); }); close(vals); };
+    w.querySelector('.sbtn.cancel').onclick=function(){ close(null); };
+    w.addEventListener('click',function(e){ if(e.target===w) close(null); });
+  });
+}
+function nodeMenu(i){
+  var n=NODES[i], st=STATUS[n.name];
+  choose(n.name, n.host+' · 端口 '+n.port+'\n'+(st&&st.ok?('在线 '+st.ms+'ms'):'不通'), [
+    {label:'编辑 · 名字和端口'},
+    {label:'更换密钥 · 踢掉所有设备'},
+    {label:'删除这个节点', danger:true}
+  ]).then(function(k){
+    if(k===0) editNode(i);
+    else if(k===1) rotateKey(i);
+    else if(k===2) delNode(i);
+  });
+}
+function editNode(i){
+  var n=NODES[i];
+  formSheet('编辑「'+n.name+'」',[{label:'名字',value:n.name},{label:'端口',value:n.port,type:'number'}],'保存').then(function(v){
+    if(!v) return;
+    var body={name:n.name};
+    if(v[0]&&v[0]!==n.name) body.newname=v[0];
+    if(v[1]&&String(v[1])!==String(n.port)) body.port=v[1];
+    if(!body.newname&&!body.port){ return; }
+    fetch('api/editnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json()}).then(function(d){
+        if(!d.ok){ dialog({title:'没改成',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+        var msg='订阅已更新。'+(body.port?('\n\n端口已改成 '+body.port+'，服务器上的 sing-box 已重启。'):'');
+        dialog({title:'改好了',message:msg,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+      }).catch(function(e){ dialog({title:'没改成',message:String(e),cancelText:null,confirmText:'好'}); });
+  });
+}
+function rotateKey(i){
+  var n=NODES[i];
+  dialog({title:'更换「'+n.name+'」的密钥？',message:'会生成新的 UUID 并重启这台服务器的 sing-box。\n\n所有已导入的设备会立刻断线，直到重新拉取订阅。',confirmText:'换密钥',danger:true})
+    .then(function(y){
+      if(!y) return;
+      fetch('api/editnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n.name,newkey:true})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(!d.ok){ dialog({title:'没换成',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+          dialog({title:'密钥已更换',message:'旧密钥立刻失效。客户端刷新一次订阅就能继续用。',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+        }).catch(function(e){ dialog({title:'没换成',message:String(e),cancelText:null,confirmText:'好'}); });
+    });
+}
+function openAdd(){
+  var d=document.querySelector('details.manage');
+  if(d){ d.open=true; }
+  var secs=document.querySelectorAll('details.sec');
+  if(secs.length) secs[0].open=true;
+  wizGoto(1);
+  setTimeout(function(){ if(d) d.scrollIntoView({behavior:'smooth',block:'start'}); },120);
+}
+function delNode(i){
+  var n=NODES[i];
+  dialog({title:'确定删除「'+n.name+'」？', message:'订阅里会移除这台节点，服务器上的服务也会停掉。', confirmText:'删除', danger:true})
+    .then(function(yes){
+      if(!yes) return;
+      fetch('api/removenode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n.name})})
+        .then(function(r){return r.json()}).then(function(d){
+          if(!d.ok){ dialog({title:'删除失败',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+          var m = d.stopped===true ? '已删除，服务器上的服务也停了。'
+                : d.stopped===false ? '已从订阅删除，但服务器上的服务没停掉。'
+                : '已从订阅删除。这台没有控制权限，服务仍在运行。';
+          dialog({title:'完成',message:m,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+        }).catch(function(e){ dialog({title:'删除失败',message:String(e),cancelText:null,confirmText:'好'}); });
+    });
+}
+function addNode(){
+  var name=document.getElementById('f-name').value.trim();
+  var ip=document.getElementById('f-ip').value.trim();
+  var user=document.getElementById('f-user').value.trim()||'root';
+  var pass=document.getElementById('f-pass').value;
+  var port=document.getElementById('f-port').value.trim()||'443';
+  var msg=document.getElementById('msg'), btn=document.getElementById('btn-add');
+  if(!ip||!pass){ msg.textContent='IP 和密码必填'; return; }
+  if(!name){ var sel=document.getElementById('f-srv'); var list=sel._servers||[]; var idx=sel.value; if(idx!=="") name=(list[parseInt(idx)]||{}).name||''; }
+  dialog({title:'安装节点',message:'将在 '+ip+' 上安装「'+(name||ip)+'」\n大约 2–3 分钟，期间别关页面',confirmText:'开始安装'})
+    .then(function(yes){
+      if(!yes) return;
+      btn.disabled=true; msg.textContent='正在安装，别关页面…';
+      fetch('api/addnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,ip:ip,user:user,pass:pass,port:port})})
+        .then(function(r){return r.json()}).then(function(d){
+          btn.disabled=false;
+          if(!d.ok){ msg.textContent='失败：'+(d.error||'未知'); dialog({title:'安装失败',message:(d.error||'未知'),cancelText:null,confirmText:'好'}); return; }
+          msg.textContent='装好了。';
+          var extra = d.warn==='port_blocked' ? ('\n\n但 '+d.node.port+' 端口从公网连不进来。\n去腾讯云控制台 → 这台服务器 → 防火墙 → 放行 TCP '+d.node.port) : '';
+          dialog({title:'装好了',message:'订阅已更新，客户端刷新即可看到。'+extra,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+        }).catch(function(e){ btn.disabled=false; msg.textContent='失败：'+e; dialog({title:'安装失败',message:String(e),cancelText:null,confirmText:'好'}); });
+    });
+}
+function rotate(){
+  dialog({title:'作废旧订阅？',message:'所有设备都要重新导入一次。',confirmText:'作废',danger:true})
+    .then(function(yes){
+      if(!yes) return;
+      fetch('api/rotate',{method:'POST'}).then(function(r){return r.json()}).then(function(d){
+        if(!d.ok){ dialog({title:'操作失败',message:d.error||'未知',cancelText:null,confirmText:'好'}); return; }
+        dialog({title:'已作废',message:'新地址：\n'+d.url+'\n\n页面即将刷新',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+      }).catch(function(e){ dialog({title:'操作失败',message:String(e),cancelText:null,confirmText:'好'}); });
+    });
+}
+function health(){
+  var box=document.getElementById('health'); if(!box) return;
+  box.innerHTML='<div class="skeleton">检查中…</div>';
+  var rows=[]; function add(ok,txt,adv){ rows.push({ok:ok,txt:txt,adv:adv||''}); }
+  var tasks=[];
+  tasks.push(fetch('api/nodes',{cache:'no-store'}).then(function(r){return r.ok?r.json():Promise.reject()}).then(function(j){add(true,'接口正常（'+j.length+' 个节点）')}).catch(function(){add(false,'接口不通','服务挂了，需要登服务器')}));
+  var sub=document.getElementById('suburl').textContent.trim();
+  tasks.push(fetch(sub,{cache:'no-store'}).then(function(r){add(r.ok,'订阅正常（HTTP '+r.status+'）')}).catch(function(){add(false,'订阅拉不到','可能换过锁，重新扫码')}));
+  tasks.push(fetch('status.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(s){
+    NODES.forEach(function(n){ var st=s[n.name]; add(!!(st&&st.ok), n.name+(st&&st.ok?(' 在线 '+st.ms+'ms'):' 不通'), '可能关机、被墙或端口没放行'); });
+  }).catch(function(){add(false,'拿不到节点状态','probe 服务可能挂了')}));
+  tasks.push(fetch('usage.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(u){ var bad=null,n=0; for(var k in u){ if(k.charAt(0)==='_') continue; n++; if(u[k]&&u[k].error) bad=k; } add(!bad,(n?('腾讯云数据正常（'+n+' 台）'):'腾讯云数据为空'),(bad?(bad+' 拉取失败'):'只读密钥可能失效'))}).catch(function(){add(false,'拿不到腾讯云数据','只读密钥可能失效')}));
+  Promise.all(tasks).then(function(){
+    var bad=rows.filter(function(r){return !r.ok}).length;
+    box.innerHTML='<p class="note" style="margin:12px 0 4px;font-weight:600;color:'+(bad?'var(--bad)':'var(--ok)')+'">'+(bad?('发现 '+bad+' 个问题'):'全部正常')+'</p>'+
+      rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'✓ ':'✗ ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('');
+  });
+}
+function wireLinks(){
+  var code=document.getElementById('suburl'); if(!code) return;
+  var sub=code.textContent.trim();
+  var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash');
+  if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub);
+  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub);
+  var fc=document.getElementById('fc'), fs=document.getElementById('fs');
+  if(fc) fc.textContent=sub+'/clash';
+  if(fs) fs.textContent=sub+'/sr';
+}
+function detect(){
+  var ua=navigator.userAgent||"", os="other";
+  if(/iPhone|iPod/.test(ua)) os="ios";
+  else if(/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)) os="ios";
+  else if(/Android/.test(ua)) os="android";
+  else if(/Macintosh|Mac OS X/.test(ua)) os="mac";
+  else if(/Windows/.test(ua)) os="win";
+  else if(/Linux|X11/.test(ua)) os="linux";
+  var apple=(os==="ios"||os==="mac");
+  var sr=document.getElementById("btn-sr"), cl=document.getElementById("btn-clash");
+  if(sr&&cl){ if(!apple){ cl.className="btn primary"; sr.className="btn"; sr.style.display="none"; } else { cl.className="btn"; sr.className="btn primary"; sr.style.display=""; } }
+  var names={ios:"iPhone / iPad",mac:"Mac",android:"Android",win:"Windows",linux:"Linux",other:"这台设备"};
+  var rec={ios:"Shadowrocket",mac:"Shadowrocket 或 Clash Verge",android:"FlClash",win:"Clash Verge Rev",linux:"Clash Verge Rev",other:"对应平台的客户端"};
+  var h=document.getElementById("devhint");
+  if(h) h.innerHTML="检测到 "+names[os]+" · 推荐 <b>"+rec[os]+"</b>";
+  var lis=document.querySelectorAll("#clients li");
+  for(var i=0;i<lis.length;i++){ var m=lis[i].getAttribute("data-os"); lis[i].style.opacity=(m===os)?"1":"0.45"; if(m===os) lis[i].style.fontWeight="600"; }
+  var fb=document.getElementById("fallback");
+  if(fb) fb.textContent = apple ? "点了没反应？说明还没装 Shadowrocket。也可以点 Clash 按钮，或复制地址手动导入。" : "点了没反应？说明还没装 Clash 系客户端。装好后回来点，或复制地址手动导入。";
+}
+wireLinks(); load(); loadQuota(); detect(); resumeJob(); setInterval(poll,60000);
+</script>
+</body>
+</html>

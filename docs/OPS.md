@@ -1,0 +1,94 @@
+# 日常运维与排障
+
+## 加一台节点
+
+1. 打开面板 → 管理 → 常用 → 添加节点
+2. 选列表里的机器（腾讯云会自动列出），或点「＋ 其他服务器」手填 IP/域名
+3. 输 root 密码
+4. 下一步 → 开始安装 → 等进度条走完
+
+**失败怎么办**：弹窗会写明原因。
+
+| 提示 | 含义 | 处理 |
+|---|---|---|
+| 密码不对 | SSH 认证失败 | 点「自动重置并重装」 |
+| 端口没放行 | 装好了但外网连不进 | 腾讯云自动开；其他厂商手动开 |
+| 服务没起来 | 端口通但 sing-box 没跑 | 看原始输出，多半是架构不支持 |
+| 连不上 22 端口 | 机器失联或防火墙挡了 | 查机器状态 |
+
+## 删节点
+
+节点卡片 `⋯` → 删除。会 SSH 进去停服务、把开机自启关掉。
+**机器不会被删**，只是不再是节点。
+
+## 换密钥（踢掉所有设备）
+
+`⋯` → 更换密钥。会生成新 UUID 并重启 sing-box。
+**所有已导入的设备会立刻断线**，需要重新扫码。
+
+适合场景：设备丢了、订阅被转发给了别人。
+
+## 作废旧订阅
+
+管理 → 维护 → 作废旧订阅。会换新 token，
+旧链接直接 404，二维码自动重绘。
+
+注意：作废订阅**不会**让已连接的设备断线——设备上已经存了节点参数。
+要真正踢人，用「换密钥」。
+
+## 页面打不开怎么查
+
+按顺序排查，**任何一环断了都会 400/525**：
+
+```bash
+# 1. 源站进程活着吗
+systemctl is-active caddy admin sing-box
+
+# 2. 本机 8443 通吗（绕过 Cloudflare）
+curl -sk -o /dev/null -w '%{http_code}\n' -u admin:密码 --resolve v.example.com:8443:127.0.0.1 https://v.example.com:8443/
+
+# 3. Cloudflare 回源对不对
+curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/
+
+# 4. 云防火墙放行 8443 了吗
+# 控制台 → 防火墙 → 看有没有 TCP 8443
+```
+
+- 本机 200、外网 525 → CF 的 SSL 模式不是 Full，或 Origin Rule 没生效
+- 本机 200、外网 400 → 源站端口对不上（Origin Rule 写错）
+- 本机 404、外网 404 → Caddyfile 里 site 块的域名写错
+
+## 流量数字不对
+
+`/opt/web/usage.json` 由 `usage-refresh.timer` 每 10 分钟刷新。
+手动触发：
+
+```bash
+systemctl start usage-refresh.service
+journalctl -u usage-refresh -n 20 --no-pager
+```
+
+若提示无权限，检查 `tc.json` 的密钥是否还有效、是否被禁用。
+
+## 日志在哪
+
+| 内容 | 位置 |
+|---|---|
+| 面板 API | `journalctl -u admin` |
+| Caddy | `journalctl -u caddy` |
+| sing-box（本机节点）| `/var/log/sing-box.log`（已配轮转）|
+| 探活 | `journalctl -u probe` |
+| 安装过程 | 页面上的「原始输出」或 `journalctl -u admin` |
+
+## 备份
+
+需要备份的就四个文件：
+
+```
+/opt/web/nodes.json     节点参数
+/opt/web/tc.json        云密钥
+/etc/caddy/Caddyfile    订阅与路由
+/opt/web/index.html     面板
+```
+
+其余（servers.json / usage.json / status.json）都是可再生的缓存。

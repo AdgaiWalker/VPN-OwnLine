@@ -1,0 +1,70 @@
+# 网页 /p/ 订阅 /s/<token>  换锁见 /opt/web/rotate.sh
+(sub) {
+	# 订阅源：把下面的 <URLENCODED_VLESS_LIST> 换成你的节点列表（vless:// 用 | 分隔后 URL 编码）
+	# 生成方法见 docs/DEPLOY.md「第 4 步：接上订阅」
+	rewrite * /sub?target={args[0]}&url=<URLENCODED_VLESS_LIST>&interval=6
+	reverse_proxy 127.0.0.1:25500
+}
+
+(app) {
+	redir /p / 308
+	redir /p/* / 308
+
+	@clashlink {
+		path /s/CHANGEME0000 /s/CHANGEME0000/clash
+		header_regexp User-Agent (?i)(clash|mihomo|stash|flclash|verge)
+	}
+	handle @clashlink {
+		import sub clash
+	}
+	handle /s/CHANGEME0000 {
+		import sub v2ray
+	}
+	handle /s/CHANGEME0000/clash {
+		import sub clash
+	}
+	handle /s/CHANGEME0000/sr {
+		import sub v2ray
+	}
+
+	@stale path /s/*
+	handle @stale {
+		respond 404
+	}
+
+	@blocked path /sub*
+	handle @blocked {
+		respond 404
+	}
+
+	handle /base.ini {
+		header Content-Type "text/plain; charset=utf-8"
+		root * /opt/subconv
+		file_server
+	}
+
+	handle_path /api/* {
+	basic_auth {
+		admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
+	}
+		reverse_proxy 127.0.0.1:8099
+	}
+
+	handle {
+	basic_auth {
+		admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
+	}
+		header Cache-Control "no-store"
+		root * /opt/web
+		file_server
+	}
+}
+
+:80 {
+	import app
+}
+
+https://v.example.com:8443 {
+	tls internal
+	import app
+}

@@ -1,0 +1,12 @@
+[Unit]
+Description=Rotate endpoint for ladder page
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/web/admin.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
