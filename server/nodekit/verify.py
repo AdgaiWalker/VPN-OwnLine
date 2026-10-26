@@ -166,7 +166,7 @@ def run(node):
         cc = country_of(ip)
         if cc == "CN":
             return {"health": "role_mismatch", "exit_ip": ip, "exit_country": cc,
-                    "detail": "出口在中国，这台翻不了墙，应该设为中转"}
+                    "detail": "出口还在国内，这条帮不上你"}
         return {"health": "ok", "exit_ip": ip, "exit_country": cc, "detail": "出口 %s (%s)" % (ip, cc or "?")}
 
     # 代理不通：机器还活着吗？

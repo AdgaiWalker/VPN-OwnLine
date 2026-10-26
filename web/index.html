@@ -241,21 +241,9 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
         </div>
         <div class="field" id="passwrap"><label>root 密码</label><input id="f-pass" type="password" placeholder="服务器的 root 密码" autocomplete="off"></div>
         <div class="field" id="keywrap" style="display:none"><label>SSH 私钥</label><textarea id="f-key" rows="4" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea><div class="hint">私钥只用于本次安装，不会保存</div></div>
-        <div class="field"><label>名称（可选）</label><input id="f-name" placeholder="比如 东京"></div>
-        <div class="field"><label>这台机器用来做什么</label>
-          <div class="seg">
-            <button class="segbtn rolebtn" data-role="exit" onclick="setRole('exit')">出口（翻墙）</button>
-            <button class="segbtn rolebtn" data-role="relay" onclick="setRole('relay')">中转（跳板）</button>
-          </div>
-          <div class="hint" id="rolehint">出口 = 海外机器；中转 = 国内机器，转发到海外落地</div>
-        </div>
-        <div class="field" id="landingwrap" style="display:none"><label>落地节点</label>
-          <select id="f-landing" onchange="document.getElementById('f-landing-link').value=''"></select>
-          <div class="hint">或者粘贴一条 vless 链接</div>
-          <textarea id="f-landing-link" rows="2" placeholder="vless://..." autocomplete="off" spellcheck="false"></textarea>
-        </div>
-        <details class="inner"><summary>高级</summary>
-          <div class="field" style="margin-top:8px"><label>用户名</label><input id="f-user" value="root"></div>
+        
+        
+        
           <div class="field"><label>端口</label><input id="f-port" value="443"></div>
         </details>
         <button class="btn primary" style="margin-top:12px" id="btn-add" onclick="startInstall()">开始安装</button>
@@ -357,7 +345,7 @@ function paintStatus(){
     if(h==='ok'){
       d.className='dot ok';
       s.textContent = n.exit_ip ? ('已验证 · 出口 '+n.exit_ip) : '已验证';
-      if((n.role||'exit')!=='relay') ok++;
+      ok++;
       return;
     }
     if(h && h!=='unknown'){
@@ -487,17 +475,10 @@ function startInstall(){
   var ip=document.getElementById('f-ip').value.trim();
   var user=document.getElementById('f-user').value.trim()||'root';
   var port=document.getElementById('f-port').value.trim()||'443';
-  var name=document.getElementById('f-name').value.trim();
+  var name='';
   var auth=AUTH==='key'?{type:'key',value:(document.getElementById('f-key').value||'').trim()}:{type:'password',value:document.getElementById('f-pass').value};
-  if(!ROLE){ dialog({title:'还差一步',message:'请选择这台机器是「出口」还是「中转」',cancelText:null,confirmText:'好'}); return; }
+  ROLE='exit';
   var landing=null;
-  if(ROLE==='relay'){
-    var li=document.getElementById('f-landing').value;
-    var lk=(document.getElementById('f-landing-link').value||'').trim();
-    if(li!==''){ var ln=NODES[parseInt(li,10)]; landing={host:ln.host,port:ln.port,uuid:ln.uuid,pbk:ln.pbk,sid:ln.sid,sni:ln.sni}; }
-    else if(lk){ landing={link:lk}; }
-    else { dialog({title:'还差一步',message:'中转需要指定落地：从列表选一个，或粘贴一条 vless 链接',cancelText:null,confirmText:'好'}); return; }
-  }
   if(auth.type==='password' && !auth.value){ dialog({title:'还差一步',message:'请输入服务器 root 密码，或切换到「私钥」',cancelText:null,confirmText:'好'}); return; }
   if(auth.type==='key' && auth.value.indexOf('PRIVATE KEY')<0){ dialog({title:'私钥格式不对',message:'请粘贴完整的 OpenSSH 或 PEM 私钥',cancelText:null,confirmText:'好'}); return; }
   if(!ip){ dialog({title:'还差一步',message:'请选择一台服务器，或点「其他服务器」手动填地址',cancelText:null,confirmText:'好'}); return; }
@@ -562,8 +543,18 @@ function pollJob(){
     if(lb&&j.log){ lb.textContent=j.log.join('\n'); lb.scrollTop=lb.scrollHeight; }
     if(j.state==='done'){
       clearInterval(WIZ.timer); WIZ.timer=null; INSTALLING=false; forgetJob();
-      var extra = j.warn==='port_blocked' ? ('\n\n但 '+j.node.port+' 端口从公网连不进来。\n去腾讯云控制台 → 这台服务器 → 防火墙 → 放行 TCP '+j.node.port) : '';
-      dialog({title:'装好了',message:'「'+j.node.name+'」已加入订阅，客户端刷新即可看到。'+extra,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+      var v=j.verify||{};
+      var head='装好了', msg;
+      if(v.health==='ok'){
+        msg='「'+j.node.name+'」已经能用，出口是 '+(v.exit_ip||'?')+'（'+(v.exit_country||'?')+'）。\n客户端刷新一下就能看到。';
+      } else if(v.health){
+        head='装好了，但用不了';
+        msg='「'+j.node.name+'」装上了，可是自测没通过：'+(v.detail||v.health)+'\n它暂时不会出现在订阅里。';
+      } else {
+        msg='「'+j.node.name+'」已加入订阅，客户端刷新即可看到。';
+      }
+      var extra = j.warn==='port_blocked' ? ('\n\n但 '+j.node.port+' 端口从公网连不进来。\n去云控制台 → 这台服务器 → 防火墙 → 放行 TCP '+j.node.port) : '';
+      dialog({title:head,message:msg+extra,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
     } else if(j.state==='error'){
       clearInterval(WIZ.timer); WIZ.timer=null; INSTALLING=false; forgetJob();
       var lw=document.getElementById('logwrap'); if(lw) lw.open=true;

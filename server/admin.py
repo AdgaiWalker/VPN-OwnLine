@@ -51,8 +51,7 @@ BAD_HEALTH = {"port", "tls", "role_mismatch", "landing", "timeout"}
 
 def render():
     # 中转不进订阅；故障节点也不进（unknown 视为未验证，仍然保留）
-    nodes = [n for n in load_nodes()
-             if (n.get("role") or "exit") != "relay" and n.get("health") not in BAD_HEALTH]
+    nodes = [n for n in load_nodes() if n.get("health") not in BAD_HEALTH]
     src = urllib.parse.quote("|".join(vless(n) for n in nodes), safe="")
     with open(CADDY, encoding="utf-8") as f:
         txt = f.read()
@@ -126,9 +125,14 @@ def run_job(jid, cfg_path):
             j["error"] = "installation failed"
             j["hint"] = hints_mod.hint_from_log(j["log"])
         else:
-            j["state"] = "done"
+            # 先自测，最后才标 done —— 否则前端会在自测还没跑完时就看到“完成”
             if j.get("node"):
-                verify_async(j["node"].get("name"))
+                # 装完立刻自测，把真实结果带回前端：能用就说能用，不能用就说为什么
+                try:
+                    j["verify"] = verify_node(j["node"])
+                except Exception as e:
+                    j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
+            j["state"] = "done"
             if dry and not j.get("node"):
                 j["warn"] = "dry_run"
                 j["log"].append("演练完成：未对目标机做任何修改")
@@ -331,6 +335,8 @@ class H(BaseHTTPRequestHandler):
                 out["error"] = j["error"]
             if j.get("hint"):
                 out["hint"] = j["hint"]
+            if j.get("verify"):
+                out["verify"] = j["verify"]
             return self._json(200, out)
         self._json(404, {"ok": False, "error": "not found"})
 
@@ -507,7 +513,7 @@ class H(BaseHTTPRequestHandler):
             pwd = body.get("pass") or ""
             key_text = body.get("private_key") or ""
             name = (body.get("name") or "").strip() or ("节点-" + ip)
-            role = (body.get("role") or "exit").strip()
+            role = (body.get("role") or "auto").strip()
             landing = body.get("landing") or None
             dry_run = bool(body.get("dry_run"))
             if not _valid_host(ip):
@@ -524,8 +530,20 @@ class H(BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
             if not (0 < port < 65536):
                 return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
-            if role not in ("exit", "relay"):
-                return self._json(400, {"ok": False, "error": "角色只支持 exit 或 relay"})
+            if role not in ("auto", "exit", "relay"):
+                return self._json(400, {"ok": False, "error": "角色只支持 auto / exit / relay"})
+            if not landing:
+                # 不指定落地时，自动挑一台最快的海外节点当出口
+                status = _load_json("status.json", {})
+                cands = [n for n in load_nodes()
+                         if n.get("health") == "ok"
+                         and (n.get("exit_country") or "") not in ("", "CN")
+                         and (n.get("role") or "exit") != "relay"]
+                cands.sort(key=lambda x: (status.get(x["name"], {}) or {}).get("ms") or 9999)
+                if cands:
+                    b = cands[0]
+                    landing = {"host": b["host"], "port": b["port"], "uuid": b["uuid"],
+                               "pbk": b["pbk"], "sid": b["sid"], "sni": b["sni"]}
             if role == "relay" and not landing:
                 return self._json(400, {"ok": False, "error": "中转必须先指定落地节点"})
             node = _gen_node()

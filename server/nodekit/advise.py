@@ -9,7 +9,7 @@ BAD_TEXT = {
     "port": "端口没放行",
     "tls": "服务没起来",
     "proxy": "机器活着但代理不通",
-    "role_mismatch": "出口在国内，翻不了墙",
+    "role_mismatch": "出去还是国内 IP，帮不上忙",
     "landing": "连不上落地",
     "blocked": "可能被墙了",
     "timeout": "安装超时",
@@ -37,12 +37,6 @@ def advise(node, status=None, usage=None):
 
     if health in BAD_TEXT:
         return {"text": BAD_TEXT[health], "reason": "自测：%s" % (node.get("health_detail") or health), "level": "bad"}
-
-    if role == "relay":
-        parts.append("中转，不直接给客户端用")
-        if node.get("landing", {}).get("host"):
-            parts.append("落地 %s" % node["landing"]["host"])
-        return {"text": "中转跳板", "reason": " · ".join(parts), "level": "good"}
 
     if source == "external":
         return {"text": "外部节点，未验证", "reason": "别人的机器，我们测不了它真通不通", "level": "warn"}
