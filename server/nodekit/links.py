@@ -39,6 +39,9 @@ def parse(link):
     q = dict(urllib.parse.parse_qsl(u.query))
     if q.get("security") != "reality":
         raise LinkError("只支持 security=reality 的节点")
+    sid = q.get("sid") or ""
+    if sid and not re.fullmatch(r"[0-9a-fA-F]{1,32}", sid):
+        raise LinkError("sid 必须是十六进制（0-9a-f），现在填的是 %s" % sid)
     for k in REQUIRED:
         if not q.get(k):
             label = {"pbk": "pbk（Reality 公钥）", "sid": "sid（short id）", "sni": "sni（伪装域名）"}[k]

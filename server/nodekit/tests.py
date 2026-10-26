@@ -89,7 +89,7 @@ ok("exit 无 vless outbound", all(o["type"] != "vless" for o in cfg["outbounds"]
 ok("exit 结构合法", templates.validate(cfg) == [], templates.validate(cfg))
 
 landing = {"host": "5.6.7.8", "port": 443, "uuid": "22222222-2222-4222-8222-222222222222",
-           "pbk": "PBK2", "sid": "efgh5678", "sni": "www.microsoft.com"}
+           "pbk": "PBK2", "sid": "ef01ab23", "sni": "www.microsoft.com"}
 relay = templates.relay_config(443, "11111111-1111-4111-8111-111111111111", "www.apple.com", "PRIVKEY", "abcd1234", landing)
 ok("relay 有 landing outbound", any(o.get("tag") == "landing" for o in relay["outbounds"]))
 ok("relay 有路由规则", relay["route"]["rules"][0]["outbound"] == "landing")
@@ -97,6 +97,16 @@ ok("relay 结构合法", templates.validate(relay) == [], templates.validate(rel
 
 broken_cfg = templates.exit_config(443, "", "", "", "")
 ok("校验能发现缺字段", len(templates.validate(broken_cfg)) >= 3, templates.validate(broken_cfg))
+
+
+# sid 必须是十六进制
+try:
+    links.parse(GOOD.replace("sid=abcd1234", "sid=zzzz1234"))
+    raise AssertionError("坏 sid 应该报错")
+except links.LinkError as e:
+    ok("坏 sid 被拒", "十六进制" in str(e), str(e))
+bad_cfg = templates.exit_config(443, "11111111-1111-4111-8111-111111111111", "www.apple.com", "PRIVKEY", "zzzz")
+ok("结构校验拦住坏 sid", any("十六进制" in x for x in templates.validate(bad_cfg)), templates.validate(bad_cfg))
 
 print("通过 %d 项" % len(PASS))
 for name in PASS:

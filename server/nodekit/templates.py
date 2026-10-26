@@ -1,7 +1,11 @@
 """sing-box 配置模板：出口（exit）与中转（relay）。
 
+生成的配置会被 sing-box 自己的 check 校验，校验不过不推送到目标机。
+
 只生成 dict，不落盘——落盘与 systemd 由 provision 负责。
 """
+
+import re
 
 
 def _inbound(port, uuid, sni, private_key, sid):
@@ -76,8 +80,12 @@ def validate(cfg):
     reality = (ib.get("tls") or {}).get("reality") or {}
     if not reality.get("private_key"):
         errs.append("缺少 reality private_key")
-    if not reality.get("short_id"):
+    sids = reality.get("short_id") or []
+    if not sids:
         errs.append("缺少 short_id")
+    for sid in sids:
+        if not re.fullmatch(r"[0-9a-fA-F]{1,32}", str(sid)):
+            errs.append("short_id 必须是十六进制：%s" % sid)
     if not (ib.get("tls") or {}).get("server_name"):
         errs.append("缺少 sni")
     for ob in cfg.get("outbounds") or []:
@@ -88,4 +96,6 @@ def validate(cfg):
                 errs.append("落地节点缺少 server 或 uuid")
             if not r.get("public_key"):
                 errs.append("落地节点缺少 public_key")
+            if not re.fullmatch(r"[0-9a-fA-F]{1,32}", str(r.get("short_id") or "")):
+                errs.append("落地节点 short_id 必须是十六进制")
     return errs

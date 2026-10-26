@@ -99,6 +99,18 @@ PYCFG
 )
 if [ -z "$CONFIG" ]; then echo "生成配置失败"; exit 4; fi
 
+CFG_TMP="/tmp/cfg.$$.json"
+printf '%s' "$CONFIG" > "$CFG_TMP"
+if [ -x /opt/sing-box/sing-box ]; then
+  if ! /opt/sing-box/sing-box check -c "$CFG_TMP" > /tmp/cfgchk.$$ 2>&1; then
+    echo "配置校验失败：$(tail -1 /tmp/cfgchk.$$)"
+    rm -f "$CFG_TMP" "/tmp/cfgchk.$$"
+    exit 4
+  fi
+  echo "  配置校验通过"
+fi
+rm -f "$CFG_TMP" "/tmp/cfgchk.$$"
+
 REMOTE=$(cat <<'EOS'
 set -e
 echo "STEP 3 正在安装并启动"
