@@ -18,12 +18,16 @@ UNAME="${UNAME:-root}"
 VER="1.14.4"
 GH="github.com/SagerNet/sing-box/releases/download/v$VER/sing-box-$VER-linux"
 CACHE_DIR="/opt/sing-box/pkg"
-OPTS=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=20 -o ServerAliveInterval=10)
+KH="/opt/sing-box/known_hosts"
+touch "$KH" 2>/dev/null || true
+chmod 600 "$KH" 2>/dev/null || true
+# 首次连接记下指纹（TOFU），之后同一台必须对得上 —— 防中间人偷密码
+OPTS=(-o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=10)
 
 if [ "$AUTH" = "key" ]; then
   SSH=(ssh -i "$SECRET" -o IdentitiesOnly=yes -o BatchMode=yes)
 else
-  SSH=(sshpass -p "$(cat "$SECRET")" ssh)
+  SSH=(sshpass -f "$SECRET" ssh)
 fi
 rsh() { "${SSH[@]}" "${OPTS[@]}" "$UNAME@$IP" "$@"; }
 
@@ -51,7 +55,11 @@ if [ "$DRY" = "true" ]; then echo "演练模式：预检通过，未安装"; exi
 
 echo "STEP 2 正在下载 sing-box"
 EXPECT=$(awk -v a="linux-$ARCH.tar.gz" '$2 ~ a {print $1}' "$CACHE_DIR/SHA256SUMS" 2>/dev/null | head -1 || true)
-if [ -n "$EXPECT" ]; then echo "  指纹: ${EXPECT:0:16}…"; else echo "  警告：没有这个架构的指纹，跳过校验"; fi
+if [ -z "$EXPECT" ]; then
+  echo "缺少这个架构的校验指纹，拒绝安装（防止下载包被替换）"
+  exit 3
+fi
+echo "  指纹: ${EXPECT:0:16}…"
 
 rsh "command -v curl >/dev/null 2>&1 || (command -v apt-get >/dev/null 2>&1 && apt-get update -qq && apt-get install -y -qq curl) || (command -v yum >/dev/null 2>&1 && yum install -y -q curl) || true" >/dev/null 2>&1
 
@@ -64,13 +72,13 @@ for pair in \
   MT="${pair%%|*}"; U="${pair#*|}"
   echo "  尝试(${MT}s): $U"
   if rsh "curl -fsSL --connect-timeout 6 --max-time $MT -o /tmp/sb.tgz '$U'" >/dev/null 2>&1; then
-    if [ -n "$EXPECT" ]; then
-      GOT=$(rsh "sha256sum /tmp/sb.tgz 2>/dev/null | cut -d' ' -f1" | tr -d '\r')
-      if [ "$GOT" != "$EXPECT" ]; then echo "  校验失败，换下一个源"; rsh "rm -f /tmp/sb.tgz" >/dev/null 2>&1; continue; fi
-      echo "  下载成功，SHA256 校验通过"
-    else
-      echo "  下载成功（无指纹）"
+    GOT=$(rsh "sha256sum /tmp/sb.tgz 2>/dev/null | cut -d' ' -f1" | tr -d '\r')
+    if [ "$GOT" != "$EXPECT" ]; then
+      echo "  校验失败（期望 ${EXPECT:0:12}… 实际 ${GOT:0:12}…），换下一个源"
+      rsh "rm -f /tmp/sb.tgz" >/dev/null 2>&1
+      continue
     fi
+    echo "  下载成功，SHA256 校验通过"
     DL_OK=1; break
   fi
 done
@@ -142,16 +150,17 @@ sleep 2
 systemctl is-active sing-box
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then ufw allow __PORT__/tcp >/dev/null 2>&1 || true; fi
 if command -v firewall-cmd >/dev/null 2>&1; then firewall-cmd --permanent --add-port=__PORT__/tcp >/dev/null 2>&1 || true; firewall-cmd --reload >/dev/null 2>&1 || true; fi
-AUTH_HOME=$(getent passwd "$UNAME" | cut -d: -f6)
+AUTH_HOME=$(getent passwd "__UNAME__" | cut -d: -f6)
 mkdir -p "$AUTH_HOME/.ssh"; touch "$AUTH_HOME/.ssh/authorized_keys"
 grep -qF "__CTL_PUB__" "$AUTH_HOME/.ssh/authorized_keys" 2>/dev/null || echo "__CTL_PUB__" >> "$AUTH_HOME/.ssh/authorized_keys"
 chmod 700 "$AUTH_HOME/.ssh"; chmod 600 "$AUTH_HOME/.ssh/authorized_keys"
-chown -R "$UNAME" "$AUTH_HOME/.ssh" 2>/dev/null || true
+chown -R "__UNAME__" "$AUTH_HOME/.ssh" 2>/dev/null || true
 echo PROVISION_OK
 EOS
 )
 REMOTE="${REMOTE//__CONFIG__/$CONFIG}"
 REMOTE="${REMOTE//__PORT__/$PORT}"
+REMOTE="${REMOTE//__UNAME__/$UNAME}"
 REMOTE="${REMOTE//__CTL_PUB__/$(cat /root/.ssh/node_ctl.pub)}"
 
 B64=$(printf '%s' "$REMOTE" | base64 -w0)

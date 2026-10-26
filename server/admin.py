@@ -16,9 +16,29 @@ def load_nodes():
     with open(NODES, encoding="utf-8") as f:
         return json.load(f)
 
-def save_nodes(nodes):
-    with open(NODES, "w", encoding="utf-8") as f:
+_NODES_LOCK = threading.Lock()
+
+
+def _write_nodes(nodes):
+    tmp = NODES + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(nodes, f, ensure_ascii=False, indent=1)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, NODES)          # 原子替换：写一半断电也不会留下坏 JSON
+
+
+def save_nodes(nodes):
+    with _NODES_LOCK:
+        _write_nodes(nodes)
+
+
+def update_nodes(mutator):
+    """读-改-写 全程持锁，避免两个任务同时改导致丢更新。"""
+    with _NODES_LOCK:
+        nodes = mutator(load_nodes())
+        _write_nodes(nodes)
+        return nodes
 
 def vless(n):
     q = ("encryption=none&flow=xtls-rprx-vision&security=reality"
@@ -92,9 +112,7 @@ def run_job(jid, cfg_path):
             elif line.startswith("{"):
                 try:
                     node = json.loads(line)
-                    nodes = [n for n in load_nodes() if n["name"] != node["name"]]
-                    nodes.append(node)
-                    save_nodes(nodes)
+                    update_nodes(lambda ns: [x for x in ns if x["name"] != node["name"]] + [node])
                     render()
                     j["node"] = node
                 except Exception as e:
@@ -231,16 +249,19 @@ def port_reachable(host, port, timeout=6):
 def verify_node(node):
     """跑一次自测，把结果写回 nodes.json。"""
     r = verify_mod.run(node)
-    nodes = load_nodes()
-    for n in nodes:
-        if n.get("name") == node.get("name"):
-            n["health"] = r["health"]
-            if r.get("exit_ip"):
-                n["exit_ip"] = r["exit_ip"]
-                n["exit_country"] = r.get("exit_country", "")
-            if r.get("detail"):
-                n["health_detail"] = r["detail"]
-    save_nodes(nodes)
+
+    def _apply(nodes):
+        for n in nodes:
+            if n.get("name") == node.get("name"):
+                n["health"] = r["health"]
+                if r.get("exit_ip"):
+                    n["exit_ip"] = r["exit_ip"]
+                    n["exit_country"] = r.get("exit_country", "")
+                if r.get("detail"):
+                    n["health_detail"] = r["detail"]
+        return nodes
+
+    update_nodes(_apply)
     render()
     return r
 

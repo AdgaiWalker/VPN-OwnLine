@@ -5,11 +5,15 @@
 """
 import ipaddress
 import json
+import os
+import random
 import socket
 import subprocess
+import time
 import urllib.request
 
 CTL_KEY = "/root/.ssh/node_ctl"
+BIN = "/opt/sing-box/sing-box"
 
 
 def tcp_ok(host, port, timeout=6):
@@ -72,6 +76,65 @@ def country_of(ip):
         return ""
 
 
+def _client_cfg(node, socks_port):
+    return {
+        "log": {"level": "error"},
+        "inbounds": [{"type": "socks", "tag": "in", "listen": "127.0.0.1", "listen_port": socks_port}],
+        "outbounds": [{
+            "type": "vless", "tag": "out",
+            "server": node["host"], "server_port": int(node["port"]), "uuid": node["uuid"],
+            "flow": node.get("flow") or "xtls-rprx-vision",
+            "tls": {"enabled": True, "server_name": node.get("sni") or node["host"],
+                    "utls": {"enabled": True, "fingerprint": "chrome"},
+                    "reality": {"enabled": True, "public_key": node["pbk"], "short_id": node["sid"]}},
+        }],
+    }
+
+
+def proxy_exit_ip(node, timeout=15):
+    """真的连一次：本机起个 socks，走这条节点出去，看能不能取到出口 IP。
+    取到 → 说明这条节点真的能用；取不到 → 说明不能用（不管端口和握手多漂亮）。"""
+    port = random.randint(20000, 45000)
+    path = "/tmp/px_%d.json" % port
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(_client_cfg(node, port), f)
+        p = subprocess.Popen([BIN, "run", "-c", path],
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except Exception:
+        return ""
+    try:
+        deadline = time.time() + 6
+        ready = False
+        while time.time() < deadline:
+            if tcp_ok("127.0.0.1", port, timeout=1):
+                ready = True
+                break
+            time.sleep(0.3)
+        if not ready:
+            return ""
+        r = subprocess.run(["curl", "-s", "--max-time", str(timeout),
+                            "--socks5-hostname", "127.0.0.1:%d" % port,
+                            "https://api.ipify.org"], capture_output=True, text=True)
+        ip = (r.stdout or "").strip()
+        return ip if is_ip(ip) else ""
+    except Exception:
+        return ""
+    finally:
+        try:
+            p.terminate()
+            p.wait(timeout=5)
+        except Exception:
+            try:
+                p.kill()
+            except Exception:
+                pass
+        try:
+            os.remove(path)
+        except Exception:
+            pass
+
+
 def run(node):
     """返回 {"health": ..., "exit_ip": ..., "exit_country": ..., "detail": ...}"""
     host = node.get("host")
@@ -86,21 +149,27 @@ def run(node):
 
     role = node.get("role") or "exit"
 
+    # 真实代理测试：能取到出口 IP 才算真的能用
+    ip = proxy_exit_ip(node)
+
     if role == "relay":
+        if ip:
+            cc = country_of(ip)
+            return {"health": "ok", "exit_ip": ip, "exit_country": cc,
+                    "detail": "中转：经落地出网，出口 %s (%s)" % (ip, cc or "?")}
         landing = node.get("landing") or {}
-        if landing.get("host"):
-            if tcp_ok(landing["host"], landing.get("port") or 443):
-                return {"health": "ok", "detail": "中转：入口与落地都可达"}
-            return {"health": "landing", "detail": "入口通，但连不上落地"}
-        return {"health": "ok", "detail": "中转：入口可达（未配置落地检查）"}
+        if landing.get("host") and tcp_ok(landing["host"], landing.get("port") or 443):
+            return {"health": "landing", "detail": "入口和落地都通，但代理连不出去"}
+        return {"health": "proxy", "detail": "入口通，但代理连不通"}
 
-    ip = remote_exit_ip(host, node.get("ssh_user") or "root")
-    if not ip:
-        return {"health": "ok", "detail": "入口通，但取不到出口 IP"}
+    if ip:
+        cc = country_of(ip)
+        if cc == "CN":
+            return {"health": "role_mismatch", "exit_ip": ip, "exit_country": cc,
+                    "detail": "出口在中国，这台翻不了墙，应该设为中转"}
+        return {"health": "ok", "exit_ip": ip, "exit_country": cc, "detail": "出口 %s (%s)" % (ip, cc or "?")}
 
-    cc = country_of(ip)
-    if cc == "CN":
-        return {"health": "role_mismatch", "exit_ip": ip, "exit_country": cc,
-                "detail": "出口在中国，这台翻不了墙，应该设为中转"}
-
-    return {"health": "ok", "exit_ip": ip, "exit_country": cc, "detail": "出口 %s (%s)" % (ip, cc or "?")}
+    # 代理不通：机器还活着吗？
+    if remote_exit_ip(host, node.get("ssh_user") or "root"):
+        return {"health": "proxy", "detail": "机器活着，但代理连不通（密钥或路由不对）"}
+    return {"health": "blocked", "detail": "代理和 SSH 都不通，可能被墙" }

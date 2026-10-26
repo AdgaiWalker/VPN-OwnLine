@@ -8,6 +8,7 @@ GOOD_AI = {"US", "SG", "JP", "KR", "TW", "HK"}
 BAD_TEXT = {
     "port": "端口没放行",
     "tls": "服务没起来",
+    "proxy": "机器活着但代理不通",
     "role_mismatch": "出口在国内，翻不了墙",
     "landing": "连不上落地",
     "blocked": "可能被墙了",

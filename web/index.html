@@ -344,7 +344,7 @@ function render(){
   paintStatus();
 }
 function healthText(h){
-  var m={port:"端口没放行",tls:"服务没起来",role_mismatch:"出口在国内，翻不了墙",landing:"连不上落地",blocked:"可能被墙了",timeout:"安装超时",unknown:"未验证"};
+  var m={port:"端口没放行",tls:"服务没起来",proxy:"机器活着但代理不通",role_mismatch:"出口在国内，翻不了墙",landing:"连不上落地",blocked:"可能被墙了",timeout:"安装超时",unknown:"未验证"};
   return m[h]||"状态未知";
 }
 function paintStatus(){

@@ -43,4 +43,6 @@ check("流量 98% → 警告", r["text"] == "流量快用完" and r["level"] == 
 r = A.advise({"name": "新", "health": "unknown"}, None, None)
 check("没探活 → 等待探测", r["text"] == "等待探测", r)
 
+r = A.advise({"name": "代理坏", "health": "proxy"})
+check("proxy → 红", r["text"] == "机器活着但代理不通" and r["level"] == "bad", r)
 print("通过 %d 项" % ok)
