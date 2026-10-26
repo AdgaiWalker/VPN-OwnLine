@@ -35,6 +35,24 @@ chk "接口无认证" 401 "$(curl -s -o /dev/null -w '%{http_code}' -m 15 "$BASE
 echo "== 4. 输入校验 =="
 chk "非法地址" 400 "$(curl -s -o /dev/null -w '%{http_code}' -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"ip":"not-an-ip","pass":"x","name":"t"}' "$BASE/api/addnode")"
 
+echo "== 5. 节点模型 =="
+NODES_JSON="$(curl -s -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
+TOTAL=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
+ADV=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("advice")))')
+chk "每个节点都有建议" "$TOTAL" "$ADV"
+UNIQ=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len({(n["host"],str(n["port"])) for n in d}))')
+chk "主机端口不重复" "$TOTAL" "$UNIQ"
+RELAYS=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(" ".join(n["host"] for n in json.load(sys.stdin) if (n.get("role") or "exit")=="relay"))')
+LEAK=0
+for h in $RELAYS; do printf '%s' "$CLASH" | grep -q "$h" && LEAK=$((LEAK+1)); done
+chk "中转不进订阅" 0 "$LEAK"
+
+echo "== 6. 新接口 =="
+chk "粘贴空链接" 400 "$(curl -s -o /dev/null -w '%{http_code}' -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"links":""}' "$BASE/api/paste")"
+chk "验证不存在节点" 404 "$(curl -s -o /dev/null -w '%{http_code}' -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"name":"__nope__"}' "$BASE/api/verify")"
+ROT="$(curl -s -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"dry_run":true}' "$BASE/api/rotate")"
+if printf '%s' "$ROT" | grep -q '不受影响'; then printf '  ✅ %-28s %s\n' "轮换演练有提示" "ok"; ok=$((ok+1)); else printf '  ❌ 轮换演练没返回提示\n'; bad=$((bad+1)); fi
+
 echo
 printf '结果：%d 通过，%d 失败\n' "$ok" "$bad"
 [ "$bad" = 0 ] || exit 1

@@ -89,7 +89,8 @@ docs/
   05-COSTS-RISKS.md     成本、风险、合规
   06-WHEN-NOT-TO-USE.md 什么时候别用
   07-ACCEPTANCE.md      验收清单（人工 + AI 交付）
-  08-LESSONS.md         三个最贵的 bug（只读一页就读这个）
+  08-LESSONS.md
+  09-ROLES-AND-SOURCES.md         三个最贵的 bug（只读一页就读这个）
   DEPLOY.md             从零部署
   OPS.md                日常运维与排障
   RESTORE.md            灾难恢复
