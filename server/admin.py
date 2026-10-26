@@ -8,6 +8,7 @@ from nodekit import verify as verify_mod  # noqa: E402
 from nodekit import links as links_mod  # noqa: E402
 from nodekit import advise as advise_mod  # noqa: E402
 from nodekit import hints as hints_mod  # noqa: E402
+from nodekit import subscriptions as subs_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(WEB, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -46,12 +47,9 @@ def vless(n):
          "&sni=%s&fp=chrome&pbk=%s&sid=%s&type=tcp&headerType=none" % (n["sni"], n["pbk"], n["sid"]))
     return "vless://%s@%s:%s?%s#%s" % (n["uuid"], n["host"], n["port"], q, urllib.parse.quote(n["name"]))
 
-BAD_HEALTH = {"port", "tls", "role_mismatch", "landing", "timeout"}
-
-
 def render():
-    # 中转不进订阅；故障节点也不进（unknown 视为未验证，仍然保留）
-    nodes = [n for n in load_nodes() if n.get("health") not in BAD_HEALTH]
+    # 故障节点不进订阅；unknown 视为“未验证”，仍然保留（外部节点就是这种）
+    nodes = [n for n in load_nodes() if subs_mod.in_subscription(n)]
     src = urllib.parse.quote("|".join(vless(n) for n in nodes), safe="")
     with open(CADDY, encoding="utf-8") as f:
         txt = f.read()
@@ -125,18 +123,14 @@ def run_job(jid, cfg_path):
             j["error"] = "installation failed"
             j["hint"] = hints_mod.hint_from_log(j["log"])
         else:
-            # 先自测，最后才标 done —— 否则前端会在自测还没跑完时就看到“完成”
-            if j.get("node"):
-                # 装完立刻自测，把真实结果带回前端：能用就说能用，不能用就说为什么
-                try:
-                    j["verify"] = verify_node(j["node"])
-                except Exception as e:
-                    j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
-            j["state"] = "done"
+            # 先处理完端口/防火墙，再自测，最后才标 done。
+            # 顺序反了，前端会在防火墙还没开、自测还没跑完时就看到“完成”。
             if dry and not j.get("node"):
+                j["state"] = "done"
                 j["warn"] = "dry_run"
                 j["log"].append("演练完成：未对目标机做任何修改")
                 return
+
             j["warn"] = "port_blocked" if any("PORT_BLOCKED" in l for l in j["log"]) else ""
             if j["warn"] == "port_blocked" and j.get("node"):
                 st, msg = open_firewall(j["node"]["host"], j["node"]["port"])
@@ -145,11 +139,27 @@ def run_job(jid, cfg_path):
                     time.sleep(3)
                     if port_reachable(j["node"]["host"], j["node"]["port"]):
                         j["warn"] = ""
-                        j["log"].append("端口已通，节点可用")
+                        j["log"].append("端口已通，重新自测")
                     else:
                         j["log"].append("端口仍不通：可能有云端安全组之外的拦截")
                 else:
                     j["log"].append("没能自动放行，需要手动去控制台加规则")
+
+            if j.get("node"):
+                # 装完立刻自测，把真实结果带回前端：能用就说能用，不能用就说为什么。
+                # 防火墙刚放行时也要重测，否则节点会一直停在 health=port，进不了订阅。
+                try:
+                    r = verify_node(j["node"])
+                    j["verify"] = r
+                    j["node"]["health"] = r.get("health", "unknown")
+                    if r.get("exit_ip"):
+                        j["node"]["exit_ip"] = r["exit_ip"]
+                        j["node"]["exit_country"] = r.get("exit_country", "")
+                    if r.get("detail"):
+                        j["node"]["health_detail"] = r["detail"]
+                except Exception as e:
+                    j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
+            j["state"] = "done"
     except Exception as e:
         j["state"] = "error"
         j["error"] = str(e)[:200]
@@ -482,8 +492,7 @@ class H(BaseHTTPRequestHandler):
                 except Exception as e:
                     errors.append(str(e))
                     continue
-                in_sub = [n for n in nodes
-                          if (n.get("role") or "exit") != "relay" and n.get("health") not in BAD_HEALTH]
+                in_sub = [n for n in nodes if subs_mod.in_subscription(n)]
                 if any(n.get("host") == p["host"] and int(n.get("port") or 0) == p["port"] for n in in_sub):
                     errors.append("这台已经在列表里：%s" % p["host"])
                     continue
@@ -533,17 +542,9 @@ class H(BaseHTTPRequestHandler):
             if role not in ("auto", "exit", "relay"):
                 return self._json(400, {"ok": False, "error": "角色只支持 auto / exit / relay"})
             if not landing:
-                # 不指定落地时，自动挑一台最快的海外节点当出口
-                status = _load_json("status.json", {})
-                cands = [n for n in load_nodes()
-                         if n.get("health") == "ok"
-                         and (n.get("exit_country") or "") not in ("", "CN")
-                         and (n.get("role") or "exit") != "relay"]
-                cands.sort(key=lambda x: (status.get(x["name"], {}) or {}).get("ms") or 9999)
-                if cands:
-                    b = cands[0]
-                    landing = {"host": b["host"], "port": b["port"], "uuid": b["uuid"],
-                               "pbk": b["pbk"], "sid": b["sid"], "sni": b["sni"]}
+                # 不指定落地时，自动挑一台最快的海外节点当出口。
+                # 目标机是不是直连由 addnode.sh 现场判断；这里只负责准备候选。
+                landing = subs_mod.pick_landing(load_nodes(), _load_json("status.json", {}))
             if role == "relay" and not landing:
                 return self._json(400, {"ok": False, "error": "中转必须先指定落地节点"})
             node = _gen_node()

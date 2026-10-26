@@ -26,10 +26,11 @@ def tcp_ok(host, port, timeout=6):
 
 
 def tls_ok(host, port, sni, timeout=8):
-    cmd = "echo | timeout %d openssl s_client -connect %s:%s -servername %s 2>&1" % (
-        timeout, host, port, sni or host)
+    # 参数用列表传，不拼 shell：host / sni 来自节点数据（可能是粘贴来的外部输入）。
+    cmd = ["openssl", "s_client", "-connect", "%s:%s" % (host, int(port)),
+           "-servername", sni or host]
     try:
-        p = subprocess.run(["bash", "-c", cmd], capture_output=True, text=True, timeout=timeout + 4)
+        p = subprocess.run(cmd, input="", capture_output=True, text=True, timeout=timeout + 4)
         # 必须真的协商出加密套件：
         #   - 普通 HTTP 只会打印 CONNECTED，没有 Cipher 行
         #   - 握手失败时会打印 Cipher is (NONE)

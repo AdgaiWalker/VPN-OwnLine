@@ -1,7 +1,8 @@
 """nodekit 单元测试：不依赖网络、不依赖 SSH，纯断言。"""
+import os
 import sys
 
-sys.path.insert(0, "/opt/web")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nodekit import links, preflight, templates
 
 PASS = []

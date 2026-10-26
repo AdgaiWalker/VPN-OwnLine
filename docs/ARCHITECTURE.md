@@ -46,13 +46,14 @@ GET  /api/job?id=  →  {state, step, log}   每 800ms 轮询
 
 任务状态存在内存，**重启 admin 会丢**——前端要能处理"任务不存在"，否则会卡在"安装中"。
 
-## 探活判定
+## 探活与真实自测
 
-```
-TCP 连不上        → reason=port   前端显示「端口没放行」
-TCP 通，TLS 失败  → reason=tls    前端显示「服务没起来」
-两者都通          → ok=true + 耗时
-```
+`probe.py` 每 60 秒只测 TCP/TLS，写 `status.json`，用于面板延迟和“机器活着吗”。
+它**不决定节点是否进订阅**，因为 Reality 的握手成功不代表参数对。
+
+真正决定 `health` 的是 `verify.py`：装完/手动点“体检”时，本机起一个 sing-box
+客户端，走这条节点真实取一次出口 IP。拿得到 IP 才算 `ok`，拿不到会区分
+`proxy` / `blocked` / `landing`。`render()` 只把非故障节点写进订阅。
 
 探活不是 Reality 客户端，服务端会记一条 `REALITY: processed invalid connection`——**这是正常的**。
 
@@ -74,7 +75,7 @@ STEP 4 检查端口        从主控回连，判断是否被云防火墙挡住
 
 密码只在"第一次接入"时用一次。
 
-## nodekit：五个纯函数模块
+## nodekit：六个纯函数模块
 
 `server/nodekit/` 是「加节点」这条流水线的全部逻辑，**所有判断都是纯函数**
 （吃字符串、吐结论），所以能离线单测，不会因为测试把生产搞坏。
@@ -86,6 +87,7 @@ STEP 4 检查端口        从主控回连，判断是否被云防火墙挡住
 | `templates.py` | 出口 / 中转两套 sing-box 配置 + 结构校验 | `addnode.sh` |
 | `verify.py` | 端口 → 握手 → 出口（或落地），三步短路 | `admin.py` 的 `/verify`、安装后自测 |
 | `advise.py` | 一句人话建议 + 依据 | `admin.py` 的 `/nodes` |
+| `subscriptions.py` | 哪些节点进订阅、国内机自动借哪台海外出口 | `admin.py` 的 `render()` / `/addnode` |
 
 ### 为什么都是纯函数
 
@@ -100,10 +102,12 @@ advise.advise(node, status, usage)                       → {'text':'AI 首选'
 ### 自测的三步短路
 
 ```
-tcp_ok   → 失败 = port
-tls_ok   → 失败 = tls        （必须真的协商出 Cipher，排除 NONE）
-exit_ip  → CN = role_mismatch
-         → 成功 = ok + 出口 IP
+tcp_ok           → 失败 = port
+tls_ok           → 失败 = tls        （必须真的协商出 Cipher，排除 NONE）
+真实代理出口 IP  → 拿不到 = proxy / blocked
+                 → 拿到但 CN = role_mismatch
+                 → 拿到海外 IP = ok + 出口 IP
 ```
 
-中转不测出口 IP：国内机访问境外 IP 查询会被拒，测了必然误报。
+借道节点也走同一条“真实代理”测试：客户端 → 入口 → 落地 → 出口，
+所以 `ok` 不只代表端口上有 TLS，而是代表这条节点真的能带人出去。

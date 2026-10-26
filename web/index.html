@@ -233,6 +233,7 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
       </div>
       <div id="w2" style="display:none">
         <div class="field"><label id="w2label">服务器地址</label><input id="f-ip" placeholder="IP 或域名，例如 sg.example.com" inputmode="url" autocapitalize="off" autocorrect="off"></div>
+        <div class="field"><label>名称（可选）</label><input id="f-name" placeholder="比如 东京"></div>
         <div class="field"><label>认证方式</label>
           <div class="seg">
             <button class="segbtn active" data-auth="password" onclick="setAuth('password')">密码</button>
@@ -241,9 +242,8 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
         </div>
         <div class="field" id="passwrap"><label>root 密码</label><input id="f-pass" type="password" placeholder="服务器的 root 密码" autocomplete="off"></div>
         <div class="field" id="keywrap" style="display:none"><label>SSH 私钥</label><textarea id="f-key" rows="4" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea><div class="hint">私钥只用于本次安装，不会保存</div></div>
-        
-        
-        
+        <details class="inner"><summary>高级</summary>
+          <div class="field"><label>用户名</label><input id="f-user" value="root"></div>
           <div class="field"><label>端口</label><input id="f-port" value="443"></div>
         </details>
         <button class="btn primary" style="margin-top:12px" id="btn-add" onclick="startInstall()">开始安装</button>
@@ -333,7 +333,7 @@ function render(){
   paintStatus();
 }
 function healthText(h){
-  var m={port:"端口没放行",tls:"服务没起来",proxy:"机器活着但代理不通",role_mismatch:"出口在国内，翻不了墙",landing:"连不上落地",blocked:"可能被墙了",timeout:"安装超时",unknown:"未验证"};
+  var m={port:"端口没放行",tls:"服务没起来",proxy:"机器活着但代理不通",role_mismatch:"出口还是国内 IP",landing:"连不上落地",blocked:"可能被墙了",timeout:"安装超时",unknown:"未验证"};
   return m[h]||"状态未知";
 }
 function paintStatus(){
@@ -355,7 +355,7 @@ function paintStatus(){
     }
     if(h==='unknown'){
       d.className='dot';
-      s.textContent = '未验证（外部节点）';
+      s.textContent = n.source==='external' ? '未验证（外部节点）' : '未验证';
       return;
     }
     var st=STATUS[n.name];
@@ -411,13 +411,13 @@ function loadServers(){
   fetch('servers.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(d){
     WIZ.servers=d.servers||[];
     var box=document.getElementById('srvlist'); if(!box) return;
-    if(!WIZ.servers.length){ box.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步用「高级」手动填 IP</div>'; return; }
+    if(!WIZ.servers.length){ box.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步点「其他服务器」手动填 IP</div>'; return; }
     box.innerHTML=WIZ.servers.map(function(s,i){
       var used=NODES.some(function(n){return n.host===s.ip});
       return '<button class="srvrow'+(used?' used':'')+'" data-i="'+i+'" onclick="pickSrv('+i+')"><span><b>'+esc(s.name||s.ip)+'</b><small>'+s.ip+' · '+s.region+(used?' · 已在用':'')+'</small></span><i class="chk"></i></button>';
     }).join('') + '<button class="srvrow" data-i="-1" onclick="pickSrv(-1)"><span><b><svg class="ico"><use href="#i-plus"/></svg> 其他服务器</b><small>手动填地址 · 不一定是腾讯云</small></span><i class="chk"></i></button>';
     WIZ.srv=null; setNextEnabled(false);
-  }).catch(function(){ var b=document.getElementById('srvlist'); if(b) b.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步用「高级」手动填 IP</div>'; });
+  }).catch(function(){ var b=document.getElementById('srvlist'); if(b) b.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步点「其他服务器」手动填 IP</div>'; });
 }
 function pickSrv(i){
   WIZ.srv=i;
@@ -446,22 +446,7 @@ function renderSteps(cur,done,failed){
     return '<div class="stp '+cls+'"><span class="ic"></span><span>'+n+'</span></div>';
   }).join('');
 }
-var ROLE="";
-function setRole(v){
-  ROLE=v;
-  var bs=document.querySelectorAll(".rolebtn");
-  for(var i=0;i<bs.length;i++){bs[i].className="segbtn rolebtn"+(bs[i].getAttribute("data-role")===v?" active":"");}
-  document.getElementById("landingwrap").style.display=(v==="relay"?"":"none");
-  if(v==="relay") fillLanding();
-}
-function fillLanding(){
-  var sel=document.getElementById("f-landing");
-  var opts=['<option value="">从已有节点里选一个</option>'];
-  NODES.forEach(function(n,i){
-    if((n.role||"exit")!=="relay" && (n.health==="ok"||!n.health)){ opts.push('<option value="'+i+'">'+esc(n.name)+" · "+esc(n.host)+"</option>"); }
-  });
-  sel.innerHTML=opts.join("");
-}
+var ROLE="auto";
 var AUTH="password";
 function setAuth(v){
   AUTH=v;
@@ -473,11 +458,13 @@ function setAuth(v){
 }
 function startInstall(){
   var ip=document.getElementById('f-ip').value.trim();
-  var user=document.getElementById('f-user').value.trim()||'root';
+  var userEl=document.getElementById('f-user');
+  var user=userEl?userEl.value.trim():'root';
   var port=document.getElementById('f-port').value.trim()||'443';
-  var name='';
+  var nameEl=document.getElementById('f-name');
+  var name=nameEl?nameEl.value.trim():'';
   var auth=AUTH==='key'?{type:'key',value:(document.getElementById('f-key').value||'').trim()}:{type:'password',value:document.getElementById('f-pass').value};
-  ROLE='exit';
+  ROLE='auto';
   var landing=null;
   if(auth.type==='password' && !auth.value){ dialog({title:'还差一步',message:'请输入服务器 root 密码，或切换到「私钥」',cancelText:null,confirmText:'好'}); return; }
   if(auth.type==='key' && auth.value.indexOf('PRIVATE KEY')<0){ dialog({title:'私钥格式不对',message:'请粘贴完整的 OpenSSH 或 PEM 私钥',cancelText:null,confirmText:'好'}); return; }
@@ -690,29 +677,6 @@ function delNode(i){
                 : '已从订阅删除。这台没有控制权限，服务仍在运行。';
           dialog({title:'完成',message:m,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
         }).catch(function(e){ dialog({title:'删除失败',message:String(e),cancelText:null,confirmText:'好'}); });
-    });
-}
-function addNode(){
-  var name=document.getElementById('f-name').value.trim();
-  var ip=document.getElementById('f-ip').value.trim();
-  var user=document.getElementById('f-user').value.trim()||'root';
-  var pass=document.getElementById('f-pass').value;
-  var port=document.getElementById('f-port').value.trim()||'443';
-  var msg=document.getElementById('msg'), btn=document.getElementById('btn-add');
-  if(!ip||!pass){ msg.textContent='IP 和密码必填'; return; }
-  if(!name){ var sel=document.getElementById('f-srv'); var list=sel._servers||[]; var idx=sel.value; if(idx!=="") name=(list[parseInt(idx)]||{}).name||''; }
-  dialog({title:'安装节点',message:'将在 '+ip+' 上安装「'+(name||ip)+'」\n大约 2–3 分钟，期间别关页面',confirmText:'开始安装'})
-    .then(function(yes){
-      if(!yes) return;
-      btn.disabled=true; msg.textContent='正在安装，别关页面…';
-      fetch('api/addnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,ip:ip,user:user,pass:pass,port:port})})
-        .then(function(r){return r.json()}).then(function(d){
-          btn.disabled=false;
-          if(!d.ok){ msg.textContent='失败：'+(d.error||'未知'); dialog({title:'安装失败',message:(d.error||'未知'),cancelText:null,confirmText:'好'}); return; }
-          msg.textContent='装好了。';
-          var extra = d.warn==='port_blocked' ? ('\n\n但 '+d.node.port+' 端口从公网连不进来。\n去腾讯云控制台 → 这台服务器 → 防火墙 → 放行 TCP '+d.node.port) : '';
-          dialog({title:'装好了',message:'订阅已更新，客户端刷新即可看到。'+extra,cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
-        }).catch(function(e){ btn.disabled=false; msg.textContent='失败：'+e; dialog({title:'安装失败',message:String(e),cancelText:null,confirmText:'好'}); });
     });
 }
 function rotate(){

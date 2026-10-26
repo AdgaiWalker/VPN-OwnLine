@@ -12,7 +12,7 @@ DRY=$(echo "$DRY" | tr 'A-Z' 'a-z')
 [ -n "$IP" ] || { echo "缺少服务器地址"; exit 2; }
 [ -n "$SECRET" ] && [ -f "$SECRET" ] || { echo "缺少凭据文件"; exit 2; }
 PORT="${PORT:-443}"
-ROLE="${ROLE:-exit}"
+ROLE="${ROLE:-auto}"
 UNAME="${UNAME:-root}"
 
 VER="1.14.4"
@@ -52,14 +52,30 @@ eval "$PF_OUT"
 rm -f "$PF"
 echo "  预检通过：架构 $ARCH"
 if [ "$DRY" = "true" ]; then echo "演练模式：预检通过，未安装"; exit 0; fi
+# 先保证目标机有 curl，再做“能不能直连国外”的判断。
+# 否则一台没装 curl 的干净机器会被误判成“出不去”，装上不该装的中转配置。
+echo "  检查目标机依赖"
+rsh "command -v curl >/dev/null 2>&1 || (command -v apt-get >/dev/null 2>&1 && apt-get update -qq && apt-get install -y -qq curl) || (command -v yum >/dev/null 2>&1 && yum install -y -q curl) || true" >/dev/null 2>&1
+
 echo "  检查能不能直连国外"
-EGRESS=$(rsh "curl -s --max-time 8 https://api.ipify.org 2>/dev/null || true" | tr -d '\r' | tail -1)
+EGRESS=$(rsh "curl -s --max-time 8 https://api.ipify.org 2>/dev/null || curl -s --max-time 8 https://ipinfo.io/ip 2>/dev/null || curl -s --max-time 8 http://ifconfig.me/ip 2>/dev/null" | tr -d '\r' | tail -1)
 DIRECT=0
 if printf '%s' "$EGRESS" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
   DIRECT=1
   echo "  能直连，出口 $EGRESS"
 else
   echo "  直连不了国外，会自动借道另一台节点"
+fi
+HAS_LANDING=$(python3 - "$J" <<'PYLANDING'
+import json, sys
+job = json.load(open(sys.argv[1], encoding="utf-8"))
+landing = job.get("landing") or {}
+print("1" if (landing.get("host") and landing.get("uuid")) or landing.get("link") else "0")
+PYLANDING
+)
+if [ "$DIRECT" != "1" ] && [ "$HAS_LANDING" != "1" ]; then
+  echo "这台连不了国外，但还没有可用的海外节点可以借道。请先装一台海外机器，或手动指定落地节点。"
+  exit 4
 fi
 
 
@@ -71,7 +87,6 @@ if [ -z "$EXPECT" ]; then
 fi
 echo "  指纹: ${EXPECT:0:16}…"
 
-rsh "command -v curl >/dev/null 2>&1 || (command -v apt-get >/dev/null 2>&1 && apt-get update -qq && apt-get install -y -qq curl) || (command -v yum >/dev/null 2>&1 && yum install -y -q curl) || true" >/dev/null 2>&1
 
 DL_OK=0
 for pair in \

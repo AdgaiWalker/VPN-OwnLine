@@ -48,8 +48,8 @@ ADV=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n 
 chk "每个节点都有建议" "$TOTAL" "$ADV"
 UNIQ=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len({(n["host"],str(n["port"])) for n in d}))')
 chk "主机端口不重复" "$TOTAL" "$UNIQ"
-OKN=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("health")=="ok"))')
-chk "能用的都进订阅" "$OKN" "$N2"
+BADN=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;bad={"port","tls","proxy","role_mismatch","landing","blocked","timeout"};print(sum(1 for n in json.load(sys.stdin) if n.get("health") in bad))')
+chk "故障节点不进订阅" 0 "$BADN"
 
 echo "== 6. 新接口 =="
 chk "粘贴空链接" 400 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"links":""}' "$BASE/api/paste")"

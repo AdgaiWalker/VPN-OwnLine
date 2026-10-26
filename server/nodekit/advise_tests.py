@@ -1,7 +1,8 @@
 """advise 单元测试：全离网，纯断言。"""
+import os
 import sys
 
-sys.path.insert(0, "/opt/web")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nodekit import advise as A
 
 ok = 0
@@ -26,10 +27,10 @@ r = A.advise(sg, {"ms": 820}, None)
 check("慢 → 能连但慢", r["text"] == "能连，但慢", r)
 
 r = A.advise({"name": "广州", "health": "role_mismatch", "health_detail": "出口在中国"})
-check("role_mismatch → 红", r["text"] == "出口在国内，翻不了墙" and r["level"] == "bad", r)
+check("role_mismatch → 红", r["text"] == "出去还是国内 IP，帮不上忙" and r["level"] == "bad", r)
 
-r = A.advise({"name": "中转", "role": "relay", "health": "ok", "landing": {"host": "198.51.100.12"}})
-check("中转 → 中转跳板", r["text"] == "中转跳板" and "落地" in r["reason"], r)
+r = A.advise({"name": "广州", "role": "relay", "health": "ok", "exit_country": "US"}, {"ms": 120}, None)
+check("借道节点按普通节点给建议", r["text"] == "AI 首选" and "US" in r["reason"], r)
 
 r = A.advise({"name": "外", "source": "external", "health": "unknown"})
 check("外部 → 未验证", r["text"] == "外部节点，未验证" and r["level"] == "warn", r)
