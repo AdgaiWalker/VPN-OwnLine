@@ -3,6 +3,9 @@ import json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WEB = "/opt/web"
+from nodekit import verify as verify_mod  # noqa: E402
+from nodekit import links as links_mod  # noqa: E402
+from nodekit import advise as advise_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(WEB, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -21,8 +24,13 @@ def vless(n):
          "&sni=%s&fp=chrome&pbk=%s&sid=%s&type=tcp&headerType=none" % (n["sni"], n["pbk"], n["sid"]))
     return "vless://%s@%s:%s?%s#%s" % (n["uuid"], n["host"], n["port"], q, urllib.parse.quote(n["name"]))
 
+BAD_HEALTH = {"port", "tls", "role_mismatch", "landing", "timeout"}
+
+
 def render():
-    nodes = load_nodes()
+    # 中转不进订阅；故障节点也不进（unknown 视为未验证，仍然保留）
+    nodes = [n for n in load_nodes()
+             if (n.get("role") or "exit") != "relay" and n.get("health") not in BAD_HEALTH]
     src = urllib.parse.quote("|".join(vless(n) for n in nodes), safe="")
     with open(CADDY, encoding="utf-8") as f:
         txt = f.read()
@@ -51,11 +59,43 @@ def _hint_from_log(lines):
         return "服务器磁盘满了。"
     return "看下面的原始输出。常见原因：密码错、22 端口没开、服务器不是 Linux、或者这台机器不接受密码登录。"
 
-def run_job(jid, args):
+def _gen_node():
+    """生成一套节点参数（uuid / reality 密钥对 / short_id）。"""
+    binp = "/opt/sing-box/sing-box"
+    uid = subprocess.check_output([binp, "generate", "uuid"], text=True).strip()
+    kp = subprocess.check_output([binp, "generate", "reality-keypair"], text=True)
+    priv = re.search(r"PrivateKey:\s*(\S+)", kp).group(1)
+    pub = re.search(r"PublicKey:\s*(\S+)", kp).group(1)
+    return {"uuid": uid, "private_key": priv, "pbk": pub,
+            "sid": os.urandom(4).hex(), "sni": "www.apple.com"}
+
+
+def _write_job(jid, data, secret):
+    """任务写文件（0600），凭据单独一个文件：不进 argv、不进日志。"""
+    d = os.path.join(WEB, ".jobs")
+    os.makedirs(d, mode=0o700, exist_ok=True)
+    cfg = os.path.join(d, jid + ".json")
+    sec = cfg + ".secret"
+    fd = os.open(sec, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        f.write(secret.rstrip("\n") + "\n")
+    data["secret_file"] = sec
+    fd = os.open(cfg, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump(data, f, ensure_ascii=False)
+    return cfg
+
+
+def run_job(jid, cfg_path):
     j = JOBS[jid]
     j["state"] = "running"
+    dry = False
     try:
-        p = subprocess.Popen(["/opt/web/addnode.sh"] + args, stdout=subprocess.PIPE,
+        dry = bool(json.load(open(cfg_path, encoding="utf-8")).get("dry_run"))
+    except Exception:
+        pass
+    try:
+        p = subprocess.Popen(["/opt/web/addnode.sh", cfg_path], stdout=subprocess.PIPE,
                              stderr=subprocess.STDOUT, text=True, bufsize=1)
         for line in p.stdout:
             line = line.rstrip("\n")
@@ -81,12 +121,18 @@ def run_job(jid, args):
             j["log"].append(line)
             j["log"] = j["log"][-60:]
         rc = p.wait()
-        if rc != 0 or not j.get("node"):
+        if rc != 0 or (not j.get("node") and not dry):
             j["state"] = "error"
             j["error"] = "installation failed"
             j["hint"] = _hint_from_log(j["log"])
         else:
             j["state"] = "done"
+            if j.get("node"):
+                verify_async(j["node"].get("name"))
+            if dry and not j.get("node"):
+                j["warn"] = "dry_run"
+                j["log"].append("演练完成：未对目标机做任何修改")
+                return
             j["warn"] = "port_blocked" if any("PORT_BLOCKED" in l for l in j["log"]) else ""
             if j["warn"] == "port_blocked" and j.get("node"):
                 st, msg = open_firewall(j["node"]["host"], j["node"]["port"])
@@ -103,6 +149,13 @@ def run_job(jid, args):
     except Exception as e:
         j["state"] = "error"
         j["error"] = str(e)[:200]
+    finally:
+        for f in (cfg_path, cfg_path + ".secret"):
+            try:
+                os.remove(f)
+            except Exception:
+                pass
+
 
 import base64 as _b64
 
@@ -194,6 +247,55 @@ def port_reachable(host, port, timeout=6):
     except Exception:
         return False
 
+def verify_node(node):
+    """跑一次自测，把结果写回 nodes.json。"""
+    r = verify_mod.run(node)
+    nodes = load_nodes()
+    for n in nodes:
+        if n.get("name") == node.get("name"):
+            n["health"] = r["health"]
+            if r.get("exit_ip"):
+                n["exit_ip"] = r["exit_ip"]
+                n["exit_country"] = r.get("exit_country", "")
+            if r.get("detail"):
+                n["health_detail"] = r["detail"]
+    save_nodes(nodes)
+    render()
+    return r
+
+
+def verify_async(name):
+    def _run():
+        try:
+            nodes = load_nodes()
+            node = next((n for n in nodes if n.get("name") == name), None)
+            if node:
+                verify_node(node)
+        except Exception:
+            pass
+    threading.Thread(target=_run, daemon=True).start()
+
+
+def _load_json(name, default):
+    try:
+        with open(os.path.join(WEB, name), encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return default
+
+
+def nodes_with_advice():
+    """节点 + 一句建议（依据来自探活与流量）。"""
+    status = _load_json("status.json", {})
+    usage = _load_json("usage.json", {})
+    out = []
+    for n in load_nodes():
+        n = dict(n)
+        n["advice"] = advise_mod.advise(n, status.get(n.get("name")), usage.get(n.get("host")))
+        out.append(n)
+    return out
+
+
 class H(BaseHTTPRequestHandler):
     def _json(self, code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode()
@@ -208,7 +310,7 @@ class H(BaseHTTPRequestHandler):
         path, _, qs = self.path.partition("?")
         path = path.rstrip("/")
         if path in ("/nodes", ""):
-            return self._json(200, load_nodes())
+            return self._json(200, nodes_with_advice())
         if path == "/job":
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
@@ -238,13 +340,18 @@ class H(BaseHTTPRequestHandler):
             body = {}
 
         if path == "/rotate":
+            msg = "旧订阅地址已失效；已连接的设备不受影响（要踢人请用「更换密钥」）"
+            if body.get("dry_run"):
+                return self._json(200, {"ok": True, "dry_run": True, "message": msg,
+                                        "would": "作废旧订阅地址并生成新地址"})
             try:
                 r = subprocess.run(["/opt/web/rotate.sh"], capture_output=True, text=True, timeout=90)
                 url = ""
                 for line in r.stdout.splitlines():
                     if line.startswith("新订阅地址:"):
                         url = line.split(":", 1)[1].strip()
-                return self._json(200, {"ok": r.returncode == 0 and bool(url), "url": url})
+                return self._json(200, {"ok": r.returncode == 0 and bool(url), "url": url,
+                                  "message": msg})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
@@ -331,19 +438,83 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "password": extra.get("password", ""),
                                     "reboot": extra.get("reboot", False), "provider": who})
 
+        if path == "/render":
+            render()
+            return self._json(200, {"ok": True})
+
+        if path == "/paste":
+            raw = (body.get("links") or body.get("link") or "").strip()
+            if not raw:
+                return self._json(400, {"ok": False, "error": "链接是空的"})
+            added, errors = [], []
+            nodes = load_nodes()
+            for line in [x.strip() for x in raw.splitlines() if x.strip()]:
+                try:
+                    p = links_mod.parse(line)
+                except Exception as e:
+                    errors.append(str(e))
+                    continue
+                in_sub = [n for n in nodes
+                          if (n.get("role") or "exit") != "relay" and n.get("health") not in BAD_HEALTH]
+                if any(n.get("host") == p["host"] and int(n.get("port") or 0) == p["port"] for n in in_sub):
+                    errors.append("这台已经在列表里：%s" % p["host"])
+                    continue
+                p.update({"role": "exit", "source": "external", "health": "unknown"})
+                nodes.append(p)
+                added.append(p["name"])
+            if added:
+                save_nodes(nodes)
+                render()
+            return self._json(200, {"ok": bool(added), "added": added, "errors": errors})
+
+        if path == "/verify":
+            name = (body.get("name") or "").strip()
+            nodes = load_nodes()
+            node = next((n for n in nodes if n.get("name") == name), None)
+            if not node:
+                return self._json(404, {"ok": False, "error": "没找到这个节点"})
+            if node.get("source") == "external":
+                return self._json(400, {"ok": False, "error": "外部节点无法验证（没有控制权）"})
+            r = verify_node(node)
+            return self._json(200, {"ok": True, "result": r})
+
         if path == "/addnode":
             ip = (body.get("ip") or "").strip()
             user = (body.get("user") or "root").strip() or "root"
+            auth_type = (body.get("auth_type") or "password").strip()
             pwd = body.get("pass") or ""
+            key_text = body.get("private_key") or ""
             name = (body.get("name") or "").strip() or ("节点-" + ip)
-            port = str(body.get("port") or 443)
+            role = (body.get("role") or "exit").strip()
+            landing = body.get("landing") or None
+            dry_run = bool(body.get("dry_run"))
             if not _valid_host(ip):
                 return self._json(400, {"ok": False, "error": "地址格式不对（IP 或域名）"})
-            if not pwd:
-                return self._json(400, {"ok": False, "error": "密码不能为空"})
+            if auth_type not in ("password", "key"):
+                return self._json(400, {"ok": False, "error": "认证方式只支持 password 或 key"})
+            if auth_type == "password" and not pwd:
+                return self._json(400, {"ok": False, "error": "密码或私钥至少填一个"})
+            if auth_type == "key" and "PRIVATE KEY" not in key_text:
+                return self._json(400, {"ok": False, "error": "私钥格式不对，应为 OpenSSH 或 PEM"})
+            try:
+                port = int(body.get("port") or 443)
+            except Exception:
+                return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
+            if not (0 < port < 65536):
+                return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
+            if role not in ("exit", "relay"):
+                return self._json(400, {"ok": False, "error": "角色只支持 exit 或 relay"})
+            if role == "relay" and not landing:
+                return self._json(400, {"ok": False, "error": "中转必须先指定落地节点"})
+            node = _gen_node()
             jid = uuid.uuid4().hex[:12]
+            cfg_path = _write_job(jid, {
+                "ip": ip, "user": user, "auth_type": auth_type, "name": name,
+                "port": port, "role": role, "node": node, "landing": landing,
+                "dry_run": dry_run,
+            }, secret=(key_text if auth_type == "key" else pwd))
             JOBS[jid] = {"state": "queued", "step": 0, "stepname": "", "log": []}
-            t = threading.Thread(target=run_job, args=(jid, [ip, user, pwd, name, port]), daemon=True)
+            t = threading.Thread(target=run_job, args=(jid, cfg_path), daemon=True)
             t.start()
             return self._json(200, {"ok": True, "job": jid})
 

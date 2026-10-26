@@ -149,10 +149,10 @@
 .stp.cur .ic::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--accent);animation:pulse 1s ease-in-out infinite}
 .stp.done{color:var(--fg)}
 .stp.done .ic{border-color:var(--ok);background:var(--ok)}
-.stp.done .ic::after{content:"✓";color:#fff;font-size:11px;font-weight:700}
+.stp.done .ic::after{content:"";display:block;width:11px;height:11px;background:#fff;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>") center/contain no-repeat;mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M20 6 9 17l-5-5'/></svg>") center/contain no-repeat}
 .stp.err{color:var(--fg);font-weight:600}
 .stp.err .ic{border-color:var(--bad);background:var(--bad)}
-.stp.err .ic::after{content:"✗";color:#fff;font-size:11px;font-weight:700}
+.stp.err .ic::after{content:"";display:block;width:11px;height:11px;background:#fff;-webkit-mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg>") center/contain no-repeat;mask:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'><path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg>") center/contain no-repeat}
 @keyframes pulse{0%,100%{opacity:.3}50%{opacity:1}}
 .logbox{font:12px/1.5 ui-monospace,Menlo,monospace;color:var(--muted);background:var(--bar);border-radius:10px;padding:10px;max-height:104px;overflow:auto;white-space:pre-wrap;word-break:break-all}
 .sec{border-top:1px solid var(--line);margin-top:14px}
@@ -170,9 +170,27 @@
 .ghostbtn{min-height:44px;padding:0 8px;border:0;background:none;color:var(--accent);font-size:15px;font-weight:600;font-family:inherit;cursor:pointer}
 .sheet .field{text-align:left}
 .sheet .field input{text-align:left}
+.seg{display:flex;gap:6px;background:#f2f2f7;padding:3px;border-radius:12px}
+.segbtn{flex:1;border:0;background:transparent;padding:9px 0;border-radius:9px;font-size:15px;color:#666;cursor:pointer}
+.segbtn.active{background:#fff;color:#000;box-shadow:0 1px 3px rgba(0,0,0,.12);font-weight:600}
+textarea{width:100%;box-sizing:border-box;border:1px solid #d8d8dd;border-radius:12px;padding:12px;font-size:14px;font-family:ui-monospace,Menlo,monospace;resize:vertical}
+svg.ico{width:16px;height:16px;vertical-align:-3px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:inline-block}
+svg.ico.big{width:26px;height:26px;stroke-width:1.6}
+.tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:6px;background:#eef2ff;color:#3b5bdb;font-size:11px;font-weight:600;vertical-align:1px}
+.adv{font-size:12px;color:#4b5563;margin-top:3px}
+.adv span{color:#9ca3af;margin-left:6px}
 </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+</svg>
 <main>
   <header>
     <h1>梯子</h1>
@@ -184,7 +202,7 @@
     <a class="btn primary" id="btn-sr" href="#">一键导入 · Shadowrocket</a>
     <a class="btn" id="btn-clash" href="#">一键导入 · Clash 系</a>
     <div class="copyrow">
-      <code id="suburl">https://v.example.com/s/CHANGEME0000</code>
+      <code id="suburl">https://v.example.com/s/CHANGEME0000TOKEN</code>
       <button class="tiny" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
     </div>
     <p class="note" id="fallback"></p>
@@ -193,7 +211,7 @@
   <section class="card"><div id="quota"><div class="skeleton">读取中…</div></div></section>
 
   <section class="card">
-    <div class="cardhead"><div class="cardtitle">节点</div><button class="ghostbtn" onclick="openAdd()">＋ 添加</button></div>
+    <div class="cardhead"><div class="cardtitle">节点</div><button class="ghostbtn" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button></div>
     <div id="nodes"><div class="skeleton">读取中…</div></div>
   </section>
 
@@ -202,7 +220,11 @@
     <div class="panel">
       <details class="sec" open>
         <summary>常用</summary>
-        <h3>添加节点</h3>
+        <h3>粘贴节点</h3>
+        <div class="field"><textarea id="f-paste" rows="3" placeholder="粘贴 vless:// 链接，一行一条" autocomplete="off" spellcheck="false"></textarea></div>
+        <button class="btn" onclick="doPaste()" style="margin-bottom:6px"><svg class="ico"><use href="#i-link"/></svg> 加入订阅</button>
+        <div class="hint" id="pasteMsg"></div>
+        <h3 style="margin-top:22px">添加节点</h3>
       <div id="w1">
         <div id="srvlist"><div class="skeleton">读取服务器…</div></div>
         <div class="warn" id="srvwarn" style="display:none"></div>
@@ -210,8 +232,27 @@
       </div>
       <div id="w2" style="display:none">
         <div class="field"><label id="w2label">服务器地址</label><input id="f-ip" placeholder="IP 或域名，例如 sg.example.com" inputmode="url" autocapitalize="off" autocorrect="off"></div>
-        <div class="field"><label>root 密码</label><input id="f-pass" type="password" placeholder="服务器的 root 密码"></div>
+        <div class="field"><label>认证方式</label>
+          <div class="seg">
+            <button class="segbtn active" data-auth="password" onclick="setAuth('password')">密码</button>
+            <button class="segbtn" data-auth="key" onclick="setAuth('key')">私钥</button>
+          </div>
+        </div>
+        <div class="field" id="passwrap"><label>root 密码</label><input id="f-pass" type="password" placeholder="服务器的 root 密码" autocomplete="off"></div>
+        <div class="field" id="keywrap" style="display:none"><label>SSH 私钥</label><textarea id="f-key" rows="4" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea><div class="hint">私钥只用于本次安装，不会保存</div></div>
         <div class="field"><label>名称（可选）</label><input id="f-name" placeholder="比如 东京"></div>
+        <div class="field"><label>这台机器用来做什么</label>
+          <div class="seg">
+            <button class="segbtn rolebtn" data-role="exit" onclick="setRole('exit')">出口（翻墙）</button>
+            <button class="segbtn rolebtn" data-role="relay" onclick="setRole('relay')">中转（跳板）</button>
+          </div>
+          <div class="hint" id="rolehint">出口 = 海外机器；中转 = 国内机器，转发到海外落地</div>
+        </div>
+        <div class="field" id="landingwrap" style="display:none"><label>落地节点</label>
+          <select id="f-landing" onchange="document.getElementById('f-landing-link').value=''"></select>
+          <div class="hint">或者粘贴一条 vless 链接</div>
+          <textarea id="f-landing-link" rows="2" placeholder="vless://..." autocomplete="off" spellcheck="false"></textarea>
+        </div>
         <details class="inner"><summary>高级</summary>
           <div class="field" style="margin-top:8px"><label>用户名</label><input id="f-user" value="root"></div>
           <div class="field"><label>端口</label><input id="f-port" value="443"></div>
@@ -292,28 +333,48 @@ function dialog(o){
 function render(){
   var box=document.getElementById('nodes');
   if(!NODES.length){
-    box.innerHTML='<div class="empty"><div class="ico">＋</div>还没有节点<br><span style="font-size:13px">在下面「管理」里添加一台服务器</span></div>';
+    box.innerHTML='<div class="empty"><div class="ico"><svg class="ico big"><use href="#i-plus"/></svg></div>还没有节点<br><span style="font-size:13px">在下面「管理」里添加一台服务器</span></div>';
     return;
   }
   box.innerHTML=NODES.map(function(n,i){
     return '<div class="node"><span class="dot" id="d'+i+'"></span>'+
-      '<div class="nmeta"><b>'+esc(n.name)+'</b><small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small></div>'+
-      '<button class="more" aria-label="更多" onclick="nodeMenu('+i+')">⋯</button></div>';
+      '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
+      '<button class="more" aria-label="更多" onclick="nodeMenu('+i+')"><svg class="ico"><use href="#i-more"/></svg></button></div>';
   }).join('');
   paintStatus();
+}
+function healthText(h){
+  var m={port:"端口没放行",tls:"服务没起来",role_mismatch:"出口在国内，翻不了墙",landing:"连不上落地",blocked:"可能被墙了",timeout:"安装超时",unknown:"未验证"};
+  return m[h]||"状态未知";
 }
 function paintStatus(){
   var ok=0;
   NODES.forEach(function(n,i){
     var d=document.getElementById('d'+i), s=document.getElementById('s'+i);
     if(!d||!s) return;
+    var h=n.health;
+    if(h==='ok'){
+      d.className='dot ok';
+      s.textContent = n.exit_ip ? ('已验证 · 出口 '+n.exit_ip) : '已验证';
+      ok++; return;
+    }
+    if(h && h!=='unknown'){
+      d.className='dot bad';
+      s.textContent = healthText(h);
+      return;
+    }
+    if(h==='unknown'){
+      d.className='dot';
+      s.textContent = '未验证（外部节点）';
+      return;
+    }
     var st=STATUS[n.name];
     if(!st){ d.className='dot'; s.textContent='检查中…'; return; }
     d.className='dot '+(st.ok?'ok':'bad');
     s.textContent = st.ok ? ('在线 '+st.ms+'ms') : (st.reason==='port'?'不通 · 端口没放行':(st.reason==='tls'?'不通 · 服务没起来':'不通'));
     if(st.ok) ok++;
   });
-  if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 在线', ok===NODES.length?'ok':'bad');
+  if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 可用', ok===NODES.length?'ok':'bad');
 }
 function load(){
   fetch('api/nodes',{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
@@ -364,7 +425,7 @@ function loadServers(){
     box.innerHTML=WIZ.servers.map(function(s,i){
       var used=NODES.some(function(n){return n.host===s.ip});
       return '<button class="srvrow'+(used?' used':'')+'" data-i="'+i+'" onclick="pickSrv('+i+')"><span><b>'+esc(s.name||s.ip)+'</b><small>'+s.ip+' · '+s.region+(used?' · 已在用':'')+'</small></span><i class="chk"></i></button>';
-    }).join('') + '<button class="srvrow" data-i="-1" onclick="pickSrv(-1)"><span><b>＋ 其他服务器</b><small>手动填地址 · 不一定是腾讯云</small></span><i class="chk"></i></button>';
+    }).join('') + '<button class="srvrow" data-i="-1" onclick="pickSrv(-1)"><span><b><svg class="ico"><use href="#i-plus"/></svg> 其他服务器</b><small>手动填地址 · 不一定是腾讯云</small></span><i class="chk"></i></button>';
     WIZ.srv=null; setNextEnabled(false);
   }).catch(function(){ var b=document.getElementById('srvlist'); if(b) b.innerHTML='<div class="skeleton">没读到服务器列表，请在下一步用「高级」手动填 IP</div>'; });
 }
@@ -380,7 +441,7 @@ function pickSrv(i){
   if(lb) lb.textContent='服务器地址 · '+(s.name||s.ip);
   if(nm&&!nm.value) nm.placeholder=s.name||s.ip;
   var used=NODES.some(function(n){return n.host===s.ip});
-  if(warn&&used){ warn.style.display=''; warn.innerHTML='⚠️ 这台正在服役。重装会换掉密钥，<b>所有已连接的设备会立刻断线</b>，之后要重新导入订阅。'; }
+  if(warn&&used){ warn.style.display=''; warn.innerHTML='<svg class="ico"><use href="#i-alert"/></svg> 这台正在服役。重装会换掉密钥，<b>所有已连接的设备会立刻断线</b>，之后要重新导入订阅。'; }
   setNextEnabled(true);
 }
 function wizGoto(n){
@@ -395,25 +456,64 @@ function renderSteps(cur,done,failed){
     return '<div class="stp '+cls+'"><span class="ic"></span><span>'+n+'</span></div>';
   }).join('');
 }
+var ROLE="";
+function setRole(v){
+  ROLE=v;
+  var bs=document.querySelectorAll(".rolebtn");
+  for(var i=0;i<bs.length;i++){bs[i].className="segbtn rolebtn"+(bs[i].getAttribute("data-role")===v?" active":"");}
+  document.getElementById("landingwrap").style.display=(v==="relay"?"":"none");
+  if(v==="relay") fillLanding();
+}
+function fillLanding(){
+  var sel=document.getElementById("f-landing");
+  var opts=['<option value="">从已有节点里选一个</option>'];
+  NODES.forEach(function(n,i){
+    if((n.role||"exit")!=="relay" && (n.health==="ok"||!n.health)){ opts.push('<option value="'+i+'">'+esc(n.name)+" · "+esc(n.host)+"</option>"); }
+  });
+  sel.innerHTML=opts.join("");
+}
+var AUTH="password";
+function setAuth(v){
+  AUTH=v;
+  var bs=document.querySelectorAll(".segbtn");
+  for(var i=0;i<bs.length;i++){bs[i].className="segbtn"+(bs[i].getAttribute("data-auth")===v?" active":"");}
+  document.getElementById("passwrap").style.display=(v==="password"?"":"none");
+  document.getElementById("keywrap").style.display=(v==="key"?"":"none");
+  if(v==="password"){document.getElementById("f-key").value="";}else{document.getElementById("f-pass").value="";}
+}
 function startInstall(){
-  var pass=document.getElementById('f-pass').value;
   var ip=document.getElementById('f-ip').value.trim();
   var user=document.getElementById('f-user').value.trim()||'root';
   var port=document.getElementById('f-port').value.trim()||'443';
   var name=document.getElementById('f-name').value.trim();
-  if(!pass){ dialog({title:'还差一步',message:'请输入服务器 root 密码',cancelText:null,confirmText:'好'}); return; }
+  var auth=AUTH==='key'?{type:'key',value:(document.getElementById('f-key').value||'').trim()}:{type:'password',value:document.getElementById('f-pass').value};
+  if(!ROLE){ dialog({title:'还差一步',message:'请选择这台机器是「出口」还是「中转」',cancelText:null,confirmText:'好'}); return; }
+  var landing=null;
+  if(ROLE==='relay'){
+    var li=document.getElementById('f-landing').value;
+    var lk=(document.getElementById('f-landing-link').value||'').trim();
+    if(li!==''){ var ln=NODES[parseInt(li,10)]; landing={host:ln.host,port:ln.port,uuid:ln.uuid,pbk:ln.pbk,sid:ln.sid,sni:ln.sni}; }
+    else if(lk){ landing={link:lk}; }
+    else { dialog({title:'还差一步',message:'中转需要指定落地：从列表选一个，或粘贴一条 vless 链接',cancelText:null,confirmText:'好'}); return; }
+  }
+  if(auth.type==='password' && !auth.value){ dialog({title:'还差一步',message:'请输入服务器 root 密码，或切换到「私钥」',cancelText:null,confirmText:'好'}); return; }
+  if(auth.type==='key' && auth.value.indexOf('PRIVATE KEY')<0){ dialog({title:'私钥格式不对',message:'请粘贴完整的 OpenSSH 或 PEM 私钥',cancelText:null,confirmText:'好'}); return; }
   if(!ip){ dialog({title:'还差一步',message:'请选择一台服务器，或点「其他服务器」手动填地址',cancelText:null,confirmText:'好'}); return; }
   if(!name){ var s=WIZ.servers[WIZ.srv]; name=(s&&s.name)||ip; }
   var used=NODES.some(function(n){return n.host===ip});
   if(used){
     dialog({title:'确认重装？',message:'这台机器上已经有节点在跑。重装会生成新密钥，现有设备会立刻断线。',confirmText:'我确定，重装',danger:true})
-      .then(function(y){ if(y) doInstall(name,ip,user,port,pass); });
-  } else doInstall(name,ip,user,port,pass);
+      .then(function(y){ if(y) doInstall(name,ip,user,port,auth,ROLE,landing); });
+  } else doInstall(name,ip,user,port,auth,ROLE,landing);
 }
-function doInstall(name,ip,user,port,pass){
-  WIZ.last={name:name,ip:ip,user:user,port:port};
+function doInstall(name,ip,user,port,auth,role,landing){
+  WIZ.last={name:name,ip:ip,user:user,port:port,auth:auth.type,role:role,landing:landing};
   var btn=document.getElementById('btn-add'); if(btn) btn.disabled=true;
-  fetch('api/addnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name,ip:ip,user:user,pass:pass,port:port})})
+  var payload={name:name,ip:ip,user:user,port:port,auth_type:auth.type,role:role};
+  if(landing) payload.landing=landing;
+  if(auth.type==='key'){payload.private_key=auth.value;}else{payload.pass=auth.value;}
+  var kf=document.getElementById('f-key'); if(kf) kf.value='';
+  fetch('api/addnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(r){return r.json()}).then(function(d){
       if(btn) btn.disabled=false;
       if(!d.ok){ dialog({title:'无法开始',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
@@ -441,7 +541,7 @@ function autoFix(){
         n--;
         if(lb) lb.textContent='正在重启服务器… '+n+' 秒后自动重装';
         setPill('重启中 '+n+'s','');
-        if(n<=0){ clearInterval(t); INSTALLING=false; doInstall(a.name,a.ip,'root',a.port,d.password); }
+        if(n<=0){ clearInterval(t); INSTALLING=false; doInstall(a.name,a.ip,'root',a.port,{type:'password',value:d.password},a.role,a.landing); }
       },1000);
     }).catch(function(e){ dialog({title:'没法自动修',message:String(e),cancelText:null,confirmText:'好'}); });
 }
@@ -505,16 +605,33 @@ function formSheet(title,fields,confirmText){
     w.addEventListener('click',function(e){ if(e.target===w) close(null); });
   });
 }
+function doPaste(){
+  var v=(document.getElementById('f-paste').value||'').trim();
+  var msg=document.getElementById('pasteMsg');
+  if(!v){ dialog({title:'还差一步',message:'先把链接粘进来',cancelText:null,confirmText:'好'}); return; }
+  msg.textContent='正在校验…';
+  fetch('api/paste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links:v})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(d.added&&d.added.length){
+        msg.textContent='已加入：'+d.added.join('、')+(d.errors&&d.errors.length?('；跳过：'+d.errors.join('；')):'');
+        document.getElementById('f-paste').value='';
+        load();
+      } else {
+        msg.textContent=(d.errors&&d.errors.length)?d.errors.join('；'):'没有可加入的链接';
+      }
+    }).catch(function(e){ msg.textContent='失败：'+e; });
+}
 function nodeMenu(i){
   var n=NODES[i], st=STATUS[n.name];
-  choose(n.name, n.host+' · 端口 '+n.port+'\n'+(st&&st.ok?('在线 '+st.ms+'ms'):'不通'), [
-    {label:'编辑 · 名字和端口'},
-    {label:'更换密钥 · 踢掉所有设备'},
-    {label:'删除这个节点', danger:true}
-  ]).then(function(k){
-    if(k===0) editNode(i);
-    else if(k===1) rotateKey(i);
-    else if(k===2) delNode(i);
+  var items=[{label:'编辑 · 名字和端口'}];
+  if(n.source!=='external') items.push({label:'更换密钥 · 踢掉所有设备'});
+  items.push({label:'删除这个节点', danger:true});
+  choose(n.name, n.host+' · 端口 '+n.port+'\n'+(n.source==='external'?'外部节点，未验证':(st&&st.ok?('在线 '+st.ms+'ms'):'不通')), items).then(function(k){
+    var label=items[k]&&items[k].label;
+    if(!label) return;
+    if(label.indexOf('编辑')===0) editNode(i);
+    else if(label.indexOf('更换密钥')===0) rotateKey(i);
+    else delNode(i);
   });
 }
 function editNode(i){
@@ -616,7 +733,7 @@ function health(){
   Promise.all(tasks).then(function(){
     var bad=rows.filter(function(r){return !r.ok}).length;
     box.innerHTML='<p class="note" style="margin:12px 0 4px;font-weight:600;color:'+(bad?'var(--bad)':'var(--ok)')+'">'+(bad?('发现 '+bad+' 个问题'):'全部正常')+'</p>'+
-      rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'✓ ':'✗ ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('');
+      rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'<svg class="ico"><use href="#i-check"/></svg> ':'<svg class="ico"><use href="#i-x"/></svg> ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('');
   });
 }
 function wireLinks(){
