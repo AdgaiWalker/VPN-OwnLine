@@ -73,3 +73,37 @@ STEP 4 检查端口        从主控回连，判断是否被云防火墙挡住
 `authorized_keys`。之后所有操作（改名、改端口、换密钥、删除）都走这把钥匙，**不再需要密码**。
 
 密码只在"第一次接入"时用一次。
+
+## nodekit：五个纯函数模块
+
+`server/nodekit/` 是「加节点」这条流水线的全部逻辑，**所有判断都是纯函数**
+（吃字符串、吐结论），所以能离线单测，不会因为测试把生产搞坏。
+
+| 模块 | 职责 | 谁调它 |
+|---|---|---|
+| `preflight.py` | 判断这台机器能不能装（系统/架构/systemd/磁盘）| `preflight_cli.py` ← `addnode.sh` |
+| `links.py` | vless 链接解析与生成，错误信息是给人看的中文 | `admin.py` 的 `/paste`、`templates` |
+| `templates.py` | 出口 / 中转两套 sing-box 配置 + 结构校验 | `addnode.sh` |
+| `verify.py` | 端口 → 握手 → 出口（或落地），三步短路 | `admin.py` 的 `/verify`、安装后自测 |
+| `advise.py` | 一句人话建议 + 依据 | `admin.py` 的 `/nodes` |
+
+### 为什么都是纯函数
+
+```
+preflight.parse_os_release('ID=centos\nVERSION_ID="7"')  → ('centos','7','rhel')
+preflight.supported_os('centos','7','rhel')              → (False,'unsupported_os')
+advise.advise(node, status, usage)                       → {'text':'AI 首选','reason':'延迟 110ms · 出口 US'}
+```
+
+**不需要 SSH、不需要网络、不需要真机**——这是 40 项单测能在 1 秒内跑完的原因。
+
+### 自测的三步短路
+
+```
+tcp_ok   → 失败 = port
+tls_ok   → 失败 = tls        （必须真的协商出 Cipher，排除 NONE）
+exit_ip  → CN = role_mismatch
+         → 成功 = ok + 出口 IP
+```
+
+中转不测出口 IP：国内机访问境外 IP 查询会被拒，测了必然误报。
