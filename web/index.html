@@ -356,7 +356,8 @@ function paintStatus(){
     if(h==='ok'){
       d.className='dot ok';
       s.textContent = n.exit_ip ? ('已验证 · 出口 '+n.exit_ip) : '已验证';
-      ok++; return;
+      if((n.role||'exit')!=='relay') ok++;
+      return;
     }
     if(h && h!=='unknown'){
       d.className='dot bad';
@@ -374,7 +375,7 @@ function paintStatus(){
     s.textContent = st.ok ? ('在线 '+st.ms+'ms') : (st.reason==='port'?'不通 · 端口没放行':(st.reason==='tls'?'不通 · 服务没起来':'不通'));
     if(st.ok) ok++;
   });
-  if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 可用', ok===NODES.length?'ok':'bad');
+  if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 能翻墙', ok>0?'ok':'bad');
 }
 function load(){
   fetch('api/nodes',{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
