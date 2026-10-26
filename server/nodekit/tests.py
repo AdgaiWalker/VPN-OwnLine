@@ -32,7 +32,7 @@ x86_64
 ---SYSTEMD---
 /usr/bin/systemctl
 ---DISK---
-5000
+/dev/vda1 41152736 8234567 5000 21% /
 ---TOOLS---
 /usr/bin/curl
 /usr/bin/tar
