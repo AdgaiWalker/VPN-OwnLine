@@ -6,6 +6,7 @@ WEB = "/opt/web"
 from nodekit import verify as verify_mod  # noqa: E402
 from nodekit import links as links_mod  # noqa: E402
 from nodekit import advise as advise_mod  # noqa: E402
+from nodekit import hints as hints_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(WEB, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -38,26 +39,6 @@ def render():
     with open(CADDY, "w", encoding="utf-8") as f:
         f.write(new)
     subprocess.run(["systemctl", "reload", "caddy"], check=True, capture_output=True)
-
-def _hint_from_log(lines):
-    txt = "\n".join(lines).lower()
-    if "permission denied" in txt:
-        return "密码不对，或者这台机器不允许 root 用密码登录。\n去腾讯云控制台 → 实例 → 重置密码（用户选 root），再用新密码试。"
-    if "curl:" in txt or "recv failure" in txt or "could not resolve host" in txt or "failed to connect" in txt:
-        return "服务器下载 sing-box 失败。\n多半是这台机器连不上 GitHub（国内机器常见）。换成从我们服务器推给它。"
-    if "ssh: connect" in txt and ("timed out" in txt or "refused" in txt):
-        return "连不上这台机器的 22 端口。\n可能是防火墙没放行，或者机器没开机。"
-    if "connection timed out" in txt:
-        return "网络超时，中途断了。"
-    if "sudo: a password is required" in txt:
-        return "登录的这个用户不是 root，而且 sudo 需要密码。\n把用户名改成 root 再试。"
-    if "host key verification failed" in txt:
-        return "这台机器的主机指纹变了（可能重装过系统）。"
-    if "unsupported arch" in txt:
-        return "这台机器的 CPU 架构不支持，目前只支持 x86_64 和 arm64。"
-    if "no space left" in txt:
-        return "服务器磁盘满了。"
-    return "看下面的原始输出。常见原因：密码错、22 端口没开、服务器不是 Linux、或者这台机器不接受密码登录。"
 
 def _gen_node():
     """生成一套节点参数（uuid / reality 密钥对 / short_id）。"""
@@ -124,7 +105,7 @@ def run_job(jid, cfg_path):
         if rc != 0 or (not j.get("node") and not dry):
             j["state"] = "error"
             j["error"] = "installation failed"
-            j["hint"] = _hint_from_log(j["log"])
+            j["hint"] = hints_mod.hint_from_log(j["log"])
         else:
             j["state"] = "done"
             if j.get("node"):
