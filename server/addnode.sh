@@ -39,7 +39,7 @@ fi
 
 echo "  正在预检系统"
 PF="/tmp/pf.$$.txt"
-PROBE_CMD='cat /etc/os-release 2>/dev/null; echo "---ARCH---"; uname -m; echo "---SYSTEMD---"; command -v systemctl || echo none; echo "---DISK---"; df -mP / | tail -1; echo "---TOOLS---"; command -v curl || echo none; command -v tar || echo none; echo "---INSTALLED---"; test -x /opt/sing-box/sing-box && echo yes || echo no'
+PROBE_CMD=$(python3 -c 'import sys; sys.path.insert(0,"/opt/web"); from nodekit import preflight; print(preflight.PROBE_CMD)')
 rsh "$PROBE_CMD" > "$PF" 2>&1 || true
 if ! PF_OUT=$(python3 /opt/web/nodekit/preflight_cli.py "$PF"); then
   echo "$PF_OUT"; rm -f "$PF"; exit 1

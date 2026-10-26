@@ -49,6 +49,17 @@ ok("磁盘不足拒绝", preflight.decide(bad)[1] == "disk_low")
 nosd = dict(info, systemd="none")
 ok("无 systemd 拒绝", preflight.decide(nosd)[1] == "no_systemd")
 
+
+# 国产 / 衍生发行版
+ok("alinux 3 支持", preflight.supported_os(*preflight.parse_os_release('ID="alinux"\nVERSION_ID="3"'))[0])
+ok("anolis 8 支持", preflight.supported_os(*preflight.parse_os_release('ID="anolis"\nVERSION_ID="8.8"'))[0])
+ok("openeuler 22 支持", preflight.supported_os(*preflight.parse_os_release('ID="openEuler"\nVERSION_ID="22.03"'))[0])
+d, v, fam = preflight.parse_os_release('ID="kali"\nID_LIKE="debian"\nVERSION_ID="2024.1"')
+ok("ID_LIKE 兜底：kali → debian", fam == "debian" and preflight.supported_os(d, v, fam)[0], fam)
+d2, v2, fam2 = preflight.parse_os_release('ID="mycustom"\nID_LIKE="rhel centos"\nVERSION_ID="9"')
+ok("ID_LIKE 兜底：自定义 → rhel", fam2 == "rhel" and preflight.supported_os(d2, v2, fam2)[0], fam2)
+ok("debian 10 不支持", not preflight.supported_os(*preflight.parse_os_release('ID=debian\nVERSION_ID="10"'))[0])
+
 # ---------- links ----------
 GOOD = ("vless://11111111-1111-4111-8111-111111111111@1.2.3.4:443"
         "?encryption=none&flow=xtls-rprx-vision&security=reality&sni=www.apple.com"

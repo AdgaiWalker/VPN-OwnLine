@@ -6,15 +6,19 @@
 import re
 
 OS_FAMILY = {
-    "ubuntu": "debian", "debian": "debian", "linuxmint": "debian",
+    "ubuntu": "debian", "debian": "debian", "linuxmint": "debian", "kali": "debian", "pop": "debian",
     "centos": "rhel", "rocky": "rhel", "almalinux": "rhel", "rhel": "rhel", "fedora": "rhel",
-    "alpine": "alpine", "opencloudos": "rhel", "tencentos": "rhel",
+    "alinux": "rhel", "anolis": "rhel", "openeuler": "rhel", "opencloudos": "rhel",
+    "tencentos": "rhel", "kylin": "rhel", "uniontech": "debian", "uos": "debian",
+    "alpine": "alpine",
 }
 
 # 各家族的最低支持版本
 MIN_VERSION = {"debian": (11, 0), "rhel": (8, 0)}
 # ubuntu 单独规定（20.04 起）
 UBUNTU_MIN = (20, 4)
+# 有些发行版用自己的版本号（阿里云 3、openEuler 22、麒麟 V10）
+DISTRO_MIN = {"alinux": (3, 0), "openeuler": (20, 0), "kylin": (10, 0)}
 
 ARCH_MAP = {"x86_64": "amd64", "amd64": "amd64", "aarch64": "arm64", "arm64": "arm64"}
 
@@ -23,7 +27,7 @@ PROBE_CMD = (
     "cat /etc/os-release 2>/dev/null; "
     "echo '---ARCH---'; uname -m; "
     "echo '---SYSTEMD---'; command -v systemctl || echo none; "
-    "echo '---DISK---'; df -m / | tail -1 | awk '{print $4}'; "
+    "echo '---DISK---'; df -mP / | tail -1; "
     "echo '---TOOLS---'; command -v curl || echo none; command -v tar || echo none; "
     "echo '---INSTALLED---'; test -x /opt/sing-box/sing-box && echo yes || echo no"
 )
@@ -53,6 +57,11 @@ def parse_os_release(text):
                 distro = key
                 break
     family = OS_FAMILY.get(distro, "unknown")
+    if family == "unknown":
+        for like in (data.get("ID_LIKE") or "").lower().split():
+            if like in OS_FAMILY:
+                family = OS_FAMILY[like]
+                break
     return distro, version, family
 
 
@@ -64,6 +73,9 @@ def supported_os(distro, version, family):
     ver = parse_version(version)
     if distro == "ubuntu":
         return (ver >= UBUNTU_MIN), ("ok" if ver >= UBUNTU_MIN else "unsupported_os")
+    if distro in DISTRO_MIN:
+        need = DISTRO_MIN[distro]
+        return (ver >= need), ("ok" if ver >= need else "unsupported_os")
     if family in MIN_VERSION:
         return (ver >= MIN_VERSION[family]), ("ok" if ver >= MIN_VERSION[family] else "unsupported_os")
     return False, "unsupported_os"
