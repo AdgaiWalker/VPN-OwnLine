@@ -169,3 +169,45 @@ AUTH_HOME=[]
 
 - 验收 17 通过 0 失败
 - 单测 77 项全过
+
+---
+
+# 第三轮：云适配层与定时任务（同日）
+
+评审范围：`server/providers/`、`probe.py`、`usage_refresh.py`、`rotate.sh`。提出 7 条，**1 条已核实为本来就正确**，6 条已修。
+
+## 已修的 6 条
+
+| # | 问题 | 后果 | 改法 |
+|---|---|---|---|
+| 1 | `probe.py` 把 host/sni 拼进 `bash -c` | 节点数据是外部输入（粘贴来的），可注入命令 | 改成 `subprocess.run([...])` 列表传参，不经 shell |
+| 2 | provider 异常被吞，退化成"没有这家云" | 腾讯云 API 挂了会显示成"这台不是腾讯云的" | 新增 `error` 状态，保留 provider 名与原因 |
+| 3 | `usage_refresh` 查询失败仍覆盖旧文件 | 一次抖动 → 面板显示没用过流量 / 没有服务器 | 空结果不落盘；原子写 |
+| 4 | `rotate.sh` 先改页面后改配置，无备份 | 中途失败 → 页面里的新 token 与 Caddy 的旧 token 不一致，订阅全挂 | 备份 + 全改副本 + 校验 + 原子替换 + `trap ERR` 回滚 |
+| 5 | 腾讯云接口只取前 50 条 | 实例多于 50 台时会漏、流量低报 | `_paged()` 按 TotalCount 翻页 |
+| 6 | `probe`/`usage_refresh` 直接覆盖写 JSON | 读到半截文件 | 临时文件 + fsync + `os.replace` |
+
+## 顺带修的一处老问题
+
+`probe.py` 原来用 `CONNECTED` 判断 TLS —— 和之前第 2 轮修的假绿灯是同一个坑。**现在 probe 也用 `Cipher is` 且排除 `(NONE)`**。
+
+## 已核实为正确、无需修
+
+| 评审说 | 实际 |
+|---|---|
+| `tc.json` 权限可能不当 | `-rw------- root root`（600），本来就对 |
+
+## 实测
+
+| 用例 | 结果 |
+|---|---|
+| 新 probe 跑一遍 | 4 个节点全 ok（新加坡 798ms / 硅谷 26ms / 北京 624ms / 广州 718ms）|
+| usage_refresh | 4 台实例，`errors: []` |
+| rotate 注入失败（qrencode 换成 false）| 打出「回滚：恢复原配置」，index.html 与 Caddyfile **md5 未变**，订阅仍 200 |
+| provider 报错 | 返回 `error：云 API 调用失败：boom.open_port: 凭据过期` |
+| 全部 provider skip | 返回 `skip：没有接入这台机器的云厂商…` |
+
+## 第三轮回归
+
+- 验收 17 通过 0 失败
+- 单测 77 项全过

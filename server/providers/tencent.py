@@ -51,6 +51,24 @@ class Provider(Base):
 
     # ---------- 读 ----------
 
+    def _paged(self, action, params, region, key):
+        """按 TotalCount 翻页取全：只拿前 50 条会漏实例、低报流量。"""
+        items, offset = [], 0
+        while True:
+            args = dict(params)
+            args.update({"Limit": 50, "Offset": offset})
+            d = self._call(action, args, region)
+            body = d.get("Response", {}) or {}
+            got = body.get(key) or []
+            items += got
+            offset += len(got)
+            total = body.get("TotalCount")
+            if not got or len(got) < 50:
+                break
+            if total is not None and offset >= int(total):
+                break
+        return items
+
     def list_instances(self):
         servers = []
         try:
@@ -61,10 +79,10 @@ class Provider(Base):
         for reg in regions:
             label = REGION_CN.get(reg, reg)
             try:
-                d = self._call("DescribeInstances", {"Limit": 50}, reg)
+                insts = self._paged("DescribeInstances", {}, reg, "InstanceSet")
             except Exception:
                 continue
-            for i in d.get("Response", {}).get("InstanceSet", []):
+            for i in insts:
                 ip = (i.get("PublicAddresses") or [""])[0]
                 servers.append({
                     "name": i.get("InstanceName") or "",
@@ -88,10 +106,10 @@ class Provider(Base):
             if not id2ip:
                 continue
             try:
-                t = self._call("DescribeInstancesTrafficPackages", {"Limit": 50, "Offset": 0}, reg)
+                pkgs = self._paged("DescribeInstancesTrafficPackages", {}, reg, "InstanceTrafficPackageSet")
             except Exception:
                 continue
-            for inst in t.get("Response", {}).get("InstanceTrafficPackageSet", []):
+            for inst in pkgs:
                 ip = id2ip.get(inst.get("InstanceId"))
                 if not ip:
                     continue
@@ -136,7 +154,7 @@ class Provider(Base):
         region = inst.get("regionId") or "ap-singapore"
         iid = inst.get("id")
         try:
-            r = self._call("DescribeFirewallRules", {"InstanceId": iid, "Limit": 100, "Offset": 0}, region)
+            r = self._call("DescribeFirewallRules", {"InstanceId": iid, "Limit": 100, "Offset": 0}, region)  # 单机规则一般 <100 条
             for x in (r.get("Response") or {}).get("FirewallRuleSet", []):
                 if str(x.get("Port")) == str(port) and (x.get("Protocol") or "").upper() == "TCP":
                     return ("already", "TCP %s 已经是放行状态" % port)

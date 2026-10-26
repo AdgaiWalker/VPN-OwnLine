@@ -1,26 +1,62 @@
 #!/usr/bin/env python3
-import json, socket, subprocess, time
+"""每 60 秒探活一次，写 status.json。
 
-nodes = json.load(open("/opt/web/nodes.json", encoding="utf-8"))
-out = {}
-for n in nodes:
-    t0 = time.time()
-    ok = False
-    reason = ""
+只做两件事：TCP 通不通、TLS 有没有真的握手完成。
+配置值不进 shell —— 节点数据是外部输入，拼命令等于给自己开后门。
+"""
+import json
+import os
+import socket
+import subprocess
+import time
+
+NODES = "/opt/web/nodes.json"
+OUT = "/opt/web/status.json"
+
+
+def tcp_ok(host, port, timeout=4):
     try:
-        s = socket.create_connection((n["host"], int(n["port"])), timeout=4)
+        s = socket.create_connection((str(host), int(port)), timeout=timeout)
         s.close()
+        return True
     except Exception:
-        out[n["name"]] = {"ok": False, "ms": 0, "reason": "port"}
-        continue
+        return False
+
+
+def tls_ok(host, port, sni):
+    """必须真的协商出加密套件；普通 HTTP 端口只会打印 CONNECTED，不能算通。"""
+    cmd = ["openssl", "s_client", "-connect", "%s:%s" % (host, int(port)),
+           "-servername", sni or host]
     try:
-        p = subprocess.run(["bash", "-c", "echo | timeout 6 openssl s_client -connect %s:%s -servername %s 2>&1" % (n["host"], n["port"], n["sni"])],
-                           capture_output=True, text=True, timeout=10)
-        ok = "CONNECTED" in p.stdout
-        if not ok:
-            reason = "tls"
+        p = subprocess.run(cmd, input="", capture_output=True, text=True, timeout=12)
     except Exception:
-        reason = "tls"
-    out[n["name"]] = {"ok": ok, "ms": int((time.time() - t0) * 1000) if ok else 0, "reason": reason}
-out["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-json.dump(out, open("/opt/web/status.json", "w", encoding="utf-8"), ensure_ascii=False)
+        return False
+    out = p.stdout or ""
+    return ("Cipher is" in out) and ("Cipher is (NONE)" not in out)
+
+
+def main():
+    nodes = json.load(open(NODES, encoding="utf-8"))
+    out = {}
+    for n in nodes:
+        t0 = time.time()
+        host, port = n.get("host"), n.get("port")
+        if not tcp_ok(host, port):
+            out[n["name"]] = {"ok": False, "ms": 0, "reason": "port"}
+            continue
+        if not tls_ok(host, port, n.get("sni")):
+            out[n["name"]] = {"ok": False, "ms": 0, "reason": "tls"}
+            continue
+        out[n["name"]] = {"ok": True, "ms": int((time.time() - t0) * 1000), "reason": ""}
+    out["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    tmp = OUT + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(out, f, ensure_ascii=False)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, OUT)
+
+
+if __name__ == "__main__":
+    main()
