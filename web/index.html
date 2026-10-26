@@ -312,7 +312,7 @@ function dialog(o){
   return new Promise(function(resolve){
     var w=document.createElement('div');
     w.className='sheetwrap';
-    var msg=(o.message||'').replace(/\n/g,'<br>');
+    var msg=esc(o.message||'').replace(/\n/g,'<br>');
     w.innerHTML='<div class="sheet"><h2>'+esc(o.title||'')+'</h2>'+
       (msg?'<p>'+msg+'</p>':'')+
       '<div class="sheetbtns">'+
@@ -514,6 +514,7 @@ function doInstall(name,ip,user,port,auth,role,landing){
   if(landing) payload.landing=landing;
   if(auth.type==='key'){payload.private_key=auth.value;}else{payload.pass=auth.value;}
   var kf=document.getElementById('f-key'); if(kf) kf.value='';
+  var pf=document.getElementById('f-pass'); if(pf) pf.value='';
   fetch('api/addnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(function(r){return r.json()}).then(function(d){
       if(btn) btn.disabled=false;
@@ -546,9 +547,13 @@ function autoFix(){
       },1000);
     }).catch(function(e){ dialog({title:'没法自动修',message:String(e),cancelText:null,confirmText:'好'}); });
 }
+var POLL_FAIL=0;
 function pollJob(){
   if(!WIZ.job) return;
-  fetch('api/job?id='+WIZ.job,{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+  var ac=(typeof AbortController!=='undefined')?new AbortController():null;
+  var tm=ac?setTimeout(function(){ac.abort();},20000):null;
+  fetch('api/job?id='+WIZ.job,{cache:'no-store',signal:ac?ac.signal:undefined}).then(function(r){return r.json()}).then(function(j){
+    if(tm)clearTimeout(tm); POLL_FAIL=0;
     var step=Math.max(1,j.step||1);
     renderSteps(step, j.state==='done', j.state==='error');
     if(INSTALLING) setPill('安装中 '+step+'/4','');
@@ -564,7 +569,16 @@ function pollJob(){
       var wb=document.getElementById('w3back'); if(wb) wb.style.display='';
       dialog({title:'安装没成功',message:(j.hint||'看下面的原始输出。'),cancelText:null,confirmText:'好'}).then(function(){ if((j.hint||'').indexOf('密码')>=0) autoFixPrompt(); });
     }
-  }).catch(function(){});
+  }).catch(function(){
+    if(tm)clearTimeout(tm);
+    POLL_FAIL++;
+    if(POLL_FAIL>=3&&INSTALLING){
+      clearInterval(WIZ.timer); WIZ.timer=null; INSTALLING=false;
+      var lb=document.getElementById('logbox');
+      if(lb) lb.textContent+='\n[连接中断] 连续 3 次取不到进度';
+      dialog({title:'连接中断',message:'取不到安装进度了。任务可能还在跑：刷新页面能看到结果，或去服务器上看 sing-box 状态。',cancelText:null,confirmText:'好'});
+    }
+  });
 }
 function rememberJob(id){ try{ localStorage.setItem('sb_job', id); }catch(e){} }
 function forgetJob(){ try{ localStorage.removeItem('sb_job'); }catch(e){} }

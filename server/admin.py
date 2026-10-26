@@ -3,6 +3,7 @@ import json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WEB = "/opt/web"
+MAX_BODY = 1_000_000  # 1MB：私钥最多几 KB，超了就是有人在搞事
 from nodekit import verify as verify_mod  # noqa: E402
 from nodekit import links as links_mod  # noqa: E402
 from nodekit import advise as advise_mod  # noqa: E402
@@ -299,6 +300,7 @@ def nodes_with_advice():
 
 
 class H(BaseHTTPRequestHandler):
+    timeout = 30  # 单连接最长 30 秒，防慢速攻击占线程
     def _json(self, code, obj):
         body = json.dumps(obj, ensure_ascii=False).encode()
         self.send_response(code)
@@ -332,14 +334,29 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, out)
         self._json(404, {"ok": False, "error": "not found"})
 
+    def _origin_ok(self):
+        """只靠 Basic Auth 时，第三方网页也能让浏览器带上凭据发 POST。
+        浏览器跨站请求一定带 Origin（或 Referer），核对它的主机名。"""
+        src = self.headers.get("Origin") or self.headers.get("Referer") or ""
+        if not src:
+            return True                      # 命令行 / curl：没有 Origin
+        host = (self.headers.get("Host") or "").split(":")[0]
+        return bool(host) and (host in src)
+
     def do_POST(self):
+        if not self._origin_ok():
+            return self._json(403, {"ok": False, "error": "跨站请求被拒绝"})
         path = self.path.rstrip("/")
         length = int(self.headers.get("Content-Length") or 0)
+        if length > MAX_BODY:
+            return self._json(413, {"ok": False, "error": "请求体过大"})
         raw = self.rfile.read(length) if length else b"{}"
         try:
             body = json.loads(raw.decode() or "{}")
         except Exception:
-            body = {}
+            return self._json(400, {"ok": False, "error": "请求体不是合法 JSON"})
+        if not isinstance(body, dict):
+            return self._json(400, {"ok": False, "error": "请求体必须是对象"})
 
         if path == "/rotate":
             msg = "旧订阅地址已失效；已连接的设备不受影响（要踢人请用「更换密钥」）"
@@ -365,8 +382,7 @@ class H(BaseHTTPRequestHandler):
             target = next((n for n in nodes if n["name"] == name), None)
             if not target:
                 return self._json(404, {"ok": False, "error": "没找到这个节点"})
-            new_nodes = [n for n in nodes if n["name"] != name]
-            save_nodes(new_nodes)
+            update_nodes(lambda ns: [n for n in ns if n["name"] != name])
             try:
                 render()
             except Exception as e:
@@ -387,7 +403,7 @@ class H(BaseHTTPRequestHandler):
                     stopped = (r.returncode == 0)
                 except Exception:
                     stopped = False
-            return self._json(200, {"ok": True, "remaining": len(new_nodes), "stopped": stopped})
+            return self._json(200, {"ok": True, "remaining": len(load_nodes()), "stopped": stopped})
 
         if path == "/editnode":
             name = (body.get("name") or "").strip()
@@ -412,15 +428,19 @@ class H(BaseHTTPRequestHandler):
                 ok, msg = patch_remote(target, uuid_new=new_uuid, port_new=new_port)
                 if not ok:
                     return self._json(500, {"ok": False, "error": "服务器上改配置失败：" + msg})
-            if new_uuid:
-                target["uuid"] = new_uuid
-            if new_port is not None:
-                target["port"] = new_port
-            if newname and newname != target["name"]:
-                if any(n["name"] == newname for n in nodes):
-                    return self._json(400, {"ok": False, "error": "已有同名节点"})
-                target["name"] = newname
-            save_nodes(nodes)
+            def _apply(ns):
+                for n in ns:
+                    if n["name"] == name:
+                        if new_uuid:
+                            n["uuid"] = new_uuid
+                        if new_port is not None:
+                            n["port"] = new_port
+                        if newname and newname != name:
+                            n["name"] = newname
+                return ns
+
+            update_nodes(_apply)
+            target = next((n for n in load_nodes() if n["name"] == (newname or name)), target)
             try:
                 render()
             except Exception as e:
@@ -465,7 +485,7 @@ class H(BaseHTTPRequestHandler):
                 nodes.append(p)
                 added.append(p["name"])
             if added:
-                save_nodes(nodes)
+                update_nodes(lambda ns: ns + [n for n in nodes if n["name"] in added])
                 render()
             return self._json(200, {"ok": bool(added), "added": added, "errors": errors})
 

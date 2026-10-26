@@ -127,3 +127,45 @@ AUTH_HOME=[]
 
 > 这次评审最有价值的一条是 ②：**它指出我们的"绿灯"其实只证明了端口上有 TLS**。
 > 现在绿灯意味着"这条节点真的能带你出去"。
+
+---
+
+# 第二轮：前端与鉴权（同日）
+
+评审范围：`web/index.html` + `server/admin.py` 的接口鉴权。提出 8 条，**1 条是误报，7 条属实**。
+
+## 误报（写下来，避免以后重复怀疑）
+
+| 编号 | 评审说 | 实际 |
+|---|---|---|
+| 1 | `/nodes` 返回了 Reality `private_key`，会泄露给前端 | **没有**。`nodes.json` 里搜 `private_key` 命中 0；`/api/nodes` 字段为 name/host/port/uuid/sni/pbk/sid/ssh_user/role/source/health/advice —— 私钥从头到尾没进过节点记录 |
+
+> Codex 看到 `_gen_node()` 返回 private_key 就推断它被存了，实际只传给了安装脚本。
+
+## 已修（7 条）
+
+| # | 问题 | 改法 |
+|---|---|---|
+| 2 | 只有 Basic Auth，第三方页面可让浏览器带凭据发 POST | `do_POST` 首行校验 Origin/Referer 主机名，跨站直接 403 |
+| 3 | `dialog()` 把 message 直接拼进 innerHTML（提示里含远端 stderr，是外部输入）| 先 `esc()` 再换行 |
+| 4 | 请求体无上限，`rfile.read(length)` 可被打爆 | 上限 1MB → 413；连接 30 秒超时 |
+| 5 | 提交后密码框不清空 | 密码与私钥都立即清空 |
+| 6 | 删除/编辑/粘贴在锁外读改写，可能丢更新 | 全部改走 `update_nodes()` |
+| 7 | 无效 JSON 静默变 `{}`，空体 `/rotate` 照样轮换 | 解析失败 → 400 |
+| 8 | 轮询无超时、失败被吞，永远停在"安装中" | 20 秒超时；连续 3 次失败 → 弹「连接中断」|
+
+## 实测
+
+| 用例 | 结果 |
+|---|---|
+| 跨站 POST（Origin: evil.com）| 403 |
+| 同站 POST（真实 Host）| 200 |
+| 无 Origin（curl）| 200 |
+| 坏 JSON | 400 |
+| 1.5MB 请求体 | 413 |
+| 弹窗塞 `<img onerror>` | 转义成文本，`imgCount=0`，脚本未执行 |
+
+## 第二轮回归
+
+- 验收 17 通过 0 失败
+- 单测 77 项全过
