@@ -220,9 +220,10 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
     <div class="panel">
       <details class="sec" open>
         <summary>常用</summary>
-        <h3>粘贴节点</h3>
-        <div class="field"><textarea id="f-paste" rows="3" placeholder="粘贴 vless:// 链接，一行一条" autocomplete="off" spellcheck="false"></textarea></div>
-        <button class="btn" onclick="doPaste()" style="margin-bottom:6px"><svg class="ico"><use href="#i-link"/></svg> 加入订阅</button>
+        <h3>别人给的节点</h3>
+        <div class="hint" style="margin:-4px 0 10px">朋友发你一条链接（vless:// 开头），粘在这里就变成你自己订阅里的一条。不需要对方的密码。</div>
+        <div class="field"><textarea id="f-paste" rows="3" placeholder="把朋友发的那条链接粘在这里，一行一条" autocomplete="off" spellcheck="false"></textarea></div>
+        <button class="btn" onclick="doPaste()" style="margin-bottom:6px"><svg class="ico"><use href="#i-link"/></svg> 加进我的订阅</button>
         <div class="hint" id="pasteMsg"></div>
         <h3 style="margin-top:22px">添加节点</h3>
       <div id="w1">
