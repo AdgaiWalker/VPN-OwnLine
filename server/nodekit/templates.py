@@ -28,11 +28,19 @@ def _inbound(port, uuid, sni, private_key, sid):
     }
 
 
-def exit_config(port, uuid, sni, private_key, sid):
-    """海外落地节点：只出不进（直连出网）。"""
+def exit_config(port, uuid, sni, private_key, sid, hy2=None):
+    """海外落地节点：只出不进（直连出网）。
+
+    hy2 可选：{"port": 443, "password": ..., "obfs_password": ..., "sni": ...}
+    给了就再加一条 Hysteria2 入站（UDP），和 Reality 共用端口号互不影响。
+    """
+    inbounds = [_inbound(port, uuid, sni, private_key, sid)]
+    if hy2:
+        inbounds.append(_hy2_inbound(hy2.get("port", port), hy2["password"],
+                                     hy2["obfs_password"], hy2.get("sni", sni)))
     return {
         "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
-        "inbounds": [_inbound(port, uuid, sni, private_key, sid)],
+        "inbounds": inbounds,
         "outbounds": [{"type": "direct", "tag": "direct"}],
     }
 
@@ -62,6 +70,29 @@ def relay_config(port, uuid, sni, private_key, sid, landing):
         "inbounds": [_inbound(port, uuid, sni, private_key, sid)],
         "outbounds": [lb, {"type": "direct", "tag": "direct"}],
         "route": {"rules": [{"outbound": "landing"}]},
+    }
+
+
+def _hy2_inbound(port, password, obfs_password, sni,
+                 cert_path="/opt/sing-box/hy2.crt", key_path="/opt/sing-box/hy2.key",
+                 up_mbps=50, down_mbps=200):
+    """Hysteria2 / QUIC 入站。和 Reality 抢同一个端口号不冲突（一个 TCP 一个 UDP）。"""
+    return {
+        "type": "hysteria2",
+        "tag": "hy2",
+        "listen": "::",
+        "listen_port": int(port),
+        "users": [{"password": password}],
+        "up_mbps": up_mbps,
+        "down_mbps": down_mbps,
+        "tls": {
+            "enabled": True,
+            "server_name": sni,
+            "alpn": ["h3"],
+            "certificate_path": cert_path,
+            "key_path": key_path,
+        },
+        "obfs": {"type": "salamander", "password": obfs_password},
     }
 
 

@@ -39,6 +39,10 @@ def main():
     nodes = json.load(open(NODES, encoding="utf-8"))
     out = {}
     for n in nodes:
+        # Hysteria2 是 QUIC/UDP，443 端口同时跑着 Reality，
+        # 用 TCP+TLS 探活会给出"假绿灯"，所以不做探活，交给客户端实测。
+        if n.get("type") == "hysteria2":
+            continue
         t0 = time.time()
         host, port = n.get("host"), n.get("port")
         if not tcp_ok(host, port):

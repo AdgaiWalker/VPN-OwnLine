@@ -47,10 +47,23 @@ def vless(n):
          "&sni=%s&fp=chrome&pbk=%s&sid=%s&type=tcp&headerType=none" % (n["sni"], n["pbk"], n["sid"]))
     return "vless://%s@%s:%s?%s#%s" % (n["uuid"], n["host"], n["port"], q, urllib.parse.quote(n["name"]))
 
+
+def hy2(n):
+    """Hysteria2 / QUIC 节点的分享链接。字段与 vless 不同：密码 + 混淆。"""
+    q = ("insecure=1&sni=%s&alpn=h3&obfs=salamander&obfs-password=%s"
+         % (n["sni"], n["obfs_password"]))
+    return "hysteria2://%s@%s:%s?%s#%s" % (n["password"], n["host"], n["port"], q,
+                                          urllib.parse.quote(n["name"]))
+
+
+def link(n):
+    """按节点类型分发。缺 type 一律当 vless，兼容老数据。"""
+    return hy2(n) if n.get("type") == "hysteria2" else vless(n)
+
 def render():
     # 故障节点不进订阅；unknown 视为“未验证”，仍然保留（外部节点就是这种）
     nodes = [n for n in load_nodes() if subs_mod.in_subscription(n)]
-    src = urllib.parse.quote("|".join(vless(n) for n in nodes), safe="")
+    src = urllib.parse.quote("|".join(link(n) for n in nodes), safe="")
     with open(CADDY, encoding="utf-8") as f:
         txt = f.read()
     new = re.sub(r"url=[^&\s]+", "url=" + src, txt, count=1)
