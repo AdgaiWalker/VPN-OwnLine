@@ -117,14 +117,51 @@ scripts/verify.sh       一条命令验收
 
 ## 快速开始
 
+**需要什么**：一台 Ubuntu 22.04+ 的 VPS（1 核 1G 够）、一个域名、30 分钟。
+
 ```bash
-1. 读 docs/01-TOPOLOGY.md    → 确认你需要 T2
-2. 读 docs/05-COSTS-RISKS.md → 确认你接受成本与风险
-3. 按 docs/DEPLOY.md 部署
-4. ./scripts/verify.sh https://你的域名 用户名 密码 token
+git clone <本仓库> && cd <仓库目录>
+
+# 先看看它会做什么
+sudo ./deploy/install.sh v.example.com --dry-run
+
+# 真装
+sudo ./deploy/install.sh v.example.com
 ```
 
-验收全部通过再交给家人用。
+装完会打印面板地址、账号密码、订阅地址。然后：
+
+| 步 | 做什么 | 大约 |
+|---|---|---|
+| 1 | 域名接到 Cloudflare，Origin Rule 把 8443 改写出去（见 [DEPLOY 第 1 步](docs/DEPLOY.md)）| 10 min |
+| 2 | 跑 `install.sh` | 5 min |
+| 3 | 手动装 subconverter-ng（脚本会提示）| 3 min |
+| 4 | 浏览器打开面板，加第一台机器 | 5 min |
+| 5 | 手机导入订阅 | 1 min |
+| 6 | 跑 `./scripts/verify.sh` 验收 | 2 min |
+
+**不接 Cloudflare 也能跑**，但源站 IP 会暴露。取舍见 [docs/05-COSTS-RISKS.md](docs/05-COSTS-RISKS.md)。
+
+更细的手工步骤、每一环为什么这么配：[docs/DEPLOY.md](docs/DEPLOY.md)。
+
+---
+
+## 删除一个节点，到底删了什么
+
+这是被问得最多的问题，所以写在 README 里，而不是藏在文档深处。
+
+面板上的「删除」**不等于卸载**。它做的是三件事：
+
+| 动作 | 服务进程 | 开机自启 | 配置文件 | 节点记录 |
+|---|---|---|---|---|
+| 面板「删除」 | 停止 | 关闭 | **保留** | 删除 |
+| 手动卸载 | 停止 | 关闭 | 删除 | 删除 |
+
+- **配置文件还在**：Linux 上是 `/opt/sing-box/`，Windows 上是 `C:\proxy\`。端口也还占着。
+  想彻底清掉，手动删目录。PRD 里规划的 `--purge` 参数**还没实现**。
+- **想恢复**：删除时节点参数会存进 `/opt/web/retired-nodes-<日期>.json`，可以手动加回来。
+- **重装同一台会换 UUID**，已连接的设备会掉线。这是"重装"和"重启"的区别，别混。
+
 
 ---
 
