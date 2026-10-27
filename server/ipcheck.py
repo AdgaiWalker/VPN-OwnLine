@@ -5,11 +5,12 @@
 风险分怎么解读交给人和文档，脚本不给结论。
 """
 import json
+import os
 import time
 import urllib.request
 
-NODES = "/opt/web/nodes.json"
-OUT = "/opt/web/iphealth.json"
+NODES = os.environ.get("LADDER_DATA", "/opt/web-data") + "/nodes.json"
+OUT = os.environ.get("LADDER_DATA", "/opt/web-data") + "/iphealth.json"
 FIELDS = "status,country,regionName,city,isp,org,as,asname,hosting,proxy,mobile"
 
 

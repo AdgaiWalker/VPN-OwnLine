@@ -3,13 +3,14 @@ import json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WEB = "/opt/web"
+DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
 MAX_BODY = 1_000_000  # 1MB：私钥最多几 KB，超了就是有人在搞事
 from nodekit import verify as verify_mod  # noqa: E402
 from nodekit import advise as advise_mod  # noqa: E402
 from nodekit import hints as hints_mod  # noqa: E402
 from nodekit import subscriptions as subs_mod  # noqa: E402
 sys.path.insert(0, WEB)
-NODES = os.path.join(WEB, "nodes.json")
+NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
 JOBS = {}
 
@@ -82,7 +83,7 @@ def _gen_node():
 
 def _write_job(jid, data, secret):
     """任务写文件（0600），凭据单独一个文件：不进 argv、不进日志。"""
-    d = os.path.join(WEB, ".jobs")
+    d = os.path.join(DATA, ".jobs")
     os.makedirs(d, mode=0o700, exist_ok=True)
     cfg = os.path.join(d, jid + ".json")
     sec = cfg + ".secret"
@@ -306,7 +307,7 @@ def verify_async(name):
 
 def _load_json(name, default):
     try:
-        with open(os.path.join(WEB, name), encoding="utf-8") as f:
+        with open(os.path.join(DATA, name), encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return default

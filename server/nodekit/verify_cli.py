@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """命令行跑自测：python3 verify_cli.py [节点名...]"""
 import json
+import os
 import sys
 
 sys.path.insert(0, "/opt/web")
@@ -8,7 +9,7 @@ from nodekit import verify
 
 
 def main():
-    nodes = json.load(open("/opt/web/nodes.json", encoding="utf-8"))
+    nodes = json.load(open(os.environ.get("LADDER_DATA", "/opt/web-data") + "/nodes.json", encoding="utf-8"))
     want = sys.argv[1:]
     for n in nodes:
         if want and n.get("name") not in want:

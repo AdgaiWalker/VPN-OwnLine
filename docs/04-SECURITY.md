@@ -107,40 +107,40 @@ handle @sensitive {
 
 ---
 
-## 待办：把数据目录从网站根目录拆出去
+## 数据目录已经拆出去了（2026-10-27）
 
-现在的状态是**堵了口子，没治病**。真正的解法有两个，都还没做：
+**问题**：`/opt/web` 同时当网站根目录和数据目录，`file_server` 会把同目录的 `.json` 一起发出去。
+其中 `tc.json` 里是云厂商 SecretKey，`nodes.json` 里是所有节点的密钥。
 
-### 方案 A：改 `root` 指向只读静态目录
+**现在**：数据搬到 `/opt/web-data`（权限 700），网站根目录只剩静态文件。
 
-```caddy
-handle {
-    basic_auth { ... }
-    root * /opt/web/public      # 只有 index.html / icon.png / qr-sub.png
-    file_server
-}
+```
+/opt/web        index.html  icon.png  qr-sub.png  *.py  *.sh  nodekit/  providers/
+/opt/web-data   nodes.json  servers.json  usage.json  status.json
+                quota.json  iphealth.json  tc.json  retired-nodes-*.json  .jobs/
 ```
 
-数据和代码留在 `/opt/web`，但网站根目录只指向 `public/`。
-**改动最小**，但要把 `rotate.sh` 里写二维码的路径一起改掉。
-
-### 方案 B：数据搬到 `/opt/web-data`
-
-代码里所有数据路径改成一个常量：
+代码里统一用：
 
 ```python
 DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
 ```
 
-涉及 7 个文件：`admin.py`、`probe.py`、`ipcheck.py`、`usage_refresh.py`、
+涉及：`admin.py`、`probe.py`、`ipcheck.py`、`usage_refresh.py`、
 `providers/tc3.py`、`providers/tencent.py`、`nodekit/verify_cli.py`。
 
-Caddyfile 还要给 `status.json` / `servers.json` / `usage.json` / `quota.json`
-单独开一条从 `/opt/web-data` 发的路由（面板前端直接 fetch 这四个）。
+面板前端还要读四个文件，由 Caddy 单独从数据目录发（`@pubjson` 路由）：
+`status.json` / `servers.json` / `usage.json` / `quota.json`。
 
-**更彻底**，但要在生产上停几秒服务，且必须真机验证。
+`rotate.sh` 不动——它写的 `qr-sub.png`、`index.html` 本来就是静态资源，留在 `/opt/web`。
 
-> 2026-10-27 尝试做方案 B，脚本写好了、备份也规划好了，
-> 但当时从本机到服务器的 SSH 全部超时（连 github.com:22 也超时，
-> 说明是本地网络问题），迁移没有执行。**生产未受任何影响，已确认面板、接口、订阅均正常。**
-> 脚本留在跑那台机器上，等 SSH 恢复后再做。
+**验证方式**（装完之后跑）：
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' -u admin:密码 https://域名:8443/tc.json     # 404
+curl -s -o /dev/null -w '%{http_code}\n' -u admin:密码 https://域名:8443/nodes.json  # 404
+curl -s -o /dev/null -w '%{http_code}\n' -u admin:密码 https://域名:8443/status.json # 200
+```
+
+> 为什么要拆：即使 Caddy 那条 `@sensitive` 规则写错一个字符，数据也不在网站根目录，
+> 不会因为一条配置失误就把云密钥发出去。**这是纵深防御，不是重复劳动。**

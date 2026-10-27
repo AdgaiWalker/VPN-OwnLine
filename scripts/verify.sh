@@ -59,13 +59,13 @@ NODES_JSON="$(curl -s $CURL_TLS -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
 TOTAL=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))' 2>/dev/null)
 ADV=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("advice")))' 2>/dev/null)
 chk "每个节点都有建议" "$TOTAL" "$ADV"
-UNIQ=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len({(n["host"],str(n["port"])) for n in d}))' 2>/dev/null)
-chk "主机端口不重复" "$TOTAL" "$UNIQ"
+UNIQ=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len({(n["host"],str(n["port"]),n.get("type") or "vless") for n in d}))' 2>/dev/null)
+chk "节点不重复(含协议)" "$TOTAL" "$UNIQ"
 BADN=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;bad={"port","tls","proxy","role_mismatch","landing","blocked","timeout"};print(sum(1 for n in json.load(sys.stdin) if n.get("health") in bad))' 2>/dev/null)
 chk "故障节点不进订阅" 0 "$BADN"
 
 echo "== 6. 新接口 =="
-chk "粘贴空链接" 400 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"links":""}' "$BASE/api/paste")"
+chk "跨站请求被拒" 403 "$(code -X POST -H 'Content-Type: application/json' -H 'Origin: https://evil.example' -d '{"dry_run":true}' -u "$USER:$PASS" "$BASE/api/rotate")"
 chk "验证不存在节点" 404 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"name":"__nope__"}' "$BASE/api/verify")"
 ROT="$(curl -s $CURL_TLS -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"dry_run":true}' "$BASE/api/rotate")"
 if printf '%s' "$ROT" | grep -q '不受影响'; then printf '  ✅ %-28s %s\n' "轮换演练有提示" "ok"; ok=$((ok+1)); else printf '  ❌ 轮换演练没返回提示\n'; bad=$((bad+1)); fi

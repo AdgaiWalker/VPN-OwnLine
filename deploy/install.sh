@@ -87,8 +87,9 @@ else
 fi
 
 # ---------- 4. 放代码 ----------
-say "4/7 部署代码到 /opt/web"
-run mkdir -p /opt/web
+say "4/7 部署代码到 /opt/web（数据放 /opt/web-data）"
+run mkdir -p /opt/web /opt/web-data
+run chmod 700 /opt/web-data
 run cp -r "$REPO/server/providers" /opt/web/
 run cp -r "$REPO/server/nodekit" /opt/web/
 run cp "$REPO"/server/*.py /opt/web/
@@ -99,11 +100,11 @@ ok "代码就位"
 
 # ---------- 5. 生成配置 ----------
 say "5/7 生成配置"
-if [ -f /opt/web/nodes.json ]; then
+if [ -f /opt/web-data/nodes.json ]; then
   warn "nodes.json 已存在，保留不动"
 else
   echo '[]' > /tmp/nodes.json
-  run install -m 644 /tmp/nodes.json /opt/web/nodes.json
+  run install -m 644 /tmp/nodes.json /opt/web-data/nodes.json
   ok "空节点表已建"
 fi
 

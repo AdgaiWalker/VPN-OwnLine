@@ -37,12 +37,22 @@
 		respond 404
 	}
 
-	# 数据目录和网站根目录是同一个 /opt/web，所以下面这些必须挡掉：
-	# tc.json 里是云厂商 SecretKey，nodes.json 里是所有节点的密钥。
-	# 注意 status.json / servers.json / usage.json / quota.json 是面板要读的，不能挡。
+	# 数据都在 /opt/web-data，不在网站根目录，正常取不到。
+	# 这条是第二道防线：万一有人把 json 又放回 /opt/web，也不会被发出去。
 	@sensitive path /tc.json /nodes.json /retired-nodes-*.json
 	handle @sensitive {
 		respond 404
+	}
+
+	# 面板前端直接 fetch 这四个，从数据目录发
+	@pubjson path /status.json /servers.json /usage.json /quota.json
+	handle @pubjson {
+		basic_auth {
+			admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
+		}
+		header Cache-Control "no-store"
+		root * /opt/web-data
+		file_server
 	}
 
 	handle /base.ini {

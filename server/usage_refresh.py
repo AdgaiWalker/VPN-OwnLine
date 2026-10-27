@@ -11,7 +11,7 @@ import time
 sys.path.insert(0, "/opt/web")
 import providers
 
-WEB = "/opt/web"
+DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
 
 
 def write_json(path, data):
@@ -36,7 +36,7 @@ def main():
             errs.append("%s: %s" % (getattr(p, "name", "?"), str(e)[:80]))
 
     if servers:
-        write_json(os.path.join(WEB, "servers.json"), {"servers": servers, "_ts": ts})
+        write_json(os.path.join(DATA, "servers.json"), {"servers": servers, "_ts": ts})
     else:
         errs.append("实例列表为空，保留上一次的 servers.json")
 
@@ -51,7 +51,7 @@ def main():
 
     if out:
         out["_ts"] = ts
-        write_json(os.path.join(WEB, "usage.json"), out)
+        write_json(os.path.join(DATA, "usage.json"), out)
     else:
         errs.append("用量为空，保留上一次的 usage.json")
 

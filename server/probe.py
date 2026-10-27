@@ -10,8 +10,8 @@ import socket
 import subprocess
 import time
 
-NODES = "/opt/web/nodes.json"
-OUT = "/opt/web/status.json"
+NODES = os.environ.get("LADDER_DATA", "/opt/web-data") + "/nodes.json"
+OUT = os.environ.get("LADDER_DATA", "/opt/web-data") + "/status.json"
 
 
 def tcp_ok(host, port, timeout=4):

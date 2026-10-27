@@ -2,7 +2,7 @@
 """腾讯云 Lighthouse 流量查询（TC3-HMAC-SHA256 手写签名，无 SDK 依赖）"""
 import base64, hashlib, hmac, json, os, sys, time, urllib.request
 
-CFG = "/opt/web/tc.json"
+CFG = os.environ.get("LADDER_DATA", "/opt/web-data") + "/tc.json"
 HOST = "lighthouse.tencentcloudapi.com"
 SERVICE = "lighthouse"
 VERSION = "2020-03-24"

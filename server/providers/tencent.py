@@ -11,7 +11,7 @@ from datetime import datetime, timedelta, timezone
 from . import tc3
 from .base import Provider as Base
 
-WEB = "/opt/web"
+WEB = os.environ.get("LADDER_DATA", "/opt/web-data")
 CFG = os.path.join(WEB, "tc.json")
 SERVERS = os.path.join(WEB, "servers.json")
 
