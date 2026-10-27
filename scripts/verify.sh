@@ -7,11 +7,16 @@ USER="${2:?缺用户名}"
 PASS="${3:?缺密码}"
 TOK="${4:?缺订阅 token}"
 
+# 源站用 Caddy 的 tls internal（自签），从 shell 里直连必然证书不通过。
+# 默认 -k；换成正式证书后可以 VERIFY_STRICT=1 关掉。
+CURL_TLS="-k"
+[ "${VERIFY_STRICT:-0}" = "1" ] && CURL_TLS=""
+
 ok=0; bad=0
 code() { # 取状态码；拿到 000（网络抖动）就重试一次，避免把抖动当成失败
   local out
-  out="$(curl -s -o /dev/null -w '%{http_code}' -m 20 "$@")"
-  if [ "$out" = "000" ]; then sleep 2; out="$(curl -s -o /dev/null -w '%{http_code}' -m 25 "$@")"; fi
+  out="$(curl -s $CURL_TLS -o /dev/null -w '%{http_code}' -m 20 "$@")"
+  if [ "$out" = "000" ]; then sleep 2; out="$(curl -s $CURL_TLS -o /dev/null -w '%{http_code}' -m 25 "$@")"; fi
   printf '%s' "$out"
 }
 chk() { # 名称 期望 实际
@@ -19,8 +24,8 @@ chk() { # 名称 期望 实际
   else printf '  ❌ %-28s 期望 %s，实际 %s\n' "$1" "$2" "$3"; bad=$((bad+1)); fi
 }
 
-NODES_JSON="$(curl -s -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
-NODECOUNT=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))' 2>/dev/null || echo 0)
+NODES_JSON="$(curl -s $CURL_TLS -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
+NODECOUNT=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))' 2>/dev/null 2>/dev/null || echo 0)
 [ -z "$NODECOUNT" ] && NODECOUNT=0
 
 echo "== 1. 访问控制 =="
@@ -33,9 +38,9 @@ echo "== 2. 订阅 =="
 if [ "$NODECOUNT" -eq 0 ]; then
   echo "  ⚠️  当前 0 条节点，跳过订阅内容检查（加完第一台节点后重跑本脚本）"
 else
-CLASH="$(curl -s -m 20 -A 'ClashforWindows' "$BASE/s/$TOK")"
+CLASH="$(curl -s $CURL_TLS -m 20 -A 'ClashforWindows' "$BASE/s/$TOK")"
 N1=$(printf '%s' "$CLASH" | grep -c 'reality-opts')
-N2=$(curl -s -m 20 "$BASE/s/$TOK" | base64 -d 2>/dev/null | grep -c '^vless://')
+N2=$(curl -s $CURL_TLS -m 20 "$BASE/s/$TOK" | base64 -d 2>/dev/null | grep -c '^vless://')
 if [ "$N1" -gt 0 ]; then printf '  ✅ clash 节点数 %s\n' "$N1"; ok=$((ok+1)); else printf '  ❌ clash 无可用的 reality 配置\n'; bad=$((bad+1)); fi
 if [ "$N2" -gt 0 ]; then printf '  ✅ v2ray 节点数 %s\n' "$N2"; ok=$((ok+1)); else printf '  ❌ v2ray 解析失败\n'; bad=$((bad+1)); fi
 if [ "$N1" = "$N2" ]; then printf '  ✅ 两种格式节点数一致\n'; ok=$((ok+1)); else printf '  ❌ 两种格式数量不一致 (%s vs %s)\n' "$N1" "$N2"; bad=$((bad+1)); fi
@@ -50,19 +55,19 @@ echo "== 4. 输入校验 =="
 chk "非法地址" 400 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"ip":"not-an-ip","pass":"x","name":"t"}' "$BASE/api/addnode")"
 
 echo "== 5. 节点模型 =="
-NODES_JSON="$(curl -s -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
-TOTAL=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))')
-ADV=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("advice")))')
+NODES_JSON="$(curl -s $CURL_TLS -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
+TOTAL=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))' 2>/dev/null)
+ADV=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("advice")))' 2>/dev/null)
 chk "每个节点都有建议" "$TOTAL" "$ADV"
-UNIQ=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len({(n["host"],str(n["port"])) for n in d}))')
+UNIQ=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;d=json.load(sys.stdin);print(len({(n["host"],str(n["port"])) for n in d}))' 2>/dev/null)
 chk "主机端口不重复" "$TOTAL" "$UNIQ"
-BADN=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;bad={"port","tls","proxy","role_mismatch","landing","blocked","timeout"};print(sum(1 for n in json.load(sys.stdin) if n.get("health") in bad))')
+BADN=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;bad={"port","tls","proxy","role_mismatch","landing","blocked","timeout"};print(sum(1 for n in json.load(sys.stdin) if n.get("health") in bad))' 2>/dev/null)
 chk "故障节点不进订阅" 0 "$BADN"
 
 echo "== 6. 新接口 =="
 chk "粘贴空链接" 400 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"links":""}' "$BASE/api/paste")"
 chk "验证不存在节点" 404 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"name":"__nope__"}' "$BASE/api/verify")"
-ROT="$(curl -s -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"dry_run":true}' "$BASE/api/rotate")"
+ROT="$(curl -s $CURL_TLS -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"dry_run":true}' "$BASE/api/rotate")"
 if printf '%s' "$ROT" | grep -q '不受影响'; then printf '  ✅ %-28s %s\n' "轮换演练有提示" "ok"; ok=$((ok+1)); else printf '  ❌ 轮换演练没返回提示\n'; bad=$((bad+1)); fi
 
 echo

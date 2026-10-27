@@ -116,17 +116,21 @@ else
 fi
 
 if [ -f /etc/caddy/Caddyfile ]; then
-  run cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak.$(date +%s)"
-  warn "已备份原 Caddyfile"
+  # 已经装过：保留原样。重跑一次就换掉 token 和面板密码，会让所有设备掉线——
+  # 这个坑在 2026-10-27 真机演练时踩到了。要改域名/密码请手动编辑这个文件。
+  warn "Caddyfile 已存在，保留不动（token 和密码不会被重置）"
+  TOKEN=$(grep -oE '/s/[a-f0-9]{6,}' /etc/caddy/Caddyfile | head -1 | cut -d/ -f2)
+  PANEL_PASS="(沿用原密码，未重置)"
+else
+  if [ "$DRY_RUN" = 0 ]; then
+    sed -e "s|<BCRYPT_HASH_OF_YOUR_PASSWORD>|$PASS_HASH|g" \
+        -e "s|v.example.com|$DOMAIN|g" \
+        -e "s|CHANGEME0000|$TOKEN|g" \
+        -e "s|<URLENCODED_VLESS_LIST>|x|g" \
+        "$REPO/deploy/Caddyfile.example" > /etc/caddy/Caddyfile
+  fi
+  ok "Caddyfile 已生成（域名 $DOMAIN，订阅 token $TOKEN）"
 fi
-if [ "$DRY_RUN" = 0 ]; then
-  sed -e "s|<BCRYPT_HASH_OF_YOUR_PASSWORD>|$PASS_HASH|g" \
-      -e "s|v.example.com|$DOMAIN|g" \
-      -e "s|CHANGEME0000|$TOKEN|g" \
-      -e "s|<URLENCODED_VLESS_LIST>|x|g" \
-      "$REPO/deploy/Caddyfile.example" > /etc/caddy/Caddyfile
-fi
-ok "Caddyfile 已生成（域名 $DOMAIN，订阅 token $TOKEN）"
 warn "订阅源现在是占位值，加完第一个节点后由面板自动重渲染"
 
 # ---------- 6. systemd ----------
@@ -140,7 +144,10 @@ run systemctl enable --now ipcheck.timer
 if [ -x /opt/subconv/subconverter-ng ]; then
   run systemctl enable --now subconverter || warn "subconverter 没起来，订阅会 502"
 fi
-run systemctl enable --now caddy
+# Caddy 由 apt 装完会自动启动，enable --now 对已在跑的进程是空操作，
+# 必须显式 restart 才会加载我们刚写的 Caddyfile。这一条在 2026-10-27 真机演练时踩到。
+run systemctl enable caddy
+run systemctl restart caddy
 ok "服务已启动"
 
 # ---------- 7. 自检 ----------
