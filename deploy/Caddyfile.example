@@ -37,6 +37,14 @@
 		respond 404
 	}
 
+	# 数据目录和网站根目录是同一个 /opt/web，所以下面这些必须挡掉：
+	# tc.json 里是云厂商 SecretKey，nodes.json 里是所有节点的密钥。
+	# 注意 status.json / servers.json / usage.json / quota.json 是面板要读的，不能挡。
+	@sensitive path /tc.json /nodes.json /retired-nodes-*.json
+	handle @sensitive {
+		respond 404
+	}
+
 	handle /base.ini {
 		header Content-Type "text/plain; charset=utf-8"
 		root * /opt/subconv

@@ -77,3 +77,30 @@ curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/sub     # 要 404
 curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/s/0000  # 要 404
 stat -c '%a' /opt/web/tc.json                                           # 要 600
 ```
+
+---
+
+## 网站根目录 = 数据目录，所以要挡掉几样东西
+
+面板把 `/opt/web` 同时当**网站根目录**和**数据目录**用，
+所以 `file_server` 会把同目录下的 `.json` 也发出去（有 Basic Auth，但没必要给）。
+
+Caddyfile 里有一段必须保留：
+
+```caddy
+@sensitive path /tc.json /nodes.json /retired-nodes-*.json
+handle @sensitive {
+    respond 404
+}
+```
+
+| 文件 | 里面是什么 | 挡掉后影响 |
+|---|---|---|
+| `tc.json` | 云厂商 SecretId / SecretKey | 无（后端自己读，不走 HTTP）|
+| `nodes.json` | 所有节点的 UUID / 公钥 / 密码 | 无 |
+| `retired-nodes-*.json` | 已删除节点的历史参数 | 无 |
+
+**不能挡的**：`status.json`、`servers.json`、`usage.json`、`quota.json` —— 面板前端直接 fetch 这四个。
+
+> 更好的做法是把数据和网站分到两个目录。目前没做，因为要改后端所有路径常量。
+> 在那之前，这条 Caddy 规则是唯一的口子。

@@ -60,6 +60,10 @@ caddy validate --config /etc/caddy/Caddyfile
 systemctl reload caddy
 ```
 
+> **关于 `web/qr-sub.png`**：仓库里那张是**占位图**，不是真二维码。
+> 它会在你第一次跑 `/opt/web/rotate.sh` 时被 `qrencode` 生成的订阅二维码覆盖。
+> `web/icon.png` 是网页图标，直接可用。
+
 ## 第 5 步：起服务
 
 ```bash
