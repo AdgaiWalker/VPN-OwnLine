@@ -5,7 +5,6 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 WEB = "/opt/web"
 MAX_BODY = 1_000_000  # 1MB：私钥最多几 KB，超了就是有人在搞事
 from nodekit import verify as verify_mod  # noqa: E402
-from nodekit import links as links_mod  # noqa: E402
 from nodekit import advise as advise_mod  # noqa: E402
 from nodekit import hints as hints_mod  # noqa: E402
 from nodekit import subscriptions as subs_mod  # noqa: E402
@@ -57,7 +56,6 @@ def hy2(n):
 
 
 def link(n):
-    """按节点类型分发。缺 type 一律当 vless，兼容老数据。"""
     return hy2(n) if n.get("type") == "hysteria2" else vless(n)
 
 def render():
@@ -493,29 +491,6 @@ class H(BaseHTTPRequestHandler):
             render()
             return self._json(200, {"ok": True})
 
-        if path == "/paste":
-            raw = (body.get("links") or body.get("link") or "").strip()
-            if not raw:
-                return self._json(400, {"ok": False, "error": "链接是空的"})
-            added, errors = [], []
-            nodes = load_nodes()
-            for line in [x.strip() for x in raw.splitlines() if x.strip()]:
-                try:
-                    p = links_mod.parse(line)
-                except Exception as e:
-                    errors.append(str(e))
-                    continue
-                in_sub = [n for n in nodes if subs_mod.in_subscription(n)]
-                if any(n.get("host") == p["host"] and int(n.get("port") or 0) == p["port"] for n in in_sub):
-                    errors.append("这台已经在列表里：%s" % p["host"])
-                    continue
-                p.update({"role": "exit", "source": "external", "health": "unknown"})
-                nodes.append(p)
-                added.append(p["name"])
-            if added:
-                update_nodes(lambda ns: ns + [n for n in nodes if n["name"] in added])
-                render()
-            return self._json(200, {"ok": bool(added), "added": added, "errors": errors})
 
         if path == "/verify":
             name = (body.get("name") or "").strip()

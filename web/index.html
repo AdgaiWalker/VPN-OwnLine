@@ -188,7 +188,6 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
 <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
 <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
-<symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
 <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
 </svg>
 <main>
@@ -220,11 +219,6 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
     <div class="panel">
       <details class="sec" open>
         <summary>常用</summary>
-        <h3>别人给的节点</h3>
-        <div class="hint" style="margin:-4px 0 10px">朋友发你一条链接（vless:// 开头），粘在这里就变成你自己订阅里的一条。不需要对方的密码。</div>
-        <div class="field"><textarea id="f-paste" rows="3" placeholder="把朋友发的那条链接粘在这里，一行一条" autocomplete="off" spellcheck="false"></textarea></div>
-        <button class="btn" onclick="doPaste()" style="margin-bottom:6px"><svg class="ico"><use href="#i-link"/></svg> 加进我的订阅</button>
-        <div class="hint" id="pasteMsg"></div>
         <h3 style="margin-top:22px">添加节点</h3>
       <div id="w1">
         <div id="srvlist"><div class="skeleton">读取服务器…</div></div>
@@ -598,22 +592,6 @@ function formSheet(title,fields,confirmText){
     w.querySelector('.sbtn.cancel').onclick=function(){ close(null); };
     w.addEventListener('click',function(e){ if(e.target===w) close(null); });
   });
-}
-function doPaste(){
-  var v=(document.getElementById('f-paste').value||'').trim();
-  var msg=document.getElementById('pasteMsg');
-  if(!v){ dialog({title:'还差一步',message:'先把链接粘进来',cancelText:null,confirmText:'好'}); return; }
-  msg.textContent='正在校验…';
-  fetch('api/paste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links:v})})
-    .then(function(r){return r.json()}).then(function(d){
-      if(d.added&&d.added.length){
-        msg.textContent='已加入：'+d.added.join('、')+(d.errors&&d.errors.length?('；跳过：'+d.errors.join('；')):'');
-        document.getElementById('f-paste').value='';
-        load();
-      } else {
-        msg.textContent=(d.errors&&d.errors.length)?d.errors.join('；'):'没有可加入的链接';
-      }
-    }).catch(function(e){ msg.textContent='失败：'+e; });
 }
 function nodeMenu(i){
   var n=NODES[i], st=STATUS[n.name];

@@ -29,6 +29,7 @@ def _usage_text(usage):
 def advise(node, status=None, usage=None):
     """返回 {"text": 一句话, "reason": 依据, "level": good|warn|bad}"""
     health = node.get("health")
+    role = node.get("role") or "exit"
     source = node.get("source") or "builtin"
     ms = (status or {}).get("ms")
     country = node.get("exit_country") or ""
