@@ -104,3 +104,43 @@ handle @sensitive {
 
 > 更好的做法是把数据和网站分到两个目录。目前没做，因为要改后端所有路径常量。
 > 在那之前，这条 Caddy 规则是唯一的口子。
+
+---
+
+## 待办：把数据目录从网站根目录拆出去
+
+现在的状态是**堵了口子，没治病**。真正的解法有两个，都还没做：
+
+### 方案 A：改 `root` 指向只读静态目录
+
+```caddy
+handle {
+    basic_auth { ... }
+    root * /opt/web/public      # 只有 index.html / icon.png / qr-sub.png
+    file_server
+}
+```
+
+数据和代码留在 `/opt/web`，但网站根目录只指向 `public/`。
+**改动最小**，但要把 `rotate.sh` 里写二维码的路径一起改掉。
+
+### 方案 B：数据搬到 `/opt/web-data`
+
+代码里所有数据路径改成一个常量：
+
+```python
+DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
+```
+
+涉及 7 个文件：`admin.py`、`probe.py`、`ipcheck.py`、`usage_refresh.py`、
+`providers/tc3.py`、`providers/tencent.py`、`nodekit/verify_cli.py`。
+
+Caddyfile 还要给 `status.json` / `servers.json` / `usage.json` / `quota.json`
+单独开一条从 `/opt/web-data` 发的路由（面板前端直接 fetch 这四个）。
+
+**更彻底**，但要在生产上停几秒服务，且必须真机验证。
+
+> 2026-10-27 尝试做方案 B，脚本写好了、备份也规划好了，
+> 但当时从本机到服务器的 SSH 全部超时（连 github.com:22 也超时，
+> 说明是本地网络问题），迁移没有执行。**生产未受任何影响，已确认面板、接口、订阅均正常。**
+> 脚本留在跑那台机器上，等 SSH 恢复后再做。
