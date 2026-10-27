@@ -119,6 +119,19 @@ scripts/verify.sh       一条命令验收
 
 **需要什么**：一台 Ubuntu 22.04+ 的 VPS（1 核 1G 够）、一个域名、30 分钟。
 
+### 路线 A：把活交给 AI（推荐）
+
+把 [`prompt/install.md`](prompt/install.md) 整段粘进你的 AI harness（Claude Code / Codex / Cursor 等能执行命令的），
+填三个参数：服务器 IP、登录方式、域名。剩下的它做，你只看两个输出：`--dry-run` 的预演，和 `verify.sh` 的验收。
+
+装完之后，日常操作用 [`prompt/operate.md`](prompt/operate.md)，出问题用 [`prompt/troubleshoot.md`](prompt/troubleshoot.md)。
+
+> 给 AI 的边界写在 [`docs/AGENT-CONTRACT.md`](docs/AGENT-CONTRACT.md)：能碰哪些路径、什么必须停下来问。
+
+### 路线 B：自己动手
+
+不想让 AI 碰你的机器，就手动来：
+
 ```bash
 git clone <本仓库> && cd <仓库目录>
 
