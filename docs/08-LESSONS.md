@@ -291,6 +291,29 @@ git ls-files | wc -l   # 54
 
 每个否定性结论后面跟一条**可复现的命令**。写不出命令的判断，先别写进文档。
 
+### 同一天的第二个例证
+
+写完这一条之后不到两小时，我又犯了同一个错。
+
+当时要推 GitHub，报错 `could not read Username for 'https://github.com'`。
+我查了钥匙串、查了 `.netrc`、查了 `gh` 的 hosts.yml，全部为空，
+于是下结论：**"这台 Mac 上没有任何 GitHub 凭据。"**
+
+实际上凭据一直都在：
+
+```bash
+$ HOME=/Users/happy gh auth status
+✓ Logged in to github.com account AdgaiWalker (keyring)
+  Token scopes: 'gist', 'read:org', 'repo', 'workflow'
+```
+
+真正的原因是**我的进程环境里没有 `HOME`**，git 读不到 `~/.gitconfig`，
+自然也就找不到那个 credential helper。同一个命令加上 `HOME=` 就通了。
+
+**我把"我没找到"说成了"它不存在"。**
+
+「找不到」和「不存在」之间，只隔着一个问题：**你找对地方了吗？**
+
 
 ---
 
