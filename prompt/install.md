@@ -24,31 +24,39 @@
 
 # 执行步骤
 
-1. 拉代码并锁版本：
+1. 拉代码并锁版本（**需要 sudo**，因为 /opt 普通用户写不进去）：
 
-       git clone <仓库地址> /opt/ladder
-       cd /opt/ladder && git checkout v0.1.0
+       sudo git clone <仓库地址> /opt/ladder
+       cd /opt/ladder && sudo git checkout v0.1.0
 
-   > 必须锁 tag。不锁的话装出来的东西和我验收时看到的不是同一份。
+   > 必须锁 tag。不锁的话，装出来的东西和我验收时看到的不是同一份。
 
-2. **先干跑，把输出贴给我，等我确认**：
+2. **先装订阅转换 subconverter-ng**（安装脚本会检查它，没有会直接停下）：
+   按 `docs/DEPLOY.md` 第 2 步下载，解压到 `/opt/subconv/`，
+   确认 `/opt/subconv/subconverter-ng` 存在且可执行。
 
-       sudo ./deploy/install.sh <域名> --dry-run
+3. **先干跑，把输出贴给我，等我确认**：
 
-3. 我说"继续"之后真装：
+       cd /opt/ladder && sudo ./deploy/install.sh <域名> --dry-run
+
+4. 我说「继续」之后真装：
 
        sudo ./deploy/install.sh <域名>
 
-4. 把脚本结尾打印的四样东西复述给我一次（这是唯一允许出现密码的地方）：
-   面板地址 / 账号 / 密码 / 订阅地址
+5. 把脚本结尾打印的四样东西复述给我一次（这是唯一允许出现密码的地方）：
+   面板地址 / 账号 / 密码 / 订阅地址（从订阅地址末尾取出 token）
 
-5. 装 subconverter-ng（脚本会提示缺它），然后：
+6. **加第一台节点**（用面板或 `POST /api/addnode`）。
+   如果这台机器就是我唯一的一台，**跳过这一步并告诉我**——订阅检查会自动跳过。
 
-       systemctl restart subconverter
+7. **等 60 秒**，让探活跑完一轮（它每分钟跑一次，没有这一轮状态文件是空的）。
 
-6. 运行验收，**把完整输出原样贴给我，不要总结**：
+8. 运行验收，**把完整输出原样贴给我，不要总结**：
 
-       ./scripts/verify.sh https://<域名> admin <密码> <订阅token>
+       cd /opt/ladder && ./scripts/verify.sh https://<域名> admin <密码> <订阅token>
+
+   > 如果第 6 步跳过了，这次验收会显示「0 条节点，跳过订阅内容检查」——
+   > 那是正常的。等加了第一台机器再跑一次。
 
 # 边界
 

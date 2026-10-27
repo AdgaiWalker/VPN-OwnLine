@@ -35,17 +35,23 @@
 
 ## 3. 最小复现步骤
 
-    # 1. 锁版本
-    git clone <仓库地址> /opt/ladder
-    cd /opt/ladder && git checkout v0.1.0
+    # 1. 锁版本（要 sudo，/opt 普通用户写不进去）
+    sudo git clone <仓库地址> /opt/ladder
+    cd /opt/ladder && sudo git checkout v0.1.0
 
-    # 2. 预演（不执行）
+    # 2. 先装 subconverter-ng（缺它 install.sh 会直接停下）
+    #    按 docs/DEPLOY.md 第 2 步，装到 /opt/subconv/
+
+    # 3. 预演（不执行）
     sudo ./deploy/install.sh <域名> --dry-run
 
-    # 3. 执行
+    # 4. 执行
     sudo ./deploy/install.sh <域名>
 
-    # 4. 验收（唯一有效的完成证据）
+    # 5. 加第一台节点（没有节点时验收会跳过订阅检查）
+    #    等 60 秒让探活跑一轮
+
+    # 6. 验收（唯一有效的完成证据）
     ./scripts/verify.sh https://<域名> admin <密码> <订阅token>
 
 **第 4 步输出「0 失败」之外的任何结果，都算没装好。**

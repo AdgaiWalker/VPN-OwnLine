@@ -136,6 +136,7 @@ run systemctl daemon-reload
 run systemctl enable --now admin
 run systemctl enable --now probe.timer
 run systemctl enable --now usage-refresh.timer
+run systemctl enable --now ipcheck.timer
 if [ -x /opt/subconv/subconverter-ng ]; then
   run systemctl enable --now subconverter || warn "subconverter 没起来，订阅会 502"
 fi
