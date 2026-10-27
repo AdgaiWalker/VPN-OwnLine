@@ -26,7 +26,7 @@
 
 1. 拉代码并锁版本（**需要 sudo**，因为 /opt 普通用户写不进去）：
 
-       sudo git clone <仓库地址> /opt/ladder
+       sudo git clone https://github.com/AdgaiWalker/ladder-web-panel.git /opt/ladder
        cd /opt/ladder && sudo git checkout v0.1.0
 
    > 必须锁 tag。不锁的话，装出来的东西和我验收时看到的不是同一份。

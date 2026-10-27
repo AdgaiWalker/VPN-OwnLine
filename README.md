@@ -133,7 +133,7 @@ scripts/verify.sh       一条命令验收
 不想让 AI 碰你的机器，就手动来：
 
 ```bash
-git clone <本仓库> && cd <仓库目录>
+git clone https://github.com/AdgaiWalker/ladder-web-panel.git ladder && cd ladder
 
 # 先看看它会做什么
 sudo ./deploy/install.sh v.example.com --dry-run
