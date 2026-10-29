@@ -16,9 +16,9 @@
 
 | 什么时候 | 用哪个 |
 |---|---|
-| 第一次装 | [`prompt/install.md`](prompt/install.md) |
-| 日常加节点 | [`prompt/operate.md`](prompt/operate.md) |
-| 出问题 | [`prompt/troubleshoot.md`](prompt/troubleshoot.md) |
+| 第一次装 | [`prompt/install.md`](../prompt/install.md) |
+| 日常加节点 | [`prompt/operate.md`](../prompt/operate.md) |
+| 出问题 | [`prompt/troubleshoot.md`](../prompt/troubleshoot.md) |
 
 不想让 AI 碰你的机器，也可以自己跑 `deploy/install.sh`。
 
