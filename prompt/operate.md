@@ -27,7 +27,6 @@
 | GET | `/api/nodes` | 当前所有节点（含 health / exit_ip / advice）|
 | POST | `/api/addnode` | 加一台机器 |
 | POST | `/api/removenode` | 删一个节点，body `{"name":"..."}` |
-| POST | `/api/paste` | 粘贴外部 vless 链接，body `{"links":"..."}` |
 | POST | `/api/editnode` | 改名 / 改端口 |
 | POST | `/api/rotate` | 换订阅 token，先 `{"dry_run":true}` |
 | POST | `/api/verify` | 复验某个节点，body `{"name":"..."}` |

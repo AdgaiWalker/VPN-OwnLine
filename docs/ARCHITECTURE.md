@@ -83,7 +83,7 @@ STEP 4 检查端口        从主控回连，判断是否被云防火墙挡住
 | 模块 | 职责 | 谁调它 |
 |---|---|---|
 | `preflight.py` | 判断这台机器能不能装（系统/架构/systemd/磁盘）| `preflight_cli.py` ← `addnode.sh` |
-| `links.py` | vless 链接解析与生成，错误信息是给人看的中文 | `admin.py` 的 `/paste`、`templates` |
+| `links.py` | vless 链接解析与生成，错误信息是给人看的中文 | `addnode.sh` 解析落地链接、`templates` 生成订阅链接 |
 | `templates.py` | 出口 / 中转两套 sing-box 配置 + 结构校验 | `addnode.sh` |
 | `verify.py` | 端口 → 握手 → 出口（或落地），三步短路 | `admin.py` 的 `/verify`、安装后自测 |
 | `advise.py` | 一句人话建议 + 依据 | `admin.py` 的 `/nodes` |
