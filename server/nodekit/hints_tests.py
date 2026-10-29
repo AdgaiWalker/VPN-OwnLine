@@ -1,7 +1,8 @@
 """hints 单元测试：全离网。"""
+import os
 import sys
 
-sys.path.insert(0, "/opt/web")
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nodekit import hints
 
 ok = 0

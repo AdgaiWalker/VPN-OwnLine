@@ -100,7 +100,7 @@ curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/
 
 ## 流量数字不对
 
-`/opt/web/usage.json` 由 `usage-refresh.timer` 每 10 分钟刷新。
+`/opt/web-data/usage.json` 由 `usage-refresh.timer` 每 10 分钟刷新。
 手动触发：
 
 ```bash
@@ -125,10 +125,10 @@ journalctl -u usage-refresh -n 20 --no-pager
 需要备份的就四个文件：
 
 ```
-/opt/web/nodes.json     节点参数
-/opt/web/tc.json        云密钥
-/etc/caddy/Caddyfile    订阅与路由
-/opt/web/index.html     面板
+/opt/web-data/nodes.json   节点参数
+/opt/web-data/tc.json      云密钥
+/etc/caddy/Caddyfile       订阅与路由
+/opt/web/index.html        面板
 ```
 
 其余（servers.json / usage.json / status.json）都是可再生的缓存。

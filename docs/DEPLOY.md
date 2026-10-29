@@ -33,13 +33,17 @@ apt update && apt install -y caddy
 ## 第 3 步：部署代码
 
 ```bash
-mkdir -p /opt/web
-cp -r server/providers /opt/web/
+mkdir -p /opt/web /opt/web-data
+chmod 700 /opt/web-data
+cp -r server/providers server/nodekit /opt/web/
 cp server/*.py server/*.sh /opt/web/
 cp web/index.html /opt/web/
 chmod 755 /opt/web/*.sh
-cp config/*.example.json /opt/web/   # 去掉 .example 并按需修改
+cp config/*.example.json /opt/web-data/   # 去掉 .example 并按需修改
 ```
+
+**代码和数据分两个目录**：`/opt/web` 只放静态页与脚本，`/opt/web-data`（700）放
+`nodes.json`、`tc.json`、`usage.json` 等数据。这样 `file_server` 不可能把节点密钥发出去。
 
 `providers/` 是云厂商适配层。没有云账号也能跑——`generic` 会兜底，
 只是少了"自动开防火墙 / 自动重置密码"。
@@ -86,7 +90,7 @@ curl -s -o /dev/null -w '%{http_code}\n' -A 'Clash' https://v.example.com/s/<tok
 
 1. 访问管理 → 用户 → 新建子用户 `readonlybot`，开启编程访问
 2. 关联策略 `QcloudLighthouseReadOnlyAccess`
-3. 拿到 SecretId / SecretKey，写入 `/opt/web/tc.json`，`chmod 600`
+3. 拿到 SecretId / SecretKey，写入 `/opt/web-data/tc.json`，`chmod 600`
 4. 若要自动化密码重置，再关联 `QcloudLighthouseFullAccess`
 
 

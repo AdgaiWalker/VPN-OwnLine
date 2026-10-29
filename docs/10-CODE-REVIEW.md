@@ -290,4 +290,9 @@ curl -m 8 https://api.ipify.org
 - 真机 `scripts/verify.sh`：**17 通过，0 失败**（4 节点，Clash / v2ray 各 4 条）
 - 真机粘贴链路：临时外部节点加入后 4→5，删除后 5→4；节点已清理
 
+> **2026-10-29 更正**：上面「`verify_tests.py` 改成离线桩」当时只写进了记录、没有落地——
+> 文件仍硬读 `/opt/web/nodes.json`，还要求一个已不存在的「（中转）」节点；`advise_tests.py`
+> 也有一条断言与代码文案不一致。两套都是红的。现已真正改成离线桩，并新增
+> `scripts/test.sh`；当前 **6 套 122 项全过**。
+
 > 这些是本地代码回归，不等于真机验收。真机仍要按 `scripts/verify.sh` 跑 17 项。

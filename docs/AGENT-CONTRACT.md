@@ -8,7 +8,8 @@
 | 路径 | 用途 |
 |---|---|
 | `/opt/ladder` | 本仓库的 clone |
-| `/opt/web` | 面板代码与节点表 |
+| `/opt/web` | 面板代码与静态页 |
+| `/opt/web-data` | 节点表与密钥（700；`nodes.json` / `tc.json` / `status.json`）|
 | `/opt/sing-box` | 代理程序与配置 |
 | `/opt/subconv` | 订阅转换 |
 | `/etc/caddy/Caddyfile` | 反代与订阅路由 |

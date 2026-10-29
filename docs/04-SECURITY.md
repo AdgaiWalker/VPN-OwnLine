@@ -75,12 +75,15 @@ Reality 的设计就是"看起来是个正常网站"。主动探测拿不到任�
 curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/         # 要 401
 curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/sub     # 要 404
 curl -s -o /dev/null -w '%{http_code}\n' https://v.example.com/s/0000  # 要 404
-stat -c '%a' /opt/web/tc.json                                           # 要 600
+stat -c '%a' /opt/web-data/tc.json                                      # 要 600
 ```
 
 ---
 
-## 网站根目录 = 数据目录，所以要挡掉几样东西
+## 历史方案：网站根目录 = 数据目录（已于 2026-10-27 废弃）
+
+> 下面这段是拆分之前的做法，保留是为了解释 Caddyfile 里为什么还留着 `@sensitive` 规则。
+> 现在数据在 `/opt/web-data`，见下一节。`@sensitive` 继续保留作纵深防御，不再承担唯一防线。
 
 面板把 `/opt/web` 同时当**网站根目录**和**数据目录**用，
 所以 `file_server` 会把同目录下的 `.json` 也发出去（有 Basic Auth，但没必要给）。
@@ -102,8 +105,8 @@ handle @sensitive {
 
 **不能挡的**：`status.json`、`servers.json`、`usage.json`、`quota.json` —— 面板前端直接 fetch 这四个。
 
-> 更好的做法是把数据和网站分到两个目录。目前没做，因为要改后端所有路径常量。
-> 在那之前，这条 Caddy 规则是唯一的口子。
+> 当时更好的做法是把数据和网站分到两个目录；2026-10-27 已经做了（见下一节）。
+> 这条 Caddy 规则作为第二道防线继续保留。
 
 ---
 

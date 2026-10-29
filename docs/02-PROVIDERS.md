@@ -89,7 +89,7 @@ def open_port(self, ip, port):
    - `traffic` → 没有统一接口，可以不实现（返回 `{}`）
    - `open_port` → 安全组 `AuthorizeSecurityGroup`
    - `reset_password` → `ModifyInstanceAttribute` + 重启
-4. `available()` 读自己的配置文件（如 `/opt/web/aliyun.json`）
+4. `available()` 读自己的配置文件（如 `/opt/web-data/aliyun.json`）
 5. 注册到 `_MODULES`
 
 **不需要动 `admin.py`、`usage_refresh.py`、前端**——一行都不用改。

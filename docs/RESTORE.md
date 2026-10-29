@@ -64,5 +64,5 @@ systemctl reload caddy
 ```bash
 curl -s -o /dev/null -w 'page=%{http_code}\n'   -u admin:密码 https://v.example.com/
 curl -s -o /dev/null -w 'sub=%{http_code}\n'    -A 'Clash' https://v.example.com/s/<token>
-cat /opt/web/status.json   # 每个节点都应该是 ok:true
+cat /opt/web-data/status.json   # 每个节点都应该是 ok:true
 ```

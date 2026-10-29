@@ -3,7 +3,7 @@
 > 这不是一个"下载即用"的产品，是一份**把决策、代价、失败模式都写清楚的做法**。
 > 代码是这套做法的参考实现，可以照着搭，也可以只读文档、自己实现。
 >
-> 如果只读一页：**[docs/08-LESSONS.md](docs/08-LESSONS.md)**——三个最贵的 bug，与技术无关。
+> 如果只读一页：**[docs/08-LESSONS.md](docs/08-LESSONS.md)**——七个最贵的 bug，与技术无关。
 
 ---
 
@@ -91,8 +91,8 @@ docs/
   05-COSTS-RISKS.md     成本、风险、合规
   06-WHEN-NOT-TO-USE.md 什么时候别用
   07-ACCEPTANCE.md      验收清单（人工 + AI 交付）
-  08-LESSONS.md
-  09-ROLES-AND-SOURCES.md         三个最贵的 bug（只读一页就读这个）
+  08-LESSONS.md         七个最贵的 bug（只读一页就读这个）
+  09-ROLES-AND-SOURCES.md 节点从哪来、坏了怎么读状态
   DEPLOY.md             从零部署
   OPS.md                日常运维与排障
   RESTORE.md            灾难恢复
@@ -113,6 +113,7 @@ web/index.html          单页面板（无框架、无构建）
 
 prompt/README.md        复刻提示词（可选加速器，不是交付物）
 scripts/verify.sh       一条命令验收
+scripts/test.sh         跑全部本地单测（全离网）
 ```
 
 ---
@@ -174,7 +175,8 @@ sudo ./deploy/install.sh v.example.com
 
 - **配置文件还在**：Linux 上是 `/opt/sing-box/`，Windows 上是 `C:\proxy\`。端口也还占着。
   想彻底清掉，手动删目录。PRD 里规划的 `--purge` 参数**还没实现**。
-- **想恢复**：删除时节点参数会存进 `/opt/web/retired-nodes-<日期>.json`，可以手动加回来。
+- **想恢复**：面板「删除」只从 `nodes.json` 移除记录，**不会自动归档节点参数**（`--purge` 也还没实现）。
+  删之前先备份 `nodes.json`；误删只能重装，重装会换 UUID。
 - **重装同一台会换 UUID**，已连接的设备会掉线。这是"重装"和"重启"的区别，别混。
 
 
