@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
+import datetime, json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WEB = "/opt/web"
@@ -442,6 +442,28 @@ class H(BaseHTTPRequestHandler):
                 self.send_header("Content-Disposition", 'attachment; filename="subscription.txt"')
 
             self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
+
+        if path == "/backup":
+            nodes = load_nodes()
+            settings = _load_json("settings.json", {})
+            token = get_sub_token()
+            vless_links = [subs_mod.node_uri(n) for n in nodes if subs_mod.in_subscription(n)]
+            data = {
+                "ok": True,
+                "exported_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "node_count": len(nodes),
+                "nodes": nodes,
+                "sub_token": token,
+                "links": vless_links,
+            }
+            content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Disposition", 'attachment; filename="ladder-nodes-backup.json"')
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)

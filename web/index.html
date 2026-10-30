@@ -193,6 +193,7 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
 <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
 <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
 <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
 </svg>
 <main>
   <header>
@@ -233,7 +234,13 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
   <section class="card"><div id="quota"><div class="skeleton">读取中…</div></div></section>
 
   <section class="card">
-    <div class="cardhead"><div class="cardtitle">节点</div><button class="ghostbtn" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button></div>
+    <div class="cardhead">
+      <div class="cardtitle">节点</div>
+      <div style="display:flex;gap:6px">
+        <button class="ghostbtn" onclick="downloadBackup()" title="下载节点备份文件 (JSON)"><svg class="ico"><use href="#i-download"/></svg> 备份</button>
+        <button class="ghostbtn" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button>
+      </div>
+    </div>
     <div id="nodes"><div class="skeleton">读取中…</div></div>
   </section>
 
@@ -859,6 +866,9 @@ function rotateKey(i){
           dialog({title:'密钥已更换',message:'旧密钥立刻失效。客户端刷新一次订阅就能继续用。',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
         }).catch(function(e){ dialog({title:'没换成',message:String(e),cancelText:null,confirmText:'好'}); });
     });
+}
+function downloadBackup(){
+  window.open('api/backup', '_blank');
 }
 function openAdd(){
   var d=document.querySelector('details.manage');

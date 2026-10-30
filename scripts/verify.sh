@@ -24,7 +24,8 @@ chk() { # 名称 期望 实际
   else printf '  ❌ %-28s 期望 %s，实际 %s\n' "$1" "$2" "$3"; bad=$((bad+1)); fi
 }
 
-NODES_JSON="$(curl -s $CURL_TLS -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
+NODES_JSON="$(curl -s $CURL_TLS -m 30 -u "$USER:$PASS" "$BASE/api/nodes")"
+[ -z "$NODES_JSON" ] && NODES_JSON="$(curl -s $CURL_TLS -m 30 -u "$USER:$PASS" "$BASE/api/nodes")"
 NODECOUNT=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))' 2>/dev/null 2>/dev/null || echo 0)
 [ -z "$NODECOUNT" ] && NODECOUNT=0
 
@@ -55,7 +56,8 @@ echo "== 4. 输入校验 =="
 chk "非法地址" 400 "$(code -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"ip":"not-an-ip","pass":"x","name":"t"}' "$BASE/api/addnode")"
 
 echo "== 5. 节点模型 =="
-NODES_JSON="$(curl -s $CURL_TLS -m 20 -u "$USER:$PASS" "$BASE/api/nodes")"
+NODES_JSON="$(curl -s $CURL_TLS -m 30 -u "$USER:$PASS" "$BASE/api/nodes")"
+[ -z "$NODES_JSON" ] && NODES_JSON="$(curl -s $CURL_TLS -m 30 -u "$USER:$PASS" "$BASE/api/nodes")"
 TOTAL=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(len(json.load(sys.stdin)))' 2>/dev/null)
 ADV=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("advice")))' 2>/dev/null)
 chk "每个节点都有建议" "$TOTAL" "$ADV"
