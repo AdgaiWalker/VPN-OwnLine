@@ -81,4 +81,25 @@ check("Clash YAML 含 type: hysteria2", "type: hysteria2" in yaml_str, yaml_str)
 check("Clash YAML 含 type: vless", "type: vless" in yaml_str, yaml_str)
 check("Clash YAML 含 url-test 自动选择", "type: url-test" in yaml_str, yaml_str)
 
+# 测试分客群 profile 适配
+# 1. office 模式
+yaml_office = S.render_clash_yaml(all_nodes, profile="office")
+check("office 模式包含安全办公分组", "🛡️ 安全办公" in yaml_office, yaml_office)
+check("office 模式包含微信防封号直连规则", "DOMAIN-KEYWORD,wechat,DIRECT" in yaml_office, yaml_office)
+
+# 2. lite 模式
+yaml_lite = S.render_clash_yaml(all_nodes, profile="lite")
+check("lite 模式包含智能优选单分组", "🚀 智能优选" in yaml_lite, yaml_lite)
+check("lite 模式隐藏了节点选择多选组", "节点选择" not in yaml_lite, yaml_lite)
+
+# 3. direct 模式（纯直连过滤中继）
+nodes_with_relay = [fast, relay, hy2_node]
+yaml_direct = S.render_clash_yaml(nodes_with_relay, profile="direct")
+check("direct 模式过滤掉了中继节点", "relay" not in yaml_direct, yaml_direct)
+check("direct 模式保留了直连出口", "fast" in yaml_direct, yaml_direct)
+
+b64_direct = S.render_v2ray_base64(nodes_with_relay, profile="direct")
+decoded_direct = _b64.b64decode(b64_direct).decode("utf-8")
+check("Base64 direct 模式过滤中继只留出口", "relay" not in decoded_direct and "fast" in decoded_direct, decoded_direct)
+
 print("通过 %d 项" % ok)

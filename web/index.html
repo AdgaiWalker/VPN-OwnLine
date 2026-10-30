@@ -86,6 +86,9 @@
   .bar i.warn{background:var(--warn)}
   .bar i.bad{background:var(--bad)}
   .q small{font-size:13px;color:var(--muted)}
+  .scenario-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+  .tab-btn{border:1px solid var(--line);background:var(--card);color:var(--muted);padding:8px 2px;border-radius:9px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s}
+  .tab-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
   details.manage{padding:0}
   details.manage>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
     min-height:52px;padding:0 18px;font-size:17px;font-weight:600;cursor:pointer}
@@ -203,6 +206,19 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
   </div>
 
   <section class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <span class="cardtitle" style="margin:0">使用场景适配</span>
+      <span style="font-size:12px;color:var(--muted)">针对不同需求·精准适配</span>
+    </div>
+    <div class="scenario-tabs">
+      <button type="button" class="tab-btn active" id="tab-office" onclick="switchProfile('office')">🏢 客服办公</button>
+      <button type="button" class="tab-btn" id="tab-lite" onclick="switchProfile('lite')">⚡ 手机小白</button>
+      <button type="button" class="tab-btn" id="tab-direct" onclick="switchProfile('direct')">💰 纯直连省流</button>
+      <button type="button" class="tab-btn" id="tab-pro" onclick="switchProfile('pro')">🛠️ 研发极客</button>
+    </div>
+    <div id="profile-desc" style="font-size:12.5px;padding:9px 12px;background:rgba(15,23,42,.04);border-radius:9px;margin-bottom:14px;color:var(--text);line-height:1.45">
+      <b>🏢 客服办公模式</b>：微信/企微/千牛/国内银行 100% 强制直连，绝不触发异地风控；自动走北京双落地高可用中转。
+    </div>
     <p class="lead" id="devhint">选择下面的按钮导入</p>
     <a class="btn primary" id="btn-sr" href="#">一键导入 · Shadowrocket (小火箭)</a>
     <a class="btn" id="btn-clash" href="#">一键导入 · Clash 系 (Verge/FlClash)</a>
@@ -211,9 +227,6 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
       <code id="suburl">https://v.example.com/s/CHANGEME0000TOKEN</code>
       <button class="tiny" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
     </div>
-    <p class="note" style="color:var(--ok);margin-top:10px;font-size:12.5px;line-height:1.4">
-      🛡️ <b>智能分流保护</b>：国内网站/微信/淘宝/飞书直连不绕路；Google/AI/海外网站自动走节点，避免异地登录风控。
-    </p>
     <p class="note" id="fallback"></p>
   </section>
 
@@ -246,9 +259,12 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
         </div>
         <div class="field" id="passwrap"><label>root 密码</label><input id="f-pass" type="password" placeholder="服务器的 root 密码" autocomplete="off"></div>
         <div class="field" id="keywrap" style="display:none"><label>SSH 私钥</label><textarea id="f-key" rows="4" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----" autocomplete="off" spellcheck="false"></textarea><div class="hint">私钥只用于本次安装，不会保存</div></div>
-        <details class="inner"><summary>高级</summary>
-          <div class="field"><label>用户名</label><input id="f-user" value="root"></div>
-          <div class="field"><label>端口</label><input id="f-port" value="443"></div>
+        <details class="inner" open><summary>端口与运行环境（活的函数动态配置）</summary>
+          <div class="field"><label>用户名</label><input id="f-user" value="root" placeholder="阿里/华为/京东填 root，腾讯云填 ubuntu"></div>
+          <div class="field"><label>服务监听端口 (TCP/UDP)</label><input id="f-port" value="443" placeholder="默认 443，Windows 或已有网站填 8443"></div>
+          <div class="hint" style="font-size:12px;color:var(--muted);margin-top:4px">
+            💡 只要是主流 Linux 都能跑；若是 Windows 或同机已有网站占用 443，可自由指定 8443/20443 智能避让。
+          </div>
         </details>
         <button class="btn primary" style="margin-top:12px" id="btn-add" onclick="startInstall()">开始安装</button>
         <button class="btn" onclick="wizGoto(1)">返回</button>
@@ -452,8 +468,7 @@ function loadSettings(){
     .then(function(r){if(!r.ok) throw 0; return r.json();})
     .then(function(d){
       if(d && d.sub_url){
-        var code=document.getElementById('suburl');
-        if(code) code.textContent=d.sub_url;
+        BASE_SUB_URL = d.sub_url.split('?')[0];
         wireLinks();
         var qr=document.querySelector('.qr');
         if(qr) qr.src='qr-sub.png?t='+Date.now();
@@ -1082,16 +1097,44 @@ function copyDiagInfo(btn){
     if(btn){ btn.textContent = orig; btn.disabled = false; }
   });
 }
+var ACTIVE_PROFILE = 'office';
+var BASE_SUB_URL = '';
+
+function switchProfile(p){
+  ACTIVE_PROFILE = p;
+  ['office','lite','direct','pro'].forEach(function(k){
+    var el = document.getElementById('tab-' + k);
+    if(el) el.classList.toggle('active', k === p);
+  });
+  var desc = document.getElementById('profile-desc');
+  if(desc){
+    if(p === 'office') {
+      desc.innerHTML = '<b>🏢 客服办公模式</b>：微信/企微/千牛/国内银行 100% 强制直连，绝不触发异地风控；自动走北京双落地高可用中转。';
+    } else if(p === 'lite') {
+      desc.innerHTML = '<b>⚡ 手机极简模式</b>：单一「🚀 智能优选」免维护开关，自动挑选延迟最低节点，零认知负荷。';
+    } else if(p === 'direct') {
+      desc.innerHTML = '<b>💰 纯直连省流模式</b>：100% 过滤剔除国内中继，流量纯海外直连，彻底消除中继流量双向超额扣费。';
+    } else if(p === 'pro') {
+      desc.innerHTML = '<b>🛠️ 研发极客全能模式</b>：全量暴露所有节点、自动测速与故障转移策略组，支持终端代理脚本与 TUN。';
+    }
+  }
+  wireLinks();
+}
+
 function wireLinks(){
   var code=document.getElementById('suburl'); if(!code) return;
-  var sub=code.textContent.trim();
+  var raw = code.textContent.trim().split('?')[0];
+  if(!raw) return;
+  if(!BASE_SUB_URL) BASE_SUB_URL = raw;
+  var sub = BASE_SUB_URL + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
+  code.textContent = sub;
   var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash'), sb=document.getElementById('btn-sb');
   if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub);
-  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub);
+  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub + '&target=clash');
   if(sb) sb.href='sing-box://import-remote-profile?url='+encodeURIComponent(sub);
   var fc=document.getElementById('fc'), fs=document.getElementById('fs');
-  if(fc) fc.textContent=sub+'/clash';
-  if(fs) fs.textContent=sub+'/sr';
+  if(fc) fc.textContent=BASE_SUB_URL+'/clash' + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
+  if(fs) fs.textContent=BASE_SUB_URL+'/sr' + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
 }
 function detect(){
   var ua=navigator.userAgent||"", os="other";

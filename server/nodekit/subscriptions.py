@@ -49,9 +49,19 @@ def node_uri(n):
     return hy2_uri(n) if n.get("type") == "hysteria2" else vless_uri(n)
 
 
-def render_v2ray_base64(nodes):
+def render_v2ray_base64(nodes, profile="all"):
     """输出 Base64 订阅文本（Shadowrocket、v2rayN、Quantumult X 等）。"""
     valid = [n for n in (nodes or []) if in_subscription(n)]
+    profile = (profile or "all").lower()
+    if profile == "direct":
+        # 纯直连省流模式：过滤所有国内中继节点，不消耗中继流量
+        valid = [n for n in valid if (n.get("role") or "exit") != "relay" and (n.get("exit_country") or "").upper() != "CN"]
+    elif profile == "office":
+        # 客服办公模式：优先使用双落地高可用节点或中继
+        office_valid = [n for n in valid if (n.get("role") or "") == "relay" or n.get("landing_policy") == "dual"]
+        if office_valid:
+            valid = office_valid
+
     lines = [node_uri(n) for n in valid]
     raw = "\n".join(lines)
     return base64.b64encode(raw.encode("utf-8")).decode("utf-8")
@@ -90,12 +100,24 @@ def clash_proxy_lines(n):
     ]
 
 
-def render_clash_yaml(nodes):
-    """输出完整的 Clash / Mihomo / Clash Verge 订阅配置。"""
+def render_clash_yaml(nodes, profile="all"):
+    """输出完整的 Clash / Mihomo / Clash Verge 订阅配置。支持分客群模式：
+    - office: 客服防封号模式（强制锁定微信/国内直连白名单，走高可用双落地）
+    - lite: 手机小白模式（单一「🚀 智能优选」单选组，无多余开关）
+    - direct: 纯直连省流模式（彻底排除国内中继，0 中继双向流量消耗）
+    - pro / all: 研发极客全能模式（多策略组自由切换，全节点暴露）
+    """
     valid = [n for n in (nodes or []) if in_subscription(n)]
+    profile = (profile or "all").lower()
+
+    if profile == "direct":
+        # 纯直连省流：剔除所有 relay 中继
+        valid = [n for n in valid if (n.get("role") or "exit") != "relay" and (n.get("exit_country") or "").upper() != "CN"]
+
     names = [n.get("name") or n["host"] for n in valid]
     lines = [
         "# 由 admin.py 原生内置订阅生成（无需 subconverter 外部服务）",
+        f"# 客群适配模式: {profile.upper()}",
         "mixed-port: 7890",
         "allow-lan: false",
         "mode: rule",
@@ -119,24 +141,65 @@ def render_clash_yaml(nodes):
         lines.extend(clash_proxy_lines(n))
 
     escaped_names = ", ".join('"%s"' % x for x in names)
-    lines.extend([
-        "",
-        "proxy-groups:",
-        '  - name: "自动选择"',
-        "    type: url-test",
-        "    proxies: [" + escaped_names + "]",
-        "    url: http://www.gstatic.com/generate_204",
-        "    interval: 300",
-        "",
-        '  - name: "节点选择"',
-        "    type: select",
-        '    proxies: ["自动选择", ' + escaped_names + "]",
-        "",
-        "rules:",
-        "  - GEOIP,CN,DIRECT",
-        "  - MATCH,节点选择",
-        "",
-    ])
+
+    if profile == "office":
+        lines.extend([
+            "",
+            "proxy-groups:",
+            '  - name: "🛡️ 安全办公"',
+            "    type: url-test",
+            "    proxies: [" + escaped_names + "]",
+            "    url: http://www.gstatic.com/generate_204",
+            "    interval: 180",
+            "",
+            "rules:",
+            "  - DOMAIN-KEYWORD,wechat,DIRECT",
+            "  - DOMAIN-KEYWORD,weixin,DIRECT",
+            "  - DOMAIN-KEYWORD,tencent,DIRECT",
+            "  - DOMAIN-SUFFIX,qq.com,DIRECT",
+            "  - DOMAIN-SUFFIX,alicdn.com,DIRECT",
+            "  - DOMAIN-SUFFIX,taobao.com,DIRECT",
+            "  - DOMAIN-SUFFIX,feishu.cn,DIRECT",
+            "  - DOMAIN-SUFFIX,dingtalk.com,DIRECT",
+            "  - DOMAIN-SUFFIX,alipay.com,DIRECT",
+            "  - GEOIP,CN,DIRECT",
+            '  - MATCH,"🛡️ 安全办公"',
+            "",
+        ])
+    elif profile == "lite":
+        lines.extend([
+            "",
+            "proxy-groups:",
+            '  - name: "🚀 智能优选"',
+            "    type: url-test",
+            "    proxies: [" + escaped_names + "]",
+            "    url: http://www.gstatic.com/generate_204",
+            "    interval: 300",
+            "",
+            "rules:",
+            "  - GEOIP,CN,DIRECT",
+            '  - MATCH,"🚀 智能优选"',
+            "",
+        ])
+    else:  # pro / all / direct
+        lines.extend([
+            "",
+            "proxy-groups:",
+            '  - name: "自动选择"',
+            "    type: url-test",
+            "    proxies: [" + escaped_names + "]",
+            "    url: http://www.gstatic.com/generate_204",
+            "    interval: 300",
+            "",
+            '  - name: "节点选择"',
+            "    type: select",
+            '    proxies: ["自动选择", ' + escaped_names + "]",
+            "",
+            "rules:",
+            "  - GEOIP,CN,DIRECT",
+            "  - MATCH,节点选择",
+            "",
+        ])
     return "\n".join(lines)
 
 

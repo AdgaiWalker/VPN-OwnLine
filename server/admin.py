@@ -425,17 +425,18 @@ class H(BaseHTTPRequestHandler):
                 or (q.get("target") or [""])[0] == "clash"
                 or bool(re.search(r"(?i)(clash|mihomo|stash|flclash|verge)", ua))
             )
+            profile = (q.get("profile") or q.get("mode") or ["all"])[0].lower()
             nodes = load_nodes()
             fmt = "Clash YAML" if is_clash else "Base64"
             sub_count = sum(1 for n in nodes if subs_mod.in_subscription(n))
-            logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={fmt}, UA={ua[:35]}, 节点数={sub_count})")
+            logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={fmt}, 场景={profile}, UA={ua[:30]}, 节点数={sub_count})")
             if is_clash:
-                content = subs_mod.render_clash_yaml(nodes).encode("utf-8")
+                content = subs_mod.render_clash_yaml(nodes, profile=profile).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/yaml; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="clash.yaml"')
             else:
-                content = subs_mod.render_v2ray_base64(nodes).encode("utf-8")
+                content = subs_mod.render_v2ray_base64(nodes, profile=profile).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="subscription.txt"')
