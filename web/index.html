@@ -335,10 +335,23 @@ function paintStatus(){
   NODES.forEach(function(n,i){
     var d=document.getElementById('d'+i), s=document.getElementById('s'+i);
     if(!d||!s) return;
+    var st=STATUS[n.name];
+    if(st && st.ok===false){
+      d.className='dot bad';
+      s.textContent = st.reason==='port'?'不通 · 端口没放行':(st.reason==='tls'?'不通 · 服务没起来':'不通');
+      return;
+    }
+    if(st && st.cn_ok===false){
+      d.className='dot bad';
+      s.textContent = '国内连不上 · 可能被墙';
+      return;
+    }
     var h=n.health;
     if(h==='ok'){
       d.className='dot ok';
-      s.textContent = n.exit_ip ? ('已验证 · 出口 '+n.exit_ip) : '已验证';
+      var base = n.exit_ip ? ('已验证 · 出口 '+n.exit_ip) : '已验证';
+      if(st && st.cn_ms) base += ' · 国内 '+st.cn_ms+'ms';
+      s.textContent = base;
       ok++;
       return;
     }
@@ -360,7 +373,20 @@ function paintStatus(){
   });
   if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 能翻墙', ok>0?'ok':'bad');
 }
+function loadSettings(){
+  return fetch('api/settings',{cache:'no-store'})
+    .then(function(r){if(!r.ok) throw 0; return r.json();})
+    .then(function(d){
+      if(d && d.sub_url){
+        var code=document.getElementById('suburl');
+        if(code) code.textContent=d.sub_url;
+        wireLinks();
+      }
+      return d;
+    }).catch(function(){});
+}
 function load(){
+  loadSettings();
   fetch('api/nodes',{cache:'no-store'}).then(function(r){ if(!r.ok) throw 0; return r.json(); })
     .then(function(ns){ NODES=ns; render(); poll(); loadServers(); loadQuota(); })
     .catch(function(){ document.getElementById('nodes').innerHTML='<div class="skeleton">读不到节点列表<br><button class="link" onclick="load()">重试</button></div>'; setPill('离线','bad'); });
@@ -715,7 +741,7 @@ function detect(){
   var fb=document.getElementById("fallback");
   if(fb) fb.textContent = apple ? "点了没反应？说明还没装 Shadowrocket。也可以点 Clash 按钮，或复制地址手动导入。" : "点了没反应？说明还没装 Clash 系客户端。装好后回来点，或复制地址手动导入。";
 }
-wireLinks(); load(); loadQuota(); detect(); resumeJob(); setInterval(poll,60000);
+loadSettings(); wireLinks(); load(); loadQuota(); detect(); resumeJob(); setInterval(poll,60000);
 </script>
 </body>
 </html>

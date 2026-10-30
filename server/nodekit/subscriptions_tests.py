@@ -48,4 +48,29 @@ check("选最快的可用海外出口", picked and picked["host"] == "1.2.3.4", 
 check("借道参数完整", picked and set(picked) == {"host", "port", "uuid", "pbk", "sid", "sni"}, picked)
 check("没有候选返回 None", S.pick_landing([cn, bad, relay, external], status) is None)
 check("空列表不崩", S.pick_landing([], {}) is None)
+
+# ---------- 内置订阅生成（V2Ray Base64 + Clash YAML） ----------
+hy2_node = {
+    "name": "硅谷-HY2", "type": "hysteria2", "health": "ok",
+    "host": "198.51.100.12", "port": 443, "password": "PW", "sni": "www.bing.com",
+    "obfs_password": "OBFS",
+}
+all_nodes = [fast, hy2_node, bad]  # bad 会被过滤
+
+b64 = S.render_v2ray_base64(all_nodes)
+check("Base64 输出非空", bool(b64), b64)
+import base64 as _b64
+decoded = _b64.b64decode(b64).decode("utf-8")
+check("Base64 解码过滤了 bad 节点（只剩 2 条）", len(decoded.strip().splitlines()) == 2, decoded)
+check("Base64 解码含 vless://", "vless://" in decoded, decoded)
+check("Base64 解码含 hysteria2://", "hysteria2://" in decoded, decoded)
+
+yaml_str = S.render_clash_yaml(all_nodes)
+check("Clash YAML 输出非空", bool(yaml_str), yaml_str)
+check("Clash YAML 包含 fast 与 硅谷-HY2", "fast" in yaml_str and "硅谷-HY2" in yaml_str, yaml_str)
+check("Clash YAML 过滤了 bad 节点", "bad" not in yaml_str, yaml_str)
+check("Clash YAML 含 type: hysteria2", "type: hysteria2" in yaml_str, yaml_str)
+check("Clash YAML 含 type: vless", "type: vless" in yaml_str, yaml_str)
+check("Clash YAML 含 url-test 自动选择", "type: url-test" in yaml_str, yaml_str)
+
 print("通过 %d 项" % ok)

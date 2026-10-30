@@ -20,9 +20,10 @@ class Provider:
         """返回 {ip: {"used","total","start","end","overflow","region"}}。"""
         return {}
 
-    def open_port(self, ip, port, dry_run=False):
+    def open_port(self, ip, port, proto="TCP", dry_run=False):
         """返回 (状态, 说明)。状态取值：opened / already / fail / skip / dry。
 
+        proto 取值 TCP / UDP（默认 TCP）。
         dry_run=True 时只描述"会做什么"，绝不产生副作用。
 
         skip 表示"这家云不管这台机器"，调用方会继续问下一个 provider。

@@ -46,6 +46,9 @@ NODE = {"host": "198.51.100.12", "port": 443, "sni": "www.apple.com",
 check("is_ip 正常", V.is_ip("1.2.3.4"))
 check("is_ip 拒绝域名", not V.is_ip("example.com"))
 check("is_ip 拒绝空串", not V.is_ip(""))
+sc = V.ssh_cmd("ubuntu", "203.0.113.1", timeout=9)
+check("ssh_cmd 用 accept-new（TOFU）", "StrictHostKeyChecking=accept-new" in sc and "StrictHostKeyChecking=no" not in sc, sc)
+check("ssh_cmd 带 known_hosts 与目标", "UserKnownHostsFile=/opt/sing-box/known_hosts" in sc and sc[-1] == "ubuntu@203.0.113.1", sc)
 
 
 # ---------- tls_ok 的三种输出 ----------
@@ -117,5 +120,29 @@ ob = cfg["outbounds"][0]
 check("客户端配置带 uuid", ob["uuid"] == NODE["uuid"], ob)
 check("客户端配置开 reality", ob["tls"]["reality"]["enabled"] is True, ob)
 check("客户端配置 socks 端口", cfg["inbounds"][0]["listen_port"] == 23456, cfg)
+
+HY2_NODE = {"host": "198.51.100.12", "port": 443, "sni": "www.bing.com",
+            "type": "hysteria2", "password": "PW", "obfs_password": "OBFS"}
+hy2_cfg = V._client_cfg(HY2_NODE, 23457)
+hy2_ob = hy2_cfg["outbounds"][0]
+check("HY2 客户端配置 type=hysteria2", hy2_ob["type"] == "hysteria2", hy2_ob)
+check("HY2 客户端配置带 password 與 salamander",
+      hy2_ob["password"] == "PW" and hy2_ob["obfs"]["password"] == "OBFS", hy2_ob)
+check("HY2 客户端配置 alpn=h3", hy2_ob["tls"]["alpn"] == ["h3"], hy2_ob)
+
+# HY2 跳过 tcp_ok / tls_ok，直接测 proxy_exit_ip
+with stubbed(tcp_ok=lambda *a, **k: (_ for _ in ()).throw(AssertionError("HY2 不应调 tcp_ok")),
+             tls_ok=lambda *a, **k: (_ for _ in ()).throw(AssertionError("HY2 不应调 tls_ok")),
+             proxy_exit_ip=lambda *a, **k: "203.0.113.9",
+             country_of=lambda *a, **k: "US"):
+    r = V.run(HY2_NODE)
+    check("HY2 真出口（不调 tcp/tls）→ ok", r["health"] == "ok" and r["exit_ip"] == "203.0.113.9", r)
+
+with stubbed(tcp_ok=lambda *a, **k: True,
+             tls_ok=lambda *a, **k: True,
+             proxy_exit_ip=lambda *a, **k: "",
+             remote_exit_ip=lambda *a, **k: "203.0.113.9"):
+    r = V.run(HY2_NODE)
+    check("HY2 密码错/UDP 不通（即便 TCP 443 通）→ proxy", r["health"] == "proxy", r)
 
 print("通过 %d 项" % ok)

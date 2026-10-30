@@ -59,26 +59,65 @@ def hy2(n):
 def link(n):
     return hy2(n) if n.get("type") == "hysteria2" else vless(n)
 
+def get_sub_token():
+    """获取订阅 token：优先读 settings.json，兜底从 Caddyfile 解析。"""
+    try:
+        s = _load_json("settings.json", {})
+        if s.get("sub_token"):
+            return str(s["sub_token"])
+    except Exception:
+        pass
+    try:
+        with open(CADDY, encoding="utf-8") as f:
+            m = re.search(r"/s/([0-9a-fA-F]{8,32})", f.read())
+            if m:
+                return m.group(1)
+    except Exception:
+        pass
+    return ""
+
 def render():
-    # 故障节点不进订阅；unknown 视为“未验证”，仍然保留（外部节点就是这种）
-    nodes = [n for n in load_nodes() if subs_mod.in_subscription(n)]
-    src = urllib.parse.quote("|".join(link(n) for n in nodes), safe="")
-    with open(CADDY, encoding="utf-8") as f:
-        txt = f.read()
-    new = re.sub(r"url=[^&\s]+", "url=" + src, txt, count=1)
-    with open(CADDY, "w", encoding="utf-8") as f:
-        f.write(new)
-    subprocess.run(["systemctl", "reload", "caddy"], check=True, capture_output=True)
+    # 只要 nodes.json 变动，先保证内部数据一致
+    # 若配置为 builtin（原生内置订阅），完全无需正则改写 Caddyfile 或 reload
+    settings = _load_json("settings.json", {})
+    if settings.get("sub_backend", "builtin") == "builtin":
+        return
+    # 兼容过渡阶段：若显式指定 subconverter，保留旧逻辑
+    try:
+        nodes = [n for n in load_nodes() if subs_mod.in_subscription(n)]
+        src = urllib.parse.quote("|".join(link(n) for n in nodes), safe="")
+        with open(CADDY, encoding="utf-8") as f:
+            txt = f.read()
+        new = re.sub(r"url=[^&\s]+", "url=" + src, txt, count=1)
+        if new != txt:
+            with open(CADDY, "w", encoding="utf-8") as f:
+                f.write(new)
+            subprocess.run(["systemctl", "reload", "caddy"], check=True, capture_output=True)
+    except Exception:
+        pass
 
 def _gen_node():
-    """生成一套节点参数（uuid / reality 密钥对 / short_id）。"""
+    """生成一套节点参数（uuid / reality 密钥对 / short_id / hy2 password / obfs）。"""
     binp = "/opt/sing-box/sing-box"
-    uid = subprocess.check_output([binp, "generate", "uuid"], text=True).strip()
-    kp = subprocess.check_output([binp, "generate", "reality-keypair"], text=True)
-    priv = re.search(r"PrivateKey:\s*(\S+)", kp).group(1)
-    pub = re.search(r"PublicKey:\s*(\S+)", kp).group(1)
-    return {"uuid": uid, "private_key": priv, "pbk": pub,
-            "sid": os.urandom(4).hex(), "sni": "www.apple.com"}
+    try:
+        uid = subprocess.check_output([binp, "generate", "uuid"], text=True).strip()
+        kp = subprocess.check_output([binp, "generate", "reality-keypair"], text=True)
+        priv = re.search(r"PrivateKey:\s*(\S+)", kp).group(1)
+        pub = re.search(r"PublicKey:\s*(\S+)", kp).group(1)
+    except Exception:
+        uid = str(uuid.uuid4())
+        priv = os.urandom(32).hex()
+        pub = os.urandom(32).hex()
+    return {
+        "uuid": uid,
+        "private_key": priv,
+        "pbk": pub,
+        "sid": os.urandom(4).hex(),
+        "sni": "www.apple.com",
+        "hy2_password": os.urandom(12).hex(),
+        "obfs_password": os.urandom(8).hex(),
+        "hy2_sni": "www.bing.com",
+    }
 
 
 def _write_job(jid, data, secret):
@@ -145,11 +184,17 @@ def run_job(jid, cfg_path):
 
             j["warn"] = "port_blocked" if any("PORT_BLOCKED" in l for l in j["log"]) else ""
             if j["warn"] == "port_blocked" and j.get("node"):
-                st, msg = open_firewall(j["node"]["host"], j["node"]["port"])
-                j["log"].append("防火墙: " + msg)
+                host = j["node"]["host"]
+                port = j["node"]["port"]
+                role = j["node"].get("role") or "exit"
+                st, msg = open_firewall(host, port, proto="TCP")
+                j["log"].append("防火墙(TCP): " + msg)
+                if role == "exit":
+                    st_u, msg_u = open_firewall(host, port, proto="UDP")
+                    j["log"].append("防火墙(UDP): " + msg_u)
                 if st in ("opened", "already"):
                     time.sleep(3)
-                    if port_reachable(j["node"]["host"], j["node"]["port"]):
+                    if port_reachable(host, port):
                         j["warn"] = ""
                         j["log"].append("端口已通，重新自测")
                     else:
@@ -158,19 +203,22 @@ def run_job(jid, cfg_path):
                     j["log"].append("没能自动放行，需要手动去控制台加规则")
 
             if j.get("node"):
-                # 装完立刻自测，把真实结果带回前端：能用就说能用，不能用就说为什么。
-                # 防火墙刚放行时也要重测，否则节点会一直停在 health=port，进不了订阅。
-                try:
-                    r = verify_node(j["node"])
-                    j["verify"] = r
-                    j["node"]["health"] = r.get("health", "unknown")
-                    if r.get("exit_ip"):
-                        j["node"]["exit_ip"] = r["exit_ip"]
-                        j["node"]["exit_country"] = r.get("exit_country", "")
-                    if r.get("detail"):
-                        j["node"]["health_detail"] = r["detail"]
-                except Exception as e:
-                    j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
+                host = j["node"]["host"]
+                matching = [n for n in load_nodes() if n.get("host") == host]
+                for n in matching:
+                    try:
+                        r = verify_node(n)
+                        if n.get("name") == j["node"].get("name"):
+                            j["verify"] = r
+                            j["node"]["health"] = r.get("health", "unknown")
+                            if r.get("exit_ip"):
+                                j["node"]["exit_ip"] = r["exit_ip"]
+                                j["node"]["exit_country"] = r.get("exit_country", "")
+                            if r.get("detail"):
+                                j["node"]["health_detail"] = r["detail"]
+                    except Exception as e:
+                        if n.get("name") == j["node"].get("name"):
+                            j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
             j["state"] = "done"
     except Exception as e:
         j["state"] = "error"
@@ -211,10 +259,25 @@ def _ps_patch(uuid_new, port_new):
     lines.append("Start-ScheduledTask -TaskName sing-box")
     return "; ".join(lines)
 
+def _build_sub_url(settings, host_header):
+    token = settings.get("sub_token") or get_sub_token()
+    domain = settings.get("domain") or (host_header or "").split(":")[0] or "v.goodloop.si"
+    port = settings.get("sub_port")
+    if port:
+        port_part = "" if int(port) in (80, 443) else (":%s" % port)
+    elif ":8443" in (host_header or ""):
+        port_part = ":8443"
+    elif domain and not (host_header or "").endswith(":443"):
+        port_part = ":8443"
+    else:
+        port_part = ""
+    return domain, token, "https://%s%s/s/%s" % (domain, port_part, token)
+
+
 def patch_remote(node, uuid_new=None, port_new=None):
     host = node.get("host", "")
     try:
-        if host == "198.51.100.12":
+        if node.get("local") is True or host in ("127.0.0.1", "localhost", "198.51.100.12"):
             script = _py_patch(uuid_new, port_new)
             r = subprocess.run(["python3", "-c", script], capture_output=True, text=True, timeout=30)
             if r.returncode != 0:
@@ -228,9 +291,7 @@ def patch_remote(node, uuid_new=None, port_new=None):
         u = node.get("ssh_user")
         if not u:
             return False, "这台没有控制权限"
-        base = ["ssh", "-i", "/root/.ssh/node_ctl", "-o", "BatchMode=yes",
-                "-o", "StrictHostKeyChecking=no", "-o", "UserKnownHostsFile=/dev/null",
-                "-o", "ConnectTimeout=10", "%s@%s" % (u, host)]
+        base = verify_mod.ssh_cmd(u, host, timeout=10)
         if node.get("os") == "windows":
             cmd = base + ['powershell -NoProfile -Command "%s"' % _ps_patch(uuid_new, port_new).replace('"', '\\"')]
         else:
@@ -259,9 +320,9 @@ def _valid_host(h):
 
 import socket as _socket
 
-def open_firewall(ip, port):
+def open_firewall(ip, port, proto="TCP"):
     import providers
-    st, msg, who = providers.open_port(ip, port)
+    st, msg, who = providers.open_port(ip, port, proto=proto)
     return (st, msg)
 
 
@@ -339,8 +400,51 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path, _, qs = self.path.partition("?")
         path = path.rstrip("/")
+
+        # 订阅路由：/s/<token>, /s/<token>/clash, /s/<token>/sr, /sub
+        token = get_sub_token()
+        if path.startswith("/s/") or path == "/sub":
+            parts = path.split("/")
+            req_token = parts[2] if len(parts) > 2 else ""
+            if path.startswith("/s/") and req_token != token:
+                return self._json(404, {"ok": False, "error": "invalid subscription token"})
+
+            q = urllib.parse.parse_qs(qs)
+            ua = self.headers.get("User-Agent", "")
+            is_clash = (
+                path.endswith("/clash")
+                or (q.get("target") or [""])[0] == "clash"
+                or bool(re.search(r"(?i)(clash|mihomo|stash|flclash|verge)", ua))
+            )
+            nodes = load_nodes()
+            if is_clash:
+                content = subs_mod.render_clash_yaml(nodes).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/yaml; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="clash.yaml"')
+            else:
+                content = subs_mod.render_v2ray_base64(nodes).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.send_header("Content-Disposition", 'attachment; filename="subscription.txt"')
+
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
+
         if path in ("/nodes", ""):
             return self._json(200, nodes_with_advice())
+        if path == "/settings":
+            settings = _load_json("settings.json", {})
+            domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
+            return self._json(200, {
+                "ok": True,
+                "domain": domain,
+                "sub_token": token,
+                "sub_url": sub_url,
+            })
         if path == "/job":
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
@@ -392,13 +496,21 @@ class H(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True, "dry_run": True, "message": msg,
                                         "would": "作废旧订阅地址并生成新地址"})
             try:
-                r = subprocess.run(["/opt/web/rotate.sh"], capture_output=True, text=True, timeout=90)
-                url = ""
-                for line in r.stdout.splitlines():
-                    if line.startswith("新订阅地址:"):
-                        url = line.split(":", 1)[1].strip()
-                return self._json(200, {"ok": r.returncode == 0 and bool(url), "url": url,
-                                  "message": msg})
+                new_token = os.urandom(5).hex()
+                settings = _load_json("settings.json", {})
+                settings["sub_token"] = new_token
+                _save_json(os.path.join(DATA, "settings.json"), settings)
+
+                domain, token, new_url = _build_sub_url(settings, self.headers.get("Host"))
+
+                try:
+                    subprocess.run(["qrencode", "-o", os.path.join(WEB, "qr-sub.png"), "-s", "12", "-m", "2", new_url],
+                                   check=False, timeout=10)
+                except Exception:
+                    pass
+
+                render()
+                return self._json(200, {"ok": True, "url": new_url, "message": msg})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
@@ -410,18 +522,28 @@ class H(BaseHTTPRequestHandler):
             target = next((n for n in nodes if n["name"] == name), None)
             if not target:
                 return self._json(404, {"ok": False, "error": "没找到这个节点"})
-            update_nodes(lambda ns: [n for n in ns if n["name"] != name])
+            host = target.get("host")
+
+            to_remove = {name}
+            if name.endswith("-HY2"):
+                base_name = name[:-4]
+                if any(n["name"] == base_name for n in nodes):
+                    to_remove.add(base_name)
+            else:
+                hy2_name = name + "-HY2"
+                if any(n["name"] == hy2_name for n in nodes):
+                    to_remove.add(hy2_name)
+
+            update_nodes(lambda ns: [n for n in ns if n["name"] not in to_remove])
             try:
                 render()
             except Exception as e:
                 return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
             stopped = None
             u = target.get("ssh_user")
-            if u and target.get("host") != "198.51.100.12":
-                base = ["ssh", "-i", "/root/.ssh/node_ctl",
-                        "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",
-                        "-o", "UserKnownHostsFile=/dev/null", "-o", "ConnectTimeout=8",
-                        "%s@%s" % (u, target["host"])]
+            still_has_host = any(n.get("host") == host for n in load_nodes())
+            if u and not still_has_host and target.get("local") is not True and host != "198.51.100.12":
+                base = verify_mod.ssh_cmd(u, host, timeout=8)
                 if target.get("os") == "windows":
                     remote_cmd = 'powershell -NoProfile -Command "Stop-ScheduledTask -TaskName sing-box; Disable-ScheduledTask -TaskName sing-box"'
                 else:
@@ -431,7 +553,7 @@ class H(BaseHTTPRequestHandler):
                     stopped = (r.returncode == 0)
                 except Exception:
                     stopped = False
-            return self._json(200, {"ok": True, "remaining": len(load_nodes()), "stopped": stopped})
+            return self._json(200, {"ok": True, "remaining": len(load_nodes()), "stopped": stopped, "removed": list(to_remove)})
 
         if path == "/editnode":
             name = (body.get("name") or "").strip()

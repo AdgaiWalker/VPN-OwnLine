@@ -27,42 +27,36 @@
 1. 拉代码并锁版本（**需要 sudo**，因为 /opt 普通用户写不进去）：
 
        sudo git clone https://github.com/AdgaiWalker/ladder-web-panel.git /opt/ladder
-       cd /opt/ladder && sudo git checkout v0.1.1
+       cd /opt/ladder && sudo git checkout v0.2.0
 
    > 必须锁 tag。不锁的话，装出来的东西和我验收时看到的不是同一份。
+   > 也可以直接使用一键自举：`curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/ladder-web-panel/main/deploy/bootstrap.sh | sudo bash`
 
-2. **先装订阅转换 subconverter-ng**（安装脚本会检查它，没有会直接停下）：
-   按 `docs/DEPLOY.md` 第 2 步下载，解压到 `/opt/subconv/`，
-   确认 `/opt/subconv/subconverter-ng` 存在且可执行。
+2. **先干跑，把输出贴给我，等我确认**：
 
-3. **先干跑，把输出贴给我，等我确认**：
+       cd /opt/ladder && sudo ./deploy/install.sh --domain <域名> --dry-run
 
-       cd /opt/ladder && sudo ./deploy/install.sh <域名> --dry-run
+3. 我说「继续」之后真装：
 
-4. 我说「继续」之后真装：
+       sudo ./deploy/install.sh --domain <域名>
 
-       sudo ./deploy/install.sh <域名>
-
-5. 把脚本结尾打印的四样东西复述给我一次（这是唯一允许出现密码的地方）：
+4. 把脚本结尾打印的四样东西复述给我一次（这是唯一允许出现密码的地方）：
    面板地址 / 账号 / 密码 / 订阅地址（从订阅地址末尾取出 token）
 
-6. **加第一台节点**（用面板或 `POST /api/addnode`）。
+5. **加第一台节点**（若本机作为首台出口节点，安装脚本已自动生成）。
    如果这台机器就是我唯一的一台，**跳过这一步并告诉我**——订阅检查会自动跳过。
 
-7. **等 60 秒**，让探活跑完一轮（它每分钟跑一次，没有这一轮状态文件是空的）。
+6. **等 60 秒**，让探活跑完一轮（它每分钟跑一次，没有这一轮状态文件是空的）。
 
-8. 运行验收，**把完整输出原样贴给我，不要总结**：
+7. 运行验收，**把完整输出原样贴给我，不要总结**：
 
-       cd /opt/ladder && ./scripts/verify.sh https://<域名> admin <密码> <订阅token>
-
-   > 如果第 6 步跳过了，这次验收会显示「0 条节点，跳过订阅内容检查」——
-   > 那是正常的。等加了第一台机器再跑一次。
+       cd /opt/ladder && ./scripts/verify.sh https://<域名>:8443 admin <密码> <订阅token>
 
 # 边界
 
-- 只允许动：`/opt/ladder`、`/opt/web`、`/opt/sing-box`、`/opt/subconv`、`/etc/caddy`、`/etc/systemd`
+- 只允许动：`/opt/ladder`、`/opt/web`、`/opt/web-data`、`/opt/sing-box`、`/etc/caddy`、`/etc/systemd`
 - **不要动机器上已有的其他服务**（宝塔、nginx、数据库等）
-- 除第 4 步外，不要在输出里打印任何密码、密钥、token
+- 除第 3 步外，不要在输出里打印任何密码、密钥、token
 - 任何一步失败就**停下来，把原始报错贴给我**，不要自己猜着改
 
 # 完成判据

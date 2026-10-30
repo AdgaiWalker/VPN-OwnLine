@@ -145,26 +145,30 @@ class Provider(Base):
 
     # ---------- 写 ----------
 
-    def open_port(self, ip, port, dry_run=False):
+    def open_port(self, ip, port, proto="TCP", dry_run=False):
+        proto = (proto or "TCP").upper()
+        if proto not in ("TCP", "UDP"):
+            return ("fail", "不支持的协议：%s" % proto)
         inst = self._find(ip)
         if not inst:
             return ("skip", "")
         if dry_run:
-            return ("dry", "会在腾讯云放行 TCP %s（未执行）" % port)
+            return ("dry", "会在腾讯云放行 %s %s（未执行）" % (proto, port))
         region = inst.get("regionId") or "ap-singapore"
         iid = inst.get("id")
+        desc = "hysteria2" if proto == "UDP" else "sing-box"
         try:
             r = self._call("DescribeFirewallRules", {"InstanceId": iid, "Limit": 100, "Offset": 0}, region)  # 单机规则一般 <100 条
             for x in (r.get("Response") or {}).get("FirewallRuleSet", []):
-                if str(x.get("Port")) == str(port) and (x.get("Protocol") or "").upper() == "TCP":
-                    return ("already", "TCP %s 已经是放行状态" % port)
+                if str(x.get("Port")) == str(port) and (x.get("Protocol") or "").upper() == proto:
+                    return ("already", "%s %s 已经是放行状态" % (proto, port))
             c = self._call("CreateFirewallRules", {"InstanceId": iid, "FirewallRules": [{
-                "Protocol": "TCP", "Port": str(port), "CidrBlock": "0.0.0.0/0",
-                "Action": "ACCEPT", "FirewallRuleDescription": "sing-box"}]}, region)
+                "Protocol": proto, "Port": str(port), "CidrBlock": "0.0.0.0/0",
+                "Action": "ACCEPT", "FirewallRuleDescription": desc}]}, region)
             e = (c.get("Response") or {}).get("Error")
             if e:
                 return ("fail", (e.get("Message") or "")[:120])
-            return ("opened", "已在腾讯云控制台自动放行 TCP %s" % port)
+            return ("opened", "已在腾讯云控制台自动放行 %s %s" % (proto, port))
         except Exception as e:
             return ("fail", str(e)[:120])
 

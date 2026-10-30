@@ -12,8 +12,9 @@ class Provider(Base):
     def available(self):
         return True
 
-    def open_port(self, ip, port, dry_run=False):
-        return ("skip", "通用机器：请到服务商控制台 → 防火墙 / 安全组 → 放行 TCP %s" % port)
+    def open_port(self, ip, port, proto="TCP", dry_run=False):
+        proto = (proto or "TCP").upper()
+        return ("skip", "通用机器：请到服务商控制台 → 防火墙 / 安全组 → 放行 %s %s" % (proto, port))
 
     def reset_password(self, ip, dry_run=False):
         return ("skip", "通用机器：请到服务商控制台 → 重置 root 密码", {})

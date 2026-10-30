@@ -13,7 +13,19 @@ import time
 import urllib.request
 
 CTL_KEY = "/root/.ssh/node_ctl"
+KNOWN_HOSTS = "/opt/sing-box/known_hosts"
 BIN = "/opt/sing-box/sing-box"
+
+
+def ssh_cmd(user, host, timeout=10):
+    """统一的受控节点 SSH 命令前缀：首次记住指纹（TOFU），后续严格比对。"""
+    return [
+        "ssh", "-i", CTL_KEY, "-o", "BatchMode=yes",
+        "-o", "StrictHostKeyChecking=accept-new",
+        "-o", "UserKnownHostsFile=" + KNOWN_HOSTS,
+        "-o", "ConnectTimeout=%d" % int(timeout),
+        "%s@%s" % (user or "root", host),
+    ]
 
 
 def tcp_ok(host, port, timeout=6):
@@ -50,10 +62,7 @@ def is_ip(s):
 
 def remote_exit_ip(host, user="root", timeout=10):
     """从节点上取它自己的公网出口 IP。取不到返回空串（不当作失败）。"""
-    cmd = [
-        "ssh", "-i", CTL_KEY, "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=no",
-        "-o", "UserKnownHostsFile=/dev/null", "-o", "ConnectTimeout=%d" % timeout,
-        "%s@%s" % (user, host),
+    cmd = ssh_cmd(user, host, timeout=timeout) + [
         "curl -s --max-time 8 https://api.ipify.org || curl -s --max-time 8 http://ifconfig.me/ip",
     ]
     try:
@@ -78,21 +87,33 @@ def country_of(ip):
 
 
 def _client_cfg(node, socks_port):
-    return {
-        "log": {"level": "error"},
-        "inbounds": [{"type": "socks", "tag": "in", "listen": "127.0.0.1", "listen_port": socks_port}],
-        "outbounds": [{
+    if node.get("type") == "hysteria2":
+        ob = {
+            "type": "hysteria2", "tag": "out",
+            "server": node["host"], "server_port": int(node.get("port") or 443),
+            "password": node["password"],
+            "tls": {"enabled": True, "server_name": node.get("sni") or node["host"],
+                    "alpn": ["h3"], "insecure": True},
+        }
+        if node.get("obfs_password"):
+            ob["obfs"] = {"type": "salamander", "password": node["obfs_password"]}
+    else:
+        ob = {
             "type": "vless", "tag": "out",
             "server": node["host"], "server_port": int(node["port"]), "uuid": node["uuid"],
             "flow": node.get("flow") or "xtls-rprx-vision",
             "tls": {"enabled": True, "server_name": node.get("sni") or node["host"],
                     "utls": {"enabled": True, "fingerprint": "chrome"},
                     "reality": {"enabled": True, "public_key": node["pbk"], "short_id": node["sid"]}},
-        }],
+        }
+    return {
+        "log": {"level": "error"},
+        "inbounds": [{"type": "socks", "tag": "in", "listen": "127.0.0.1", "listen_port": socks_port}],
+        "outbounds": [ob],
     }
 
 
-def proxy_exit_ip(node, timeout=15):
+def proxy_exit_ip(node, timeout=8):
     """真的连一次：本机起个 socks，走这条节点出去，看能不能取到出口 IP。
     取到 → 说明这条节点真的能用；取不到 → 说明不能用（不管端口和握手多漂亮）。"""
     port = random.randint(20000, 45000)
@@ -141,12 +162,15 @@ def run(node):
     host = node.get("host")
     port = int(node.get("port") or 443)
     sni = node.get("sni") or ""
+    is_hy2 = (node.get("type") == "hysteria2")
 
-    if not tcp_ok(host, port):
-        return {"health": "port", "detail": "端口连不上"}
+    # Hysteria2 走 QUIC/UDP，不能拿 TCP+TLS 探活去短路（否则要么误判死，要么被同端口 Reality 假绿灯骗过）
+    if not is_hy2:
+        if not tcp_ok(host, port):
+            return {"health": "port", "detail": "端口连不上"}
 
-    if not tls_ok(host, port, sni):
-        return {"health": "tls", "detail": "端口通但握手失败"}
+        if not tls_ok(host, port, sni):
+            return {"health": "tls", "detail": "端口通但握手失败"}
 
     role = node.get("role") or "exit"
 
@@ -171,6 +195,8 @@ def run(node):
         return {"health": "ok", "exit_ip": ip, "exit_country": cc, "detail": "出口 %s (%s)" % (ip, cc or "?")}
 
     # 代理不通：机器还活着吗？
+    if is_hy2 and tcp_ok(host, port):
+        return {"health": "proxy", "detail": "机器活着，但 Hysteria2 连不通（UDP 端口未放行或密码不对）"}
     if remote_exit_ip(host, node.get("ssh_user") or "root"):
         return {"health": "proxy", "detail": "机器活着，但代理连不通（密钥或路由不对）"}
     return {"health": "blocked", "detail": "代理和 SSH 都不通，可能被墙" }

@@ -126,7 +126,13 @@ if role == "auto":
 if role == "relay" and landing:
     conf = templates.relay_config(port, node["uuid"], node["sni"], node["private_key"], node["sid"], landing)
 else:
-    conf = templates.exit_config(port, node["uuid"], node["sni"], node["private_key"], node["sid"])
+    hy2_opts = {
+        "port": port,
+        "password": node.get("hy2_password") or node["uuid"],
+        "obfs_password": node.get("obfs_password") or "tz-obfs",
+        "sni": node.get("hy2_sni") or "www.bing.com",
+    }
+    conf = templates.exit_config(port, node["uuid"], node["sni"], node["private_key"], node["sid"], hy2=hy2_opts)
 errs = templates.validate(conf)
 if errs:
     sys.stderr.write("配置校验失败: %s\n" % ",".join(errs))
@@ -148,12 +154,33 @@ if [ -x /opt/sing-box/sing-box ]; then
 fi
 rm -f "$CFG_TMP" "/tmp/cfgchk.$$"
 
+HAS_HY2=0
+if [ "$ROLE" = "exit" ] || ([ "$ROLE" = "auto" ] && [ "$DIRECT" = "1" ]); then
+  HAS_HY2=1
+fi
+
 REMOTE=$(cat <<'EOS'
 set -e
 echo "STEP 3 正在安装并启动"
 mkdir -p /opt/sing-box
 tar xzf /tmp/sb.tgz -C /opt/sing-box --strip-components=1
 rm -f /tmp/sb.tgz
+
+if [ "__HAS_HY2__" = "1" ] && [ ! -f /opt/sing-box/hy2.key ]; then
+  openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null || true
+  chmod 600 /opt/sing-box/hy2.key 2>/dev/null || true
+fi
+
+# 开启 BBR 拥塞控制
+if modprobe tcp_bbr 2>/dev/null; then
+  echo "tcp_bbr" > /etc/modules-load.d/bbr.conf 2>/dev/null || true
+  cat > /etc/sysctl.d/99-bbr.conf << 'BBR'
+net.core.default_qdisc = fq
+net.ipv4.tcp_congestion_control = bbr
+BBR
+  sysctl -p /etc/sysctl.d/99-bbr.conf 2>/dev/null || true
+fi
+
 cat > /opt/sing-box/config.json <<'JSONCFG'
 __CONFIG__
 JSONCFG
@@ -177,8 +204,15 @@ systemctl enable sing-box >/dev/null 2>&1 || true
 systemctl restart sing-box
 sleep 2
 systemctl is-active sing-box
-if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then ufw allow __PORT__/tcp >/dev/null 2>&1 || true; fi
-if command -v firewall-cmd >/dev/null 2>&1; then firewall-cmd --permanent --add-port=__PORT__/tcp >/dev/null 2>&1 || true; firewall-cmd --reload >/dev/null 2>&1 || true; fi
+if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
+  ufw allow __PORT__/tcp >/dev/null 2>&1 || true
+  if [ "__HAS_HY2__" = "1" ]; then ufw allow __PORT__/udp >/dev/null 2>&1 || true; fi
+fi
+if command -v firewall-cmd >/dev/null 2>&1; then
+  firewall-cmd --permanent --add-port=__PORT__/tcp >/dev/null 2>&1 || true
+  if [ "__HAS_HY2__" = "1" ]; then firewall-cmd --permanent --add-port=__PORT__/udp >/dev/null 2>&1 || true; fi
+  firewall-cmd --reload >/dev/null 2>&1 || true
+fi
 AUTH_HOME=$(getent passwd "__UNAME__" | cut -d: -f6)
 mkdir -p "$AUTH_HOME/.ssh"; touch "$AUTH_HOME/.ssh/authorized_keys"
 grep -qF "__CTL_PUB__" "$AUTH_HOME/.ssh/authorized_keys" 2>/dev/null || echo "__CTL_PUB__" >> "$AUTH_HOME/.ssh/authorized_keys"
@@ -190,6 +224,7 @@ EOS
 REMOTE="${REMOTE//__CONFIG__/$CONFIG}"
 REMOTE="${REMOTE//__PORT__/$PORT}"
 REMOTE="${REMOTE//__UNAME__/$UNAME}"
+REMOTE="${REMOTE//__HAS_HY2__/$HAS_HY2}"
 REMOTE="${REMOTE//__CTL_PUB__/$(cat /root/.ssh/node_ctl.pub)}"
 
 B64=$(printf '%s' "$REMOTE" | base64 -w0)
@@ -211,7 +246,11 @@ TARGET_DIRECT_2="$DIRECT" python3 - "$J" <<'PYOUT'
 import json, os, sys
 job = json.load(open(sys.argv[1], encoding="utf-8"))
 node = job.get("node") or {}
-out = {
+direct = os.environ.get("TARGET_DIRECT_2") == "1"
+role = job.get("role") or "auto"
+actual_role = "exit" if (role == "exit" or (role == "auto" and direct)) else "relay"
+
+vless_out = {
     "name": job.get("name"),
     "host": job.get("ip"),
     "port": int(job.get("port") or 443),
@@ -220,10 +259,27 @@ out = {
     "pbk": node.get("pbk"),
     "sid": node.get("sid"),
     "ssh_user": job.get("user") or "root",
-    "role": ("relay" if (job.get("role") == "relay" or (job.get("role") in (None, "", "auto") and os.environ.get("TARGET_DIRECT_2") != "1")) else "exit"),
+    "role": actual_role,
     "landing": job.get("landing") or None,
     "source": "builtin",
     "health": "unknown",
 }
-print(json.dumps(out, ensure_ascii=False))
+print(json.dumps(vless_out, ensure_ascii=False))
+
+if actual_role == "exit":
+    hy2_out = {
+        "name": job.get("name") + "-HY2",
+        "type": "hysteria2",
+        "host": job.get("ip"),
+        "port": int(job.get("port") or 443),
+        "password": node.get("hy2_password") or node.get("uuid"),
+        "sni": node.get("hy2_sni") or "www.bing.com",
+        "obfs_password": node.get("obfs_password") or "tz-obfs",
+        "ssh_user": job.get("user") or "root",
+        "role": "exit",
+        "landing": None,
+        "source": "builtin",
+        "health": "unknown",
+    }
+    print(json.dumps(hy2_out, ensure_ascii=False))
 PYOUT

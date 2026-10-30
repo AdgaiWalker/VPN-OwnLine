@@ -109,6 +109,41 @@ except links.LinkError as e:
 bad_cfg = templates.exit_config(443, "11111111-1111-4111-8111-111111111111", "www.apple.com", "PRIVKEY", "zzzz")
 ok("结构校验拦住坏 sid", any("十六进制" in x for x in templates.validate(bad_cfg)), templates.validate(bad_cfg))
 
+# ---------- providers.tencent open_port TCP/UDP ----------
+from providers import tencent as tc_mod
+tp = tc_mod.Provider()
+tp._find = lambda ip: {"ip": ip, "id": "lhins-test", "regionId": "na-siliconvalley"} if ip == "1.2.3.4" else None
+calls = []
+def _fake_call(action, payload, region="ap-singapore"):
+    calls.append((action, payload, region))
+    if action == "DescribeFirewallRules":
+        return {"Response": {"FirewallRuleSet": [{"Port": "443", "Protocol": "TCP"}]}}
+    return {"Response": {}}
+tp._call = _fake_call
+ok("open_port TCP 443 已存在 → already", tp.open_port("1.2.3.4", 443, proto="TCP")[0] == "already")
+st_udp, msg_udp = tp.open_port("1.2.3.4", 443, proto="UDP")
+ok("open_port UDP 443 不存在 → opened", st_udp == "opened" and "UDP 443" in msg_udp, (st_udp, msg_udp))
+ok("CreateFirewallRules 传了 Protocol=UDP 与 hysteria2 备注",
+   calls[-1][0] == "CreateFirewallRules"
+   and calls[-1][1]["FirewallRules"][0]["Protocol"] == "UDP"
+   and calls[-1][1]["FirewallRules"][0]["FirewallRuleDescription"] == "hysteria2",
+   calls[-1])
+ok("open_port 非法协议被拒", tp.open_port("1.2.3.4", 443, proto="ICMP")[0] == "fail")
+
+# ---------- alert 状态机（防抖 + 恢复） ----------
+import alert as alert_mod
+st1, m1 = alert_mod.evaluate({"硅谷": {"ok": False, "reason": "port"}}, {})
+ok("第 1 次失败防抖不告警", m1 == [] and st1["nodes"]["硅谷"]["streak"] == 1, (st1, m1))
+st2, m2 = alert_mod.evaluate({"硅谷": {"ok": False, "reason": "port"}}, st1)
+ok("连续第 2 次失败触发告警", len(m2) == 1 and "🔴" in m2[0], (st2, m2))
+st3, m3 = alert_mod.evaluate({"硅谷": {"ok": False, "reason": "port"}}, st2)
+ok("持续失败不重复刷屏", m3 == [], (st3, m3))
+st4, m4 = alert_mod.evaluate({"硅谷": {"ok": True, "ms": 28, "cn_ok": True, "cn_ms": 190}}, st3)
+ok("恢复时发一条绿灯通知", len(m4) == 1 and "🟢" in m4[0] and "国内 190ms" in m4[0], (st4, m4))
+st_cn1, _ = alert_mod.evaluate({"硅谷": {"ok": True, "ms": 25, "cn_ok": False, "cn_reason": "port"}}, {})
+st_cn2, m_cn2 = alert_mod.evaluate({"硅谷": {"ok": True, "ms": 25, "cn_ok": False, "cn_reason": "port"}}, st_cn1)
+ok("海外通但国内连续 2 次不通 → 疑似被墙告警", len(m_cn2) == 1 and "被墙" in m_cn2[0], m_cn2)
+
 print("通过 %d 项" % len(PASS))
 for name in PASS:
     print("  OK " + name)

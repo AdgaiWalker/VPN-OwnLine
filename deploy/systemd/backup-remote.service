@@ -1,0 +1,9 @@
+[Unit]
+Description=Daily Offsite Backup to Domestic Relay Node
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /opt/web/backup_remote.sh
+StandardOutput=journal
+StandardError=journal

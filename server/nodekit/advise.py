@@ -44,8 +44,18 @@ def advise(node, status=None, usage=None):
     if not status:
         return {"text": "等待探测", "reason": "探活还没跑", "level": "warn"}
 
+    if status.get("ok") is False:
+        r = status.get("reason") or "port"
+        return {"text": BAD_TEXT.get(r, "服务不通"), "reason": "海外探活失败：%s" % r, "level": "bad"}
+
+    if status.get("cn_ok") is False:
+        r = status.get("cn_reason") or "port"
+        return {"text": "国内连不上（可能被墙）", "reason": "海外在线，但国内探活失败：%s" % r, "level": "bad"}
+
     if ms is not None:
         parts.append("延迟 %dms" % ms)
+    if status.get("cn_ms") is not None:
+        parts.append("国内 %dms" % status["cn_ms"])
     if country:
         parts.append("出口 %s" % country)
     u = _usage_text(usage)

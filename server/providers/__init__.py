@@ -27,12 +27,13 @@ def load_all(errors=None):
     return out
 
 
-def open_port(ip, port, dry_run=False):
+def open_port(ip, port, proto="TCP", dry_run=False):
     """返回 (状态, 说明, 谁开的)。状态可能是 opened / already / skip / error。"""
+    proto = (proto or "TCP").upper()
     errs = []
     for p in load_all(errs):
         try:
-            st, msg = p.open_port(ip, port, dry_run=dry_run)
+            st, msg = p.open_port(ip, port, proto=proto, dry_run=dry_run)
         except Exception as e:
             errs.append("%s.open_port: %s" % (getattr(p, "name", "?"), str(e)[:80]))
             continue
@@ -40,7 +41,7 @@ def open_port(ip, port, dry_run=False):
             return st, msg, p.name
     if errs:
         return "error", "云 API 调用失败：%s" % "；".join(errs), ""
-    return "skip", "没有接入这台机器的云厂商，请到服务商面板手动放行 TCP %s" % port, ""
+    return "skip", "没有接入这台机器的云厂商，请到服务商面板手动放行 %s %s" % (proto, port), ""
 
 
 def reset_password(ip, dry_run=False):

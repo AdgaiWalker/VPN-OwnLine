@@ -62,4 +62,13 @@ check("中等延迟 → AI 偏慢", r["text"] == "日常可用，AI 偏慢" and 
 r = A.advise(sv, {"ms": None}, None)
 check("有探活无延迟 → 日常可用", r["text"] == "日常可用" and r["level"] == "good", r)
 
+r = A.advise(sv, {"ok": False, "reason": "port"}, None)
+check("探活 ok=False → 红灯", r["level"] == "bad" and "端口" in r["text"], r)
+
+r = A.advise(sv, {"ok": True, "ms": 25, "cn_ok": False, "cn_reason": "port"}, None)
+check("海外通但国内不通 → 可能被墙", r["level"] == "bad" and "被墙" in r["text"], r)
+
+r = A.advise(sv, {"ok": True, "ms": 25, "cn_ok": True, "cn_ms": 180}, None)
+check("国内延迟进入依据", "国内 180ms" in r["reason"], r)
+
 print("通过 %d 项" % ok)

@@ -14,7 +14,7 @@
 
 | 要素 | 锁在哪 |
 |---|---|
-| **代码版本** | tag `v0.1.1`（提示词里写死 `git checkout v0.1.1`）|
+| **代码版本** | tag `v0.2.0`（提示词里写死 `git checkout v0.2.0`）|
 | **安装步骤** | `deploy/install.sh`，7 步固定顺序 |
 | **sing-box 版本** | `install.sh` 顶部 `SINGBOX_VERSION=1.14.4` |
 | **系统** | Ubuntu 22.04+ / Debian 12+，`install.sh` 开头检查 |
@@ -37,7 +37,7 @@
 
     # 1. 锁版本（要 sudo，/opt 普通用户写不进去）
     sudo git clone <仓库地址> /opt/ladder
-    cd /opt/ladder && sudo git checkout v0.1.1
+    cd /opt/ladder && sudo git checkout v0.2.0
 
     # 2. 先装 subconverter-ng（缺它 install.sh 会直接停下）
     #    按 docs/DEPLOY.md 第 2 步，装到 /opt/subconv/
@@ -78,7 +78,7 @@
 ## 5. 换一台机器，怎么确认还是同一个系统
 
     # 代码层面
-    git describe --tags            # 必须是 v0.1.1
+    git describe --tags            # 必须是 v0.2.0
     sha256sum deploy/install.sh    # 和发布页一致
 
     # 运行层面

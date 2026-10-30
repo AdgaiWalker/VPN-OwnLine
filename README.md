@@ -57,31 +57,47 @@
 ## 架构（T2）
 
 ```
-              浏览器
-                 │  https://v.example.com（Basic Auth）
+              浏览器 / 客户端
+                 │  https://v.example.com:8443 或 https://<ip>.sslip.io:8443
                  ▼
           ┌──────────────┐
-          │ Cloudflare   │  SSL=Full，Origin Rule → 8443
-          └──────┬───────┘  隐藏源站 IP
+          │ (可选 CDN)   │  Cloudflare SSL=Full，Origin Rule → 8443
+          └──────┬───────┘  或直连 Let's Encrypt 证书
                  │
        ┌─────────▼──────────┐
-       │ Caddy (:80/:8443)  │──► admin.py   节点管理 API
-       │  静态页 / 订阅路由  │──► subconverter  订阅转换
+       │ Caddy (:80/:8443)  │──► admin.py 节点管理 API + 原生内置订阅（Base64 / Clash YAML）
+       │  静态页 / 订阅路由  │
        └─────────┬──────────┘
-                 │ SSH
+                 │ SSH / 探针
       ┌──────────┼──────────┐
       ▼          ▼          ▼
-   节点 A     节点 B     节点 C     sing-box + Reality (443)
+   节点 A     节点 B     节点 C     sing-box + Reality (443/tcp) & Hysteria2 (443/udp)
 ```
 
-**核心取舍**：节点 443 独占，面板挪到 8443，由 Cloudflare 改写回源端口。
-代价是链路有四个环节，任一环节错都会挂——所以才有下面这份失败清单。
+**核心取舍**：节点 443 独占（TCP Reality + UDP Hysteria2），面板挪到 8443，订阅由 admin.py 原生按 User-Agent 分发 Base64 与 Clash YAML，彻底剔除外部 subconverter 胶水层。
+
+---
+
+## 一键自举部署（首台海外机器）
+
+只要一台全新 Ubuntu 22.04+ 或 Debian 12+ 海外服务器，一条命令全自动完成面板 + 本地出口双协议节点部署：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/ladder-web-panel/main/deploy/bootstrap.sh | sudo bash
+```
+> 无需提前购买域名：自动基于 `<ip>.sslip.io` 通过 Caddy 申请官方 Let's Encrypt 正式证书；若有自有域名可追加 `--domain v.example.com`。
 
 ---
 
 ## 目录
 
 ```
+deploy/
+  bootstrap.sh          一键远程自举脚本（拉取仓库并部署）
+  install.sh            本地一键安装脚本（环境预检、下载校验、生成节点、开启 BBR、配置服务）
+  Caddyfile.example     Caddy 静态反向代理模板
+  systemd/              各后台守护进程与定时器 unit 文件
+
 docs/
   00-WHY.md             每个技术选择的理由和代价（ADR）
   01-TOPOLOGY.md        三种拓扑，怎么选
@@ -98,22 +114,25 @@ docs/
   RESTORE.md            灾难恢复
 
 server/
-  admin.py              节点管理 API
-  addnode.sh            单机安装脚本（含镜像下载 + SHA256 校验）
-  probe.py              探活
+  admin.py              节点管理 API + 原生内置订阅（Base64 / Clash YAML）
+  addnode.sh            单机安装脚本（双协议生成、BBR 开启、防火墙放行、SHA256 校验）
+  probe.py              探活（海外直连 + 国内中转双视角探测）
+  alert.py              连续失败防抖告警 + 故障恢复通知 + 探针心跳
+  backup_remote.sh      跨地域异地自动加密打包备份
   usage_refresh.py      流量与到期刷新
-  rotate.sh             订阅 token 轮换
+  rotate.sh             订阅 token 轮换（更新 settings.json 与二维码）
   providers/            ★ 云厂商适配层
-    base.py             接口定义
+    base.py             接口定义（含 TCP / UDP 协议支持）
     generic.py          通用兜底（只给手动指引）
     tencent.py          腾讯云轻量实现
     tc3.py              腾讯云签名（无 SDK）
 
-web/index.html          单页面板（无框架、无构建）
+web/index.html          单页面板（无框架、无构建，动态绑定订阅与双视角状态）
 
 prompt/README.md        复刻提示词（可选加速器，不是交付物）
 scripts/verify.sh       一条命令验收
 scripts/test.sh         跑全部本地单测（全离网）
+scripts/drift.py        线上状态与模板配置一致性巡检
 ```
 
 ---
