@@ -70,6 +70,12 @@ chk "验证不存在节点" 404 "$(code -u "$USER:$PASS" -X POST -H 'Content-Typ
 ROT="$(curl -s $CURL_TLS -m 15 -u "$USER:$PASS" -X POST -H 'Content-Type: application/json' -d '{"dry_run":true}' "$BASE/api/rotate")"
 if printf '%s' "$ROT" | grep -q '不受影响'; then printf '  ✅ %-28s %s\n' "轮换演练有提示" "ok"; ok=$((ok+1)); else printf '  ❌ 轮换演练没返回提示\n'; bad=$((bad+1)); fi
 
+echo "== 7. 高可用与系统解法 =="
+chk "中转多落地状态接口" 200 "$(code -u "$USER:$PASS" "$BASE/api/relay/status")"
+chk "流量防爆熔断接口" 200 "$(code -u "$USER:$PASS" "$BASE/api/quota/guard")"
+LCS=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("lifecycle")))' 2>/dev/null)
+chk "每个节点含生命周期" "$TOTAL" "$LCS"
+
 echo
 printf '结果：%d 通过，%d 失败\n' "$ok" "$bad"
 [ "$bad" = 0 ] || exit 1

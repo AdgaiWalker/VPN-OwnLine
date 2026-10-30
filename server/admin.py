@@ -11,6 +11,7 @@ from nodekit import hints as hints_mod  # noqa: E402
 from nodekit import subscriptions as subs_mod  # noqa: E402
 from nodekit import logger  # noqa: E402
 from nodekit import repair as repair_mod  # noqa: E402
+from nodekit import lifecycle as lifecycle_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -380,13 +381,14 @@ def _load_json(name, default):
 
 
 def nodes_with_advice():
-    """节点 + 一句建议（依据来自探活与流量）。"""
+    """节点 + 一句建议（依据来自探活与流量），以及全生命周期状态。"""
     status = _load_json("status.json", {})
     usage = _load_json("usage.json", {})
     out = []
     for n in load_nodes():
         n = dict(n)
         n["advice"] = advise_mod.advise(n, status.get(n.get("name")), usage.get(n.get("host")))
+        n["lifecycle"] = lifecycle_mod.get_lifecycle_state(n)
         out.append(n)
     return out
 
@@ -475,6 +477,64 @@ class H(BaseHTTPRequestHandler):
                 "domain": domain,
                 "sub_token": token,
                 "sub_url": sub_url,
+            })
+        if path == "/relay/status":
+            nodes = load_nodes()
+            status = _load_json("status.json", {})
+            bj = next((n for n in nodes if n.get("role") == "relay" and "北京" in n.get("name", "")), None)
+            landing_policy = (bj or {}).get("landing_policy") or {
+                "primary": {"host": "43.153.56.137", "name": "硅谷", "port": 443},
+                "fallback": {"host": "43.163.4.104", "name": "新加坡", "port": 8443},
+                "active_target": "43.153.56.137"
+            }
+            primary_st = status.get("硅谷") or {}
+            fallback_st = status.get("新加坡") or {}
+            return self._json(200, {
+                "ok": True,
+                "node": (bj or {}).get("name", "北京"),
+                "landing_policy": landing_policy,
+                "primary": {
+                    "name": "硅谷",
+                    "host": "43.153.56.137",
+                    "ok": primary_st.get("ok", True),
+                    "ms": primary_st.get("ms"),
+                },
+                "fallback": {
+                    "name": "新加坡",
+                    "host": "43.163.4.104",
+                    "ok": fallback_st.get("ok", True),
+                    "ms": fallback_st.get("ms"),
+                },
+                "active_target": landing_policy.get("active_target", "43.153.56.137"),
+                "auto_failover": True,
+            })
+        if path == "/quota/guard":
+            usage = _load_json("usage.json", {})
+            guards = []
+            for ip, u in (usage or {}).items():
+                if ip.startswith("_") or not isinstance(u, dict):
+                    continue
+                traffic_pkg = u.get("traffic_package") or {}
+                used = traffic_pkg.get("used_bytes") or 0
+                total = traffic_pkg.get("total_bytes") or (1024**4)
+                pct = round((used / total) * 100, 1) if total > 0 else 0
+                status_str = "normal"
+                if pct >= 85:
+                    status_str = "tripped"
+                elif pct >= 75:
+                    status_str = "warning"
+                guards.append({
+                    "ip": ip,
+                    "name": u.get("name", ip),
+                    "used_gb": round(used / (1024**3), 2),
+                    "total_gb": round(total / (1024**3), 2),
+                    "percent": pct,
+                    "status": status_str,
+                })
+            return self._json(200, {
+                "ok": True,
+                "watermarks": {"warning": 75, "tripped": 85},
+                "guards": guards,
             })
         if path == "/job":
             q = urllib.parse.parse_qs(qs)
@@ -624,6 +684,14 @@ class H(BaseHTTPRequestHandler):
                             n["enabled"] = bool(body["enabled"])
                         if "expire_at" in body:
                             n["expire_at"] = body["expire_at"]
+                        if "lifecycle" in body and isinstance(body["lifecycle"], dict):
+                            n["lifecycle"] = dict(body["lifecycle"])
+                        if "state" in body:
+                            lc = dict(n.get("lifecycle") or {})
+                            lc["state"] = body["state"]
+                            n["lifecycle"] = lc
+                        if "landing_policy" in body and isinstance(body["landing_policy"], dict):
+                            n["landing_policy"] = dict(body["landing_policy"])
                 return ns
 
             update_nodes(_apply)
@@ -635,6 +703,21 @@ class H(BaseHTTPRequestHandler):
             logger.log("INFO", "NODE", "编辑节点 %s: 新名称=%s, 端口=%s, 更换密钥=%s" %
                        (name, newname or "未改", new_port or "未改", "是" if newkey else "否"))
             return self._json(200, {"ok": True, "node": target})
+
+        if path == "/relay/switch":
+            target_host = (body.get("target") or "").strip()
+            if not target_host:
+                return self._json(400, {"ok": False, "error": "缺少 target 目标主机地址"})
+            def _apply_switch(ns):
+                for n in ns:
+                    if n.get("role") == "relay" and "北京" in n.get("name", ""):
+                        lp = dict(n.get("landing_policy") or {})
+                        lp["active_target"] = target_host
+                        n["landing_policy"] = lp
+                return ns
+            update_nodes(_apply_switch)
+            logger.log("INFO", "RELAY", "管理员执行中转落地演练切流: 目标=%s" % target_host)
+            return self._json(200, {"ok": True, "active_target": target_host})
 
         if path == "/resetpw":
             ip = (body.get("ip") or "").strip()

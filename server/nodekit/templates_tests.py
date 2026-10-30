@@ -43,13 +43,23 @@ check("HY2 ALPN 是 h3", hy["tls"]["alpn"] == ["h3"])
 check("HY2 用自签证书路径", hy["tls"]["certificate_path"].endswith("hy2.crt"))
 check("HY2 有上下行带宽提示", hy["up_mbps"] and hy["down_mbps"])
 
-# --- 中转 ---
+# --- 中转：单落地 ---
 LAND = dict(host="1.2.3.4", port=443, uuid="22222222-2222-4222-8222-222222222222",
             sni="www.apple.com", pbk="PUB", sid="abcd1234")
 r = T.relay_config(landing=LAND, **BASE)
 check("中转有 landing 出站", any(o.get("tag") == "landing" for o in r["outbounds"]))
 check("中转 route 全走 landing", r["route"]["rules"] == [{"outbound": "landing"}])
 check("中转 landing 用 reality", r["outbounds"][0]["tls"]["reality"]["public_key"] == "PUB")
+
+# --- 中转：双落地自愈容灾 (urltest) ---
+FALLBACK_LAND = dict(host="5.6.7.8", port=8443, uuid="33333333-3333-4333-8333-333333333333",
+                     sni="www.microsoft.com", pbk="PUB2", sid="02974b90")
+r_dual = T.relay_config(landing=LAND, fallback_landing=FALLBACK_LAND, **BASE)
+check("双落地中转包含 landing-primary 出站", any(o.get("tag") == "landing-primary" for o in r_dual["outbounds"]))
+check("双落地中转包含 landing-fallback 出站", any(o.get("tag") == "landing-fallback" for o in r_dual["outbounds"]))
+check("双落地中转包含 auto-landing urltest 出站", any(o.get("type") == "urltest" and o.get("tag") == "auto-landing" for o in r_dual["outbounds"]))
+check("双落地中转 route 路由指向 auto-landing", r_dual["route"]["rules"] == [{"outbound": "auto-landing"}])
+check("validate 接受双落地中转配置", T.validate(r_dual) == [])
 
 # --- validate ---
 check("validate 接受出口配置", T.validate(c) == [])

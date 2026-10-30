@@ -10,41 +10,24 @@ import datetime
 import time
 import urllib.parse
 
+try:
+    from . import lifecycle
+except ImportError:
+    import lifecycle
+
 # 这些状态表示节点有问题，不能进订阅。
 # unknown 不在此列：外部节点永远未验证，但仍可被用户手动选择。
 BAD_HEALTH = frozenset({"port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"})
 
 
 def in_subscription(node, now_ts=None):
-    """节点是否应该出现在订阅里。
-    排除规则：
-      1. health 处于 BAD_HEALTH 异常状态
-      2. 明确配置了 enabled == False
-      3. 配置了 expire_at 且当前时间已过期
+    """节点是否应该出现在订阅里。统一遵循全生命周期状态机过滤：
+    1. health 处于 BAD_HEALTH 异常状态 -> 排除
+    2. enabled == False -> 排除
+    3. 到期排空期 (draining, 距到期<=7天) -> 自动移出排空，避免黑洞
+    4. 已过期 (expired) -> 排除
     """
-    if not node or not isinstance(node, dict):
-        return False
-    if node.get("enabled") is False:
-        return False
-    if node.get("health") in BAD_HEALTH:
-        return False
-    expire_at = node.get("expire_at")
-    if expire_at:
-        try:
-            if isinstance(expire_at, (int, float)):
-                cur_ts = now_ts or time.time()
-                if cur_ts > expire_at:
-                    return False
-            elif isinstance(expire_at, str):
-                exp_dt = datetime.datetime.fromisoformat(expire_at.replace("Z", "+00:00"))
-                if exp_dt.tzinfo is None:
-                    exp_dt = exp_dt.replace(tzinfo=datetime.timezone.utc)
-                now_dt = datetime.datetime.fromtimestamp(now_ts, tz=datetime.timezone.utc) if now_ts else datetime.datetime.now(datetime.timezone.utc)
-                if now_dt > exp_dt:
-                    return False
-        except Exception:
-            pass
-    return True
+    return lifecycle.is_in_subscription(node, now_ts=now_ts)
 
 
 def vless_uri(n):

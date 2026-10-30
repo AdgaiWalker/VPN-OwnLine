@@ -355,18 +355,30 @@ function render(){
   box.innerHTML=NODES.map(function(n,i){
     var isBad = (n.health && n.health!=='ok' && n.health!=='unknown') || (STATUS[n.name] && (STATUS[n.name].ok===false || STATUS[n.name].cn_ok===false));
     var repairBtn = (n.source!=='external') ? ('<button class="tiny repair-btn" id="rb'+i+'" style="display:'+(isBad?'inline-flex':'none')+';margin-right:6px;padding:0 10px;font-size:12.5px;min-height:34px;color:var(--bad);border-color:rgba(185,28,28,.3);align-items:center" onclick="event.stopPropagation();repairNode('+i+',this)">自愈</button>') : '';
+    var lc = n.lifecycle || {};
     var expBadge = '';
-    if(n.expire_at){
+    if (lc.state === 'draining') {
+      expBadge = '<span class="tag" style="background:rgba(217,119,6,.15);color:var(--warn)">' + esc(lc.badge_text || '优雅排空中') + '</span>';
+    } else if (lc.state === 'expired') {
+      expBadge = '<span class="tag" style="background:rgba(185,28,28,.15);color:var(--bad)">已过期</span>';
+    } else if (lc.state === 'disabled' || n.enabled === false) {
+      expBadge = '<span class="tag" style="background:rgba(100,116,139,.15);color:var(--muted)">已停用</span>';
+    } else if (lc.days_left !== undefined && lc.days_left !== null && lc.days_left <= 15) {
+      expBadge = '<span class="tag" style="background:rgba(217,119,6,.15);color:var(--warn)">' + lc.days_left + '天后到期</span>';
+    } else if (n.expire_at) {
       var days = Math.ceil((new Date(n.expire_at).getTime() - Date.now()) / (86400 * 1000));
-      if(days <= 0){
-        expBadge = '<span class="tag" style="background:rgba(185,28,28,.15);color:var(--bad)">已过期</span>';
-      } else if(days <= 15){
-        expBadge = '<span class="tag" style="background:rgba(217,119,6,.15);color:var(--warn)">'+days+'天后到期</span>';
-      }
+      if (days <= 0) expBadge = '<span class="tag" style="background:rgba(185,28,28,.15);color:var(--bad)">已过期</span>';
+      else if (days <= 15) expBadge = '<span class="tag" style="background:rgba(217,119,6,.15);color:var(--warn)">' + days + '天后到期</span>';
     }
-    var disBadge = (n.enabled === false) ? '<span class="tag" style="background:rgba(100,116,139,.15);color:var(--muted)">已停用</span>' : '';
+    var relayPill = '';
+    if (n.role === 'relay') {
+      var lp = n.landing_policy || {};
+      var targetName = (lp.active_target === '43.163.4.104') ? '新加坡(备用)' : '硅谷(主)';
+      var isFellback = (lp.active_target === '43.163.4.104');
+      relayPill = '<span class="tag" style="background:' + (isFellback ? 'rgba(217,119,6,.15)' : 'rgba(16,185,129,.15)') + ';color:' + (isFellback ? 'var(--warn)' : 'var(--ok)') + ';cursor:pointer;margin-left:4px" onclick="event.stopPropagation();drillRelaySwitch(' + i + ')" title="点击测试高可用演练切流">落地: ' + targetName + '</span>';
+    }
     return '<div class="node"><span class="dot" id="d'+i+'"></span>'+
-      '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+expBadge+disBadge+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
+      '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+expBadge+relayPill+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
       repairBtn+
       '<button class="more" aria-label="更多" onclick="nodeMenu('+i+')"><svg class="ico"><use href="#i-more"/></svg></button></div>';
   }).join('');
@@ -709,7 +721,12 @@ function formSheet(title,fields,confirmText){
 function nodeMenu(i){
   var n=NODES[i], st=STATUS[n.name];
   var toggleLabel = (n.enabled===false) ? '启用此节点 · 恢复加入订阅' : '停用此节点 · 从订阅中剔除（下线防故障）';
-  var items=[{label:toggleLabel},{label:'编辑 · 名字和端口'}];
+  var items=[{label:toggleLabel}];
+  if(n.role==='relay'){
+    items.push({label:'演练倒换 · 切换活动出海落地'});
+  }
+  items.push({label:'生命周期 · 到期下线与排空设置'});
+  items.push({label:'编辑 · 名字和端口'});
   if(n.source!=='external'){
     items.push({label:'一键自愈修复 · 清理冲突与重启服务'});
     items.push({label:'更换密钥 · 踢掉所有设备'});
@@ -719,10 +736,57 @@ function nodeMenu(i){
     var label=items[k]&&items[k].label;
     if(!label) return;
     if(label.indexOf('停用此节点')===0 || label.indexOf('启用此节点')===0) toggleNode(i);
+    else if(label.indexOf('演练倒换')>=0) drillRelaySwitch(i);
+    else if(label.indexOf('生命周期')>=0) setNodeLifecycle(i);
     else if(label.indexOf('编辑')===0) editNode(i);
     else if(label.indexOf('自愈修复')>=0) repairNode(i);
     else if(label.indexOf('更换密钥')===0) rotateKey(i);
     else delNode(i);
+  });
+}
+function drillRelaySwitch(i){
+  var n = NODES[i];
+  var lp = n.landing_policy || {};
+  var curTarget = lp.active_target || '43.153.56.137';
+  var nextTarget = (curTarget === '43.153.56.137') ? '43.163.4.104' : '43.153.56.137';
+  var nextName = (nextTarget === '43.163.4.104') ? '新加坡 (备用落地)' : '硅谷 (主落地)';
+
+  dialog({
+    title: '演练中转高可用倒换',
+    message: '将「' + n.name + '」中转活动出口倒换至：' + nextName + '？\n\n这用于验证单点故障自愈容灾，无需更改客户端配置。',
+    confirmText: '切换落地',
+    cancelText: '取消'
+  }).then(function(y){
+    if(!y) return;
+    setPill('切流中…', '');
+    fetch('api/relay/switch', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({target: nextTarget})
+    }).then(function(r){return r.json()}).then(function(d){
+      if(!d.ok){ dialog({title:'切换失败',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+      dialog({title:'切流成功',message:'当前活动中转落地已切换至 ' + nextName + '。',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+    }).catch(function(e){ dialog({title:'切换失败',message:String(e),cancelText:null,confirmText:'好'}); });
+  });
+}
+function setNodeLifecycle(i){
+  var n = NODES[i];
+  var curExp = (n.lifecycle && n.lifecycle.expire_at) || n.expire_at || '';
+  formSheet('设置「' + n.name + '」生命周期', [
+    {label: '到期日期 (如 2026-11-12)', value: curExp, ph: 'YYYY-MM-DD 或留空表示永久'},
+    {label: '排空状态 (active / draining)', value: (n.lifecycle && n.lifecycle.state) || 'active', ph: 'draining 将自动移出订阅'}
+  ], '保存').then(function(vals){
+    if(!vals) return;
+    var exp = vals[0].trim();
+    var st = vals[1].trim();
+    fetch('api/editnode', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({name: n.name, expire_at: exp, state: st})
+    }).then(function(r){return r.json()}).then(function(d){
+      if(!d.ok){ dialog({title:'设置失败',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+      dialog({title:'生命周期已更新',message:'状态与到期日已同步，订阅已自动调整。',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+    }).catch(function(e){ dialog({title:'设置失败',message:String(e),cancelText:null,confirmText:'好'}); });
   });
 }
 function toggleNode(i){

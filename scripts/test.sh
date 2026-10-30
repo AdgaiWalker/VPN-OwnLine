@@ -21,7 +21,8 @@ for f in \
   server/nodekit/subscriptions_tests.py \
   server/nodekit/logger_tests.py \
   server/nodekit/repair_tests.py \
-  server/nodekit/jev_tests.py
+  server/nodekit/jev_tests.py \
+  server/nodekit/lifecycle_tests.py
 do
   out="$(python3 "$f" 2>&1)"
   if [ $? -ne 0 ]; then
@@ -41,4 +42,4 @@ if [ "$failed" -ne 0 ]; then
   echo "结果：$failed 套失败，$total 项通过"
   exit 1
 fi
-echo "结果：$((8 + 1)) 套全过，$total 项通过"
+echo "结果：$((9 + 1)) 套全过，$total 项通过"

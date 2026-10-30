@@ -45,11 +45,10 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None):
     }
 
 
-def relay_config(port, uuid, sni, private_key, sid, landing):
-    """国内中转：所有流量交给 landing 再出去。"""
-    lb = {
+def _vless_landing_outbound(landing, tag="landing"):
+    return {
         "type": "vless",
-        "tag": "landing",
+        "tag": tag,
         "server": landing["host"],
         "server_port": int(landing["port"]),
         "uuid": landing["uuid"],
@@ -65,11 +64,35 @@ def relay_config(port, uuid, sni, private_key, sid, landing):
             },
         },
     }
+
+
+def relay_config(port, uuid, sni, private_key, sid, landing, fallback_landing=None):
+    """国内中转：支持单落地或双落地自动故障倒换 (urltest)。"""
+    if fallback_landing:
+        outbounds = [
+            _vless_landing_outbound(landing, tag="landing-primary"),
+            _vless_landing_outbound(fallback_landing, tag="landing-fallback"),
+            {
+                "type": "urltest",
+                "tag": "auto-landing",
+                "outbounds": ["landing-primary", "landing-fallback"],
+                "url": "https://www.gstatic.com/generate_204",
+                "interval": "1m",
+                "tolerance": 50,
+            },
+            {"type": "direct", "tag": "direct"},
+        ]
+        route = {"rules": [{"outbound": "auto-landing"}]}
+    else:
+        lb = _vless_landing_outbound(landing, tag="landing")
+        outbounds = [lb, {"type": "direct", "tag": "direct"}]
+        route = {"rules": [{"outbound": "landing"}]}
+
     return {
         "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
         "inbounds": [_inbound(port, uuid, sni, private_key, sid)],
-        "outbounds": [lb, {"type": "direct", "tag": "direct"}],
-        "route": {"rules": [{"outbound": "landing"}]},
+        "outbounds": outbounds,
+        "route": route,
     }
 
 
