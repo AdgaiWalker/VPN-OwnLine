@@ -83,7 +83,8 @@
   .bar{height:6px;border-radius:3px;background:var(--bar);overflow:hidden;margin:8px 0 6px}
   .bar i{display:block;height:100%;width:0;border-radius:3px;background:var(--ok);
     transition:width .7s var(--ease)}
-  .bar i.warn{background:var(--bad)}
+  .bar i.warn{background:var(--warn)}
+  .bar i.bad{background:var(--bad)}
   .q small{font-size:13px;color:var(--muted)}
   details.manage{padding:0}
   details.manage>summary{list-style:none;display:flex;align-items:center;justify-content:space-between;
@@ -481,10 +482,19 @@ function loadQuota(){
       if(exp){ var d=new Date(exp+'T00:00:00'); var days=Math.round((d-today)/86400000); dl='到期 '+exp+' · '+(days>0?('剩 '+days+' 天'):'已到期'); }
       var resetStr='';
       if(us.end){ var e=new Date(us.end+'T00:00:00'); var rd=Math.round((e-today)/86400000); resetStr=(parseInt(us.end.slice(5,7),10)+'月'+parseInt(us.end.slice(8,10),10)+'日重置')+(rd>=0?(' · 还有 '+rd+' 天'):''); }
+      var barCls = '';
+      var statusNote = '';
+      if(pct >= 85){
+        barCls = 'bad';
+        statusNote = ' · <span style="color:var(--bad);font-weight:600">⚠️ 已触达 85% 熔断水位</span>';
+      } else if(pct >= 75){
+        barCls = 'warn';
+        statusNote = ' · <span style="color:var(--warn);font-weight:600">⚠️ 超过 75% 警戒水位</span>';
+      }
       var right = used!==null ? (used+' / '+total+' GB') : (total? (total+' GB/月') : '—');
       return '<div class="q"><div class="qhead"><b>'+esc(node.name)+'</b><span>'+right+'</span></div>'+
-        '<div class="bar"><i class="'+(pct>85?'warn':'')+'" data-w="'+Math.max(pct,0.6).toFixed(1)+'%"></i></div>'+
-        '<small>'+dl+(resetStr?('　·　'+resetStr):'')+'</small></div>';
+        '<div class="bar"><i class="'+barCls+'" data-w="'+Math.max(pct,0.6).toFixed(1)+'%"></i></div>'+
+        '<small>'+dl+(resetStr?('　·　'+resetStr):'')+statusNote+'</small></div>';
     }).join('');
     requestAnimationFrame(function(){
       var arr=box.querySelectorAll('.bar i');

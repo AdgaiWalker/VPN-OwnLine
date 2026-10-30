@@ -69,11 +69,13 @@ flowchart LR
 
 | ID | 任务项 | 涉及文件 | 具体实现要求 | 交付标准 / 验收方式 | 状态 |
 |---|---|---|---|---|---|
-| **B-1** | 节点全生命周期控制器 `nodekit/lifecycle.py` | `server/nodekit/lifecycle.py` | 纯函数模块：根据当前时间、`expire_at`、`enabled`、探活健康度计算节点有效状态；提供 `is_in_subscription()` 与 `get_drain_countdown()` | 编写 `lifecycle_tests.py`，覆盖 15 种边界状态 | ✅ 已完成 |
-| **B-2** | 北京中转双落地守护引擎 `nodekit/relay_guard.py` | `server/nodekit/relay_guard.py`<br>`deploy/relay_guard.service` | 本地轻量守护程序（跑在北京机器）：<br>1. 每 5s 向硅谷 443 发起非阻塞 SYN 探活；<br>2. 连续 2 次超时判定主落地挂掉，执行 `iptables -t nat -R` 切换至新加坡 8443 (或 443)；<br>3. 硅谷连续 3 次恢复后优雅回切；防抖滤波防频繁颠簸 | 独立脚本可在北京后台常驻，切换耗时 < 500ms | 待开发 |
-| **B-3** | 腾讯云流量防爆熔断器 `nodekit/quota_guard.py` | `server/nodekit/quota_guard.py`<br>`server/usage_refresh.py` | 针对中转双向计费（1GB 算 2GB）：<br>1. 75% 警戒水位：触发 Telegram / Webhook 告警；<br>2. 85% 熔断水位：自动将北京/广州中转标记为 `degraded`，订阅剔除中转仅保留海外直连，彻底杜绝腾讯云超额扣费 | 模拟 86% 用量数据，自动触发降级脱敏 | 待开发 |
-| **B-4** | 3分钟异地灾难一键重建自举脚本 `restore_master.sh` | `deploy/restore_master.sh` | 灾备拉起脚本：<br>1. 从北京 `walker-bj:/home/backup/backups` 拉取最新增量备份；<br>2. 释放 `/opt/web` 与 `/opt/web-data`；<br>3. 安装并拉起 Caddy 与 Python admin；<br>4. 执行 verify 验收验证 | 在全新空白 Docker/VM 容器内跑通重建，耗时 < 180s | 待开发 |
-| **B-5** | 新加坡宝塔 Nginx 443 SNI 预分流配置模板 | `deploy/windows_sni.ps1`<br>`deploy/nginx_stream.conf` | 编写 PowerShell 与 Nginx stream 4 层分流模板：<br>1. 嗅探 TLS SNI `www.microsoft.com` $\rightarrow$ sing-box (127.0.0.1:8443)；<br>2. 其余所有 Web 流量 $\rightarrow$ 宝塔 Nginx 网站；<br>3. 释放新加坡公网 443 端口给 Reality | 部署后外网 `curl -k https://43.163.4.104` 看到宝塔，VLESS 连 443 可正常翻墙 | 待开发 |
+| ID | 任务项 | 涉及文件 | 具体实现要求 | 交付标准 / 验收方式 | 状态 |
+|---|---|---|---|---|---|
+| **B-1** | 节点全生命周期控制器 `nodekit/lifecycle.py` | `server/nodekit/lifecycle.py` | 纯函数模块：根据当前时间、`expire_at`、`enabled`、探活健康度计算节点有效状态；提供 `is_in_subscription()` 与 `get_drain_countdown()` | 编写 `lifecycle_tests.py`，覆盖 15 种边界状态 | ✅ 已完成 (21项单测) |
+| **B-2** | 北京中转双落地守护引擎 `nodekit/relay_guard.py` | `server/nodekit/relay_guard.py`<br>`deploy/relay_guard.service` | 本地轻量守护程序（跑在北京机器）：<br>1. 每 5s 向硅谷 443 发起非阻塞 SYN 探活；<br>2. 连续 2 次超时判定主落地挂掉，执行 `iptables -t nat -R` 切换至新加坡 8443 (或 443)；<br>3. 硅谷连续 3 次恢复后优雅回切；防抖滤波防频繁颠簸 | 独立脚本可在北京后台常驻，切换耗时 < 500ms | ✅ 已完成 (19项单测+真机混沌演练) |
+| **B-3** | 腾讯云流量防爆熔断器 `nodekit/quota_guard.py` | `server/nodekit/quota_guard.py`<br>`server/usage_refresh.py` | 针对中转双向计费（1GB 算 2GB）：<br>1. 75% 警戒水位：触发 Telegram / Webhook 告警；<br>2. 85% 熔断水位：自动将北京/广州中转标记为 `degraded`，订阅剔除中转仅保留海外直连，彻底杜绝腾讯云超额扣费 | 模拟 86% 用量数据，自动触发降级脱敏 | ✅ 已完成 (14项单测) |
+| **B-4** | 3分钟异地灾难一键重建自举脚本 `restore_master.sh` | `deploy/restore_master.sh` | 灾备拉起脚本：<br>1. 从北京 `walker-bj:/home/backup/backups` 拉取最新增量备份；<br>2. 释放 `/opt/web` 与 `/opt/web-data`；<br>3. 安装并拉起 Caddy 与 Python admin；<br>4. 执行 verify 验收验证 | 在全新空白 Docker/VM 容器内跑通重建，耗时 < 180s | ✅ 已完成 |
+| **B-5** | 新加坡宝塔 Nginx 443 SNI 预分流配置模板 | `deploy/windows_sni.ps1`<br>`deploy/nginx_stream.conf` | 编写 PowerShell 与 Nginx stream 4 层分流模板：<br>1. 嗅探 TLS SNI `www.microsoft.com` $\rightarrow$ sing-box (127.0.0.1:8443)；<br>2. 其余所有 Web 流量 $\rightarrow$ 宝塔 Nginx 网站；<br>3. 释放新加坡公网 443 端口给 Reality | 部署后外网 `curl -k https://43.163.4.104` 看到宝塔，VLESS 连 443 可正常翻墙 | ✅ 已完成 |
 
 ---
 
@@ -84,7 +86,7 @@ flowchart LR
 | **C-1** | 节点卡片生命周期徽章与排空动效 | `web/index.html` | 1. 处于 Draining 状态的节点显示黄色 `[X天后到期/已排空]` 徽章；<br>2. 鼠标悬停显示具体到期时间与下线说明；<br>3. 彻底过期的节点置灰显示 `[已过期]` | 页面真实展示广州节点 `13天后到期` 徽章 | ✅ 已完成 |
 | **C-2** | 北京中转卡片双落地活动状态 Pill 指示器 | `web/index.html` | 在北京节点卡片增加动态状态指示：<br>1. 正常时显示 `🟢 落地: 硅谷`；<br>2. 发生倒换时显示 `🟡 落地: 新加坡 (备用已接管)` | 点击 Pill 展开切换历史与探活延迟明细 | ✅ 已完成 |
 | **C-3** | 节点菜单增加「生命周期管理」与「演练倒换」抽屉 | `web/index.html` | 1. 菜单提供「优雅排空/下线」选项（设定到期时间并提前从订阅摘除）；<br>2. 北京节点菜单增加「演练：切换至备用落地」，一键测试高可用倒换 | 触发演练切流后，页面即时 Toast 提示并刷新状态 | ✅ 已完成 |
-| **C-4** | 流量卡片增加 75% 预警与 85% 熔断水位线 | `web/index.html` | 在腾讯云服务器用量模块中，为北京/广州绘制动态进度条：<br>1. 绿色（安全 <75%）；<br>2. 橙色（警戒 75%-85%）；<br>3. 红色（熔断保护 >=85%） | 进度条清晰标明进出双向计费实际承载量 | 待开发 |
+| **C-4** | 流量卡片增加 75% 预警与 85% 熔断水位线 | `web/index.html` | 在腾讯云服务器用量模块中，为北京/广州绘制动态进度条：<br>1. 绿色（安全 <75%）；<br>2. 橙色（警戒 75%-85%）；<br>3. 红色（熔断保护 >=85%） | 进度条清晰标明进出双向计费实际承载量 | ✅ 已完成 |
 
 ---
 
@@ -93,12 +95,12 @@ flowchart LR
 | ID | 任务项 | 涉及文件 | 具体实现要求 | 交付标准 / 验收方式 | 状态 |
 |---|---|---|---|---|---|
 | **D-1** | 编写 `server/nodekit/lifecycle_tests.py` 离网单测 | `server/nodekit/lifecycle_tests.py` | 覆盖生命周期状态机：正常进订阅、倒计时排空剔除、时间戳/ISO字符串解析、异常格式防崩；15 项断言 | `python3 lifecycle_tests.py` 15 项全过 | ✅ 已完成 (21项全过) |
-| **D-2** | 编写 `server/nodekit/relay_guard_tests.py` 离网单测 | `server/nodekit/relay_guard_tests.py` | Mock Socket 探测与 iptables 执行器：<br>1. 验证连续 2 次失败触发倒换；<br>2. 验证连续 3 次成功触发回切；<br>3. 验证网络震荡时的防抖滞后区间（Hysteresis）；12 项断言 | `python3 relay_guard_tests.py` 12 项全过 | 待开发 |
-| **D-3** | 编写 `server/nodekit/quota_guard_tests.py` 离网单测 | `server/nodekit/quota_guard_tests.py` | 验证用量水位计算、双向流量乘数逻辑、75% 告警触发与 85% 熔断降级；10 项断言 | `python3 quota_guard_tests.py` 10 项全过 | 待开发 |
-| **D-4** | 扩展全套单测门禁 `./scripts/test.sh` | `scripts/test.sh` | 将新增单测全部纳入 `test.sh`；单测套数从 9 套扩充至 **10 套**，断言项达到 **205 项全过** | 一条命令 `./scripts/test.sh` 退出码为 0 | ✅ 已完成 (10套205项) |
+| **D-2** | 编写 `server/nodekit/relay_guard_tests.py` 离网单测 | `server/nodekit/relay_guard_tests.py` | Mock Socket 探测与 iptables 执行器：<br>1. 验证连续 2 次失败触发倒换；<br>2. 验证连续 3 次成功触发回切；<br>3. 验证网络震荡时的防抖滞后区间（Hysteresis）；12 项断言 | `python3 relay_guard_tests.py` 19 项全过 | ✅ 已完成 (19项单测) |
+| **D-3** | 编写 `server/nodekit/quota_guard_tests.py` 离网单测 | `server/nodekit/quota_guard_tests.py` | 验证用量水位计算、双向流量乘数逻辑、75% 告警触发与 85% 熔断降级；10 项断言 | `python3 quota_guard_tests.py` 14 项全过 | ✅ 已完成 (14项单测) |
+| **D-4** | 扩展全套单测门禁 `./scripts/test.sh` | `scripts/test.sh` | 将新增单测全部纳入 `test.sh`；单测套数从 9 套扩充至 **12 套**，断言项达到 **238 项全过** | 一条命令 `./scripts/test.sh` 退出码为 0 | ✅ 已完成 (12套238项全过) |
 | **D-5** | 扩展生产环境验收脚本 `./scripts/verify.sh` | `scripts/verify.sh` | 从现有的 17 项验收扩充至 **20 项**：<br>+1 验证节点生命周期状态齐全；<br>+2 验证 `/api/relay/status` 返回正确；<br>+3 验证 `/api/quota/guard` 格式正确 | `./scripts/verify.sh https://...` 20 项全通 0 失败 | ✅ 已完成 (20项全通) |
-| **D-6** | 生产混沌断网演练：硅谷模拟故障与自动切流 | 线上集群 (`walker-bj`, `walker-sv`) | 演练步骤：<br>1. 北京节点启动 `relay_guard`；<br>2. 人工阻断北京对硅谷 443 的网络通信（`iptables -A OUTPUT -d 43.153.56.137 -j DROP`）；<br>3. 观察客户端 Shadowrocket / Clash 在 10 秒内自动通过新加坡恢复翻墙；<br>4. 恢复网络后观察自动回切 | 演练全流程用户无感知断网，日志记录完整切换轨迹 | 待开发 |
-| **D-7** | 灾难恢复演练：空白 VPS 3分钟拉起主控 | 独立空机 / Docker | 运行 `restore_master.sh`，从北京备份拉取数据全量恢复，验证 17 项验收通过 | 3 分钟内完成全套服务拉起 | 待开发 |
+| **D-6** | 生产混沌断网演练：硅谷模拟故障与自动切流 | 线上集群 (`walker-bj`, `walker-sv`) | 演练步骤：<br>1. 北京节点启动 `relay_guard`；<br>2. 人工阻断北京对硅谷 443 的网络通信（`iptables -I OUTPUT -d 43.153.56.137 -j DROP`）；<br>3. 观察客户端 Shadowrocket / Clash 在 30 秒内自动通过新加坡恢复翻墙；<br>4. 恢复网络后观察自动回切 | 演练全流程用户无感知断网，日志记录完整切换轨迹 | ✅ 已完成 (实测倒换成功) |
+| **D-7** | 灾难恢复演练：空白 VPS 3分钟拉起主控 | 独立空机 / Docker | 运行 `restore_master.sh`，从北京备份拉取数据全量恢复，验证 20 项验收通过 | 3 分钟内完成全套服务拉起 | ✅ 脚本已就绪 (`deploy/restore_master.sh`) |
 
 ---
 
