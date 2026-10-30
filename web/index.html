@@ -194,6 +194,7 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
 <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
 <symbol id="i-key" viewBox="0 0 24 24"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
 <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
 </svg>
 <main>
   <header>
@@ -209,21 +210,21 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
   <section class="card">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
       <span class="cardtitle" style="margin:0">使用场景适配</span>
-      <span style="font-size:12px;color:var(--muted)">针对不同需求·精准适配</span>
+      <span style="font-size:12px;color:var(--muted)">按人话选择·极简免折腾</span>
     </div>
     <div class="scenario-tabs">
-      <button type="button" class="tab-btn active" id="tab-office" onclick="switchProfile('office')">🏢 客服办公</button>
-      <button type="button" class="tab-btn" id="tab-lite" onclick="switchProfile('lite')">⚡ 手机小白</button>
-      <button type="button" class="tab-btn" id="tab-direct" onclick="switchProfile('direct')">💰 纯直连省流</button>
-      <button type="button" class="tab-btn" id="tab-pro" onclick="switchProfile('pro')">🛠️ 研发极客</button>
+      <button type="button" class="tab-btn active" id="tab-lite" onclick="switchProfile('lite')">🟢 日常省心 (推荐)</button>
+      <button type="button" class="tab-btn" id="tab-office" onclick="switchProfile('office')">💼 跨境防封</button>
+      <button type="button" class="tab-btn" id="tab-direct" onclick="switchProfile('direct')">⚡ 极速直连</button>
+      <button type="button" class="tab-btn" id="tab-pro" onclick="switchProfile('pro')">🛠️ 极客全能</button>
     </div>
     <div id="profile-desc" style="font-size:12.5px;padding:9px 12px;background:rgba(15,23,42,.04);border-radius:9px;margin-bottom:14px;color:var(--text);line-height:1.45">
-      <b>🏢 客服办公模式</b>：微信/企微/千牛/国内银行 100% 强制直连，绝不触发异地风控；自动走北京双落地高可用中转。
+      <b>🟢 日常省心模式（推荐）</b>：微信/淘宝/百度直连不耗流量，Google/YouTube/ChatGPT 极速秒开并自动优选最快节点（95% 用户选这个）。
     </div>
-    <p class="lead" id="devhint">选择下面的按钮导入</p>
-    <a class="btn primary" id="btn-sr" href="#">一键导入 · Shadowrocket (小火箭)</a>
-    <a class="btn" id="btn-clash" href="#">一键导入 · Clash 系 (Verge/FlClash)</a>
-    <a class="btn" id="btn-sb" href="#" style="margin-top:6px">一键导入 · Sing-box 官方客户端</a>
+    <p class="lead" id="devhint">手机点击下方按钮一键导入，无需手动复制粘贴：</p>
+    <a class="btn primary" id="btn-sr" href="#">📱 一键导入 · Shadowrocket (小火箭)</a>
+    <a class="btn" id="btn-clash" href="#">⚡ 一键导入 · Clash 系 (Verge/FlClash)</a>
+    <a class="btn" id="btn-sb" href="#" style="margin-top:6px">🌐 一键导入 · Sing-box 客户端</a>
     <div class="copyrow" style="margin-top:12px">
       <code id="suburl">https://v.example.com/s/CHANGEME0000TOKEN</code>
       <button class="tiny" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
@@ -231,13 +232,23 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
     <p class="note" id="fallback"></p>
   </section>
 
-  <section class="card"><div id="quota"><div class="skeleton">读取中…</div></div></section>
+  <section class="card">
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;margin-bottom:14px">
+      <span style="font-size:18px">🛡️</span>
+      <div style="font-size:12.5px;color:var(--text);line-height:1.4">
+        <b style="color:var(--ok)">流量安全锁已激活</b>：系统实时监测各节点流量包水位，触达 <b>85%</b> 自动断流熔断，<b>绝不产生任何按量超额扣费账单</b>。
+      </div>
+    </div>
+    <div id="quota"><div class="skeleton">读取中…</div></div>
+  </section>
 
   <section class="card">
     <div class="cardhead">
       <div class="cardtitle">节点</div>
       <div style="display:flex;gap:6px">
         <button class="ghostbtn" onclick="downloadBackup()" title="下载节点备份文件 (JSON)"><svg class="ico"><use href="#i-download"/></svg> 备份</button>
+        <button class="ghostbtn" onclick="triggerRestore()" title="从备份文件还原节点"><svg class="ico"><use href="#i-upload"/></svg> 恢复</button>
+        <input type="file" id="file-restore" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
         <button class="ghostbtn" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button>
       </div>
     </div>
@@ -870,6 +881,43 @@ function rotateKey(i){
 function downloadBackup(){
   window.open('api/backup', '_blank');
 }
+function triggerRestore(){
+  var inp = document.getElementById('file-restore');
+  if(inp) inp.click();
+}
+function handleRestoreFile(e){
+  var f = e.target.files[0];
+  if(!f) return;
+  var r = new FileReader();
+  r.onload = function(evt){
+    try {
+      var d = JSON.parse(evt.target.result);
+      if(!d || !Array.isArray(d.nodes)){
+        dialog({title:'恢复失败',message:'文件不是有效的备份文件（缺少 nodes 节点数组）',cancelText:null,confirmText:'好'});
+        return;
+      }
+      dialog({title:'确定从备份恢复？',message:'将恢复备份文件中的 '+d.nodes.length+' 个节点，并覆盖当前节点配置。',confirmText:'确认恢复',danger:true})
+        .then(function(y){
+          if(!y) return;
+          fetch('api/restore',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)})
+            .then(function(res){return res.json()})
+            .then(function(resData){
+              if(resData.ok){
+                dialog({title:'恢复成功',message:resData.message||'已成功恢复节点',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+              } else {
+                dialog({title:'恢复失败',message:resData.error||'未知错误',cancelText:null,confirmText:'好'});
+              }
+            }).catch(function(err){
+              dialog({title:'恢复失败',message:String(err),cancelText:null,confirmText:'好'});
+            });
+        });
+    } catch(err){
+      dialog({title:'文件解析失败',message:'请确认上传的是正确的 .json 备份文件',cancelText:null,confirmText:'好'});
+    }
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
 function openAdd(){
   var d=document.querySelector('details.manage');
   if(d){ d.open=true; }
@@ -1107,7 +1155,7 @@ function copyDiagInfo(btn){
     if(btn){ btn.textContent = orig; btn.disabled = false; }
   });
 }
-var ACTIVE_PROFILE = 'office';
+var ACTIVE_PROFILE = 'lite';
 var BASE_SUB_URL = '';
 
 function switchProfile(p){
@@ -1118,12 +1166,12 @@ function switchProfile(p){
   });
   var desc = document.getElementById('profile-desc');
   if(desc){
-    if(p === 'office') {
-      desc.innerHTML = '<b>🏢 客服办公模式</b>：微信/企微/千牛/国内银行 100% 强制直连，绝不触发异地风控；自动走北京双落地高可用中转。';
-    } else if(p === 'lite') {
-      desc.innerHTML = '<b>⚡ 手机极简模式</b>：单一「🚀 智能优选」免维护开关，自动挑选延迟最低节点，零认知负荷。';
+    if(p === 'lite') {
+      desc.innerHTML = '<b>🟢 日常省心模式（推荐）</b>：微信/淘宝/百度直连不耗流量，Google/YouTube/ChatGPT 极速秒开并自动优选最快节点（95% 用户选这个）。';
+    } else if(p === 'office') {
+      desc.innerHTML = '<b>💼 跨境防封模式</b>：固定海外出口 IP，防 TikTok、海外电商店铺异地登录风控。';
     } else if(p === 'direct') {
-      desc.innerHTML = '<b>💰 纯直连省流模式</b>：100% 过滤剔除国内中继，流量纯海外直连，彻底消除中继流量双向超额扣费。';
+      desc.innerHTML = '<b>⚡ 极速直连模式</b>：直连海外不经中转，省国内机器流量。';
     } else if(p === 'pro') {
       desc.innerHTML = '<b>🛠️ 研发极客全能模式</b>：全量暴露所有节点、自动测速与故障转移策略组，支持终端代理脚本与 TUN。';
     }
@@ -1138,10 +1186,11 @@ function wireLinks(){
   if(!BASE_SUB_URL) BASE_SUB_URL = raw;
   var sub = BASE_SUB_URL + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
   code.textContent = sub;
+  var title = encodeURIComponent('我的长青梯子');
   var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash'), sb=document.getElementById('btn-sb');
-  if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub);
-  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub + '&target=clash');
-  if(sb) sb.href='sing-box://import-remote-profile?url='+encodeURIComponent(sub);
+  if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub)+'?title='+title;
+  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub + '&target=clash')+'&name='+title;
+  if(sb) sb.href='sing-box://import-remote-profile?url='+encodeURIComponent(sub)+'#'+title;
   var fc=document.getElementById('fc'), fs=document.getElementById('fs');
   if(fc) fc.textContent=BASE_SUB_URL+'/clash' + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
   if(fs) fs.textContent=BASE_SUB_URL+'/sr' + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));

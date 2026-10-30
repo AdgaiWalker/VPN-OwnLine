@@ -30,28 +30,50 @@ def in_subscription(node, now_ts=None):
     return lifecycle.is_in_subscription(node, now_ts=now_ts)
 
 
-def vless_uri(n):
+def format_display_name(node, now_ts=None):
+    """根据节点到期状态动态格式化客户端展示名称（订阅即通知中心）：
+    - 距离到期 > 7 天或无到期时间：原名称，如 '硅谷主力出口'
+    - 距离到期 1~7 天：带倒计时警示，如 '【剩3天到期】硅谷主力出口'
+    - 距离到期 <= 1 天：带高危警示，如 '【⚠️明天到期!】硅谷主力出口'
+    - 已过期：如被强制进订阅则显示 '【已过期】硅谷主力出口'
+    """
+    raw_name = node.get("name") or node.get("host") or "node"
+    days_left = lifecycle.get_days_until_expiration(node, now_ts=now_ts)
+    if days_left is None:
+        return raw_name
+    if days_left < 0:
+        return f"【已过期】{raw_name}"
+    if days_left <= 1:
+        return f"【⚠️明天到期!】{raw_name}"
+    if days_left <= 7:
+        return f"【剩{days_left}天到期】{raw_name}"
+    return raw_name
+
+
+def vless_uri(n, now_ts=None):
+    disp_name = format_display_name(n, now_ts=now_ts)
     q = ("encryption=none&flow=xtls-rprx-vision&security=reality"
          "&sni=%s&fp=chrome&pbk=%s&sid=%s&type=tcp&headerType=none"
          % (n.get("sni") or n["host"], n.get("pbk") or "", n.get("sid") or ""))
     return "vless://%s@%s:%s?%s#%s" % (n["uuid"], n["host"], n["port"], q,
-                                      urllib.parse.quote(n.get("name") or "node"))
+                                      urllib.parse.quote(disp_name))
 
 
-def hy2_uri(n):
+def hy2_uri(n, now_ts=None):
+    disp_name = format_display_name(n, now_ts=now_ts)
     q = ("insecure=1&sni=%s&alpn=h3&obfs=salamander&obfs-password=%s"
          % (n.get("sni") or n["host"], n.get("obfs_password") or ""))
     return "hysteria2://%s@%s:%s?%s#%s" % (n["password"], n["host"], n["port"], q,
-                                          urllib.parse.quote(n.get("name") or "node"))
+                                          urllib.parse.quote(disp_name))
 
 
-def node_uri(n):
-    return hy2_uri(n) if n.get("type") == "hysteria2" else vless_uri(n)
+def node_uri(n, now_ts=None):
+    return hy2_uri(n, now_ts=now_ts) if n.get("type") == "hysteria2" else vless_uri(n, now_ts=now_ts)
 
 
-def render_v2ray_base64(nodes, profile="all"):
+def render_v2ray_base64(nodes, profile="all", now_ts=None):
     """输出 Base64 订阅文本（Shadowrocket、v2rayN、Quantumult X 等）。"""
-    valid = [n for n in (nodes or []) if in_subscription(n)]
+    valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts)]
     profile = (profile or "all").lower()
     if profile == "direct":
         # 纯直连省流模式：过滤所有国内中继节点，不消耗中继流量
@@ -62,13 +84,13 @@ def render_v2ray_base64(nodes, profile="all"):
         if office_valid:
             valid = office_valid
 
-    lines = [node_uri(n) for n in valid]
+    lines = [node_uri(n, now_ts=now_ts) for n in valid]
     raw = "\n".join(lines)
     return base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 
-def clash_proxy_lines(n):
-    name = n.get("name") or n["host"]
+def clash_proxy_lines(n, now_ts=None):
+    name = format_display_name(n, now_ts=now_ts)
     if n.get("type") == "hysteria2":
         return [
             '  - name: "%s"' % name,
@@ -100,21 +122,21 @@ def clash_proxy_lines(n):
     ]
 
 
-def render_clash_yaml(nodes, profile="all"):
+def render_clash_yaml(nodes, profile="all", now_ts=None):
     """输出完整的 Clash / Mihomo / Clash Verge 订阅配置。支持分客群模式：
     - office: 客服防封号模式（强制锁定微信/国内直连白名单，走高可用双落地）
     - lite: 手机小白模式（单一「🚀 智能优选」单选组，无多余开关）
     - direct: 纯直连省流模式（彻底排除国内中继，0 中继双向流量消耗）
     - pro / all: 研发极客全能模式（多策略组自由切换，全节点暴露）
     """
-    valid = [n for n in (nodes or []) if in_subscription(n)]
+    valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts)]
     profile = (profile or "all").lower()
 
     if profile == "direct":
         # 纯直连省流：剔除所有 relay 中继
         valid = [n for n in valid if (n.get("role") or "exit") != "relay" and (n.get("exit_country") or "").upper() != "CN"]
 
-    names = [n.get("name") or n["host"] for n in valid]
+    names = [format_display_name(n, now_ts=now_ts) for n in valid]
     lines = [
         "# 由 admin.py 原生内置订阅生成（无需 subconverter 外部服务）",
         f"# 客群适配模式: {profile.upper()}",
@@ -138,7 +160,7 @@ def render_clash_yaml(nodes, profile="all"):
         "proxies:",
     ]
     for n in valid:
-        lines.extend(clash_proxy_lines(n))
+        lines.extend(clash_proxy_lines(n, now_ts=now_ts))
 
     escaped_names = ", ".join('"%s"' % x for x in names)
 
@@ -177,6 +199,13 @@ def render_clash_yaml(nodes, profile="all"):
             "    interval: 300",
             "",
             "rules:",
+            "  - DOMAIN-KEYWORD,wechat,DIRECT",
+            "  - DOMAIN-KEYWORD,weixin,DIRECT",
+            "  - DOMAIN-KEYWORD,tencent,DIRECT",
+            "  - DOMAIN-SUFFIX,qq.com,DIRECT",
+            "  - DOMAIN-SUFFIX,alicdn.com,DIRECT",
+            "  - DOMAIN-SUFFIX,taobao.com,DIRECT",
+            "  - DOMAIN-SUFFIX,alipay.com,DIRECT",
             "  - GEOIP,CN,DIRECT",
             '  - MATCH,"🚀 智能优选"',
             "",

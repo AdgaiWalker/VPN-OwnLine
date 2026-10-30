@@ -629,6 +629,32 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
+        if path == "/restore":
+            incoming_nodes = body.get("nodes")
+            if not isinstance(incoming_nodes, list):
+                return self._json(400, {"ok": False, "error": "备份格式不正确：缺少 nodes 节点数组"})
+            if len(incoming_nodes) == 0:
+                return self._json(400, {"ok": False, "error": "备份文件中不包含任何节点"})
+            valid_nodes = []
+            for item in incoming_nodes:
+                if not isinstance(item, dict) or not item.get("host") or not item.get("port"):
+                    continue
+                valid_nodes.append(item)
+            if not valid_nodes:
+                return self._json(400, {"ok": False, "error": "备份中没有有效的节点数据"})
+            with _NODES_LOCK:
+                _write_nodes(valid_nodes)
+            if body.get("sub_token"):
+                try:
+                    settings = _load_json("settings.json", {})
+                    settings["sub_token"] = body["sub_token"]
+                    _save_json(os.path.join(DATA, "settings.json"), settings)
+                except Exception:
+                    pass
+            render()
+            logger.log("WARN", "ADMIN", f"恢复备份成功：还原了 {len(valid_nodes)} 个节点")
+            return self._json(200, {"ok": True, "restored_count": len(valid_nodes), "message": f"成功恢复 {len(valid_nodes)} 个节点"})
+
         if path == "/removenode":
             name = (body.get("name") or "").strip()
             nodes = load_nodes()

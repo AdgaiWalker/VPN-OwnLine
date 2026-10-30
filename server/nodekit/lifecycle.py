@@ -13,7 +13,7 @@
 import datetime
 import time
 
-DEFAULT_DRAIN_DAYS = 7
+DEFAULT_DRAIN_DAYS = 0
 
 
 def parse_timestamp(val):

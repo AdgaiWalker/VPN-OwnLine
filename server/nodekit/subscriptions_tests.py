@@ -68,6 +68,7 @@ all_nodes = [fast, hy2_node, bad]  # bad 会被过滤
 b64 = S.render_v2ray_base64(all_nodes)
 check("Base64 输出非空", bool(b64), b64)
 import base64 as _b64
+import urllib.parse as _u
 decoded = _b64.b64decode(b64).decode("utf-8")
 check("Base64 解码过滤了 bad 节点（只剩 2 条）", len(decoded.strip().splitlines()) == 2, decoded)
 check("Base64 解码含 vless://", "vless://" in decoded, decoded)
@@ -101,5 +102,27 @@ check("direct 模式保留了直连出口", "fast" in yaml_direct, yaml_direct)
 b64_direct = S.render_v2ray_base64(nodes_with_relay, profile="direct")
 decoded_direct = _b64.b64decode(b64_direct).decode("utf-8")
 check("Base64 direct 模式过滤中继只留出口", "relay" not in decoded_direct and "fast" in decoded_direct, decoded_direct)
+
+# 4. 到期动态预警名称（订阅即通知中心）
+now = 1762905600.0  # 基准时间
+n_normal = node("硅谷出口")
+n_safe = node("远期出口", expire_at=now + 86400 * 15)
+n_warn = node("临期出口", expire_at=now + 86400 * 3)
+n_urgent = node("明到期出口", expire_at=now + 86400 * 1)
+n_exp = node("过期出口", expire_at=now - 100)
+
+check("无到期时间原样展示", S.format_display_name(n_normal, now_ts=now) == "硅谷出口")
+check("远期节点原样展示", S.format_display_name(n_safe, now_ts=now) == "远期出口")
+check("3天到期前缀报警", S.format_display_name(n_warn, now_ts=now) == "【剩3天到期】临期出口")
+check("1天到期最高危报警", S.format_display_name(n_urgent, now_ts=now) == "【⚠️明天到期!】明到期出口")
+check("过期节点前缀标记", S.format_display_name(n_exp, now_ts=now) == "【已过期】过期出口")
+
+# 在 Clash 与 Base64 中验证动态报警前缀注入
+clash_warn = S.render_clash_yaml([n_warn], now_ts=now)
+check("Clash 中包含【剩3天到期】", "【剩3天到期】临期出口" in clash_warn)
+
+v2ray_warn = S.render_v2ray_base64([n_warn], now_ts=now)
+decoded_warn = _b64.b64decode(v2ray_warn).decode("utf-8")
+check("Base64 中解码包含【剩3天到期】", "【剩3天到期】临期出口" in _u.unquote(decoded_warn))
 
 print("通过 %d 项" % ok)
