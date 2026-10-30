@@ -197,14 +197,23 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
     <span class="pill" id="pill">…</span>
   </header>
 
+  <div id="wx-tip" class="warn" style="display:none;margin-bottom:14px;background:rgba(217,119,6,.12);border-left:4px solid var(--warn);color:var(--warn);padding:12px 16px;border-radius:10px;font-size:13.5px;line-height:1.5">
+    <b>⚠️ 检测到微信/QQ内置浏览器</b><br>
+    内置浏览器会拦截客户端唤醒。请点击右上角 <b>「···」</b>，选择 <b>「在默认浏览器中打开」</b> 即可一键导入！
+  </div>
+
   <section class="card">
     <p class="lead" id="devhint">选择下面的按钮导入</p>
-    <a class="btn primary" id="btn-sr" href="#">一键导入 · Shadowrocket</a>
-    <a class="btn" id="btn-clash" href="#">一键导入 · Clash 系</a>
-    <div class="copyrow">
+    <a class="btn primary" id="btn-sr" href="#">一键导入 · Shadowrocket (小火箭)</a>
+    <a class="btn" id="btn-clash" href="#">一键导入 · Clash 系 (Verge/FlClash)</a>
+    <a class="btn" id="btn-sb" href="#" style="margin-top:6px">一键导入 · Sing-box 官方客户端</a>
+    <div class="copyrow" style="margin-top:12px">
       <code id="suburl">https://v.example.com/s/CHANGEME0000TOKEN</code>
       <button class="tiny" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
     </div>
+    <p class="note" style="color:var(--ok);margin-top:10px;font-size:12.5px;line-height:1.4">
+      🛡️ <b>智能分流保护</b>：国内网站/微信/淘宝/飞书直连不绕路；Google/AI/海外网站自动走节点，避免异地登录风控。
+    </p>
     <p class="note" id="fallback"></p>
   </section>
 
@@ -1076,15 +1085,20 @@ function copyDiagInfo(btn){
 function wireLinks(){
   var code=document.getElementById('suburl'); if(!code) return;
   var sub=code.textContent.trim();
-  var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash');
+  var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash'), sb=document.getElementById('btn-sb');
   if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub);
   if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub);
+  if(sb) sb.href='sing-box://import-remote-profile?url='+encodeURIComponent(sub);
   var fc=document.getElementById('fc'), fs=document.getElementById('fs');
   if(fc) fc.textContent=sub+'/clash';
   if(fs) fs.textContent=sub+'/sr';
 }
 function detect(){
   var ua=navigator.userAgent||"", os="other";
+  var isWx = /MicroMessenger|QQ\//i.test(ua);
+  var wxTip = document.getElementById('wx-tip');
+  if(wxTip && isWx) wxTip.style.display = 'block';
+
   if(/iPhone|iPod/.test(ua)) os="ios";
   else if(/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)) os="ios";
   else if(/Android/.test(ua)) os="android";
@@ -1092,16 +1106,26 @@ function detect(){
   else if(/Windows/.test(ua)) os="win";
   else if(/Linux|X11/.test(ua)) os="linux";
   var apple=(os==="ios"||os==="mac");
-  var sr=document.getElementById("btn-sr"), cl=document.getElementById("btn-clash");
-  if(sr&&cl){ if(!apple){ cl.className="btn primary"; sr.className="btn"; sr.style.display="none"; } else { cl.className="btn"; sr.className="btn primary"; sr.style.display=""; } }
+  var sr=document.getElementById("btn-sr"), cl=document.getElementById("btn-clash"), sb=document.getElementById("btn-sb");
+  if(sr&&cl){
+    if(!apple){
+      cl.className="btn primary";
+      sr.className="btn";
+      sr.style.display="none";
+    } else {
+      cl.className="btn";
+      sr.className="btn primary";
+      sr.style.display="";
+    }
+  }
   var names={ios:"iPhone / iPad",mac:"Mac",android:"Android",win:"Windows",linux:"Linux",other:"这台设备"};
-  var rec={ios:"Shadowrocket",mac:"Shadowrocket 或 Clash Verge",android:"FlClash",win:"Clash Verge Rev",linux:"Clash Verge Rev",other:"对应平台的客户端"};
+  var rec={ios:"Shadowrocket (小火箭)",mac:"Shadowrocket 或 Clash Verge",android:"FlClash / Clash Verge",win:"Clash Verge Rev",linux:"Clash Verge Rev",other:"对应平台的客户端"};
   var h=document.getElementById("devhint");
   if(h) h.innerHTML="检测到 "+names[os]+" · 推荐 <b>"+rec[os]+"</b>";
   var lis=document.querySelectorAll("#clients li");
   for(var i=0;i<lis.length;i++){ var m=lis[i].getAttribute("data-os"); lis[i].style.opacity=(m===os)?"1":"0.45"; if(m===os) lis[i].style.fontWeight="600"; }
   var fb=document.getElementById("fallback");
-  if(fb) fb.textContent = apple ? "点了没反应？说明还没装 Shadowrocket。也可以点 Clash 按钮，或复制地址手动导入。" : "点了没反应？说明还没装 Clash 系客户端。装好后回来点，或复制地址手动导入。";
+  if(fb) fb.textContent = apple ? "点了没反应？说明还没装客户端。可在 App Store 下载小火箭，或复制地址手动导入。" : "点了没反应？说明还没装 Clash 系客户端。装好后回来点，或复制地址手动导入。";
 }
 loadSettings(); wireLinks(); load(); loadQuota(); detect(); resumeJob(); setInterval(poll,60000);
 </script>
