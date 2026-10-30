@@ -13,12 +13,12 @@
 <style>
   :root{
     --bg:#f4f5f7; --card:#fff; --fg:#0f1115; --muted:#5b6270; --line:#e3e6ec;
-    --accent:#2563eb; --accentfg:#fff; --ok:#15803d; --bad:#b91c1c; --danger:#b91c1c;
+    --accent:#2563eb; --accentfg:#fff; --ok:#15803d; --bad:#b91c1c; --warn:#d97706; --danger:#b91c1c;
     --bar:#eef0f4; --r:16px; --ease:cubic-bezier(.22,1,.36,1);
   }
   @media (prefers-color-scheme:dark){
     :root{ --bg:#0b0c0f; --card:#15171c; --fg:#eef1f6; --muted:#9aa1ad; --line:#262a33;
-      --accent:#6b9bff; --accentfg:#0b0c0f; --ok:#4ade80; --bad:#ff6b6b; --danger:#ff7b7b; --bar:#20242c; }
+      --accent:#6b9bff; --accentfg:#0b0c0f; --ok:#4ade80; --bad:#ff6b6b; --warn:#fbbf24; --danger:#ff7b7b; --bar:#20242c; }
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html{-webkit-text-size-adjust:100%}
@@ -288,9 +288,9 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
         <details class="inner" style="margin-top:14px" id="sec-syslog">
           <summary>查看底层服务原生日志 (sing-box / caddy / admin)</summary>
           <div style="display:flex;gap:8px;margin:8px 0">
-            <button class="tiny" onclick="loadSyslog('sing-box')">sing-box 日志</button>
-            <button class="tiny" onclick="loadSyslog('caddy')">Caddy 日志</button>
-            <button class="tiny" onclick="loadSyslog('admin')">Admin 日志</button>
+            <button class="tiny" onclick="loadSyslog('sing-box',this)">sing-box 日志</button>
+            <button class="tiny" onclick="loadSyslog('caddy',this)">Caddy 日志</button>
+            <button class="tiny" onclick="loadSyslog('admin',this)">Admin 日志</button>
           </div>
           <div id="syslog-box" class="logbox" style="max-height:220px;display:none;font-size:11px"></div>
         </details>
@@ -353,8 +353,8 @@ function render(){
     return;
   }
   box.innerHTML=NODES.map(function(n,i){
-    var isBad = (n.health && n.health!=='ok' && n.health!=='unknown') || (STATUS[n.name] && STATUS[n.name].ok===false);
-    var repairBtn = (isBad && n.source!=='external') ? ('<button class="tiny" style="margin-right:6px;padding:0 8px;font-size:12px;min-height:30px;color:var(--bad);border-color:rgba(185,28,28,.3)" onclick="event.stopPropagation();repairNode(\''+esc(n.name)+'\',this)">自愈</button>') : '';
+    var isBad = (n.health && n.health!=='ok' && n.health!=='unknown') || (STATUS[n.name] && (STATUS[n.name].ok===false || STATUS[n.name].cn_ok===false));
+    var repairBtn = (n.source!=='external') ? ('<button class="tiny repair-btn" id="rb'+i+'" style="display:'+(isBad?'inline-flex':'none')+';margin-right:6px;padding:0 10px;font-size:12.5px;min-height:34px;color:var(--bad);border-color:rgba(185,28,28,.3);align-items:center" onclick="event.stopPropagation();repairNode('+i+',this)">自愈</button>') : '';
     return '<div class="node"><span class="dot" id="d'+i+'"></span>'+
       '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
       repairBtn+
@@ -369,17 +369,19 @@ function healthText(h){
 function paintStatus(){
   var ok=0;
   NODES.forEach(function(n,i){
-    var d=document.getElementById('d'+i), s=document.getElementById('s'+i);
+    var d=document.getElementById('d'+i), s=document.getElementById('s'+i), rb=document.getElementById('rb'+i);
     if(!d||!s) return;
     var st=STATUS[n.name];
     if(st && st.ok===false){
       d.className='dot bad';
       s.textContent = st.reason==='port'?'不通 · 端口没放行':(st.reason==='tls'?'不通 · 服务没起来':'不通');
+      if(rb) rb.style.display='inline-flex';
       return;
     }
     if(st && st.cn_ok===false){
       d.className='dot bad';
       s.textContent = '国内连不上 · 可能被墙';
+      if(rb) rb.style.display='inline-flex';
       return;
     }
     var h=n.health;
@@ -388,23 +390,27 @@ function paintStatus(){
       var base = n.exit_ip ? ('已验证 · 出口 '+n.exit_ip) : '已验证';
       if(st && st.cn_ms) base += ' · 国内 '+st.cn_ms+'ms';
       s.textContent = base;
+      if(rb) rb.style.display='none';
       ok++;
       return;
     }
     if(h && h!=='unknown'){
       d.className='dot bad';
       s.textContent = healthText(h);
+      if(rb) rb.style.display='inline-flex';
       return;
     }
     if(h==='unknown'){
       d.className='dot';
       s.textContent = n.source==='external' ? '未验证（外部节点）' : '未验证';
+      if(rb) rb.style.display='none';
       return;
     }
-    var st=STATUS[n.name];
-    if(!st){ d.className='dot'; s.textContent='检查中…'; return; }
+    if(!st){ d.className='dot'; s.textContent='检查中…'; if(rb) rb.style.display='none'; return; }
     d.className='dot '+(st.ok?'ok':'bad');
     s.textContent = st.ok ? ('在线 '+st.ms+'ms') : (st.reason==='port'?'不通 · 端口没放行':(st.reason==='tls'?'不通 · 服务没起来':'不通'));
+    if(!st.ok && rb) rb.style.display='inline-flex';
+    else if(rb) rb.style.display='none';
     if(st.ok) ok++;
   });
   if(NODES.length && !INSTALLING) setPill(ok+'/'+NODES.length+' 能翻墙', ok>0?'ok':'bad');
@@ -417,6 +423,8 @@ function loadSettings(){
         var code=document.getElementById('suburl');
         if(code) code.textContent=d.sub_url;
         wireLinks();
+        var qr=document.querySelector('.qr');
+        if(qr) qr.src='qr-sub.png?t='+Date.now();
       }
       return d;
     }).catch(function(){});
@@ -601,7 +609,7 @@ function autoFix(){
         n--;
         if(lb) lb.textContent='正在重启服务器… '+n+' 秒后自动重装';
         setPill('重启中 '+n+'s','');
-        if(n<=0){ clearInterval(t); INSTALLING=false; doInstall(a.name,a.ip,'root',a.port,{type:'password',value:d.password},a.role,a.landing); }
+        if(n<=0){ clearInterval(t); INSTALLING=false; doInstall(a.name,a.ip,a.user||'root',a.port,{type:'password',value:d.password},a.role,a.landing); }
       },1000);
     }).catch(function(e){ dialog({title:'没法自动修',message:String(e),cancelText:null,confirmText:'好'}); });
 }
@@ -700,7 +708,7 @@ function nodeMenu(i){
     var label=items[k]&&items[k].label;
     if(!label) return;
     if(label.indexOf('编辑')===0) editNode(i);
-    else if(label.indexOf('自愈修复')>=0) repairNode(n.name);
+    else if(label.indexOf('自愈修复')>=0) repairNode(i);
     else if(label.indexOf('更换密钥')===0) rotateKey(i);
     else delNode(i);
   });
@@ -775,7 +783,13 @@ function health(){
   var sub=document.getElementById('suburl').textContent.trim();
   tasks.push(fetch(sub,{cache:'no-store'}).then(function(r){add(r.ok,'订阅正常（HTTP '+r.status+'）')}).catch(function(){add(false,'订阅拉不到','可能换过锁，重新扫码')}));
   tasks.push(fetch('status.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(s){
-    NODES.forEach(function(n){ var st=s[n.name]; add(!!(st&&st.ok), n.name+(st&&st.ok?(' 在线 '+st.ms+'ms'):' 不通'), '可能关机、被墙或端口没放行'); });
+    NODES.forEach(function(n){
+      var st=s[n.name];
+      var isHealthy = !!(st && st.ok && st.cn_ok!==false && (n.health==='ok' || !n.health));
+      var text = n.name + (isHealthy ? (' 在线 '+(st&&st.ms?st.ms+'ms':'')) : (st && st.cn_ok===false ? ' 国内连不上（可能被墙）' : ' 服务不通'));
+      var adv = isHealthy ? '' : (st && st.cn_ok===false ? '海外通但国内不通，需检查中转或换端口' : (n.health_detail || '可能关机、被墙或服务停止，可点击下方一键自愈'));
+      add(isHealthy, text, adv);
+    });
   }).catch(function(){add(false,'拿不到节点状态','probe 服务可能挂了')}));
   tasks.push(fetch('usage.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(u){ var bad=null,n=0; for(var k in u){ if(k.charAt(0)==='_') continue; n++; if(u[k]&&u[k].error) bad=k; } add(!bad,(n?('腾讯云数据正常（'+n+' 台）'):'腾讯云数据为空'),(bad?(bad+' 拉取失败'):'只读密钥可能失效'))}).catch(function(){add(false,'拿不到腾讯云数据','只读密钥可能失效')}));
   Promise.all(tasks).then(function(){
@@ -785,14 +799,27 @@ function health(){
       rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'<svg class="ico"><use href="#i-check"/></svg> ':'<svg class="ico"><use href="#i-x"/></svg> ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('') + repairBtn;
   });
 }
-function repairNode(name, btn){
+function repairNode(target, btn){
+  var name = (typeof target === 'number') ? (NODES[target] && NODES[target].name) : String(target);
+  if(!name) return;
   var orig = btn ? btn.textContent : '';
   if(btn){ btn.textContent='修复中…'; btn.disabled=true; }
+  setPill('自愈中…', '');
+
+  var toast = null;
+  if(!btn){
+    toast = document.createElement('div');
+    toast.className = 'sheetwrap show';
+    toast.innerHTML = '<div class="sheet" style="padding:28px 18px"><h2>正在自愈「'+esc(name)+'」…</h2><p style="margin:10px 0 0">正在排查冲突残留进程并重启服务，稍后将自动进行端到端代理验真，请稍候约 5~8 秒…</p></div>';
+    document.body.appendChild(toast);
+  }
+
   fetch('api/repair', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({name: name})
   }).then(function(r){ return r.json(); }).then(function(d){
+    if(toast) toast.remove();
     if(btn){ btn.textContent=orig; btn.disabled=false; }
     if(!d.ok){
       dialog({title: '自愈失败', message: d.error || '未知错误', cancelText: null, confirmText: '好'});
@@ -816,6 +843,7 @@ function repairNode(name, btn){
       }).then(function(){ location.reload(); });
     }
   }).catch(function(e){
+    if(toast) toast.remove();
     if(btn){ btn.textContent=orig; btn.disabled=false; }
     dialog({title: '修复网络请求失败', message: String(e), cancelText: null, confirmText: '好'});
   });
@@ -824,6 +852,7 @@ function repairNode(name, btn){
 function repairAllBad(btn){
   var orig = btn ? btn.textContent : '';
   if(btn){ btn.textContent='批量自愈修复中…'; btn.disabled=true; }
+  setPill('批量自愈中…', '');
   fetch('api/repair', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -893,11 +922,17 @@ function setLogLevel(lvl, btn){
   loadLogs();
 }
 
-function loadSyslog(srv){
+function loadSyslog(srv, btn){
   var box = document.getElementById('syslog-box');
   if(!box) return;
   box.style.display = 'block';
   box.innerHTML = '<div class="skeleton">正在拉取 '+esc(srv)+' 日志…</div>';
+  if(btn && btn.parentNode){
+    var btns = btn.parentNode.querySelectorAll('button');
+    for(var k=0; k<btns.length; k++){ btns[k].style.background='transparent'; btns[k].style.color='var(--accent)'; }
+    btn.style.background='var(--accent)';
+    btn.style.color='var(--accentfg)';
+  }
   fetch('api/syslogs?service='+encodeURIComponent(srv)+'&lines=60', {cache: 'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(d){
@@ -911,6 +946,8 @@ function loadSyslog(srv){
 }
 
 function copyDiagInfo(btn){
+  var orig = btn ? btn.textContent : '';
+  if(btn){ btn.textContent = '生成中…'; btn.disabled = true; }
   Promise.all([
     fetch('api/nodes', {cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return []}),
     fetch('status.json', {cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {}}),
@@ -931,13 +968,14 @@ function copyDiagInfo(btn){
     });
     if(navigator.clipboard){
       navigator.clipboard.writeText(text).then(function(){
-        var orig = btn.textContent;
-        btn.textContent = '已复制诊断包';
-        setTimeout(function(){ btn.textContent = orig; }, 1600);
+        if(btn){ btn.textContent = '已复制诊断包'; btn.disabled = false; setTimeout(function(){ btn.textContent = orig; }, 1600); }
       });
     } else {
+      if(btn){ btn.textContent = orig; btn.disabled = false; }
       prompt('按 Ctrl+C / Cmd+C 复制诊断信息:', text);
     }
+  }).catch(function(){
+    if(btn){ btn.textContent = orig; btn.disabled = false; }
   });
 }
 function wireLinks(){
