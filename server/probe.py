@@ -14,6 +14,7 @@ import time
 
 sys.path.insert(0, "/opt/web")
 from nodekit import verify as verify_mod  # noqa: E402
+from nodekit import logger  # noqa: E402
 
 NODES = os.environ.get("LADDER_DATA", "/opt/web-data") + "/nodes.json"
 OUT = os.environ.get("LADDER_DATA", "/opt/web-data") + "/status.json"
@@ -94,6 +95,13 @@ def tls_ok(host, port, sni):
 
 def main():
     nodes = json.load(open(NODES, encoding="utf-8"))
+    old_status = {}
+    if os.path.exists(OUT):
+        try:
+            old_status = json.load(open(OUT, encoding="utf-8"))
+        except Exception:
+            pass
+
     out = {}
     for n in nodes:
         # Hysteria2 是 QUIC/UDP，443 端口同时跑着 Reality，
@@ -101,19 +109,33 @@ def main():
         if n.get("type") == "hysteria2":
             continue
         t0 = time.time()
+        name = n["name"]
         host, port = n.get("host"), n.get("port")
         if not tcp_ok(host, port):
-            out[n["name"]] = {"ok": False, "ms": 0, "reason": "port"}
-            continue
-        if not tls_ok(host, port, n.get("sni")):
-            out[n["name"]] = {"ok": False, "ms": 0, "reason": "tls"}
-            continue
-        out[n["name"]] = {"ok": True, "ms": int((time.time() - t0) * 1000), "reason": ""}
+            out[name] = {"ok": False, "ms": 0, "reason": "port"}
+        elif not tls_ok(host, port, n.get("sni")):
+            out[name] = {"ok": False, "ms": 0, "reason": "tls"}
+        else:
+            out[name] = {"ok": True, "ms": int((time.time() - t0) * 1000), "reason": ""}
+
+        # 状态变更记录
+        old_n = old_status.get(name) or {}
+        if old_n:
+            if old_n.get("ok") is True and out[name]["ok"] is False:
+                logger.log("ERROR", "PROBE", f"节点 [{name}] 变为不通 (原因={out[name]['reason']})")
+            elif old_n.get("ok") is False and out[name]["ok"] is True:
+                logger.log("SUCCESS", "PROBE", f"节点 [{name}] 恢复通畅 (延迟={out[name]['ms']}ms)")
 
     cn = cn_probe(nodes)
     for name, cinfo in cn.items():
         if name in out and isinstance(cinfo, dict):
             out[name].update(cinfo)
+            old_n = old_status.get(name) or {}
+            if old_n:
+                if old_n.get("cn_ok") is True and cinfo.get("cn_ok") is False:
+                    logger.log("WARN", "PROBE", f"节点 [{name}] 国内握手失败 · 疑似被墙")
+                elif old_n.get("cn_ok") is False and cinfo.get("cn_ok") is True:
+                    logger.log("SUCCESS", "PROBE", f"节点 [{name}] 国内连接已恢复 ({cinfo.get('cn_ms', 0)}ms)")
 
     out["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
@@ -126,6 +148,10 @@ def main():
     try:
         import alert
         alert.check_and_notify(out)
+    except Exception:
+        pass
+    try:
+        logger.rotate_if_needed()
     except Exception:
         pass
 

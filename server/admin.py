@@ -9,6 +9,7 @@ from nodekit import verify as verify_mod  # noqa: E402
 from nodekit import advise as advise_mod  # noqa: E402
 from nodekit import hints as hints_mod  # noqa: E402
 from nodekit import subscriptions as subs_mod  # noqa: E402
+from nodekit import logger  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -164,6 +165,7 @@ def run_job(jid, cfg_path):
                     update_nodes(lambda ns: [x for x in ns if x["name"] != node["name"]] + [node])
                     render()
                     j["node"] = node
+                    logger.log("INFO", "NODE", "成功添加节点: %s (%s)" % (node.get("name"), node.get("host")))
                 except Exception as e:
                     j["log"].append("parse error: %s" % e)
             j["log"].append(line)
@@ -172,6 +174,8 @@ def run_job(jid, cfg_path):
         if rc != 0 or (not j.get("node") and not dry):
             j["state"] = "error"
             j["error"] = "installation failed"
+            err_msg = j["log"][-1] if j.get("log") else "未知错误"
+            logger.log("ERROR", "NODE", "添加节点任务失败 (jid=%s): %s" % (jid, err_msg))
             j["hint"] = hints_mod.hint_from_log(j["log"])
         else:
             # 先处理完端口/防火墙，再自测，最后才标 done。
@@ -403,20 +407,25 @@ class H(BaseHTTPRequestHandler):
 
         # 订阅路由：/s/<token>, /s/<token>/clash, /s/<token>/sr, /sub
         token = get_sub_token()
+        client_ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "").split(",")[0].strip()
         if path.startswith("/s/") or path == "/sub":
             parts = path.split("/")
             req_token = parts[2] if len(parts) > 2 else ""
             if path.startswith("/s/") and req_token != token:
+                logger.log("WARN", "SUB", f"非法订阅 Token 请求 (IP={client_ip}, Token={req_token})")
                 return self._json(404, {"ok": False, "error": "invalid subscription token"})
 
             q = urllib.parse.parse_qs(qs)
-            ua = self.headers.get("User-Agent", "")
+            ua = self.headers.get("User-Agent", "Unknown")
             is_clash = (
                 path.endswith("/clash")
                 or (q.get("target") or [""])[0] == "clash"
                 or bool(re.search(r"(?i)(clash|mihomo|stash|flclash|verge)", ua))
             )
             nodes = load_nodes()
+            fmt = "Clash YAML" if is_clash else "Base64"
+            sub_count = sum(1 for n in nodes if subs_mod.in_subscription(n))
+            logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={fmt}, UA={ua[:35]}, 节点数={sub_count})")
             if is_clash:
                 content = subs_mod.render_clash_yaml(nodes).encode("utf-8")
                 self.send_response(200)
@@ -436,6 +445,27 @@ class H(BaseHTTPRequestHandler):
 
         if path in ("/nodes", ""):
             return self._json(200, nodes_with_advice())
+        if path == "/logs":
+            q = urllib.parse.parse_qs(qs)
+            try:
+                limit = int((q.get("limit") or ["100"])[0])
+            except Exception:
+                limit = 100
+            lvl = (q.get("level") or ["ALL"])[0]
+            src = (q.get("src") or ["ALL"])[0]
+            return self._json(200, {
+                "ok": True,
+                "logs": logger.read_logs(limit=limit, level_filter=lvl, src_filter=src)
+            })
+        if path == "/syslogs":
+            q = urllib.parse.parse_qs(qs)
+            service = (q.get("service") or ["sing-box"])[0]
+            try:
+                lines = int((q.get("lines") or ["50"])[0])
+            except Exception:
+                lines = 50
+            res = logger.get_syslog(service, lines=lines)
+            return self._json(200 if res.get("ok") else 400, res)
         if path == "/settings":
             settings = _load_json("settings.json", {})
             domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
@@ -510,6 +540,7 @@ class H(BaseHTTPRequestHandler):
                     pass
 
                 render()
+                logger.log("WARN", "ADMIN", "轮换订阅 Token: 新 Token=%s (新订阅: %s)" % (new_token, new_url))
                 return self._json(200, {"ok": True, "url": new_url, "message": msg})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
@@ -553,6 +584,7 @@ class H(BaseHTTPRequestHandler):
                     stopped = (r.returncode == 0)
                 except Exception:
                     stopped = False
+            logger.log("WARN", "NODE", "删除节点: %s (关联条目: %s)" % (name, ", ".join(to_remove)))
             return self._json(200, {"ok": True, "remaining": len(load_nodes()), "stopped": stopped, "removed": list(to_remove)})
 
         if path == "/editnode":
@@ -595,6 +627,8 @@ class H(BaseHTTPRequestHandler):
                 render()
             except Exception as e:
                 return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
+            logger.log("INFO", "NODE", "编辑节点 %s: 新名称=%s, 端口=%s, 更换密钥=%s" %
+                       (name, newname or "未改", new_port or "未改", "是" if newkey else "否"))
             return self._json(200, {"ok": True, "node": target})
 
         if path == "/resetpw":
@@ -624,6 +658,9 @@ class H(BaseHTTPRequestHandler):
             if node.get("source") == "external":
                 return self._json(400, {"ok": False, "error": "外部节点无法验证（没有控制权）"})
             r = verify_node(node)
+            lvl = "INFO" if r.get("health") == "ok" else "WARN"
+            logger.log(lvl, "VERIFY", "节点 [%s] 手动验真: health=%s, 出口IP=%s" %
+                       (name, r.get("health"), r.get("exit_ip") or "-"))
             return self._json(200, {"ok": True, "result": r})
 
         if path == "/addnode":

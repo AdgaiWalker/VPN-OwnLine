@@ -128,6 +128,12 @@ def check_and_notify(status=None):
     _save_json(STATE_PATH, new_state)
     cfg = _load_json(CFG_PATH, {})
     for m in msgs:
+        try:
+            from nodekit import logger
+            lvl = "ERROR" if m.get("level") == "alert" else "SUCCESS"
+            logger.log(lvl, "ALERT", m.get("title", "") + ": " + m.get("content", ""))
+        except Exception:
+            pass
         send_message(cfg, m)
     ping_heartbeat(cfg)
     return msgs

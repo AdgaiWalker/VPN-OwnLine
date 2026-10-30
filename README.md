@@ -119,6 +119,7 @@ server/
   probe.py              探活（海外直连 + 国内中转双视角探测）
   alert.py              连续失败防抖告警 + 故障恢复通知 + 探针心跳
   backup_remote.sh      跨地域异地自动加密打包备份
+  log.sh                运行日志与服务日志查看工具（支持彩色高亮与实时追踪）
   usage_refresh.py      流量与到期刷新
   rotate.sh             订阅 token 轮换（更新 settings.json 与二维码）
   providers/            ★ 云厂商适配层

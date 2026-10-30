@@ -263,6 +263,39 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
         <button class="btn" style="margin-top:10px" onclick="rotate()">作废旧订阅</button>
       </details>
 
+      <details class="sec" id="sec-logs" ontoggle="if(this.open)loadLogs()">
+        <summary>运行与诊断日志</summary>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px">
+          <h3 style="margin:0">事件日志</h3>
+          <div style="display:flex;gap:6px">
+            <button class="tiny" onclick="copyDiagInfo(this)">复制诊断包</button>
+            <button class="tiny" onclick="loadLogs()">刷新</button>
+          </div>
+        </div>
+        <p class="note" style="margin-top:4px">监测订阅拉取、节点健康、告警与备份变动，便于快速排障。</p>
+
+        <div class="seg" style="margin:10px 0">
+          <button class="segbtn active" data-lvl="ALL" onclick="setLogLevel('ALL',this)">全部</button>
+          <button class="segbtn" data-lvl="BAD" onclick="setLogLevel('BAD',this)">仅看异常</button>
+          <button class="segbtn" data-lvl="SUB" onclick="setLogLevel('SUB',this)">订阅拉取</button>
+          <button class="segbtn" data-lvl="PROBE" onclick="setLogLevel('PROBE',this)">探活变动</button>
+        </div>
+
+        <div id="log-list" class="logbox" style="max-height:220px;font-size:11.5px;padding:8px 12px">
+          <div class="skeleton">展开后读取日志…</div>
+        </div>
+
+        <details class="inner" style="margin-top:14px" id="sec-syslog">
+          <summary>查看底层服务原生日志 (sing-box / caddy / admin)</summary>
+          <div style="display:flex;gap:8px;margin:8px 0">
+            <button class="tiny" onclick="loadSyslog('sing-box')">sing-box 日志</button>
+            <button class="tiny" onclick="loadSyslog('caddy')">Caddy 日志</button>
+            <button class="tiny" onclick="loadSyslog('admin')">Admin 日志</button>
+          </div>
+          <div id="syslog-box" class="logbox" style="max-height:220px;display:none;font-size:11px"></div>
+        </details>
+      </details>
+
       <details class="sec">
         <summary>帮助</summary>
         <h3>装客户端</h3>
@@ -709,6 +742,94 @@ function health(){
     var bad=rows.filter(function(r){return !r.ok}).length;
     box.innerHTML='<p class="note" style="margin:12px 0 4px;font-weight:600;color:'+(bad?'var(--bad)':'var(--ok)')+'">'+(bad?('发现 '+bad+' 个问题'):'全部正常')+'</p>'+
       rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'<svg class="ico"><use href="#i-check"/></svg> ':'<svg class="ico"><use href="#i-x"/></svg> ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('');
+  });
+}
+var CURRENT_LOG_LVL = 'ALL';
+function loadLogs(){
+  var box = document.getElementById('log-list');
+  if(!box) return;
+  var url = 'api/logs?limit=80';
+  if(CURRENT_LOG_LVL === 'BAD') url += '&level=BAD';
+  else if(CURRENT_LOG_LVL === 'SUB') url += '&src=SUB';
+  else if(CURRENT_LOG_LVL === 'PROBE') url += '&src=PROBE';
+
+  fetch(url, {cache: 'no-store'})
+    .then(function(r){ if(!r.ok) throw 0; return r.json(); })
+    .then(function(res){
+      var logs = (res && res.logs) || [];
+      if(!logs.length){
+        box.innerHTML = '<div style="color:var(--muted);text-align:center;padding:12px">暂无符合条件的日志</div>';
+        return;
+      }
+      box.innerHTML = logs.map(function(item){
+        var col = item.level==='ERROR'?'var(--bad)':(item.level==='WARN'?'var(--warn)':(item.level==='SUCCESS'?'var(--ok)':'var(--accent)'));
+        var ts = (item.ts||'').slice(5);
+        return '<div style="margin-bottom:6px;line-height:1.4"><span style="color:var(--muted)">'+esc(ts)+'</span> ' +
+               '<b style="color:'+col+';padding:1px 4px;border-radius:4px;border:1px solid '+col+';font-size:10px">['+esc(item.level)+']</b> ' +
+               '<span style="font-weight:600;color:var(--fg)">['+esc(item.src)+']</span> ' +
+               esc(item.msg) + '</div>';
+      }).join('');
+    }).catch(function(){
+      box.innerHTML = '<div style="color:var(--bad)">读取日志失败</div>';
+    });
+}
+
+function setLogLevel(lvl, btn){
+  CURRENT_LOG_LVL = lvl;
+  var p = btn.parentNode;
+  if(p){
+    var btns = p.querySelectorAll('.segbtn');
+    for(var i=0; i<btns.length; i++){ btns[i].classList.remove('active'); }
+    btn.classList.add('active');
+  }
+  loadLogs();
+}
+
+function loadSyslog(srv){
+  var box = document.getElementById('syslog-box');
+  if(!box) return;
+  box.style.display = 'block';
+  box.innerHTML = '<div class="skeleton">正在拉取 '+esc(srv)+' 日志…</div>';
+  fetch('api/syslogs?service='+encodeURIComponent(srv)+'&lines=60', {cache: 'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(!d.ok){ box.innerHTML = '<div style="color:var(--bad)">拉取失败: '+esc(d.error||'未知错误')+'</div>'; return; }
+      var lines = d.lines || [];
+      box.textContent = lines.length ? lines.join('\n') : '(无日志输出)';
+      box.scrollTop = box.scrollHeight;
+    }).catch(function(e){
+      box.innerHTML = '<div style="color:var(--bad)">请求失败: '+esc(String(e))+'</div>';
+    });
+}
+
+function copyDiagInfo(btn){
+  Promise.all([
+    fetch('api/nodes', {cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return []}),
+    fetch('status.json', {cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {}}),
+    fetch('api/logs?limit=30', {cache:'no-store'}).then(function(r){return r.json()}).catch(function(){return {logs:[]}})
+  ]).then(function(res){
+    var ns = res[0]||[], st = res[1]||{}, lg = (res[2]&&res[2].logs)||[];
+    var text = '=== Ladder 诊断快照 ('+new Date().toISOString()+') ===\n';
+    text += '【节点状态】:\n';
+    ns.forEach(function(n){
+      var s = st[n.name] || {};
+      text += '  - ' + n.name + ' (' + (n.type||'vless') + '): health=' + (n.health||'-') + ', exit_ip=' + (n.exit_ip||'-') +
+              ', 海外=' + (s.ok ? (s.ms+'ms') : ('不通:'+s.reason)) +
+              ', 国内=' + (s.cn_ok ? (s.cn_ms+'ms') : (s.cn_ok===false ? '不通' : '未测')) + '\n';
+    });
+    text += '\n【最近事件日志】:\n';
+    lg.forEach(function(l){
+      text += '  [' + l.ts + '] [' + l.level + '] [' + l.src + '] ' + l.msg + '\n';
+    });
+    if(navigator.clipboard){
+      navigator.clipboard.writeText(text).then(function(){
+        var orig = btn.textContent;
+        btn.textContent = '已复制诊断包';
+        setTimeout(function(){ btn.textContent = orig; }, 1600);
+      });
+    } else {
+      prompt('按 Ctrl+C / Cmd+C 复制诊断信息:', text);
+    }
   });
 }
 function wireLinks(){

@@ -8,7 +8,10 @@ NODES="$DATA/nodes.json"
 STAMP=$(date +%Y%m%d)
 TMP_TAR="/tmp/ladder-backup-$STAMP.tar.gz"
 KH="/opt/sing-box/known_hosts"
-KEY="/root/.ssh/node_ctl"
+log_event() {
+  python3 -c "import sys; sys.path.insert(0, '/opt/web'); from nodekit import logger; logger.log('$1', 'BACKUP', '$2')" 2>/dev/null || true
+}
+trap 'log_event ERROR "异地冷备任务执行失败"' ERR
 
 # 从 nodes.json 自动寻找中转节点作为异地备份机
 RELAY_HOST=$(python3 -c 'import json,sys; nodes=json.load(open("'"$NODES"'")); r=next((n for n in nodes if n.get("role")=="relay" and n.get("host")), None); print(r["host"] if r else "")')
@@ -38,3 +41,4 @@ ssh "${SSH_OPTS[@]}" "$RELAY_USER@$RELAY_HOST" "find /opt/ladder-backup -name '*
 
 rm -f "$TMP_TAR"
 echo "==> 异地备份完成: $STAMP.tar.gz"
+log_event SUCCESS "异地冷备至 $RELAY_HOST 完成 ($STAMP.tar.gz)"
