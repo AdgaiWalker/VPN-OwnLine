@@ -10,6 +10,7 @@ from nodekit import advise as advise_mod  # noqa: E402
 from nodekit import hints as hints_mod  # noqa: E402
 from nodekit import subscriptions as subs_mod  # noqa: E402
 from nodekit import logger  # noqa: E402
+from nodekit import repair as repair_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -663,6 +664,46 @@ class H(BaseHTTPRequestHandler):
                        (name, r.get("health"), r.get("exit_ip") or "-"))
             return self._json(200, {"ok": True, "result": r})
 
+        if path == "/repair":
+            name = (body.get("name") or "").strip()
+            all_bad = bool(body.get("all_bad"))
+            nodes = load_nodes()
+            if not all_bad and not name:
+                return self._json(400, {"ok": False, "error": "请指定节点名称或设置 all_bad=true"})
+
+            targets = []
+            if all_bad:
+                targets = [n for n in nodes if n.get("health") not in ("ok", "unknown") and n.get("source") != "external"]
+                if not targets:
+                    return self._json(200, {"ok": True, "message": "所有节点健康，无需自愈", "results": []})
+            else:
+                target = next((n for n in nodes if n.get("name") == name), None)
+                if not target:
+                    return self._json(404, {"ok": False, "error": "没找到这个节点"})
+                targets = [target]
+
+            results = []
+            for t in targets:
+                r = repair_mod.repair_node(t)
+                results.append(r)
+                def _apply(ns):
+                    for n in ns:
+                        if n.get("name") == t.get("name"):
+                            n["health"] = t.get("health")
+                            if t.get("exit_ip"):
+                                n["exit_ip"] = t["exit_ip"]
+                                n["exit_country"] = t.get("exit_country", "")
+                            if t.get("health_detail"):
+                                n["health_detail"] = t["health_detail"]
+                    return ns
+                update_nodes(_apply)
+                lvl = "INFO" if r.get("ok") else "WARN"
+                logger.log(lvl, "REPAIR", "自愈节点 [%s]: %s -> %s (%s)" %
+                           (t.get("name"), r.get("before"), r.get("after"), r.get("detail")))
+            render()
+            all_ok = all(x.get("ok") for x in results)
+            return self._json(200, {"ok": True, "all_ok": all_ok, "results": results})
+
         if path == "/addnode":
             ip = (body.get("ip") or "").strip()
             user = (body.get("user") or "root").strip() or "root"
@@ -689,6 +730,19 @@ class H(BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
             if role not in ("auto", "exit", "relay"):
                 return self._json(400, {"ok": False, "error": "角色只支持 auto / exit / relay"})
+
+            # 防呆约束：中国大陆服务器禁止误设为直接出口
+            if role == "exit":
+                srvs = _load_json("servers.json", {}).get("servers", [])
+                matched_srv = next((s for s in srvs if s.get("ip") == ip), None)
+                if matched_srv and matched_srv.get("regionId", "").startswith("ap-"):
+                    reg = matched_srv.get("region", "")
+                    if reg in ("北京", "广州", "上海", "南京", "成都", "重庆"):
+                        return self._json(400, {
+                            "ok": False,
+                            "error": f"服务器位于中国大陆（{reg}），受 GFW 拦截无法作为出口节点，请将角色设为「中转（relay）」"
+                        })
+
             if not landing:
                 # 不指定落地时，自动挑一台最快的海外节点当出口。
                 # 目标机是不是直连由 addnode.sh 现场判断；这里只负责准备候选。
@@ -712,4 +766,5 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, *args):
         pass
 
-ThreadingHTTPServer(("127.0.0.1", 8099), H).serve_forever()
+if __name__ == "__main__":
+    ThreadingHTTPServer(("127.0.0.1", 8099), H).serve_forever()

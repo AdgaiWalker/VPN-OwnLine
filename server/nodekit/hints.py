@@ -10,10 +10,12 @@ DEFAULT = "看下面的原始输出。常见原因：密码错、22 端口没开
 RULES = [
     ("配置校验失败", "生成的配置没通过 sing-box 校验，机器没被动过。\n把上面那行报错贴给我，多半是链接里的 sid 或密钥不对。"),
     ("安装失败：服务没有启动成功", "文件装上了，但服务起不来。\n先看日志：journalctl -u sing-box -n 30 --no-pager"),
+    ("address already in use", "端口已被占用（常见于残留的 3x-ui / xray 或 Web 服务）。\n可在节点菜单点击「一键自愈修复」自动清理冲突进程，或更换端口。"),
+    ("wsaeaddrinuse", "Windows 端口冲突：目标端口已被其他进程占用。\n可换用 8443 端口或使用一键自愈清理残留。"),
     ("全部下载源都失败", "四个下载源都下不动。\n这台机器可能连不上任何外网，也可能是 DNS 坏了。\n先手动试：curl -I https://www.baidu.com"),
     ("permission denied (publickey", "这台机器不接受这把私钥。\n"
-     "要么把公钥贴到目标机的 ~/.ssh/authorized_keys，要么改用 root 密码。"),
-    ("permission denied", "密码不对，或者这台机器不允许 root 用密码登录。\n去云控制台 → 实例 → 重置密码（用户选 root），再用新密码试；或者改用私钥。"),
+     "要么把公钥贴到目标机的 ~/.ssh/authorized_keys，要么改用 root 密码（若是 Windows 请用 Administrator）。"),
+    ("permission denied", "密码不对，或者这台机器不允许 root 用密码登录。\n去云控制台 → 实例 → 重置密码（Linux 选 root，Windows 选 Administrator），再用新密码试；或者改用私钥。"),
     ("sudo: a password is required", "登录的这个用户不是 root，而且 sudo 要密码。\n把用户名改成 root，或者用它自己的账号配 sudo 免密。"),
     ("host key verification failed", "这台机器的主机指纹变了（可能重装过系统）。"),
     ("unsupported arch", "这台机器的 CPU 架构不支持，目前只支持 x86_64 和 arm64。"),

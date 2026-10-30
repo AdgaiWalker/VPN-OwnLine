@@ -353,8 +353,11 @@ function render(){
     return;
   }
   box.innerHTML=NODES.map(function(n,i){
+    var isBad = (n.health && n.health!=='ok' && n.health!=='unknown') || (STATUS[n.name] && STATUS[n.name].ok===false);
+    var repairBtn = (isBad && n.source!=='external') ? ('<button class="tiny" style="margin-right:6px;padding:0 8px;font-size:12px;min-height:30px;color:var(--bad);border-color:rgba(185,28,28,.3)" onclick="event.stopPropagation();repairNode(\''+esc(n.name)+'\',this)">自愈</button>') : '';
     return '<div class="node"><span class="dot" id="d'+i+'"></span>'+
       '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
+      repairBtn+
       '<button class="more" aria-label="更多" onclick="nodeMenu('+i+')"><svg class="ico"><use href="#i-more"/></svg></button></div>';
   }).join('');
   paintStatus();
@@ -477,14 +480,47 @@ function pickSrv(i){
   var rows=document.querySelectorAll('.srvrow');
   for(var k=0;k<rows.length;k++){ rows[k].classList.toggle('sel', parseInt(rows[k].getAttribute('data-i'))===i); }
   var ip=document.getElementById('f-ip'), nm=document.getElementById('f-name'), lb=document.getElementById('w2label'), warn=document.getElementById('srvwarn');
+  var userEl=document.getElementById('f-user'), portEl=document.getElementById('f-port'), passWrap=document.getElementById('passwrap');
   if(warn){ warn.style.display='none'; warn.innerHTML=''; }
-  if(i<0){ if(ip) ip.value=''; if(lb) lb.textContent='服务器地址'; if(nm){ nm.value=''; nm.placeholder='比如 东京'; } setNextEnabled(true); if(ip) setTimeout(function(){ip.focus();},150); return; }
+  if(i<0){
+    if(ip) ip.value='';
+    if(lb) lb.textContent='服务器地址';
+    if(nm){ nm.value=''; nm.placeholder='比如 东京'; }
+    if(userEl) userEl.value='root';
+    if(portEl) portEl.value='443';
+    if(passWrap){ var pl=passWrap.querySelector('label'); if(pl) pl.textContent='root 密码'; }
+    setNextEnabled(true);
+    if(ip) setTimeout(function(){ip.focus();},150);
+    return;
+  }
   var s=WIZ.servers[i]; if(!s) return;
   if(ip) ip.value=s.ip;
   if(lb) lb.textContent='服务器地址 · '+(s.name||s.ip);
   if(nm&&!nm.value) nm.placeholder=s.name||s.ip;
+
+  var isWin = (s.name && s.name.indexOf('Windows')>=0) || (s.os==='windows');
+  var isCn = (['北京','广州','上海','南京','成都','深圳'].indexOf(s.region)>=0) || (s.regionId && (s.regionId.indexOf('ap-beijing')>=0 || s.regionId.indexOf('ap-guangzhou')>=0));
+
+  if(isWin){
+    if(userEl) userEl.value='Administrator';
+    if(portEl) portEl.value='8443';
+    if(passWrap){ var pl=passWrap.querySelector('label'); if(pl) pl.textContent='Administrator 密码'; }
+  } else {
+    if(userEl) userEl.value='root';
+    if(portEl) portEl.value='443';
+    if(passWrap){ var pl=passWrap.querySelector('label'); if(pl) pl.textContent='root 密码'; }
+  }
+
   var used=NODES.some(function(n){return n.host===s.ip});
-  if(warn&&used){ warn.style.display=''; warn.innerHTML='<svg class="ico"><use href="#i-alert"/></svg> 这台正在服役。重装会换掉密钥，<b>所有已连接的设备会立刻断线</b>，之后要重新导入订阅。'; }
+  var msgs=[];
+  if(used){ msgs.push('<svg class="ico"><use href="#i-alert"/></svg> 这台正在服役。重装会换掉密钥，<b>所有已连接的设备会立刻断线</b>，之后要重新导入订阅。'); }
+  if(isWin){ msgs.push('🪟 检测到 Windows 服务器：默认使用 <b>Administrator</b> 用户，端口推荐 <b>8443</b>（避开 Web/宝塔 443 端口占用）。'); }
+  if(isCn){ msgs.push('🇨🇳 检测到中国大陆机房（'+esc(s.region||'国内')+'）：无法直接作为翻墙出口，系统已自动配置为<b>【国内中转】</b>模式落地海外。'); }
+
+  if(warn && msgs.length){
+    warn.style.display='';
+    warn.innerHTML=msgs.join('<br style="margin-bottom:6px">');
+  }
   setNextEnabled(true);
 }
 function wizGoto(n){
@@ -655,12 +691,16 @@ function formSheet(title,fields,confirmText){
 function nodeMenu(i){
   var n=NODES[i], st=STATUS[n.name];
   var items=[{label:'编辑 · 名字和端口'}];
-  if(n.source!=='external') items.push({label:'更换密钥 · 踢掉所有设备'});
+  if(n.source!=='external'){
+    items.push({label:'一键自愈修复 · 清理冲突与重启服务'});
+    items.push({label:'更换密钥 · 踢掉所有设备'});
+  }
   items.push({label:'删除这个节点', danger:true});
   choose(n.name, n.host+' · 端口 '+n.port+'\n'+(n.source==='external'?'外部节点，未验证':(st&&st.ok?('在线 '+st.ms+'ms'):'不通')), items).then(function(k){
     var label=items[k]&&items[k].label;
     if(!label) return;
     if(label.indexOf('编辑')===0) editNode(i);
+    else if(label.indexOf('自愈修复')>=0) repairNode(n.name);
     else if(label.indexOf('更换密钥')===0) rotateKey(i);
     else delNode(i);
   });
@@ -740,8 +780,76 @@ function health(){
   tasks.push(fetch('usage.json',{cache:'no-store'}).then(function(r){return r.json()}).then(function(u){ var bad=null,n=0; for(var k in u){ if(k.charAt(0)==='_') continue; n++; if(u[k]&&u[k].error) bad=k; } add(!bad,(n?('腾讯云数据正常（'+n+' 台）'):'腾讯云数据为空'),(bad?(bad+' 拉取失败'):'只读密钥可能失效'))}).catch(function(){add(false,'拿不到腾讯云数据','只读密钥可能失效')}));
   Promise.all(tasks).then(function(){
     var bad=rows.filter(function(r){return !r.ok}).length;
+    var repairBtn = bad ? '<button class="btn primary" style="margin-top:14px" onclick="repairAllBad(this)">一键自愈修复所有异常节点</button>' : '';
     box.innerHTML='<p class="note" style="margin:12px 0 4px;font-weight:600;color:'+(bad?'var(--bad)':'var(--ok)')+'">'+(bad?('发现 '+bad+' 个问题'):'全部正常')+'</p>'+
-      rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'<svg class="ico"><use href="#i-check"/></svg> ':'<svg class="ico"><use href="#i-x"/></svg> ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('');
+      rows.map(function(r){ return '<div class="hitem '+(r.ok?'ok':'bad')+'"><b>'+(r.ok?'<svg class="ico"><use href="#i-check"/></svg> ':'<svg class="ico"><use href="#i-x"/></svg> ')+esc(r.txt)+'</b>'+(r.ok?'':'<i>'+esc(r.adv)+'</i>')+'</div>'; }).join('') + repairBtn;
+  });
+}
+function repairNode(name, btn){
+  var orig = btn ? btn.textContent : '';
+  if(btn){ btn.textContent='修复中…'; btn.disabled=true; }
+  fetch('api/repair', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: name})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(btn){ btn.textContent=orig; btn.disabled=false; }
+    if(!d.ok){
+      dialog({title: '自愈失败', message: d.error || '未知错误', cancelText: null, confirmText: '好'});
+      return;
+    }
+    var res = (d.results && d.results[0]) || {};
+    if(res.ok){
+      var v = res.verify || {};
+      dialog({
+        title: '「'+name+'」自愈成功',
+        message: '服务已重启，冲突残留已清理。\n端到端验真：'+(v.exit_ip ? ('出口 '+v.exit_ip+' ('+(v.exit_country||'?')+')') : '可用')+'\n客户端刷新即可正常翻墙。',
+        cancelText: null,
+        confirmText: '好'
+      }).then(function(){ location.reload(); });
+    } else {
+      dialog({
+        title: '自愈未完全恢复',
+        message: '节点排查结果：'+(res.detail || '依然不通')+'\n\n执行步骤：\n'+(res.steps || []).join('\n'),
+        cancelText: null,
+        confirmText: '好'
+      }).then(function(){ location.reload(); });
+    }
+  }).catch(function(e){
+    if(btn){ btn.textContent=orig; btn.disabled=false; }
+    dialog({title: '修复网络请求失败', message: String(e), cancelText: null, confirmText: '好'});
+  });
+}
+
+function repairAllBad(btn){
+  var orig = btn ? btn.textContent : '';
+  if(btn){ btn.textContent='批量自愈修复中…'; btn.disabled=true; }
+  fetch('api/repair', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({all_bad: true})
+  }).then(function(r){ return r.json(); }).then(function(d){
+    if(btn){ btn.textContent=orig; btn.disabled=false; }
+    if(!d.ok){
+      dialog({title: '自愈失败', message: d.error || '未知错误', cancelText: null, confirmText: '好'});
+      return;
+    }
+    if(!d.results || !d.results.length){
+      dialog({title: '自愈完成', message: d.message || '没有需要修复的异常节点', cancelText: null, confirmText: '好'});
+      return;
+    }
+    var lines = d.results.map(function(r){
+      return '· ['+r.name+'] ' + (r.ok ? ('✅ 恢复 (出口 '+((r.verify&&r.verify.exit_ip)||'?')+')') : ('❌ 仍未恢复: '+(r.detail||'?')));
+    });
+    dialog({
+      title: d.all_ok ? '全部异常节点自愈成功' : '部分节点自愈完成',
+      message: lines.join('\n'),
+      cancelText: null,
+      confirmText: '好'
+    }).then(function(){ location.reload(); });
+  }).catch(function(e){
+    if(btn){ btn.textContent=orig; btn.disabled=false; }
+    dialog({title: '自愈网络请求失败', message: String(e), cancelText: null, confirmText: '好'});
   });
 }
 var CURRENT_LOG_LVL = 'ALL';

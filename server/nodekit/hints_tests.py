@@ -30,4 +30,6 @@ check("兜底提到密码", "密码" in hints.hint_from_log(["something weird ha
 
 check("私钥被拒有专属提示", "authorized_keys" in hints.hint_from_log(["root@1.2.3.4: Permission denied (publickey)."]))
 check("私钥被拒（publickey,password 变体）", "authorized_keys" in hints.hint_from_log(["root@1.2.3.4: Permission denied (publickey,password)."]))
+check("端口冲突识别并提示一键自愈", "自愈修复" in hints.hint_from_log(["listen tcp 0.0.0.0:8443: bind: address already in use"]))
+check("Windows端口冲突识别", "8443" in hints.hint_from_log(["failed to bind: WSAEADDRINUSE"]))
 print("通过 %d 项" % ok)
