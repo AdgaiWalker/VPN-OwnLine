@@ -38,7 +38,15 @@ for try in 1 2; do
   if [ "$try" = "1" ]; then echo "  第一次没连上，3 秒后重试"; sleep 3; fi
 done
 if ! printf '%s' "$CONN" | grep -qE "^(x86_64|aarch64|arm64)"; then
-  echo "连接失败：$CONN"; exit 1
+  if printf '%s' "$CONN" | grep -qiE "(permission denied|authentication failed)"; then
+    echo "连接失败：用户名或 root 密码错误（Permission denied），请在云控制台重置 root 密码后再试"; exit 1
+  elif printf '%s' "$CONN" | grep -qiE "(connection timed out|no route to host)"; then
+    echo "连接失败：网络超时无法连接，请确认服务器已开机且云厂商安全组已放行 22 端口"; exit 1
+  elif printf '%s' "$CONN" | grep -qiE "(connection refused)"; then
+    echo "连接失败：连接被拒绝（Connection refused），目标服务器未开启 SSH 服务或端口未开放"; exit 1
+  else
+    echo "连接失败：$CONN"; exit 1
+  fi
 fi
 
 echo "  正在预检系统"

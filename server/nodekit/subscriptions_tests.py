@@ -125,4 +125,24 @@ v2ray_warn = S.render_v2ray_base64([n_warn], now_ts=now)
 decoded_warn = _b64.b64decode(v2ray_warn).decode("utf-8")
 check("Base64 中解码包含【剩3天到期】", "【剩3天到期】临期出口" in _u.unquote(decoded_warn))
 
+# 5. 流量 85% 熔断安全锁过滤（防止产生超额账单扣费）
+node_safe_quota = node("未超标节点", host="1.1.1.1")
+node_tripped_quota = node("超标85%中转机", host="2.2.2.2")
+usage_mock = {
+    "1.1.1.1": {"traffic_package": {"used_bytes": 500 * (1024**3), "total_bytes": 1024 * (1024**3)}},
+    "2.2.2.2": {"traffic_package": {"used_bytes": 900 * (1024**3), "total_bytes": 1024 * (1024**3)}},
+}
+check("未超标节点正常进订阅", S.in_subscription(node_safe_quota, usage_data=usage_mock))
+check("超标85%节点自动熔断剔除", not S.in_subscription(node_tripped_quota, usage_data=usage_mock))
+
+quota_nodes = [node_safe_quota, node_tripped_quota]
+clash_quota = S.render_clash_yaml(quota_nodes, usage_data=usage_mock)
+check("Clash 中保留未超标节点", "未超标节点" in clash_quota)
+check("Clash 中自动熔断剔除超标节点", "超标85%中转机" not in clash_quota)
+
+v2ray_quota = S.render_v2ray_base64(quota_nodes, usage_data=usage_mock)
+decoded_quota = _b64.b64decode(v2ray_quota).decode("utf-8")
+check("Base64 中保留未超标节点", "未超标节点" in _u.unquote(decoded_quota))
+check("Base64 中自动熔断剔除超标节点", "超标85%中转机" not in _u.unquote(decoded_quota))
+
 print("通过 %d 项" % ok)

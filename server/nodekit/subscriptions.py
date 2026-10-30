@@ -12,22 +12,29 @@ import urllib.parse
 
 try:
     from . import lifecycle
+    from . import quota_guard
 except ImportError:
     import lifecycle
+    import quota_guard
 
 # 这些状态表示节点有问题，不能进订阅。
 # unknown 不在此列：外部节点永远未验证，但仍可被用户手动选择。
 BAD_HEALTH = frozenset({"port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"})
 
 
-def in_subscription(node, now_ts=None):
+def in_subscription(node, now_ts=None, usage_data=None):
     """节点是否应该出现在订阅里。统一遵循全生命周期状态机过滤：
     1. health 处于 BAD_HEALTH 异常状态 -> 排除
     2. enabled == False -> 排除
     3. 到期排空期 (draining, 距到期<=7天) -> 自动移出排空，避免黑洞
     4. 已过期 (expired) -> 排除
+    5. 流量超过 85% 熔断安全水位 -> 自动移出订阅，杜绝产生超量扣费
     """
-    return lifecycle.is_in_subscription(node, now_ts=now_ts)
+    if not lifecycle.is_in_subscription(node, now_ts=now_ts):
+        return False
+    if usage_data and quota_guard.is_node_circuit_broken(node.get("host"), usage_data):
+        return False
+    return True
 
 
 def format_display_name(node, now_ts=None):
@@ -71,9 +78,9 @@ def node_uri(n, now_ts=None):
     return hy2_uri(n, now_ts=now_ts) if n.get("type") == "hysteria2" else vless_uri(n, now_ts=now_ts)
 
 
-def render_v2ray_base64(nodes, profile="all", now_ts=None):
+def render_v2ray_base64(nodes, profile="all", now_ts=None, usage_data=None):
     """输出 Base64 订阅文本（Shadowrocket、v2rayN、Quantumult X 等）。"""
-    valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts)]
+    valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts, usage_data=usage_data)]
     profile = (profile or "all").lower()
     if profile == "direct":
         # 纯直连省流模式：过滤所有国内中继节点，不消耗中继流量
@@ -122,14 +129,14 @@ def clash_proxy_lines(n, now_ts=None):
     ]
 
 
-def render_clash_yaml(nodes, profile="all", now_ts=None):
+def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
     """输出完整的 Clash / Mihomo / Clash Verge 订阅配置。支持分客群模式：
     - office: 客服防封号模式（强制锁定微信/国内直连白名单，走高可用双落地）
     - lite: 手机小白模式（单一「🚀 智能优选」单选组，无多余开关）
     - direct: 纯直连省流模式（彻底排除国内中继，0 中继双向流量消耗）
     - pro / all: 研发极客全能模式（多策略组自由切换，全节点暴露）
     """
-    valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts)]
+    valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts, usage_data=usage_data)]
     profile = (profile or "all").lower()
 
     if profile == "direct":

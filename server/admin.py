@@ -428,15 +428,16 @@ class H(BaseHTTPRequestHandler):
             profile = (q.get("profile") or q.get("mode") or ["all"])[0].lower()
             nodes = load_nodes()
             fmt = "Clash YAML" if is_clash else "Base64"
-            sub_count = sum(1 for n in nodes if subs_mod.in_subscription(n))
+            usage_data = _load_json("usage.json", {})
+            sub_count = sum(1 for n in nodes if subs_mod.in_subscription(n, usage_data=usage_data))
             logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={fmt}, 场景={profile}, UA={ua[:30]}, 节点数={sub_count})")
             if is_clash:
-                content = subs_mod.render_clash_yaml(nodes, profile=profile).encode("utf-8")
+                content = subs_mod.render_clash_yaml(nodes, profile=profile, usage_data=usage_data).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/yaml; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="clash.yaml"')
             else:
-                content = subs_mod.render_v2ray_base64(nodes, profile=profile).encode("utf-8")
+                content = subs_mod.render_v2ray_base64(nodes, profile=profile, usage_data=usage_data).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="subscription.txt"')
@@ -866,6 +867,13 @@ class H(BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
             if role not in ("auto", "exit", "relay"):
                 return self._json(400, {"ok": False, "error": "角色只支持 auto / exit / relay"})
+
+            # 装前 3 秒连通性排雷与大白话提示（非演练模式下检测 22 端口）
+            if not dry_run and not port_reachable(ip, 22, timeout=3):
+                return self._json(400, {
+                    "ok": False,
+                    "error": f"无法连接服务器 {ip} 的 22 端口，请检查：1. 服务器是否已在云控制台开机；2. 安全组/防火墙是否放行了 22 端口（TCP）。"
+                })
 
             # 防呆约束：中国大陆服务器禁止误设为直接出口
             if role == "exit":
