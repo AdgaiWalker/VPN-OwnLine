@@ -6,6 +6,8 @@ admin.py、verify.py、UI 各写一套规则。
 """
 
 import base64
+import datetime
+import time
 import urllib.parse
 
 # 这些状态表示节点有问题，不能进订阅。
@@ -13,9 +15,36 @@ import urllib.parse
 BAD_HEALTH = frozenset({"port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"})
 
 
-def in_subscription(node):
-    """节点是否应该出现在订阅里。旧数据没有 health 字段时按可用处理。"""
-    return (node or {}).get("health") not in BAD_HEALTH
+def in_subscription(node, now_ts=None):
+    """节点是否应该出现在订阅里。
+    排除规则：
+      1. health 处于 BAD_HEALTH 异常状态
+      2. 明确配置了 enabled == False
+      3. 配置了 expire_at 且当前时间已过期
+    """
+    if not node or not isinstance(node, dict):
+        return False
+    if node.get("enabled") is False:
+        return False
+    if node.get("health") in BAD_HEALTH:
+        return False
+    expire_at = node.get("expire_at")
+    if expire_at:
+        try:
+            if isinstance(expire_at, (int, float)):
+                cur_ts = now_ts or time.time()
+                if cur_ts > expire_at:
+                    return False
+            elif isinstance(expire_at, str):
+                exp_dt = datetime.datetime.fromisoformat(expire_at.replace("Z", "+00:00"))
+                if exp_dt.tzinfo is None:
+                    exp_dt = exp_dt.replace(tzinfo=datetime.timezone.utc)
+                now_dt = datetime.datetime.fromtimestamp(now_ts, tz=datetime.timezone.utc) if now_ts else datetime.datetime.now(datetime.timezone.utc)
+                if now_dt > exp_dt:
+                    return False
+        except Exception:
+            pass
+    return True
 
 
 def vless_uri(n):

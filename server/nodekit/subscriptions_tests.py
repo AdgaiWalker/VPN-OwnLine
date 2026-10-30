@@ -32,6 +32,14 @@ for health in ("ok", "unknown", None):
 for health in ("port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"):
     check("health=%s 不进订阅" % health, not S.in_subscription({"health": health}))
 
+# 禁用与到期自动剔除（防止停机黑洞故障）
+check("enabled=False 不进订阅", not S.in_subscription({"health": "ok", "enabled": False}))
+check("enabled=True 进订阅", S.in_subscription({"health": "ok", "enabled": True}))
+check("已过期节点自动剔除", not S.in_subscription({"health": "ok", "expire_at": "2020-01-01T00:00:00Z"}))
+check("未到期节点正常保留", S.in_subscription({"health": "ok", "expire_at": "2099-01-01T00:00:00Z"}))
+check("时间戳格式已过期剔除", not S.in_subscription({"health": "ok", "expire_at": 1500000000}, now_ts=1700000000))
+check("时间戳格式未过期保留", S.in_subscription({"health": "ok", "expire_at": 1900000000}, now_ts=1700000000))
+
 # 自动借道：选最快、排除不可用/国内/中转/外部/缺字段
 fast = node("fast")
 slow = node("slow")

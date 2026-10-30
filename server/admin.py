@@ -620,6 +620,10 @@ class H(BaseHTTPRequestHandler):
                             n["port"] = new_port
                         if newname and newname != name:
                             n["name"] = newname
+                        if "enabled" in body:
+                            n["enabled"] = bool(body["enabled"])
+                        if "expire_at" in body:
+                            n["expire_at"] = body["expire_at"]
                 return ns
 
             update_nodes(_apply)

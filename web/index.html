@@ -355,8 +355,18 @@ function render(){
   box.innerHTML=NODES.map(function(n,i){
     var isBad = (n.health && n.health!=='ok' && n.health!=='unknown') || (STATUS[n.name] && (STATUS[n.name].ok===false || STATUS[n.name].cn_ok===false));
     var repairBtn = (n.source!=='external') ? ('<button class="tiny repair-btn" id="rb'+i+'" style="display:'+(isBad?'inline-flex':'none')+';margin-right:6px;padding:0 10px;font-size:12.5px;min-height:34px;color:var(--bad);border-color:rgba(185,28,28,.3);align-items:center" onclick="event.stopPropagation();repairNode('+i+',this)">自愈</button>') : '';
+    var expBadge = '';
+    if(n.expire_at){
+      var days = Math.ceil((new Date(n.expire_at).getTime() - Date.now()) / (86400 * 1000));
+      if(days <= 0){
+        expBadge = '<span class="tag" style="background:rgba(185,28,28,.15);color:var(--bad)">已过期</span>';
+      } else if(days <= 15){
+        expBadge = '<span class="tag" style="background:rgba(217,119,6,.15);color:var(--warn)">'+days+'天后到期</span>';
+      }
+    }
+    var disBadge = (n.enabled === false) ? '<span class="tag" style="background:rgba(100,116,139,.15);color:var(--muted)">已停用</span>' : '';
     return '<div class="node"><span class="dot" id="d'+i+'"></span>'+
-      '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
+      '<div class="nmeta"><b>'+esc(n.name)+(n.source==='external'?'<span class="tag">外部</span>':'')+expBadge+disBadge+'</b>'+'<small>'+esc(n.host)+' · '+n.port+' · <span id="s'+i+'">检查中…</span></small>'+((n.advice&&n.advice.level!=='bad')?'<div class="adv">'+esc(n.advice.text)+'<span>'+esc(n.advice.reason)+'</span></div>':'')+'</div>'+
       repairBtn+
       '<button class="more" aria-label="更多" onclick="nodeMenu('+i+')"><svg class="ico"><use href="#i-more"/></svg></button></div>';
   }).join('');
@@ -698,7 +708,8 @@ function formSheet(title,fields,confirmText){
 }
 function nodeMenu(i){
   var n=NODES[i], st=STATUS[n.name];
-  var items=[{label:'编辑 · 名字和端口'}];
+  var toggleLabel = (n.enabled===false) ? '启用此节点 · 恢复加入订阅' : '停用此节点 · 从订阅中剔除（下线防故障）';
+  var items=[{label:toggleLabel},{label:'编辑 · 名字和端口'}];
   if(n.source!=='external'){
     items.push({label:'一键自愈修复 · 清理冲突与重启服务'});
     items.push({label:'更换密钥 · 踢掉所有设备'});
@@ -707,11 +718,21 @@ function nodeMenu(i){
   choose(n.name, n.host+' · 端口 '+n.port+'\n'+(n.source==='external'?'外部节点，未验证':(st&&st.ok?('在线 '+st.ms+'ms'):'不通')), items).then(function(k){
     var label=items[k]&&items[k].label;
     if(!label) return;
-    if(label.indexOf('编辑')===0) editNode(i);
+    if(label.indexOf('停用此节点')===0 || label.indexOf('启用此节点')===0) toggleNode(i);
+    else if(label.indexOf('编辑')===0) editNode(i);
     else if(label.indexOf('自愈修复')>=0) repairNode(i);
     else if(label.indexOf('更换密钥')===0) rotateKey(i);
     else delNode(i);
   });
+}
+function toggleNode(i){
+  var n=NODES[i];
+  var willEnable = (n.enabled === false);
+  fetch('api/editnode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n.name, enabled:willEnable})})
+    .then(function(r){return r.json()}).then(function(d){
+      if(!d.ok){ dialog({title:'操作失败',message:d.error||'未知错误',cancelText:null,confirmText:'好'}); return; }
+      dialog({title:willEnable?'已启用':'已停用',message:willEnable?'该节点已重新加入订阅。':'该节点已从订阅中移除，客户端刷新后将不再连入此机。',cancelText:null,confirmText:'好'}).then(function(){ location.reload(); });
+    }).catch(function(e){ dialog({title:'操作失败',message:String(e),cancelText:null,confirmText:'好'}); });
 }
 function editNode(i){
   var n=NODES[i];

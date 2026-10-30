@@ -1,0 +1,5 @@
+{
+  "api_key": "YOUR_TYPESAFE_API_KEY",
+  "endpoint": "https://api.typesafe.ai/v1/systemone",
+  "model": "jev-latest"
+}
