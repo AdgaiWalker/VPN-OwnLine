@@ -233,14 +233,14 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 /* Quota & Traffic Lock */
 .safety-lock {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
   background: var(--surface-soft);
   border: 1px solid var(--line);
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.4;
 }
 .safety-lock b { color: var(--ok); }
 .q { padding: 12px 0; border-bottom: 1px solid var(--line); }
@@ -477,8 +477,8 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
 
         <div class="copyrow">
           <div class="copymeta">
-            <label for="suburl">订阅地址（点击复制）</label>
-            <code id="suburl" class="od-truncate">https://v.example.com/s/TOKEN</code>
+            <label for="suburl">订阅地址</label>
+            <code id="suburl" class="od-truncate" onclick="cp(this.textContent,this)" style="cursor:pointer" title="点击复制">https://v.example.com/s/TOKEN</code>
           </div>
           <button class="tiny" type="button" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
         </div>
@@ -487,12 +487,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
         <!-- Node List in Left Column -->
         <div class="section-head" style="margin-top:32px">
           <div><h2>节点</h2></div>
-          <div class="actions">
-            <button class="ghostbtn" type="button" onclick="downloadBackup()" title="下载节点备份文件 (JSON)"><svg class="ico"><use href="#i-download"/></svg> 备份</button>
-            <button class="ghostbtn" type="button" onclick="triggerRestore()" title="从备份文件还原节点"><svg class="ico"><use href="#i-upload"/></svg> 恢复</button>
-            <input type="file" id="file-restore" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
-            <button class="ghostbtn" type="button" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button>
-          </div>
+          <button class="ghostbtn" type="button" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button>
         </div>
         <div id="nodes"><div class="skeleton">读取中…</div></div>
       </section>
@@ -504,10 +499,8 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
         </div>
 
         <div class="safety-lock">
-          <span style="font-size:16px">🛡️</span>
-          <div>
-            <b>流量安全锁已激活</b>：系统实时监测各节点流量包水位，触达 <b>85%</b> 自动断流熔断，<b>绝不产生任何按量超额扣费账单</b>。
-          </div>
+          <span>🛡️</span>
+          <div><b>85% 自动断流熔断</b> · 绝无超额扣费</div>
         </div>
 
         <div id="quota"><div class="skeleton">读取中…</div></div>
@@ -517,7 +510,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
           <summary>管理与运维</summary>
           <div class="panel">
             <!-- Add Node Section -->
-            <details class="sec" id="add-section" open>
+            <details class="sec" id="add-section">
               <summary>添加节点</summary>
               <div class="field" style="margin-top:14px">
                 <label for="f-paste">快捷导入节点链接</label>
@@ -573,9 +566,14 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
             <!-- Maintenance & Health -->
             <details class="sec">
               <summary>运维与体检</summary>
-              <div style="display:flex;gap:10px;margin:12px 0">
+              <div style="display:flex;gap:8px;margin:12px 0 8px">
                 <button class="btn" style="flex:1" type="button" onclick="health()">一键体检</button>
                 <button class="btn" style="flex:1" type="button" onclick="rotate()">作废旧订阅</button>
+              </div>
+              <div style="display:flex;gap:8px;margin-bottom:12px">
+                <button class="btn" style="flex:1" type="button" onclick="downloadBackup()"><svg class="ico"><use href="#i-download"/></svg> 备份配置</button>
+                <button class="btn" style="flex:1" type="button" onclick="triggerRestore()"><svg class="ico"><use href="#i-upload"/></svg> 还原配置</button>
+                <input type="file" id="file-restore" accept=".json" style="display:none" onchange="handleRestoreFile(event)">
               </div>
               <div id="health" aria-live="polite"></div>
             </details>
