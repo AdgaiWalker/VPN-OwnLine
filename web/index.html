@@ -472,7 +472,6 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
         <div class="imports">
           <a class="btn primary" id="btn-sr" href="#">Shadowrocket (小火箭)</a>
           <a class="btn" id="btn-clash" href="#">Clash</a>
-          <a class="btn" id="btn-sb" href="#">Sing-box</a>
         </div>
 
         <div class="copyrow">
@@ -1482,10 +1481,9 @@ function wireLinks(){
   var sub = BASE_SUB_URL;
   code.textContent = sub;
   var title = encodeURIComponent('我的长青梯子');
-  var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash'), sb=document.getElementById('btn-sb');
+  var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash');
   if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub)+'?title='+title;
   if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub)+'&name='+title;
-  if(sb) sb.href='sing-box://import-remote-profile?url='+encodeURIComponent(sub)+'#'+title;
   var fc=document.getElementById('fc'), fs=document.getElementById('fs');
   if(fc) fc.textContent=BASE_SUB_URL+'/clash';
   if(fs) fs.textContent=BASE_SUB_URL+'/sr';
@@ -1504,7 +1502,7 @@ function detect(){
   else if(/Windows/.test(ua)) os="win";
   else if(/Linux|X11/.test(ua)) os="linux";
   var apple=(os==="ios"||os==="mac");
-  var sr=document.getElementById("btn-sr"), cl=document.getElementById("btn-clash"), sb=document.getElementById("btn-sb");
+  var sr=document.getElementById("btn-sr"), cl=document.getElementById("btn-clash");
   if(sr&&cl){
     if(!apple){
       cl.className="btn primary";
