@@ -266,10 +266,10 @@ svg.ico.big{width:26px;height:26px;stroke-width:1.6}
             💡 小白买机与提权 1 分钟指南（点开查看）
           </summary>
           <div style="font-size:13px;line-height:1.6;color:var(--muted);margin-top:8px">
-            <p style="margin:4px 0"><b>1. 选哪家与机型：</b>海外机房首选（香港、新加坡、日本、美西）。国内推荐腾讯云轻量服务器（约 24元/月），国外可选搬瓦工、RackNerd 等。</p>
-            <p style="margin:4px 0"><b>2. 选什么镜像系统：</b>一律选择 <b>Ubuntu 22.04 LTS 或 24.04 LTS（64位）</b>，系统最稳定且免编译。</p>
-            <p style="margin:4px 0"><b>3. 怎么拿 IP 和密码：</b>在云控制台列表复制「公网 IP」；在控制台点「重置密码」设置 root 密码即可，无需碰任何代码。</p>
-            <p style="margin:4px 0"><b>4. 放行防火墙/安全组：</b>云平台安全组必须放行常用端口（22、443），避免连接超时。</p>
+            <p style="margin:4px 0"><b>1. 机房与服务商：</b>搭建出口节点<b>必须选择境外地域</b>（首选香港、新加坡、东京、硅谷）。可直接选腾讯云轻量服务器（境外约 24~32 元/月），海外亦可选搬瓦工、RackNerd、DigitalOcean 等。</p>
+            <p style="margin:4px 0"><b>2. 操作系统选择：</b>一律选择 <b>Ubuntu 22.04 LTS 或 24.04 LTS（64位）</b>，系统纯净、兼容性最好。</p>
+            <p style="margin:4px 0"><b>3. 获取 IP 与密码：</b>在云控制台列表复制「公网 IP」；在控制台点「重置密码」直接设置 root 密码，无需碰命令行。</p>
+            <p style="margin:4px 0"><b>4. 放行安全组规则：</b>在云控制台防火墙/安全组中放行管理端口（TCP 22）及服务端口（TCP 443 / 8443，及 UDP 443 用于 Hysteria2），建议一键放行「全部常用端口」。</p>
           </div>
         </details>
       <div id="w1">

@@ -129,8 +129,8 @@ check("Base64 中解码包含【剩3天到期】", "【剩3天到期】临期出
 node_safe_quota = node("未超标节点", host="1.1.1.1")
 node_tripped_quota = node("超标85%中转机", host="2.2.2.2")
 usage_mock = {
-    "1.1.1.1": {"traffic_package": {"used_bytes": 500 * (1024**3), "total_bytes": 1024 * (1024**3)}},
-    "2.2.2.2": {"traffic_package": {"used_bytes": 900 * (1024**3), "total_bytes": 1024 * (1024**3)}},
+    "1.1.1.1": {"used": 200.0, "total": 500.0},
+    "2.2.2.2": {"used": 450.0, "total": 500.0},
 }
 check("未超标节点正常进订阅", S.in_subscription(node_safe_quota, usage_data=usage_mock))
 check("超标85%节点自动熔断剔除", not S.in_subscription(node_tripped_quota, usage_data=usage_mock))

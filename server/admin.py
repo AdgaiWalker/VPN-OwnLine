@@ -12,6 +12,7 @@ from nodekit import subscriptions as subs_mod  # noqa: E402
 from nodekit import logger  # noqa: E402
 from nodekit import repair as repair_mod  # noqa: E402
 from nodekit import lifecycle as lifecycle_mod  # noqa: E402
+from nodekit import quota_guard as quota_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
@@ -534,30 +535,22 @@ class H(BaseHTTPRequestHandler):
             })
         if path == "/quota/guard":
             usage = _load_json("usage.json", {})
+            eval_res = quota_mod.evaluate_all(usage)
             guards = []
-            for ip, u in (usage or {}).items():
+            for ip, u in eval_res.items():
                 if ip.startswith("_") or not isinstance(u, dict):
                     continue
-                traffic_pkg = u.get("traffic_package") or {}
-                used = traffic_pkg.get("used_bytes") or 0
-                total = traffic_pkg.get("total_bytes") or (1024**4)
-                pct = round((used / total) * 100, 1) if total > 0 else 0
-                status_str = "normal"
-                if pct >= 85:
-                    status_str = "tripped"
-                elif pct >= 75:
-                    status_str = "warning"
                 guards.append({
                     "ip": ip,
                     "name": u.get("name", ip),
-                    "used_gb": round(used / (1024**3), 2),
-                    "total_gb": round(total / (1024**3), 2),
-                    "percent": pct,
-                    "status": status_str,
+                    "used_gb": u.get("used_gb", 0.0),
+                    "total_gb": u.get("total_gb", 1024.0),
+                    "percent": u.get("percent", 0.0),
+                    "status": u.get("status", "normal"),
                 })
             return self._json(200, {
                 "ok": True,
-                "watermarks": {"warning": 75, "tripped": 85},
+                "watermarks": eval_res.get("_summary", {}).get("watermarks", {"warning": 75, "tripped": 85}),
                 "guards": guards,
             })
         if path == "/job":

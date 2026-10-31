@@ -75,6 +75,17 @@ if printf '%s' "$ROT" | grep -q '不受影响'; then printf '  ✅ %-28s %s\n' "
 echo "== 7. 高可用与系统解法 =="
 chk "中转多落地状态接口" 200 "$(code -u "$USER:$PASS" "$BASE/api/relay/status")"
 chk "流量防爆熔断接口" 200 "$(code -u "$USER:$PASS" "$BASE/api/quota/guard")"
+QUOTA_JSON="$(curl -s $CURL_TLS -m 15 -u "$USER:$PASS" "$BASE/api/quota/guard")"
+SV_PCT="$(printf '%s' "$QUOTA_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next((g.get("percent") for g in d.get("guards",[]) if g.get("ip")=="43.153.56.137"), 0))' 2>/dev/null)"
+if python3 -c "assert float('$SV_PCT') > 5.0" 2>/dev/null; then
+    printf '  ✅ %-28s %s%%
+' "熔断监控读数准确" "$SV_PCT"
+    ok=$((ok+1))
+else
+    printf '  ❌ 熔断监控读数为 0 或未读取到真实用量 (实际: %s)
+' "$SV_PCT"
+    bad=$((bad+1))
+fi
 LCS=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("lifecycle")))' 2>/dev/null)
 chk "每个节点含生命周期" "$TOTAL" "$LCS"
 

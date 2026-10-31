@@ -52,6 +52,17 @@ def main():
     if out:
         out["_ts"] = ts
         write_json(os.path.join(DATA, "usage.json"), out)
+        # 流量 85% 水位物理断流与自愈守护
+        try:
+            nodes_file = os.path.join(DATA, "nodes.json")
+            if os.path.exists(nodes_file):
+                nodes = json.load(open(nodes_file, encoding="utf-8"))
+                from nodekit import quota_guard
+                actions = quota_guard.enforce_quota(nodes, out)
+                if actions:
+                    print("Quota actions:", json.dumps(actions, ensure_ascii=False))
+        except Exception as e:
+            errs.append("quota enforce: %s" % str(e)[:80])
     else:
         errs.append("用量为空，保留上一次的 usage.json")
 
