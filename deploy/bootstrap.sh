@@ -8,7 +8,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 BRANCH="${LADDER_BRANCH:-main}"
-REPO_URL="https://github.com/AdgaiWalker/ladder-web-panel"
+REPO_URL="https://github.com/AdgaiWalker/VPN-OwnLine"
 TMP_DIR="$(mktemp -d /tmp/ladder-bootstrap.XXXXXX)"
 
 cleanup() {
@@ -16,7 +16,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "==> 正在下载 ladder 部署包 ($BRANCH) ..."
+echo "==> 正在下载 VPN-OwnLine 部署包 ($BRANCH) ..."
 if command -v git >/dev/null 2>&1; then
   git clone --depth=1 -b "$BRANCH" "$REPO_URL.git" "$TMP_DIR/ladder"
 else
