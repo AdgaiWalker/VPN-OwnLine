@@ -8,6 +8,7 @@ NODES="$DATA/nodes.json"
 STAMP=$(date +%Y%m%d)
 TMP_TAR="/tmp/ladder-backup-$STAMP.tar.gz"
 KH="/opt/sing-box/known_hosts"
+KEY="${NODE_CTL_KEY:-/root/.ssh/node_ctl}"
 log_event() {
   python3 -c "import sys; sys.path.insert(0, '/opt/web'); from nodekit import logger; logger.log('$1', 'BACKUP', '$2')" 2>/dev/null || true
 }
