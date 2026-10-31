@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#f5f4ed" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="长青专线">
+<meta name="apple-mobile-web-app-title" content="VPN-OwnLine">
 <link rel="apple-touch-icon" href="icon.png">
-<title>长青 · 个人专线 (VPN-OwnLine)</title>
+<title>VPN-OwnLine · 长青 (个人专线)</title>
 <style>
 /* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
    Put this @layer first; product CSS outside the layer wins ordinary layout rules.
@@ -452,8 +452,8 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
 
 <div class="page">
   <header class="topbar">
-    <a class="brand" href="#" aria-label="长青专线首页">长青 · 个人专线</a>
-    <span class="pill" id="pill">连接中</span>
+    <a class="brand" href="#" aria-label="VPN-OwnLine">VPN-OwnLine <span style="font-size:12px;opacity:0.8;font-weight:400;margin-left:4px">长青</span></a>
+    <span class="pill" id="pill">Connecting · 连接中</span>
   </header>
 
   <div id="wx-tip" class="warn" style="display:none;margin-top:14px">
@@ -466,7 +466,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
       <!-- Left Column: Subscription and Nodes -->
       <section class="panel-card" aria-labelledby="sub-heading">
         <div class="section-head">
-          <div><h2 id="sub-heading">订阅</h2></div>
+          <div><h2 id="sub-heading">Subscription · 订阅</h2></div>
         </div>
 
         <div class="imports">
@@ -476,43 +476,43 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
 
         <div class="copyrow">
           <div class="copymeta">
-            <label for="suburl">订阅地址</label>
+            <label for="suburl">Subscription URL · 订阅地址</label>
             <code id="suburl" class="od-truncate" onclick="cp(this.textContent,this)" style="cursor:pointer" title="点击复制">https://v.example.com/s/TOKEN</code>
           </div>
-          <button class="tiny" type="button" onclick="cp(document.getElementById('suburl').textContent,this)">复制</button>
+          <button class="tiny" type="button" onclick="cp(document.getElementById('suburl').textContent,this)">Copy · 复制</button>
         </div>
         <p class="note" id="fallback"></p>
 
         <!-- Node List in Left Column -->
         <div class="section-head" style="margin-top:32px">
-          <div><h2>节点</h2></div>
-          <button class="ghostbtn" type="button" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> 添加</button>
+          <div><h2>Nodes · 节点</h2></div>
+          <button class="ghostbtn" type="button" onclick="openAdd()"><svg class="ico"><use href="#i-plus"/></svg> Add · 添加</button>
         </div>
-        <div id="nodes"><div class="skeleton">读取中…</div></div>
+        <div id="nodes"><div class="skeleton">Loading · 读取中…</div></div>
       </section>
 
       <!-- Right Column: Quota, Safety Lock, and Management Drawer -->
       <section class="panel-card" aria-labelledby="quota-heading">
         <div class="section-head">
-          <div><h2 id="quota-heading">流量与用量</h2></div>
+          <div><h2 id="quota-heading">Traffic & Quota · 流量与用量</h2></div>
         </div>
 
         <div class="safety-lock">
           <span>🛡️</span>
-          <div><b>85% 自动断流熔断</b> · 绝无超额扣费</div>
+          <div><b>85% Auto Circuit Breaker</b> · 85% 自动断流熔断</div>
         </div>
 
-        <div id="quota"><div class="skeleton">读取中…</div></div>
+        <div id="quota"><div class="skeleton">Loading · 读取中…</div></div>
 
         <!-- Management Details Drawer -->
         <details class="manage">
-          <summary>管理与运维</summary>
+          <summary>Management & Ops · 管理与运维</summary>
           <div class="panel">
             <!-- Add Node Section -->
             <details class="sec" id="add-section">
-              <summary>添加节点</summary>
+              <summary>Add Node · 添加节点</summary>
               <details class="inner" style="margin:14px 0 10px;background:var(--surface-soft);border:1px solid var(--line);padding:8px 12px">
-                <summary style="font-weight:500;color:var(--fg)">💡 小白买机与提权 1 分钟指南</summary>
+                <summary style="font-weight:500;color:var(--fg)">💡 1-Min Server Setup · 小白买机与提权指南</summary>
                 <div style="font-size:12.5px;line-height:1.6;color:var(--muted);margin-top:6px">
                   <p style="margin:3px 0"><b>1. 地域推荐：</b>出口必须选择境外地域（首选香港、新加坡、东京、硅谷），轻量服务器境外约 24~32 元/月。</p>
                   <p style="margin:3px 0"><b>2. 系统首选：</b>选择 <b>Ubuntu 22.04 LTS 或 24.04 LTS</b> 纯净版。</p>
@@ -630,7 +630,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
     </div>
   </main>
 
-  <footer>数据每 10 分钟自动更新 · 专线服务运行正常</footer>
+  <footer>Data refreshes every 10 mins · Service normal (数据每 10 分钟自动更新 · 专线运行正常)</footer>
 </div>
 
 <script>
@@ -647,7 +647,7 @@ function esc(s){ return String(s).replace(/[&<>"]/g,function(c){ return {'&':'&a
 function cp(t,el){
   if(navigator.clipboard){
     navigator.clipboard.writeText(t).then(function(){
-      var o=el.textContent; el.textContent='已复制';
+      var o=el.textContent; el.textContent='Copied · 已复制';
       setTimeout(function(){el.textContent=o;},1400);
     });
   }
@@ -1480,7 +1480,7 @@ function wireLinks(){
   if(!BASE_SUB_URL) BASE_SUB_URL = raw;
   var sub = BASE_SUB_URL;
   code.textContent = sub;
-  var title = encodeURIComponent('长青 · 个人专线');
+  var title = encodeURIComponent('VPN-OwnLine · 长青');
   var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash');
   if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub)+'?title='+title;
   if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub)+'&name='+title;

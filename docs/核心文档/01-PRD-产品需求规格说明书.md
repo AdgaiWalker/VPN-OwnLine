@@ -1,12 +1,13 @@
-# 01 · 长青 (VPN-OwnLine) PRD 产品需求规格说明书
+# 01 · VPN-OwnLine · 长青 (Evergreen OwnLine) PRD 产品需求规格说明书
 
-> 状态：**现行生效（产品需求基准）**  
-> 项目品牌：**长青 (Evergreen)**  
-> 开源代号：**VPN-OwnLine（个人专线）**  
-> 适用版本：v0.2.x 及以上（OpenDesign 极简重构版）  
-> 责任团队：产品设计与研发团队  
-> 核心受众：全流程无命令行认知的普通个人、外贸人员、科研办公者  
-> 核心设计哲学：**“做成家用电饭煲，绝不做成飞机驾驶舱”** —— 插电、放米、按煮饭。水烧干前自动断电熔断，开箱即用，消灭一切工程师自嗨与技术黑话。
+> Status / 状态：**Active / 现行生效（产品需求基准）**  
+> Project / 开源项目：**VPN-OwnLine（个人专线）**  
+> Brand / 项目品牌：**Evergreen (长青)**  
+> Slogan / 理念：*Turn any cloud VPS into your private, dedicated, and self-healing cross-border line.*（把云服务器自动化装配为你个人的专属出海专线）  
+> Version / 适用版本：v0.2.x 及以上（OpenDesign 极简重构版）  
+> Team / 责任团队：产品设计与研发团队  
+> Audience / 核心受众：全流程无命令行认知的普通个人、外贸人员、科研办公者  
+> Philosophy / 核心哲学：**“做成家用电饭煲，绝不做成飞机驾驶舱”** —— 插电、放米、按煮饭。水烧干前自动断电熔断，开箱即用，消灭一切工程师自嗨与技术黑话。
 
 ---
 
