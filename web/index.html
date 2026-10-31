@@ -512,13 +512,6 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
             <!-- Add Node Section -->
             <details class="sec" id="add-section">
               <summary>添加节点</summary>
-              <div class="field" style="margin-top:14px">
-                <label for="f-paste">快捷导入节点链接</label>
-                <textarea id="f-paste" rows="2" placeholder="每行一条 vless:// 等节点链接" autocomplete="off" spellcheck="false"></textarea>
-              </div>
-              <button class="btn" type="button" onclick="doPaste()">导入链接</button>
-              <div class="hint" id="pasteMsg" role="status"></div>
-
               <details class="inner" style="margin:14px 0 10px;background:var(--surface-soft);border:1px solid var(--line);padding:8px 12px">
                 <summary style="font-weight:500;color:var(--fg)">💡 小白买机与提权 1 分钟指南</summary>
                 <div style="font-size:12.5px;line-height:1.6;color:var(--muted);margin-top:6px">
@@ -1090,23 +1083,6 @@ function resumeJob(){
     WIZ.job=id; INSTALLING=true; wizGoto(3); renderSteps(j.step||1,false);
     WIZ.timer=setInterval(pollJob,1500); pollJob();
   }).catch(function(){});
-}
-
-function doPaste(){
-  var v=(document.getElementById('f-paste').value||'').trim();
-  var msg=document.getElementById('pasteMsg');
-  if(!v){ dialog({title:'还差一步',message:'先把链接粘进来',cancelText:null,confirmText:'好'}); return; }
-  msg.textContent='正在校验…';
-  fetch('api/paste',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({links:v})})
-    .then(function(r){return r.json()}).then(function(d){
-      if(d.added&&d.added.length){
-        msg.textContent='已加入：'+d.added.join('、')+(d.errors&&d.errors.length?('；跳过：'+d.errors.join('；')):'');
-        document.getElementById('f-paste').value='';
-        load();
-      } else {
-        msg.textContent=(d.errors&&d.errors.length)?d.errors.join('；'):'没有可加入的链接';
-      }
-    }).catch(function(e){ msg.textContent='失败：'+e; });
 }
 
 function nodeMenu(i){
