@@ -132,37 +132,8 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .section-head h2 { font-size: 19px; line-height: 1.3; font-weight: 500; letter-spacing: -.01em; margin: 0; }
 .section-head .actions { display: flex; gap: 8px; align-items: center; }
 
-/* Scenario selector tabs */
-.scenario-tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 10px; }
-.tab-btn {
-  border: 1px solid var(--line);
-  background: var(--surface-soft);
-  color: var(--muted);
-  padding: 8px 4px;
-  font-size: 12.5px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  transition: all .16s var(--ease);
-}
-.tab-btn.active {
-  background: var(--accent);
-  color: var(--accent-fg);
-  font-weight: 600;
-  border-color: var(--accent);
-}
-.descbox {
-  font-size: 13px;
-  padding: 10px 14px;
-  background: var(--surface-soft);
-  border-left: 3px solid var(--accent);
-  margin-bottom: 14px;
-  color: var(--fg);
-  line-height: 1.5;
-}
-
 /* 1-click import buttons */
-.imports { display: grid; grid-template-columns: 1fr; gap: 8px; margin-bottom: 12px; }
+.imports { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 12px; }
 .btn {
   display: inline-flex;
   align-items: center;
@@ -492,26 +463,16 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
 
   <main>
     <div class="dashboard">
-      <!-- Left Column: Subscription, Scenarios, and Nodes -->
+      <!-- Left Column: Subscription and Nodes -->
       <section class="panel-card" aria-labelledby="sub-heading">
         <div class="section-head">
-          <div><h2 id="sub-heading">使用场景与订阅</h2></div>
-        </div>
-
-        <div class="scenario-tabs">
-          <button type="button" class="tab-btn active" id="tab-lite" onclick="switchProfile('lite')">日常省心</button>
-          <button type="button" class="tab-btn" id="tab-office" onclick="switchProfile('office')">跨境防封</button>
-          <button type="button" class="tab-btn" id="tab-direct" onclick="switchProfile('direct')">极速直连</button>
-          <button type="button" class="tab-btn" id="tab-pro" onclick="switchProfile('pro')">极客全能</button>
-        </div>
-        <div id="profile-desc" class="descbox">
-          <b>🟢 日常省心模式（推荐）</b>：国内直连免流，海外应用秒开并自动优选最快节点。
+          <div><h2 id="sub-heading">订阅</h2></div>
         </div>
 
         <div class="imports">
-          <a class="btn primary" id="btn-sr" href="#">📱 一键导入 · Shadowrocket (小火箭)</a>
-          <a class="btn" id="btn-clash" href="#">⚡ 一键导入 · Clash 系 (Verge/FlClash)</a>
-          <a class="btn" id="btn-sb" href="#">🌐 一键导入 · Sing-box 客户端</a>
+          <a class="btn primary" id="btn-sr" href="#">Shadowrocket (小火箭)</a>
+          <a class="btn" id="btn-clash" href="#">Clash</a>
+          <a class="btn" id="btn-sb" href="#">Sing-box</a>
         </div>
 
         <div class="copyrow">
@@ -686,7 +647,6 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
 var NODES=[], STATUS={};
 var WIZ={srv:null,servers:[],job:null,timer:null};
 var INSTALLING=false;
-var ACTIVE_PROFILE='lite';
 var BASE_SUB_URL='';
 var POLL_FAIL=0;
 var CURRENT_LOG_LVL='ALL';
@@ -1540,42 +1500,21 @@ function copyDiagInfo(btn){
   });
 }
 
-function switchProfile(p){
-  ACTIVE_PROFILE = p;
-  ['office','lite','direct','pro'].forEach(function(k){
-    var el = document.getElementById('tab-' + k);
-    if(el) el.classList.toggle('active', k === p);
-  });
-  var desc = document.getElementById('profile-desc');
-  if(desc){
-    if(p === 'lite') {
-      desc.innerHTML = '<b>🟢 日常省心模式（推荐）</b>：微信/淘宝/百度直连不耗流量，Google/YouTube/ChatGPT 极速秒开并自动优选最快节点。';
-    } else if(p === 'office') {
-      desc.innerHTML = '<b>💼 跨境防封模式</b>：固定海外出口 IP，防 TikTok、海外电商店铺异地登录风控。';
-    } else if(p === 'direct') {
-      desc.innerHTML = '<b>⚡ 极速直连模式</b>：直连海外不经中转，省国内机器流量。';
-    } else if(p === 'pro') {
-      desc.innerHTML = '<b>🛠️ 研发极客全能模式</b>：全量暴露所有节点、自动测速与故障转移策略组，支持终端代理脚本与 TUN。';
-    }
-  }
-  wireLinks();
-}
-
 function wireLinks(){
   var code=document.getElementById('suburl'); if(!code) return;
   var raw = code.textContent.trim().split('?')[0];
   if(!raw) return;
   if(!BASE_SUB_URL) BASE_SUB_URL = raw;
-  var sub = BASE_SUB_URL + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
+  var sub = BASE_SUB_URL;
   code.textContent = sub;
   var title = encodeURIComponent('我的长青梯子');
   var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash'), sb=document.getElementById('btn-sb');
   if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub)+'?title='+title;
-  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub + '&target=clash')+'&name='+title;
+  if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub)+'&name='+title;
   if(sb) sb.href='sing-box://import-remote-profile?url='+encodeURIComponent(sub)+'#'+title;
   var fc=document.getElementById('fc'), fs=document.getElementById('fs');
-  if(fc) fc.textContent=BASE_SUB_URL+'/clash' + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
-  if(fs) fs.textContent=BASE_SUB_URL+'/sr' + (ACTIVE_PROFILE === 'all' ? '' : ('?profile=' + ACTIVE_PROFILE));
+  if(fc) fc.textContent=BASE_SUB_URL+'/clash';
+  if(fs) fs.textContent=BASE_SUB_URL+'/sr';
 }
 
 function detect(){
