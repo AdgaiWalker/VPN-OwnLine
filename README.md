@@ -5,8 +5,46 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3 Standard Library](https://img.shields.io/badge/Python-3%20Stdlib%20Only-brightgreen.svg)]()
-[![Tests: 272 Passed](https://img.shields.io/badge/Tests-272%20Passed%20(100%25)-success.svg)]()
-[![Live Verify: 21 Passed](https://img.shields.io/badge/Live%20Verify-21%2F21%20Passed-success.svg)]()
+[![Tests: 301 Passed](https://img.shields.io/badge/Tests-301%20Passed%20(100%25)-success.svg)]()
+[![Live Verify: Pending](https://img.shields.io/badge/Live%20Verify-Pending-yellow.svg)]()
+
+---
+
+**Current patch validation:** 13 offline suites / 301 checks passed. This patch has not been deployed; the 21-check production acceptance suite has not been rerun.
+
+## AI-assisted setup
+
+Already bought a Tencent Cloud server, but unsure what to do next? Copy this into an AI assistant you use:
+
+```text
+Help me set up https://github.com/AdgaiWalker/VPN-OwnLine on my own Linux server. Read the README first and follow its AI assistance instructions. Reply in my language.
+```
+
+You can start without knowing Linux or filling out a long form. The AI should help you identify your server, prepare access, inspect it, and continue only within your confirmed setup scope. Use a local checkout when available; otherwise read the repository and current official cloud documentation. Do not invent a different installer.
+
+### What the AI should do
+
+1. **Find your server.** Help you locate the right Tencent Cloud product and instance, then identify its region, instance ID, public address, system and login method. Ask you to select the target if several servers exist. Lighthouse has native cloud integration; CVM and other supported Linux hosts use the generic SSH path until their native APIs are implemented.
+2. **Prepare SSH access.** Explain where to enter your username and password or private key securely. An old password cannot be promised recoverable from the console; if it is unavailable, explain the reset options and effects first and let you complete sensitive input and required verification. Tencent Cloud Ubuntu images may use `ubuntu` with sudo or keys rather than root password login. Keep the SSH port separate from the proxy service port.
+3. **Prepare cloud access when needed.** Guide you through a dedicated Tencent Cloud CAM sub-user with the permissions required for discovery and usage monitoring. Explain and confirm any additional firewall permissions; password resets and server reboots are separate operations, not implicit permission to administer the entire account. SecretId/SecretKey are cloud API credentials, not the server's SSH login. SecretKey is shown only when created. Let you save and enter secrets through an appropriate secure channel; do not ask for them in ordinary chat, screenshots or public logs.
+4. **Inspect before changing.** After connection, report the target, system, existing sing-box and compatibility. Preserve compatible existing configuration. Connecting does not itself authorize installation, overwriting, restarting or uninstalling.
+5. **Continue after your setup confirmation.** Once you confirm the target and start installation, use the project's existing installation/API path and report actual progress. If a task is already running, observe it rather than launch a second installer. Do not bypass missing features by silently editing managed files over SSH. Explain a capability gap when the current code does not yet support the requested design.
+6. **Verify and hand back.** Distinguish SSH reachable, installation finished, service verified and subscription imported. Help you import into Shadowrocket, Clash or FL Clash. The native client handles connection and node selection. Mask credentials in summaries and claim success only with evidence.
+
+Start with [the design specification](docs/设计/客户端Web交互设计规格说明书.md), especially sections 5, 10.7, 10.8 and 12, and [the engineering rules](docs/核心文档/04-工程规范与验收标准.md). The specification includes planned behavior; it is not a claim that every flow is already implemented. No Harness, skill installation or in-product AI runtime is required.
+
+**Tool access matters:** a chat-only assistant can guide you. Actually inspecting a cloud console or executing commands requires an assistant with the relevant tools and your authorization. Being connected through this product does not automatically give your external AI its SSH session or credentials. Account login, sensitive input, additional access grants and disruptive operations must follow the required user confirmation or handoff.
+
+### Useful starting prompts
+
+| Situation | Copy this prompt |
+|---|---|
+| I cannot find the server or its address | I bought a Tencent Cloud Linux server. Help me find the correct instance and its public IP, system and SSH login method. Start with read-only inspection; do not change anything yet. |
+| I need cloud account access | Help me prepare a dedicated Tencent Cloud CAM sub-user for VPN-OwnLine. Explain the minimum permissions and guide me through saving API credentials securely; do not request my SecretKey in chat. |
+| The server is connected | Help me inspect this connected server using VPN-OwnLine. Keep existing compatible sing-box configuration. Show me what needs to happen before installation, and continue after I confirm the target and start installation. |
+| Installation or import failed | Help me diagnose VPN-OwnLine using the current README and design specification. Read status and logs first, mask secrets, and explain the evidence before proposing changes. |
+
+For server passwords and CAM access, consult [Tencent Cloud password reset guidance](https://cloud.tencent.com/document/product/1207/44575), [CAM users and least privilege](https://cloud.tencent.com/document/product/598/13665), and [sub-user API keys](https://cloud.tencent.com/document/product/598/37140). These actions can require user verification; do not treat a prompt as proof that they succeeded.
 
 ---
 
@@ -27,22 +65,24 @@ We prioritize real-world reliability over empty promises. Our current architectu
 
 | Cloud Provider / Infrastructure | Integration Tier | Key Automated Capabilities | Current Status |
 |---|---|---|---|
-| **Tencent Cloud (Lighthouse / CVM)** | **Tier 1: Full Automation** | CAM instance auto-discovery, API automated firewall rules (TCP 22/443/8443, UDP 443), real-time traffic package telemetry, 85% quota physical circuit breaker | 🟢 **Production Ready (Fully Automated)** |
-| **Generic Linux VPS (Any Provider)** | **Tier 2: Generic SSH Access** | Enter IP + root password: 30-second silent deployment, dual Reality + Hysteria2 protocols, multi-landing failover | 🟢 **Fully Usable (All Hosts Supported)** |
+| **Tencent Cloud Lighthouse** | **Tier 1: Full Automation** | CAM instance auto-discovery, API automated firewall rules (TCP 22/443/8443, UDP 443), traffic package telemetry every 10 minutes, 85% quota physical circuit breaker | 🟢 **Production Ready (Fully Automated)** |
+| **Generic Linux VPS (Any Provider)** | **Tier 2: Generic SSH Access** | Enter IP + root password: automated deployment on supported Debian/Ubuntu hosts, dual Reality + Hysteria2 protocols, multi-landing failover | 🟢 **Generic SSH Access (Supported Linux Hosts)** |
 | **Alibaba Cloud / AWS / Oracle Cloud / GCP** | **Tier 3: Strategic Roadmap** | Native API auto-discovery, automated quota telemetry, and cloud firewall orchestration | 🟡 **Planned (Multi-Cloud Ecosystem)** |
+
+**CVM support:** CVM instances can use the generic SSH path on supported Linux systems; native CVM discovery, firewall and usage APIs are not implemented.
 
 ---
 
 ## 3. Five Core Safeguards
 
 ### 🛡️ 1. 85% Strict Circuit Breaker (Anti-Overcharge)
-Pay-as-you-go overage bandwidth on cloud platforms is exorbitantly expensive. VPN-OwnLine polls real traffic package data via cloud APIs (e.g., Tencent Lighthouse API). When monthly traffic reaches **85% of total package allowance**, it automatically executes remote physical shutdown (`systemctl stop sing-box`) and removes the node from active subscriptions—**guaranteeing zero unexpected bills**. Once a new billing cycle begins, services are restored automatically.
+Pay-as-you-go overage bandwidth on cloud platforms is exorbitantly expensive. VPN-OwnLine polls real traffic package data via cloud APIs (e.g., Tencent Lighthouse API). When monthly traffic reaches **85% of total package allowance**, it automatically executes remote physical shutdown (`systemctl stop sing-box`) and removes the node from active subscriptions. Stop/start commands must succeed before the saved state changes; failed commands are retried on the next refresh. Missing or invalid usage data does not release an existing circuit breaker. Services are restored after a valid reading falls below the threshold. Polling delays, API failures and SSH failures mean this reduces overage risk rather than guaranteeing zero charges.
 
 ### 🌐 2. Domain Memory Hub (Permanent Subscription)
 Individual cloud servers may expire and IP addresses may change, but your private line stays evergreen. By decoupling the control plane domain from backend exit nodes, your client subscription URL remains permanently valid. You import the profile to your phone or laptop once, and roam forever.
 
 ### 🔄 3. Multi-Landing Relay & Zero-Touch Self-Healing
-For inland relay nodes, the system automatically configures dual overseas landing channels (e.g., Beijing ➜ Silicon Valley [primary] + Singapore [backup]). Powered by sing-box native `urltest` health probes, traffic seamlessly fails over to the backup landing within seconds if the primary exit encounters network anomalies.
+For inland relay nodes, the system automatically configures dual overseas landing channels (e.g., Beijing ➜ Silicon Valley [primary] + Singapore [backup]). Powered by sing-box native `urltest` health probes, traffic can fail over to the backup landing according to the configured health-check interval if the primary exit encounters network anomalies.
 
 ### ⚡ 4. Pre-Flight 3-Second Port Probe
 Before initiating any deployment, the engine executes a 3-second TCP port 22 handshake check. If the port is unreachable, it immediately halts and provides human-readable diagnostic instructions (e.g., *"Port 22 is blocked; please verify the server is powered on and security group rules allow TCP 22"*), preventing broken intermediate states.
@@ -111,7 +151,7 @@ VPN-OwnLine/
 ├── web/                    Web console frontend
 │   └── index.html          OpenDesign paper-serif single-page interface (bilingual, zero build)
 ├── scripts/
-│   ├── test.sh             13 offline unit test suites (272 tests, 100% PASS)
+│   ├── test.sh             13 offline unit test suites (301 tests, 100% PASS)
 │   ├── verify.sh           21 live end-to-end integration acceptance tests
 │   └── drift.py            Configuration drift detection against golden templates
 └── README.md               Project overview & quickstart guide
@@ -123,7 +163,7 @@ VPN-OwnLine/
 
 We adhere to strict industrial Definition of Done (DoD) standards. Subjective "looks good" claims are forbidden; every release must produce objective machine evidence:
 
-* **Offline Unit Test Gate**: Run `./scripts/test.sh` — **13 test suites, 272 assertions must pass at 100%** with zero network dependency.
+* **Offline Unit Test Gate**: Run `./scripts/test.sh` — **13 test suites, 301 assertions must pass at 100%** with zero network dependency.
 * **Production Acceptance Gate**: Run `./scripts/verify.sh <URL> <user> <pass> <token>` — **21 end-to-end live integration tests must pass with 0 failures**.
 
 ---
