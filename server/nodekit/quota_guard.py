@@ -10,6 +10,7 @@
        - 在订阅下发层自动剔除该节点，客户端平滑退守直连备用机。
 """
 import json
+import math
 import os
 import subprocess
 
@@ -53,24 +54,25 @@ def evaluate_instance_quota(instance_data, warning_pct=DEFAULT_WARNING_PCT,
             "reason": "无用量数据",
         }
 
-    # 优先解析生产环境真实字段 (used / total in GB)
-    if "used" in instance_data and "total" in instance_data:
-        try:
-            used_gb = float(instance_data.get("used") or 0.0)
-            total_gb = float(instance_data.get("total") or 1024.0)
+    # 缺失、错误或非有限数值均为未知；不能据此解除已有熔断。
+    try:
+        if "used" in instance_data or "total" in instance_data:
+            used_gb = float(instance_data["used"])
+            total_gb = float(instance_data["total"])
             used_bytes = int(used_gb * (1024 ** 3))
             total_bytes = int(total_gb * (1024 ** 3))
-            pct = round((used_gb / total_gb) * 100, 1) if total_gb > 0 else 0.0
-        except Exception:
-            used_gb, total_gb, pct = 0.0, 1024.0, 0.0
-            used_bytes, total_bytes = 0, DEFAULT_PACKAGE_SIZE
-    else:
-        pkg = instance_data.get("traffic_package") or {}
-        used_bytes = int(pkg.get("used_bytes") or 0)
-        total_bytes = int(pkg.get("total_bytes") or DEFAULT_PACKAGE_SIZE)
-        used_gb = round(used_bytes / (1024 ** 3), 2)
-        total_gb = round(total_bytes / (1024 ** 3), 2)
-        pct = round((used_bytes / total_bytes) * 100, 1) if total_bytes > 0 else 0.0
+        else:
+            pkg = instance_data["traffic_package"]
+            used_bytes = int(pkg["used_bytes"])
+            total_bytes = int(pkg["total_bytes"])
+            used_gb = used_bytes / (1024 ** 3)
+            total_gb = total_bytes / (1024 ** 3)
+        if not (math.isfinite(used_gb) and math.isfinite(total_gb)
+                and used_gb >= 0 and total_gb > 0):
+            raise ValueError("无效用量")
+        pct = round((used_gb / total_gb) * 100, 1)
+    except (KeyError, TypeError, ValueError, OverflowError):
+        return evaluate_instance_quota(None, warning_pct, tripped_pct)
 
     if pct >= tripped_pct:
         status = "tripped"
@@ -186,24 +188,41 @@ def enforce_quota(nodes, usage_data, runner=subprocess.run, state_file=QUOTA_STA
         host = node.get("host")
         if not host or node.get("source") == "external":
             continue
-        eval_res = evaluate_instance_quota(usage_data.get(host), tripped_pct=DEFAULT_TRIPPED_PCT)
-        
-        # 触发熔断断流
+        eval_res = evaluate_instance_quota((usage_data or {}).get(host), tripped_pct=DEFAULT_TRIPPED_PCT)
+        if eval_res["status"] == "unknown":
+            continue
+
         if eval_res["is_tripped"] and host not in stopped_ips:
-            stop_node_proxy(node, runner=runner)
+            action, execute = "stop", stop_node_proxy
+        elif not eval_res["is_tripped"] and host in stopped_ips:
+            action, execute = "start", start_node_proxy
+        else:
+            continue
+
+        # subprocess 默认不因非零返回码抛异常，必须先确认结果再变更状态。
+        error = None
+        try:
+            result = execute(node, runner=runner)
+            if result is None or result.returncode != 0:
+                error = "远程命令未成功" if result is None else f"远程命令返回码 {result.returncode}"
+        except Exception as exc:
+            error = f"远程命令异常 ({type(exc).__name__})"
+        if error:
+            if logger:
+                logger.log("ERROR", "QUOTA", f"节点 [{node.get('name', host)}] {action} 失败：{error}，保留原状态，下次重试")
+            actions.append({"ip": host, "name": node.get("name"), "action": action,
+                            "percent": eval_res["percent"], "ok": False, "error": error})
+            continue
+
+        if action == "stop":
             stopped_ips.add(host)
             msg = f"节点 [{node.get('name', host)}] 已消耗 {eval_res['percent']}% 超过熔断线 85%，已执行物理停机断流"
-            if logger:
-                logger.log("WARN", "QUOTA", msg)
-            actions.append({"ip": host, "name": node.get("name"), "action": "stop", "percent": eval_res["percent"]})
-        # 恢复放行
-        elif not eval_res["is_tripped"] and host in stopped_ips:
-            start_node_proxy(node, runner=runner)
+        else:
             stopped_ips.discard(host)
             msg = f"节点 [{node.get('name', host)}] 流量用量已恢复正常 ({eval_res['percent']}%)，已重新拉起服务"
-            if logger:
-                logger.log("INFO", "QUOTA", msg)
-            actions.append({"ip": host, "name": node.get("name"), "action": "start", "percent": eval_res["percent"]})
+        if logger:
+            logger.log("WARN" if action == "stop" else "INFO", "QUOTA", msg)
+        actions.append({"ip": host, "name": node.get("name"), "action": action, "percent": eval_res["percent"]})
 
     # 持久化状态
     try:

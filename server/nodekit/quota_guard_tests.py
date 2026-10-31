@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """quota_guard.py 的全离网单测。验证真实用量解析与物理断流逻辑。"""
+import json
 import os
+import subprocess
 import sys
 import tempfile
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nodekit import quota_guard  # noqa: E402
@@ -113,11 +116,80 @@ def test_enforce_quota():
             os.remove(state_path)
 
 
+def test_enforce_failures_and_unknown_usage():
+    node = {"name": "测试节点", "host": "192.0.2.10"}
+    other = {"name": "其他节点", "host": "192.0.2.11"}
+    high = {node["host"]: {"used": 90, "total": 100}}
+    low = {node["host"]: {"used": 0, "total": 100}}
+    calls = []
+
+    def success(cmd, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0)
+
+    def failed(cmd, **kwargs):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 255)
+
+    def timeout(cmd, **kwargs):
+        calls.append(cmd)
+        raise subprocess.TimeoutExpired(cmd, 15)
+
+    with tempfile.TemporaryDirectory() as tmp, patch.object(quota_guard, "logger") as log:
+        state_path = os.path.join(tmp, "state.json")
+
+        def stopped():
+            with open(state_path, encoding="utf-8") as f:
+                return json.load(f)["stopped_ips"]
+
+        for runner in (failed, timeout):
+            actions = quota_guard.enforce_quota([node], high, runner=runner, state_file=state_path)
+            check("停机失败返回错误且未记录已停机", actions[0].get("ok") is False and stopped() == [])
+        actions = quota_guard.enforce_quota([node], high, runner=success, state_file=state_path)
+        check("失败后下轮重试停机并持久化成功状态", actions[0]["action"] == "stop" and stopped() == [node["host"]])
+
+        for bad in (None, {}, {"used": "bad", "total": 100}, {"used": 0},
+                    {"used": 0, "total": 0}, {"used": -1, "total": 100},
+                    {"used": float("nan"), "total": 100}, {"used": 1, "total": float("inf")},
+                    {"traffic_package": {"used_bytes": "bad", "total_bytes": 100}},
+                    {"traffic_package": {"used_bytes": 0, "total_bytes": -1}}):
+            calls.clear()
+            # 模拟其他地区采集成功、已熔断节点数据缺失或损坏。
+            partial = {other["host"]: {"used": 10, "total": 100}}
+            if bad is not None:
+                partial[node["host"]] = bad
+            actions = quota_guard.enforce_quota([node, other], partial, runner=success, state_file=state_path)
+            check("未知用量保留熔断状态且不启动", not actions and not calls and stopped() == [node["host"]])
+            check("缺失或无效用量标为 unknown", quota_guard.evaluate_instance_quota(bad)["status"] == "unknown")
+
+        for runner in (failed, timeout):
+            actions = quota_guard.enforce_quota([node], low, runner=runner, state_file=state_path)
+            check("恢复失败保留已熔断状态", actions[0].get("ok") is False and stopped() == [node["host"]])
+        actions = quota_guard.enforce_quota([node], low, runner=success, state_file=state_path)
+        check("有效零用量允许恢复且下轮重试成功", actions[0]["action"] == "start" and stopped() == [])
+        check("执行失败写入错误日志", any(c.args[0] == "ERROR" for c in log.log.call_args_list))
+
+        calls.clear()
+        # 单个节点异常不应阻断后面的超标节点。
+        def mixed(cmd, **kwargs):
+            if any(node["host"] in arg for arg in cmd):
+                return timeout(cmd, **kwargs)
+            return success(cmd, **kwargs)
+        both_high = {n["host"]: {"used": 90, "total": 100} for n in (node, other)}
+        actions = quota_guard.enforce_quota([node, other], both_high, runner=mixed, state_file=state_path)
+        check("单节点异常不阻断其他节点熔断", len(actions) == 2 and stopped() == [other["host"]])
+
+        with patch.object(quota_guard, "repair", None):
+            actions = quota_guard.enforce_quota([node], high, runner=success, state_file=state_path)
+            check("远程执行器不可用不记录停机成功", actions[0].get("ok") is False and stopped() == [other["host"]])
+
+
 def run_all():
     test_evaluate_instance_real_format()
     test_evaluate_instance_legacy_bytes()
     test_evaluate_all_summary()
     test_enforce_quota()
+    test_enforce_failures_and_unknown_usage()
     print(f"通过 {ok} 项")
 
 
