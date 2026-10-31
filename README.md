@@ -1,7 +1,7 @@
 # VPN-OwnLine · Evergreen
 
-> **Turn Tencent Cloud & personal VPS into your private, dedicated, and self-healing cross-border line.**  
-> *First-class automated assembly for Tencent Cloud, generic Linux VPS supported, with multi-cloud automation on the roadmap.*
+> **Turn your own Linux server into a private, dedicated cross-border line.**<br>
+> *Start with SSH. Optional Tencent Cloud Lighthouse integration adds native cloud capabilities; other providers use generic SSH on compatible hosts.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3 Standard Library](https://img.shields.io/badge/Python-3%20Stdlib%20Only-brightgreen.svg)]()
@@ -12,24 +12,31 @@
 
 **Current patch validation:** 13 offline suites / 301 checks passed. This patch has not been deployed; the 21-check production acceptance suite has not been rerun.
 
+## Need a server?
+
+Compare affordable servers and free-tier or trial options in the [server buying and preparation guide](docs/server-buying-guide.md). It covers deployment outside mainland China, offer conditions and the total cost beyond the VM. Already have a server? Continue below.
+
 ## AI-assisted setup
 
-Already bought a Tencent Cloud server, but unsure what to do next? Copy this into an AI assistant you use:
+Start with your server's **SSH address and login**; `root` is the proposed form default, while some images use another administrative user. Optional **Tencent Cloud** authorization belongs below SSH access and is not required to begin. This entry order is the design target; the current web interface has not been updated in this documentation revision.
+
+Not sure where to start? Copy this into an AI assistant you use:
 
 ```text
-Help me set up https://github.com/AdgaiWalker/VPN-OwnLine on my own Linux server. Read the README first and follow its AI assistance instructions. Reply in my language.
+Help me prepare and set up https://github.com/AdgaiWalker/VPN-OwnLine on my own Linux server. Read the README first and follow its AI assistance instructions. If I do not have a server, start with the buying guide. Reply in my language.
 ```
 
 You can start without knowing Linux or filling out a long form. The AI should help you identify your server, prepare access, inspect it, and continue only within your confirmed setup scope. Use a local checkout when available; otherwise read the repository and current official cloud documentation. Do not invent a different installer.
 
 ### What the AI should do
 
-1. **Find your server.** Help you locate the right Tencent Cloud product and instance, then identify its region, instance ID, public address, system and login method. Ask you to select the target if several servers exist. Lighthouse has native cloud integration; CVM and other supported Linux hosts use the generic SSH path until their native APIs are implemented.
-2. **Prepare SSH access.** Explain where to enter your username and password or private key securely. An old password cannot be promised recoverable from the console; if it is unavailable, explain the reset options and effects first and let you complete sensitive input and required verification. Tencent Cloud Ubuntu images may use `ubuntu` with sudo or keys rather than root password login. Keep the SSH port separate from the proxy service port.
-3. **Prepare cloud access when needed.** Guide you through a dedicated Tencent Cloud CAM sub-user with the permissions required for discovery and usage monitoring. Explain and confirm any additional firewall permissions; password resets and server reboots are separate operations, not implicit permission to administer the entire account. SecretId/SecretKey are cloud API credentials, not the server's SSH login. SecretKey is shown only when created. Let you save and enter secrets through an appropriate secure channel; do not ask for them in ordinary chat, screenshots or public logs.
-4. **Inspect before changing.** After connection, report the target, system, existing sing-box and compatibility. Preserve compatible existing configuration. Connecting does not itself authorize installation, overwriting, restarting or uninstalling.
-5. **Continue after your setup confirmation.** Once you confirm the target and start installation, use the project's existing installation/API path and report actual progress. If a task is already running, observe it rather than launch a second installer. Do not bypass missing features by silently editing managed files over SSH. Explain a capability gap when the current code does not yet support the requested design.
-6. **Verify and hand back.** Distinguish SSH reachable, installation finished, service verified and subscription imported. Help you import into Shadowrocket, Clash or FL Clash. The native client handles connection and node selection. Mask credentials in summaries and claim success only with evidence.
+1. **Prepare a server if needed.** Read the [buying guide](docs/server-buying-guide.md). Ask about budget, connection location, use and traffic; compare a small suitable shortlist using current official information. Distinguish recurring free allowances, trials and credits, including IP and traffic costs and verification requirements. Let you purchase or activate the chosen server yourself. Start with an existing compatible server when available.
+2. **Find your server.** Help you locate the actual provider, product and instance, then identify its region, instance ID, public address, system and login method. Ask you to select the target if several servers exist. Generic SSH is the default path, including for Tencent users; cloud authorization is optional. Lighthouse has native cloud integration; Tencent CVM and other compatible Linux hosts use generic SSH without native cloud usage protection.
+3. **Prepare SSH access first.** Explain where to enter your username and password or private key securely. An old password cannot be promised recoverable from the console; if it is unavailable, explain the reset options and effects first and let you complete sensitive input and required verification. Some Ubuntu images use `ubuntu` with sudo or keys rather than root password login. First deployment can run as root through sudo, but the current remote installer does not automatically elevate a non-root SSH user and uses SSH port 22. Explain these limitations rather than silently changing login settings. Keep the SSH port separate from the proxy service port.
+4. **Offer Tencent cloud access only when useful.** For Lighthouse discovery and usage monitoring, optionally guide you through a dedicated Tencent Cloud CAM sub-user with the required permissions. Do not require CAM before SSH or invent equivalent native adapters for other providers. Explain and confirm additional firewall permissions; password resets and server reboots are separate operations. SecretId/SecretKey are cloud API credentials, not the server's SSH login. SecretKey is shown only when created. Let you save and enter secrets securely; do not ask for them in ordinary chat, screenshots or public logs.
+5. **Inspect before changing.** After connection, report the target, system, existing sing-box and compatibility. Preserve compatible existing configuration. Connecting does not itself authorize installation, overwriting, restarting or uninstalling. The product's independent read-only Connect flow is planned; do not run an install job as a substitute for read-only inspection.
+6. **Continue after your setup confirmation.** Once you confirm the target and start installation, use the project's existing installation/API path and report actual progress. If a task is already running, observe it rather than launch a second installer. Do not bypass missing features by silently editing managed files over SSH. Explain a capability gap when the current code does not yet support the requested design.
+7. **Verify and hand back.** Distinguish SSH reachable, installation finished, service verified and subscription imported. Help you import into Shadowrocket, Clash or FL Clash. The native client handles connection and node selection. Mask credentials in summaries and claim success only with evidence.
 
 Start with [the design specification](docs/设计/客户端Web交互设计规格说明书.md), especially sections 5, 10.7, 10.8 and 12, and [the engineering rules](docs/核心文档/04-工程规范与验收标准.md). The specification includes planned behavior; it is not a claim that every flow is already implemented. No Harness, skill installation or in-product AI runtime is required.
 
@@ -39,8 +46,9 @@ Start with [the design specification](docs/设计/客户端Web交互设计规格
 
 | Situation | Copy this prompt |
 |---|---|
-| I cannot find the server or its address | I bought a Tencent Cloud Linux server. Help me find the correct instance and its public IP, system and SSH login method. Start with read-only inspection; do not change anything yet. |
-| I need cloud account access | Help me prepare a dedicated Tencent Cloud CAM sub-user for VPN-OwnLine. Explain the minimum permissions and guide me through saving API credentials securely; do not request my SecretKey in chat. |
+| I do not have a server | Read VPN-OwnLine's README and buying guide. Help me choose an affordable compatible server outside mainland China. Ask about my budget, connection location, intended use and monthly traffic, then compare a small shortlist using current official information. Explain ongoing cost, free-tier limits and verification requirements. I will complete the purchase or activation myself. |
+| I cannot find the server or its address | I bought a Linux server. Help me identify its provider and correct instance, public IP, system and SSH login method. Start with read-only inspection; do not change anything yet or require cloud API authorization. |
+| I want optional Tencent Cloud integration | I want to add Tencent Lighthouse cloud integration to VPN-OwnLine. Help me prepare a dedicated CAM sub-user. Explain the minimum permissions and guide me through saving API credentials securely; do not request my SecretKey in chat. Keep this separate from SSH access. |
 | The server is connected | Help me inspect this connected server using VPN-OwnLine. Keep existing compatible sing-box configuration. Show me what needs to happen before installation, and continue after I confirm the target and start installation. |
 | Installation or import failed | Help me diagnose VPN-OwnLine using the current README and design specification. Read status and logs first, mask secrets, and explain the evidence before proposing changes. |
 
@@ -65,11 +73,13 @@ We prioritize real-world reliability over empty promises. Our current architectu
 
 | Cloud Provider / Infrastructure | Integration Tier | Key Automated Capabilities | Current Status |
 |---|---|---|---|
-| **Tencent Cloud Lighthouse** | **Tier 1: Full Automation** | CAM instance auto-discovery, API automated firewall rules (TCP 22/443/8443, UDP 443), traffic package telemetry every 10 minutes, 85% quota physical circuit breaker | 🟢 **Production Ready (Fully Automated)** |
-| **Generic Linux VPS (Any Provider)** | **Tier 2: Generic SSH Access** | Enter IP + root password: automated deployment on supported Debian/Ubuntu hosts, dual Reality + Hysteria2 protocols, multi-landing failover | 🟢 **Generic SSH Access (Supported Linux Hosts)** |
-| **Alibaba Cloud / AWS / Oracle Cloud / GCP** | **Tier 3: Strategic Roadmap** | Native API auto-discovery, automated quota telemetry, and cloud firewall orchestration | 🟡 **Planned (Multi-Cloud Ecosystem)** |
+| **Compatible Linux VPS (Any Provider)** | **Default: Generic SSH** | Address, username (default root) and password/private key; existing remote installation path with current privilege and port limitations | Generic SSH exists; the revised entry order and independent read-only Connect flow are planned |
+| **Tencent Cloud Lighthouse** | **Optional: Native cloud APIs** | CAM instance discovery, supported firewall actions, real traffic-package telemetry and 85% quota protection when configured | Lighthouse adapter exists; authorization is optional and separate from SSH |
+| **Other cloud providers** | **Native APIs: Roadmap** | Provider-specific discovery, cloud firewall and usage integration | Not implemented; buying-guide inclusion does not add these capabilities |
 
 **CVM support:** CVM instances can use the generic SSH path on supported Linux systems; native CVM discovery, firewall and usage APIs are not implemented.
+
+The [buying guide](docs/server-buying-guide.md) contains the provider shortlist and current-offer references. Generic SSH alone does not provide cloud-billing protection for any provider, including Tencent Cloud.
 
 ---
 
