@@ -7,9 +7,9 @@
 <meta name="theme-color" content="#f5f4ed" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#141413" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="梯子">
+<meta name="apple-mobile-web-app-title" content="长青专线">
 <link rel="apple-touch-icon" href="icon.png">
-<title>梯子</title>
+<title>长青 · 个人专线 (VPN-OwnLine)</title>
 <style>
 /* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
    Put this @layer first; product CSS outside the layer wins ordinary layout rules.
@@ -452,7 +452,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
 
 <div class="page">
   <header class="topbar">
-    <a class="brand" href="#" aria-label="梯子首页">梯子</a>
+    <a class="brand" href="#" aria-label="长青专线首页">长青 · 个人专线</a>
     <span class="pill" id="pill">连接中</span>
   </header>
 
@@ -630,7 +630,7 @@ dialog.sheet::backdrop { background: rgba(0, 0, 0, .45); }
     </div>
   </main>
 
-  <footer>数据每 10 分钟自动更新 · 梯子服务运行正常</footer>
+  <footer>数据每 10 分钟自动更新 · 专线服务运行正常</footer>
 </div>
 
 <script>
@@ -1480,7 +1480,7 @@ function wireLinks(){
   if(!BASE_SUB_URL) BASE_SUB_URL = raw;
   var sub = BASE_SUB_URL;
   code.textContent = sub;
-  var title = encodeURIComponent('我的长青梯子');
+  var title = encodeURIComponent('长青 · 个人专线');
   var sr=document.getElementById('btn-sr'), cl=document.getElementById('btn-clash');
   if(sr) sr.href='shadowrocket://add/sub://'+btoa(sub)+'?title='+title;
   if(cl) cl.href='clash://install-config?url='+encodeURIComponent(sub)+'&name='+title;
