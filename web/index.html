@@ -1149,15 +1149,15 @@ footer.site-footer {
     <!-- State A: Main Dashboard -->
     <div id="view-dashboard">
       <div class="sub-header">
-        <h1 class="main-title" id="serving-node-title">连接配置</h1>
+        <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
         <div class="quota-glance" id="quota-glance" style="display:none" title="总流量使用">
           <span class="quota-glance-bar"><i id="quota-glance-fill" style="width: 0%;"></i></span>
           <span id="quota-glance-text">0 / 0 GB</span>
         </div>
-        <span class="sub-status" id="serving-node-ip">已加载</span>
+        <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
         <div style="margin-left:auto;display:flex;gap:8px">
           <button class="btn btn-outline tiny" type="button" id="btn-enter-setup" style="font-weight:500;display:inline-flex;align-items:center;gap:4px">
-            + 添加节点
+            <span data-i18n="btn_add_node">+ 添加节点</span>
           </button>
         </div>
       </div>
@@ -1166,8 +1166,8 @@ footer.site-footer {
       <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:14px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line)">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;font-weight:600;color:var(--apple-fg)">本月出海总流量</span>
-            <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 6px">充足</span>
+            <span style="font-size:13px;font-weight:600;color:var(--apple-fg)" data-i18n="quota_hero_title">本月出海总流量</span>
+            <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 6px" data-i18n="quota_status_ok">充足</span>
           </div>
           <div style="font-size:13px;font-family:var(--mono)">
             <b id="quota-hero-used" style="font-size:14px;color:var(--apple-fg)">0</b> / <span id="quota-hero-total" style="color:var(--apple-muted)">0 GB</span>
@@ -1178,14 +1178,14 @@ footer.site-footer {
           <i id="quota-hero-fill" style="display:block;height:100%;width:0%;background:var(--apple-blue);border-radius:999px;transition:width .3s ease"></i>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--apple-muted)">
-          <span>剩余：<b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
-          <span id="quota-hero-nodes-safe">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
+          <span><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
+          <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
         </div>
       </div>
 
       <!-- Unready State Box -->
       <div id="client-unready-box" style="margin-top:14px;padding:18px 16px;background:var(--surface-soft);border:1px dashed var(--line);text-align:center">
-        <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:4px">正在连接服务...</div>
+        <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:4px" data-i18n="connecting_svc">正在连接服务...</div>
         <div class="small muted" id="unready-note"></div>
       </div>
 
@@ -1194,16 +1194,16 @@ footer.site-footer {
         <div class="apple-hero-bar">
           <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
             <span class="apple-hero-icon"><svg class="ico" width="15" height="15"><use href="#i-zap"/></svg></span>
-            <span class="apple-hero-title">连接本机</span>
+            <span class="apple-hero-title" data-i18n="connect_device">连接本机</span>
             <span id="client-device-badge" class="apple-device-pill">检测中...</span>
           </button>
           <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="复制订阅链接">
             <svg class="ico" width="14" height="14"><use href="#i-copy"/></svg>
-            <span>复制链接</span>
+            <span data-i18n="copy_link">复制链接</span>
           </button>
           <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="扫码导入订阅">
             <svg class="ico" width="14" height="14"><use href="#i-qr"/></svg>
-            <span>扫码连接</span>
+            <span data-i18n="scan_qr">扫码连接</span>
           </button>
         </div>
         <div id="copy-note" class="small" role="status" style="display:none;margin-top:6px;color:var(--ok)"></div>
@@ -1227,28 +1227,28 @@ footer.site-footer {
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/shadowrocket.png" alt="Shadowrocket" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">Shadowrocket</b>
-                  <span class="apple-client-desc">iOS 推荐</span>
+                  <span class="apple-client-desc" data-i18n="sr_badge">iOS 推荐</span>
                 </div>
-                <span class="apple-client-action-pill primary" id="pill-sr">打开</span>
+                <span class="apple-client-action-pill primary" id="pill-sr" data-i18n="btn_open">打开</span>
               </a>
               <div class="client-assist-card" id="assist-sr" style="display:none">
                 <div class="assist-status-bar">
                   <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
-                  <span>正在唤起客户端...</span>
+                  <span data-i18n="launching_client">正在唤起客户端...</span>
                 </div>
                 <div class="assist-guidance">
-                  <span class="assist-prompt">未安装客户端？</span>
+                  <span class="assist-prompt" data-i18n="not_installed">未安装客户端？</span>
                   <div class="assist-btn-group">
                     <a class="btn tiny assist-action-btn" id="download-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="display:none">
                       <svg class="ico" width="12" height="12"><use href="#i-smartphone"/></svg> App Store
                     </a>
-                    <button class="btn tiny assist-action-btn" type="button" onclick="window.ownlineToggleAppleId()">
+                    <button class="btn tiny assist-action-btn" type="button" onclick="window.ownlineToggleAppleId()" data-i18n="need_us_apple_id">
                       需要美区 Apple ID？
                     </button>
                   </div>
                 </div>
                 <div id="apple-store-help" style="display:none" class="apple-id-callout">
-                  <p class="small muted" style="margin:0">免费账号：<a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a>（仅在 App Store 登录，切勿登录 iCloud）。</p>
+                  <p class="small muted" style="margin:0"><span data-i18n="free_acc_prefix">免费账号：</span><a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a><span data-i18n="free_acc_suffix">（仅在 App Store 登录，切勿登录 iCloud）。</span></p>
                 </div>
               </div>
             </div>
@@ -1259,26 +1259,26 @@ footer.site-footer {
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/clash.png" alt="Clash" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">Clash</b>
-                  <span class="apple-client-desc">全平台通用</span>
+                  <span class="apple-client-desc" data-i18n="clash_badge">全平台通用</span>
                 </div>
-                <span class="apple-client-action-pill" id="pill-clash">打开</span>
+                <span class="apple-client-action-pill" id="pill-clash" data-i18n="btn_open">打开</span>
               </a>
               <div class="client-assist-card" id="assist-clash" style="display:none">
                 <div class="assist-status-bar">
                   <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
-                  <span>正在唤起客户端...</span>
+                  <span data-i18n="launching_client">正在唤起客户端...</span>
                 </div>
                 <div class="assist-guidance">
-                  <span class="assist-prompt">未安装客户端？</span>
+                  <span class="assist-prompt" data-i18n="not_installed">未安装客户端？</span>
                   <div class="assist-btn-group">
-                    <a class="btn tiny assist-action-btn" id="download-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="display:none">
+                    <a class="btn tiny assist-action-btn" id="download-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="display:none" data-i18n="btn_download">
                       前往下载
                     </a>
-                    <button class="btn tiny assist-action-btn" type="button" id="btn-copy-clash">
+                    <button class="btn tiny assist-action-btn" type="button" id="btn-copy-clash" data-i18n="copy_link">
                       复制链接
                     </button>
                   </div>
-                  <p id="clash-ios-help" class="small muted" style="display:none;margin:6px 0 0">Clash: 请选择适用的 iOS 下载渠道。</p>
+                  <p id="clash-ios-help" class="small muted" style="display:none;margin:6px 0 0" data-i18n="clash_ios_help">Clash: 请选择适用的 iOS 下载渠道。</p>
                 </div>
               </div>
             </div>
@@ -1289,19 +1289,19 @@ footer.site-footer {
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/flclash.svg" alt="FL Clash" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">FL Clash</b>
-                  <span class="apple-client-desc">全平台通用</span>
+                  <span class="apple-client-desc" data-i18n="flclash_badge">全平台通用</span>
                 </div>
-                <span class="apple-client-action-pill" id="pill-flclash">打开</span>
+                <span class="apple-client-action-pill" id="pill-flclash" data-i18n="btn_open">打开</span>
               </a>
               <div class="client-assist-card" id="assist-flclash" style="display:none">
                 <div class="assist-status-bar">
                   <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
-                  <span>正在唤起客户端...</span>
+                  <span data-i18n="launching_client">正在唤起客户端...</span>
                 </div>
                 <div class="assist-guidance">
-                  <span class="assist-prompt">未安装客户端？</span>
+                  <span class="assist-prompt" data-i18n="not_installed">未安装客户端？</span>
                   <div class="assist-btn-group">
-                    <a class="btn tiny assist-action-btn" id="download-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="display:none">
+                    <a class="btn tiny assist-action-btn" id="download-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="display:none" data-i18n="btn_download">
                       前往下载
                     </a>
                   </div>
@@ -1312,12 +1312,12 @@ footer.site-footer {
 
           <div class="apple-sheet-footer">
             <details class="inner apple-disclosure" id="download-help" style="border:none;background:transparent;padding:0">
-              <summary class="small muted" style="cursor:pointer;list-style:none;text-align:center">手动复制链接与撤销</summary>
+              <summary class="small muted" style="cursor:pointer;list-style:none;text-align:center" data-i18n="manual_copy_toggle">手动复制链接与撤销</summary>
               <div class="client-help-content" style="margin-top:8px">
-                <code id="suburl" title="点击复制" style="overflow-wrap:anywhere;display:block;padding:8px 10px;background:var(--apple-card-secondary);border-radius:8px;font-size:12px;font-family:var(--mono);cursor:pointer">订阅链接暂不可用</code>
+                <code id="suburl" title="点击复制" style="overflow-wrap:anywhere;display:block;padding:8px 10px;background:var(--apple-card-secondary);border-radius:8px;font-size:12px;font-family:var(--mono);cursor:pointer" data-i18n="sub_empty">订阅链接暂不可用</code>
                 <div style="display:flex;gap:8px;margin-top:8px">
-                  <button class="btn tiny" type="button" id="btn-copy-sub-manual" style="flex:1">复制订阅链接</button>
-                  <button class="btn tiny" type="button" id="btn-rotate" onclick="window.ownlineRotate()" style="color:var(--apple-red,#e03131)">撤销旧订阅</button>
+                  <button class="btn tiny" type="button" id="btn-copy-sub-manual" style="flex:1" data-i18n="sub_copy_btn">复制订阅链接</button>
+                  <button class="btn tiny" type="button" id="btn-rotate" onclick="window.ownlineRotate()" style="color:var(--apple-red,#e03131)" data-i18n="rotate_btn">撤销旧订阅</button>
                 </div>
               </div>
             </details>
@@ -1330,14 +1330,14 @@ footer.site-footer {
         <div class="sheet-inner qr-modal-box">
           <div class="apple-sheet-header" style="justify-content:center;position:relative">
             <div>
-              <h2 class="apple-sheet-title" style="font-size:17px">扫码导入订阅</h2>
+              <h2 class="apple-sheet-title" style="font-size:17px" data-i18n="scan_qr_title">扫码导入订阅</h2>
             </div>
             <button class="apple-sheet-close" type="button" onclick="document.getElementById('qr-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
           </div>
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <p class="small muted" style="margin:0;line-height:1.4">请使用系统相机或小火箭扫描添加。</p>
+          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用系统相机或小火箭扫描添加。</p>
         </div>
       </dialog>
 
@@ -1346,11 +1346,11 @@ footer.site-footer {
         <div class="sheet-inner" style="width:min(380px, calc(100vw - 32px))">
           <div class="apple-sheet-header" style="position:relative;margin-bottom:12px">
             <div>
-              <h2 class="apple-sheet-title" id="relay-dialog-title" style="font-size:16px;font-weight:600">设为中转加速专线</h2>
+              <h2 class="apple-sheet-title" id="relay-dialog-title" style="font-size:16px;font-weight:600" data-i18n="relay_dialog_title">设为中转加速专线</h2>
             </div>
             <button class="apple-sheet-close" type="button" onclick="document.getElementById('relay-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
           </div>
-          <p class="small muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.4">选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：</p>
+          <p class="small muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.4" data-i18n="relay_dialog_desc">选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：</p>
           <div id="relay-targets-list" style="display:flex;flex-direction:column;gap:8px">
           </div>
         </div>
@@ -1358,33 +1358,33 @@ footer.site-footer {
 
       <details class="inner" id="nodes-section" open style="margin-top:20px">
         <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
-          <span>节点列表 <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span></span>
+          <span><span data-i18n="nodes_title">节点列表</span> <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span></span>
           <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)">
             <svg class="ico ping-icon" width="12" height="12"><use href="#i-refresh"/></svg>
-            <span>测速</span>
+            <span data-i18n="btn_speedtest">测速</span>
           </button>
         </summary>
-        <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0">正在加载节点列表...</div></div>
+        <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
         <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
           <div style="display:flex;gap:8px;align-items:center">
-            <button class="btn tiny" type="button" id="backup-export">备份节点</button>
-            <button class="btn tiny" type="button" id="backup-restore">恢复配置</button>
+            <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
+            <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
             <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
           </div>
-          <span class="small muted" id="backup-note" role="status">恢复操作只会替换节点配置。</span>
+          <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
       </details>
       <details class="inner apple-disclosure" id="quota-section" style="margin-top:16px;border:none;background:transparent;padding:0">
         <summary style="cursor:pointer;font-size:12.5px;color:var(--apple-muted);padding:4px 0;display:inline-flex;align-items:center;gap:4px">
-          <span>流量熔断保护设置</span>
+          <span data-i18n="quota_section_title">流量熔断保护设置</span>
         </summary>
-        <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none">服务器流量</h2><div class="small muted">正在加载流量统计...</div></div>
+        <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none" data-i18n="quota_heading">服务器流量</h2><div class="small muted" data-i18n="quota_loading">正在加载流量统计...</div></div>
         <div class="inner" id="quota-settings" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
           <form id="quota-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500">超额熔断阈值 (1–100%)</label>
-            <p class="small muted" style="margin:0 0 6px;flex-basis:100%">当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。</p>
+            <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500" data-i18n="quota_threshold_lbl">超额熔断阈值 (1–100%)</label>
+            <p class="small muted" style="margin:0 0 6px;flex-basis:100%" data-i18n="quota_threshold_desc">当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。</p>
             <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px;border-radius:6px;border:1px solid var(--line)">
-            <button class="btn tiny" type="submit">保存</button><span class="small muted" id="quota-note" role="status"></span>
+            <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
       </details>
@@ -1394,28 +1394,28 @@ footer.site-footer {
     <div id="view-setup" style="display:none">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)">
         <div>
-          <h2 id="setup-title" tabindex="-1" style="font-size:16px;margin:0;display:inline-block">添加服务器</h2>
+          <h2 id="setup-title" tabindex="-1" style="font-size:16px;margin:0;display:inline-block" data-i18n="setup_title">添加服务器</h2>
         </div>
-        <button class="btn tiny" type="button" id="btn-cancel-setup" style="font-weight:500">← 返回</button>
+        <button class="btn tiny" type="button" id="btn-cancel-setup" style="font-weight:500" data-i18n="btn_back">← 返回</button>
       </div>
 
       <!-- Segment Switching: Direct Connection vs Tencent Cloud -->
       <div class="seg" role="group" aria-label="连接方式" style="max-width:360px;margin-bottom:14px">
-        <button class="segbtn active" type="button" id="tab-other" aria-pressed="true">SSH 直连</button>
-        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false">腾讯云 API</button>
+        <button class="segbtn active" type="button" id="tab-other" aria-pressed="true" data-i18n="tab_ssh">SSH 直连</button>
+        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false" data-i18n="tab_tc">腾讯云 API</button>
       </div>
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
-        <p class="small muted">通过 API 密钥自动发现轻量云主机。</p>
+        <p class="small muted" data-i18n="tc_desc">通过 API 密钥自动发现轻量云主机。</p>
         <div class="field-group" style="margin-bottom:12px">
           <pre id="ai-prompt-text" style="display:none">请协助我在腾讯云控制台为本项目创建一个最小权限的 CAM 子账号（仅限轻量应用服务器只读/防火墙必要权限）。创建 API 密钥时请由我本人操作并自行保存，切勿在对话中输出 SecretId、SecretKey、密码或私钥。</pre>
 
-          <p class="small muted" id="tc-read-status">未连接授权后端。请在腾讯云控制台配置。</p>
+          <p class="small muted" id="tc-read-status" data-i18n="tc_status_unconnected">未连接授权后端。请在腾讯云控制台配置。</p>
           <details class="inner" id="tc-credential-fields" open>
-          <summary>腾讯云 API 凭据</summary>
-          <p class="small muted">凭据仅保存在当前服务器本机。</p>
-          <p class="small muted">需要辅助创建？ <button class="btn tiny" type="button" id="btn-copy-ai-prompt">复制 AI 提示词</button></p>
+          <summary data-i18n="tc_cred_title">腾讯云 API 凭据</summary>
+          <p class="small muted" data-i18n="tc_cred_note">凭据仅保存在当前服务器本机。</p>
+          <p class="small muted"><span data-i18n="tc_need_assist">需要辅助创建？</span> <button class="btn tiny" type="button" id="btn-copy-ai-prompt" data-i18n="tc_copy_ai_prompt">复制 AI 提示词</button></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div class="field" style="flex:1;min-width:180px">
               <label for="tc-sid">SecretId</label>
@@ -1427,13 +1427,13 @@ footer.site-footer {
             </div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
-            <button class="btn" id="btn-tc-read" type="button" disabled>读取实例列表</button>
+            <button class="btn" id="btn-tc-read" type="button" disabled data-i18n="tc_btn_read">读取实例列表</button>
           </div>
           </details>
           <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">AI 配置指引</a></p>
         </div>
         <details class="inner" id="tc-guide-box" style="margin-bottom:10px">
-          <summary>选购与环境准备</summary>
+          <summary data-i18n="tc_guide_summary">选购与环境准备</summary>
           <div class="small muted" style="margin-top:6px;line-height:1.6">
             <p style="margin:2px 0">1. 注意续费规则与每月流量限制。</p>
             <p style="margin:2px 0">2. 操作系统选择原版 Ubuntu 22.04。</p>
@@ -1441,7 +1441,7 @@ footer.site-footer {
           </div>
         </details>
 
-        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary>通过云终端安装</summary><p class="small muted">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
+        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary data-i18n="tc_cloud_install">通过云终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
 
         <!-- Tencent Server List -->
         <div id="tc-srv-section" style="margin-top:12px;display:none">
@@ -1470,40 +1470,40 @@ footer.site-footer {
 
       <!-- Panel Other: Direct SSH Connection -->
       <div id="panel-other">
-        <p class="small muted" style="margin-bottom:12px">输入服务器公网 IP 与 root 密码。</p>
+        <p class="small muted" style="margin-bottom:12px" data-i18n="ssh_input_guide">输入服务器公网 IP 与 root 密码。</p>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
-        <div class="field"><label for="other-ip">公网 IP</label><input id="other-ip" type="text" placeholder="例如 203.0.113.10" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label for="other-credential">Root 密码</label><input id="other-credential" type="password" placeholder="Root 密码或私钥" autocomplete="off" spellcheck="false" aria-describedby="other-key-status other-connect-status" disabled><span class="small muted" id="other-key-status" role="status"></span></div>
-        <details class="inner other-advanced"><summary>高级设置（SSH 端口 / 私钥密码）</summary><div class="field" style="margin-top:10px"><label for="other-user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div class="field"><label for="other-ssh-port">SSH 端口</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px"></div><div class="field"><label for="other-passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off" disabled></div></details>
-        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" disabled>测试连接</button><span class="small muted" id="other-connect-status" role="status">网页测试不可用。</span></div>
+        <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="例如 203.0.113.10" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">Root 密码</label><input id="other-credential" type="password" placeholder="Root 密码或私钥" autocomplete="off" spellcheck="false" aria-describedby="other-key-status other-connect-status" disabled><span class="small muted" id="other-key-status" role="status"></span></div>
+        <details class="inner other-advanced"><summary data-i18n="ssh_advanced_summary">高级设置（SSH 端口 / 私钥密码）</summary><div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div class="field"><label for="other-ssh-port" data-i18n="lbl_ssh_port">SSH 端口</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px"></div><div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off" disabled></div></details>
+        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" disabled data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status" data-i18n="status_web_test_unavail">网页测试不可用。</span></div>
         <div class="check-result-box" id="other-check-result" role="status" style="display:none"></div>
         <div id="node-install-confirm-box" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px">
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <svg class="ico" width="16" height="16" style="color:var(--apple-blue)"><use href="#i-zap"/></svg>
-            <span>就绪，可开始安装</span>
+            <span data-i18n="install_ready_title">就绪，可开始安装</span>
           </div>
           <div class="field" style="margin-bottom:8px">
-            <label for="node-name-input">节点名称</label>
+            <label for="node-name-input" data-i18n="lbl_node_name">节点名称</label>
             <input id="node-name-input" type="text" placeholder="例如 美西 01" style="width:100%" />
           </div>
           <div class="field" style="margin-bottom:12px">
-            <label for="node-role-select">角色</label>
+            <label for="node-role-select" data-i18n="lbl_role">角色</label>
             <select id="node-role-select" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
-              <option value="auto">自动判定（推荐）</option>
-              <option value="exit">出口落地节点</option>
-              <option value="relay">国内中继节点</option>
+              <option value="auto" data-i18n="opt_role_auto">自动判定（推荐）</option>
+              <option value="exit" data-i18n="opt_role_exit">出口落地节点</option>
+              <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
             </select>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn primary" id="btn-submit-addnode" type="button" style="font-weight:600;display:inline-flex;align-items:center;gap:6px">
               <svg class="ico" width="14" height="14"><use href="#i-check"/></svg>
-              <span>开始安装节点</span>
+              <span data-i18n="btn_start_install">开始安装节点</span>
             </button>
             <span class="small muted" id="addnode-submit-status" role="status"></span>
           </div>
         </div>
         </div></div>
-        <details class="inner other-install install-guide"><summary>通过终端安装</summary><p class="small muted">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
+        <details class="inner other-install install-guide"><summary data-i18n="terminal_install_summary">通过终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
         <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">安装指引</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">VPS 选购建议</a></p>
       </div>
     </div>
@@ -1512,34 +1512,34 @@ footer.site-footer {
   <!-- Runtime & Diagnostic Logs -->
   <details class="panel-card inner" id="section-logs" style="margin-top:24px">
     <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-      <span class="log-heading" style="font-size:16px;margin:0">运行与诊断日志</span>
-      <span class="small muted">点击展开</span>
+      <span class="log-heading" style="font-size:16px;margin:0" data-i18n="logs_heading">运行与诊断日志</span>
+      <span class="small muted" data-i18n="logs_click_expand">点击展开</span>
     </summary>
     <div style="margin-top:14px">
       <div class="log-section-head" style="margin-top:0">
-        <span class="small muted">近期系统运行事件与订阅日志</span>
+        <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn tiny" type="button" onclick="window.ownlineHealth()">健康检查</button>
-          <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)">复制诊断</button>
-          <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none">刷新日志</button>
-          <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false">查看全部</button>
+          <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
+          <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
+          <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
+          <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
         </div>
       </div>
       <div id="health" aria-live="polite"></div>
 
       <div class="log-tabs">
-        <button class="log-tab-btn active" type="button" data-lvl="ALL">全部</button>
-        <button class="log-tab-btn" type="button" data-lvl="BAD">仅错误</button>
-        <button class="log-tab-btn" type="button" data-lvl="SUB">订阅</button>
-        <button class="log-tab-btn" type="button" data-lvl="PROBE">探活</button>
+        <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
+        <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
+        <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
+        <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
       </div>
 
       <div id="log-list" class="logbox" style="border:none">
-        <div class="small muted">正在加载日志流...</div>
+        <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
       </div>
 
       <details class="inner" style="margin-top:14px;border:none;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;padding:10px 12px">
-        <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500">核心服务日志：sing-box · Caddy · 管理员</summary>
+        <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500" data-i18n="logs_core_summary">核心服务日志：sing-box · Caddy · 管理员</summary>
         <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap">
           <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('sing-box',this)">sing-box</button>
           <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('caddy',this)">Caddy</button>
@@ -1623,13 +1623,13 @@ footer.site-footer {
 
 <dialog id="backup-dialog" style="max-width:420px;width:calc(100% - 32px);border:1px solid var(--line);padding:20px;color:var(--fg);background:var(--surface)">
   <form method="dialog" id="backup-password-form">
-    <h2 id="backup-dialog-title">备份加密口令</h2>
-    <p class="small muted">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
-    <label for="backup-password">备份口令</label>
+    <h2 id="backup-dialog-title" data-i18n="backup_dialog_title">备份加密口令</h2>
+    <p class="small muted" data-i18n="backup_dialog_desc">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
+    <label for="backup-password" data-i18n="backup_pwd_lbl">备份口令</label>
     <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
-    <div id="backup-confirm-wrap"><label for="backup-confirm" style="margin-top:10px">确认备份口令</label><input id="backup-confirm" type="password" autocomplete="new-password"></div>
+    <div id="backup-confirm-wrap"><label for="backup-confirm" style="margin-top:10px" data-i18n="backup_confirm_lbl">确认备份口令</label><input id="backup-confirm" type="password" autocomplete="new-password"></div>
     <p id="backup-error" class="small" role="status" style="color:var(--bad)"></p>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel">取消</button><button class="btn primary" type="submit">继续</button></div>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
   </form>
 </dialog>
 
@@ -1663,33 +1663,85 @@ footer.site-footer {
       clash_badge: "Cross-platform",
       flclash_badge: "Cross-platform",
       btn_open: "Open",
+      btn_download: "Download",
       launching_client: "Launching client…",
       not_installed: "Client not installed?",
       need_us_apple_id: "Need US Apple ID?",
       free_account_notice: "Free account: idapp.app (App Store only, never sign in to iCloud).",
+      free_acc_prefix: "Free account: ",
+      free_acc_suffix: " (App Store only, never sign in to iCloud).",
+      clash_ios_help: "Clash: Please select the appropriate iOS download channel.",
       manual_copy_toggle: "Manual Link Copy & QR Code",
       sub_empty: "Subscription link unavailable",
       sub_copy_btn: "Copy Subscription Link",
       rotate_btn: "Revoke Old Subscription",
+      scan_qr_title: "Scan QR to Import",
+      scan_qr_desc: "Scan with system camera or Shadowrocket to import.",
+      relay_dialog_title: "Configure as Low-Latency Relay",
+      relay_dialog_desc: "Select the overseas egress landing node directly connected by this domestic server (prevents stutter & packet loss):",
       nodes_title: "Managed Nodes",
       nodes_loading: "Loading node list…",
       nodes_empty: "No nodes connected yet.",
       nodes_export_backup: "Backup Nodes",
       nodes_restore_backup: "Restore Config",
       backup_note_desc: "Restoring will only update node configurations.",
+      btn_speedtest: "Speedtest",
       quota_section_title: "Quota & Circuit Breaker Settings",
+      quota_heading: "Server Traffic",
       quota_loading: "Loading quota statistics…",
       quota_threshold_lbl: "Circuit breaker threshold (1–100%)",
       quota_threshold_desc: "When monthly traffic reaches this threshold, egress is automatically halted to prevent overages.",
       quota_save_btn: "Save",
+      setup_title: "Add Server",
+      tab_ssh: "Direct SSH",
+      tab_tc: "Tencent Cloud API",
+      tc_desc: "Automatically discover Lighthouse VPS via API keys.",
+      tc_status_unconnected: "Backend discovery not configured. Please set up in Tencent Cloud Console.",
+      tc_cred_title: "Tencent Cloud API Credentials",
+      tc_cred_note: "Credentials are saved locally on this server only.",
+      tc_need_assist: "Need setup assistance?",
+      tc_copy_ai_prompt: "Copy AI Prompt",
+      tc_btn_read: "List Instances",
+      tc_guide_summary: "Purchasing & Environment Setup",
+      tc_cloud_install: "Install via Cloud Terminal",
+      tc_run_as_root: "Run as root on Ubuntu 22.04 or Debian 12:",
+      btn_copy_install_cmd: "Copy Install Command",
+      ssh_input_guide: "Enter server public IP and root password.",
+      lbl_pub_ip: "Public IP",
+      lbl_root_pwd: "Root Password",
+      ssh_advanced_summary: "Advanced Settings (SSH Port / Key Passphrase)",
+      lbl_ssh_user: "Username",
+      lbl_ssh_port: "SSH Port",
+      lbl_ssh_passphrase: "Key Passphrase",
+      btn_test_conn: "Test Connection",
+      status_web_test_unavail: "Web check unavailable.",
+      install_ready_title: "Ready to Install",
+      lbl_node_name: "Node Name",
+      lbl_role: "Role",
+      opt_role_auto: "Auto-detect (Recommended)",
+      opt_role_exit: "Egress Landing Node",
+      opt_role_relay: "Domestic Relay Node",
+      btn_start_install: "Start Node Installation",
+      terminal_install_summary: "Install via Terminal",
       logs_heading: "Runtime & Diagnostic Logs",
       logs_click_expand: "Click to expand",
       logs_subheading: "Recent system events and subscription logs",
       logs_health_btn: "Health Check",
       logs_copy_diag_btn: "Copy Diagnostics",
+      btn_refresh_logs: "Refresh Logs",
       logs_view_all: "View All",
+      log_tab_all: "All",
+      log_tab_bad: "Errors",
+      log_tab_sub: "Subscription",
+      log_tab_probe: "Probes",
       logs_loading: "Loading logs…",
       logs_core_summary: "Core service logs: sing-box · Caddy · Admin",
+      backup_dialog_title: "Backup Encryption Passphrase",
+      backup_dialog_desc: "This passphrase is used strictly for in-browser encryption and decryption. If lost, it cannot be recovered.",
+      backup_pwd_lbl: "Backup Passphrase",
+      backup_confirm_lbl: "Confirm Passphrase",
+      backup_cancel: "Cancel",
+      backup_submit: "Continue",
       footer_settings: "Settings & Credentials",
       footer_change_pass: "Change Login Credentials",
       settings_title: "Settings & Credentials",
@@ -1730,33 +1782,85 @@ footer.site-footer {
       clash_badge: "全平台通用",
       flclash_badge: "全平台通用",
       btn_open: "打开",
+      btn_download: "前往下载",
       launching_client: "正在唤起客户端...",
       not_installed: "未安装客户端？",
       need_us_apple_id: "需要美区 Apple ID？",
       free_account_notice: "免费账号：idapp.app（仅在 App Store 登录，切勿登录 iCloud）。",
+      free_acc_prefix: "免费账号：",
+      free_acc_suffix: "（仅在 App Store 登录，切勿登录 iCloud）。",
+      clash_ios_help: "Clash: 请选择适用的 iOS 下载渠道。",
       manual_copy_toggle: "手动复制链接与撤销",
       sub_empty: "订阅链接暂不可用",
       sub_copy_btn: "复制订阅链接",
       rotate_btn: "撤销旧订阅",
+      scan_qr_title: "扫码导入订阅",
+      scan_qr_desc: "请使用系统相机或小火箭扫描添加。",
+      relay_dialog_title: "设为中转加速专线",
+      relay_dialog_desc: "选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：",
       nodes_title: "节点列表",
       nodes_loading: "正在加载节点列表...",
       nodes_empty: "暂未连接任何节点。",
       nodes_export_backup: "备份节点",
       nodes_restore_backup: "恢复配置",
       backup_note_desc: "恢复操作只会替换节点配置。",
+      btn_speedtest: "测速",
       quota_section_title: "流量熔断保护设置",
+      quota_heading: "服务器流量",
       quota_loading: "正在加载流量统计...",
       quota_threshold_lbl: "超额熔断阈值 (1–100%)",
       quota_threshold_desc: "当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。",
       quota_save_btn: "保存",
+      setup_title: "添加服务器",
+      tab_ssh: "SSH 直连",
+      tab_tc: "腾讯云 API",
+      tc_desc: "通过 API 密钥自动发现轻量云主机。",
+      tc_status_unconnected: "未连接授权后端。请在腾讯云控制台配置。",
+      tc_cred_title: "腾讯云 API 凭据",
+      tc_cred_note: "凭据仅保存在当前服务器本机。",
+      tc_need_assist: "需要辅助创建？",
+      tc_copy_ai_prompt: "复制 AI 提示词",
+      tc_btn_read: "读取实例列表",
+      tc_guide_summary: "选购与环境准备",
+      tc_cloud_install: "通过云终端安装",
+      tc_run_as_root: "以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：",
+      btn_copy_install_cmd: "复制安装命令",
+      ssh_input_guide: "输入服务器公网 IP 与 root 密码。",
+      lbl_pub_ip: "公网 IP",
+      lbl_root_pwd: "Root 密码",
+      ssh_advanced_summary: "高级设置（SSH 端口 / 私钥密码）",
+      lbl_ssh_user: "用户名",
+      lbl_ssh_port: "SSH 端口",
+      lbl_ssh_passphrase: "私钥密码",
+      btn_test_conn: "测试连接",
+      status_web_test_unavail: "网页测试不可用。",
+      install_ready_title: "就绪，可开始安装",
+      lbl_node_name: "节点名称",
+      lbl_role: "角色",
+      opt_role_auto: "自动判定（推荐）",
+      opt_role_exit: "出口落地节点",
+      opt_role_relay: "国内中继节点",
+      btn_start_install: "开始安装节点",
+      terminal_install_summary: "通过终端安装",
       logs_heading: "运行与诊断日志",
       logs_click_expand: "点击展开",
       logs_subheading: "近期系统运行事件与订阅日志",
       logs_health_btn: "健康检查",
       logs_copy_diag_btn: "复制诊断",
+      btn_refresh_logs: "刷新日志",
       logs_view_all: "查看全部",
+      log_tab_all: "全部",
+      log_tab_bad: "仅错误",
+      log_tab_sub: "订阅",
+      log_tab_probe: "探活",
       logs_loading: "正在加载日志流...",
       logs_core_summary: "核心服务日志：sing-box · Caddy · 管理员",
+      backup_dialog_title: "备份加密口令",
+      backup_dialog_desc: "备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。",
+      backup_pwd_lbl: "备份口令",
+      backup_confirm_lbl: "确认备份口令",
+      backup_cancel: "取消",
+      backup_submit: "继续",
       footer_settings: "系统设置",
       footer_change_pass: "修改管理员密码",
       settings_title: "系统设置与凭据",
@@ -2724,7 +2828,8 @@ footer.site-footer {
       var restoreBtn = document.getElementById("backup-restore");
       if (restoreBtn) restoreBtn.disabled = !canRestore;
       var backupNote = document.getElementById("backup-note");
-      if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = "当前服务器后端不支持备份恢复。";
+      var zh = (typeof isZh === 'function') ? isZh() : true;
+      if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = zh ? "当前服务器后端不支持备份恢复。" : "Backup restore is not supported by current server backend.";
       if (settings && settings.ok === true) {
         jsonRequest("/api/password/state").then(function (result) {
           document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
@@ -2738,29 +2843,31 @@ footer.site-footer {
       var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true);
       STATE.nodeCheckAvailable = location.protocol === "https:" && !!(settings && settings.node_check_supported === true);
       setOtherCheckBusy(!!otherCheckController);
-      document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable ? "仅测试连接，尚未安装节点。" : "网页连接检测不可用。";
+      document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
+        ? (zh ? "仅测试连接，尚未安装节点。" : "Testing connection only, node not installed yet.")
+        : (zh ? "网页连接检测不可用。" : "Web connection check unavailable.");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
-      document.getElementById("tc-read-status").textContent = canDiscover ? "" : "当前后端未开启腾讯云 API 自动发现。";
+      document.getElementById("tc-read-status").textContent = canDiscover ? "" : (zh ? "当前后端未开启腾讯云 API 自动发现。" : "Tencent Cloud API auto-discovery is disabled.");
       NODES = nodes || [];
       if (nodes) {
-        document.getElementById("serving-node-title").textContent = "连接配置";
-        document.getElementById("serving-node-ip").textContent = nodes.length ? nodes.length + " 个节点已加载" : "暂无节点连接";
-        btn.textContent = "+ 添加节点";
+        document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
+        document.getElementById("serving-node-ip").textContent = nodes.length ? (zh ? nodes.length + " 个节点已加载" : nodes.length + " nodes loaded") : (zh ? "暂无节点连接" : "No nodes connected");
+        btn.textContent = zh ? "+ 添加节点" : "+ Add Node";
         var bManage = document.getElementById("btn-manage-servers");
         if (bManage) bManage.style.display = "none";
       } else {
-        document.getElementById("serving-node-ip").textContent = "无法获取服务器状态";
-        btn.textContent = "+ 添加节点";
+        document.getElementById("serving-node-ip").textContent = zh ? "无法获取服务器状态" : "Unable to reach server";
+        btn.textContent = zh ? "+ 添加节点" : "+ Add Node";
         var bManage2 = document.getElementById("btn-manage-servers");
         if (bManage2) bManage2.style.display = "none";
       }
       if (location.protocol === "file:") {
-        pillText.textContent = "本地预览";
+        pillText.textContent = zh ? "本地预览" : "Local Preview";
         pill.className = "pill-preview";
       } else {
         pill.className = "pill-preview";
-        pillText.textContent = nodes && nodes.length ? "检测中..." : "未连接节点";
+        pillText.textContent = nodes && nodes.length ? (zh ? "检测中..." : "Checking…") : (zh ? "未连接节点" : "No Nodes Connected");
       }
       var url = settings && typeof settings.sub_url === "string" ? settings.sub_url : "";
       try { var parsed = new URL(url); if ((parsed.protocol !== "https:" && parsed.protocol !== "http:") || !parsed.host) url = ""; }
@@ -2775,9 +2882,9 @@ footer.site-footer {
         wireLinks(eligible); unready.style.display = "none"; readyBox.style.display = "block";
       } else {
         readyBox.style.display = "none"; unready.style.display = "block";
-        if (nodes && !nodes.length) setAvailability("尚未连接服务器", "请点击「+ 添加节点」选择连接方式开始部署。");
-        else if (settings && settings.ok) setAvailability("订阅链接暂不可用", "请检查服务器管理端配置。");
-        else setAvailability("未连接到管理后端", "请通过受保护的管理后台地址访问，当前无法校验服务器状态。");
+        if (nodes && !nodes.length) setAvailability(zh ? "尚未连接服务器" : "No Servers Connected", zh ? "请点击「+ 添加节点」选择连接方式开始部署。" : "Please click \"+ Add Node\" to begin setup.");
+        else if (settings && settings.ok) setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
+        else setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
       }
       if (quota) {
         STATE.quota = quota;
@@ -2799,9 +2906,9 @@ footer.site-footer {
       });
       var serverCount = Object.keys(distinctHosts).length || (nodes ? nodes.length : 0);
       var badge = document.getElementById("nodes-count-badge");
-      if (badge) badge.textContent = serverCount ? serverCount + " 台服务器" : "";
+      if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
       var servingIp = document.getElementById("serving-node-ip");
-      if (servingIp) servingIp.textContent = serverCount ? serverCount + " 台服务器已就绪" : "已加载";
+      if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
     });
   }
 
@@ -2995,8 +3102,9 @@ footer.site-footer {
   function renderNodes(nodes, status, quota) {
     var box = document.getElementById("nodes");
     if (!box) return;
+    var zh = (typeof isZh === 'function') ? isZh() : true;
     if (!nodes || !nodes.length) {
-      box.innerHTML = '<div class="small muted" style="padding:12px 0">暂未连接任何节点。<button type="button" class="tiny" style="margin-left:8px" onclick="switchScene(\'setup\')">+ 添加节点</button></div>';
+      box.innerHTML = '<div class="small muted" style="padding:12px 0">' + (zh ? '暂未连接任何节点。' : 'No nodes connected yet.') + '<button type="button" class="tiny" style="margin-left:8px" onclick="switchScene(\'setup\')">' + (zh ? '+ 添加节点' : '+ Add Node') + '</button></div>';
       return;
     }
     var qData = quota || (typeof STATE !== "undefined" && STATE ? STATE.quota : null);
@@ -3033,17 +3141,17 @@ footer.site-footer {
       var lc = n.lifecycle || {};
       var expBadge = "";
       if (lc.state === "draining") {
-        expBadge = '<span class="tag warn">' + esc(lc.badge_text || "下线中") + "</span>";
+        expBadge = '<span class="tag warn">' + esc(lc.badge_text || (zh ? "下线中" : "Draining")) + "</span>";
       } else if (lc.state === "expired") {
-        expBadge = '<span class="tag bad">已过期</span>';
+        expBadge = '<span class="tag bad">' + (zh ? "已过期" : "Expired") + '</span>';
       } else if (lc.state === "disabled" || n.enabled === false) {
-        expBadge = '<span class="tag">已暂停</span>';
+        expBadge = '<span class="tag">' + (zh ? "已暂停" : "Paused") + '</span>';
       } else if (lc.days_left !== undefined && lc.days_left !== null && lc.days_left <= 15) {
-        expBadge = '<span class="tag warn">' + lc.days_left + "天到期</span>";
+        expBadge = '<span class="tag warn">' + lc.days_left + (zh ? "天到期" : "d left") + "</span>";
       } else if (n.expire_at) {
         var days = Math.ceil((new Date(n.expire_at).getTime() - Date.now()) / (86400 * 1000));
-        if (days <= 0) expBadge = '<span class="tag bad">已过期</span>';
-        else if (days <= 15) expBadge = '<span class="tag warn">' + days + "天到期</span>";
+        if (days <= 0) expBadge = '<span class="tag bad">' + (zh ? "已过期" : "Expired") + '</span>';
+        else if (days <= 15) expBadge = '<span class="tag warn">' + days + (zh ? "天到期" : "d left") + "</span>";
       }
 
       var protoBadges = "";
@@ -3056,9 +3164,9 @@ footer.site-footer {
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
 
       if (hasHy2) {
-        protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道">' + (isHy2Active ? '⚡️ HY2 极速: 已开启' : '⚡️ HY2 极速: 已关闭') + '</span><span class="tag" title="VLESS Reality 稳定通道">🛡️ Reality 稳定</span>';
+        protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? '⚡️ HY2 极速: 已开启' : '⚡️ HY2: Enabled') : (zh ? '⚡️ HY2 极速: 已关闭' : '⚡️ HY2: Disabled')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? '🛡️ Reality 稳定' : '🛡️ Reality Stable') + '</span>';
       } else if (!isDomestic && n.source !== "external") {
-        protoBadges = '<span class="tag" title="VLESS Reality 稳定通道">🛡️ Reality 稳定</span>';
+        protoBadges = '<span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? '🛡️ Reality 稳定' : '🛡️ Reality Stable') + '</span>';
       }
 
       var relayPill = "";
@@ -3073,26 +3181,26 @@ footer.site-footer {
           return (x.host === targetHost || x.ip === targetHost) && x.type !== "hysteria2";
         });
         var targetText = (targetNode && targetNode.name) || targetHost;
-        displayName = "🇨🇳 " + n.name + "专线 ➔ " + targetText;
-        relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="点击更换中转落地目标">极速防卡顿 · 落地 ' + esc(targetText) + '</span>' +
-          '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="解除中转加速，恢复为独立服务器">解除中转</button>';
-        detailLine = "国内入口: " + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">检测中...</span>' +
-          ' · 落地出口: ' + esc(targetHost);
+        displayName = (zh ? "🇨🇳 " + n.name + "专线 ➔ " : "🇨🇳 " + n.name + " Relay ➔ ") + targetText;
+        relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
+          '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
+        detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
+          (zh ? ' · 落地出口: ' : ' · Egress: ') + esc(targetHost);
       } else if (isDomestic) {
         displayName = "🇨🇳 " + n.name;
-        relayPill = '<span class="tag">国内独立服务器</span>' +
-          '<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">＋ 设为中转加速</button>';
-        detailLine = "国内入口: " + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">检测中...</span> · 尚未绑定海外落地';
+        relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
+          '<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>';
+        detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');
       } else {
-        detailLine = esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">检测中...</span>';
+        detailLine = esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>';
       }
 
       var ispPill = "";
       if (n.isp) {
         var ispHost = esc(n.isp.server) + ":" + (n.isp.server_port || "");
-        ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="已挂载静态住宅 IP 出口（点击修改或解绑）"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>住宅 IP · ' + ispHost + '</span>';
+        ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
       } else if (n.role !== "relay") {
-        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="点击绑定静态住宅 IP 出口"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>绑定住宅 IP</span>';
+        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
       }
 
       var qInfo = qMap[host] || null;
@@ -3109,29 +3217,29 @@ footer.site-footer {
         var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
         var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
         var barW = Math.max(0, Math.min(100, pctNum));
-        var noteBadge = isTrippedQ ? '<span class="tag bad" style="margin-left:4px">已触发保护</span>' : (qInfo.control_supported === false ? '<span class="tag" style="margin-left:4px">仅告警</span>' : "");
-        var quotaRoleTip = n.role === "relay" ? ' <span class="muted" style="font-size:11px">(专线跳板)</span>' : '';
+        var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
+        var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
 
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
             '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
           '</div>' +
           '<span class="node-quota-text">' +
-            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span> · 剩余 <strong>' + Math.round(remNum) + ' GB</strong>' +
+            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span> · ' + (zh ? '剩余 <strong>' : 'Remaining <strong>') + Math.round(remNum) + ' GB</strong>' +
           '</span>' + noteBadge + quotaRoleTip +
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
         quotaRow = '<div class="node-quota-row">' +
-          '<span class="node-quota-text">本月已统计：<strong>' + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong> <span class="muted">（未配置流量包上限）</span></span>' +
+          '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong> <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
         '</div>';
       }
 
       htmlParts.push('<div class="node"><span class="dot" id="d' + i + '"></span>' +
-        '<div class="nmeta"><b>' + esc(displayName) + (n.source === "external" ? '<span class="tag">外部</span>' : "") + expBadge + protoBadges + relayPill + ispPill + "</b>" +
+        '<div class="nmeta"><b>' + esc(displayName) + (n.source === "external" ? '<span class="tag">' + (zh ? '外部' : 'External') + '</span>' : "") + expBadge + protoBadges + relayPill + ispPill + "</b>" +
         "<small>" + detailLine + "</small>" +
         quotaRow +
-        (isBad ? ('<div class="adv error">' + esc((n.advice && n.advice.text) || "连接异常") + "<span>" + esc((n.advice && n.advice.reason) || (st && st.reason) || "请检查防火墙端口或节点运行状态") + "</span></div>") : "") + "</div>" +
-        '<button class="more" aria-label="更多操作" onclick="window.ownlineNodeMenu(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button></div>');
+        (isBad ? ('<div class="adv error">' + esc((n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error")) + "<span>" + esc((n.advice && n.advice.reason) || (st && st.reason) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status")) + "</span></div>") : "") + "</div>" +
+        '<button class="more" aria-label="' + (zh ? '更多操作' : 'More options') + '" onclick="window.ownlineNodeMenu(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button></div>');
     });
 
     box.innerHTML = htmlParts.join("");

@@ -207,16 +207,32 @@ def reset(path, password, username=None):
 def main():
     if os.geteuid() != 0 or not sys.stdin.isatty():
         raise RuntimeError('请在服务器终端使用 sudo 交互运行，不支持通过管道输入密码')
-    print('只修改长青管理网页密码；服务器 SSH 密码不会改变。')
+    print('只修改长青管理网页凭据；服务器 SSH 密码不会改变。')
+    try:
+        raw = CADDYFILE.read_text(encoding='utf-8')
+        domain, current_user, _ = inspect_credentials(raw)
+        print(f'当前管理用户名: {current_user} (域名: {domain})')
+        try:
+            prompt_str = f'请输入新的用户名 (直接回车保持不变 [{current_user}]): '
+            new_user = input(prompt_str).strip()
+        except EOFError:
+            new_user = ''
+        target_user = new_user if new_user else current_user
+        if target_user != current_user and not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', target_user):
+            raise RuntimeError('用户名格式无效，仅支持 1-64 位字母、数字、下划线、点或横线')
+    except Exception:
+        target_user = None
+
     first = getpass.getpass('请输入新的管理密码（至少 12 个字符）：')
     second = getpass.getpass('再次输入新密码：')
     if first != second or len(first) < 12 or len(first.encode()) > 72 or any(c in first for c in '\r\n\x00'):
         raise RuntimeError('两次密码不一致，或密码长度不符合要求')
     with open(LOCKFILE, 'w', encoding='utf-8') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        reset(CADDYFILE, first)
+        reset(CADDYFILE, first, username=target_user)
         INITIAL_PASSWORD_MARKER.unlink(missing_ok=True)
-    print('管理密码已更新并通过本机认证验证。公网安全连接仍需单独验证。')
+    user_msg = f' (用户名: {target_user})' if target_user else ''
+    print(f'管理凭据已更新{user_msg}并通过本机认证验证。公网安全连接仍需单独验证。')
 
 
 if __name__ == '__main__':
