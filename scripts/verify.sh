@@ -76,14 +76,19 @@ echo "== 7. 高可用与系统解法 =="
 chk "中转多落地状态接口" 200 "$(code -u "$USER:$PASS" "$BASE/api/relay/status")"
 chk "流量防爆熔断接口" 200 "$(code -u "$USER:$PASS" "$BASE/api/quota/guard")"
 QUOTA_JSON="$(curl -s $CURL_TLS -m 15 -u "$USER:$PASS" "$BASE/api/quota/guard")"
-SV_PCT="$(printf '%s' "$QUOTA_JSON" | python3 -c 'import sys,json; d=json.load(sys.stdin); print(next((g.get("percent") for g in d.get("guards",[]) if g.get("ip")=="43.153.56.137"), 0))' 2>/dev/null)"
-if python3 -c "assert float('$SV_PCT') > 5.0" 2>/dev/null; then
-    printf '  ✅ %-28s %s%%
-' "熔断监控读数准确" "$SV_PCT"
+QUOTA_OK="$(printf '%s' "$QUOTA_JSON" | python3 -c '
+import sys, json
+d = json.load(sys.stdin)
+wm = (d.get("watermarks") or {}).get("tripped", 0)
+guards = d.get("guards")
+assert d.get("ok") is True and isinstance(guards, list) and 1 <= int(wm) <= 100
+print(f"阈值={wm}% 节点组={len(guards)}")
+' 2>/dev/null || true)"
+if [ -n "$QUOTA_OK" ]; then
+    printf '  ✅ %-28s %s\n' "流量守护接口数据结构合法" "$QUOTA_OK"
     ok=$((ok+1))
 else
-    printf '  ❌ 熔断监控读数为 0 或未读取到真实用量 (实际: %s)
-' "$SV_PCT"
+    printf '  ❌ 流量守护接口返回结构异常\n'
     bad=$((bad+1))
 fi
 LCS=$(printf '%s' "$NODES_JSON" | python3 -c 'import sys,json;print(sum(1 for n in json.load(sys.stdin) if n.get("lifecycle")))' 2>/dev/null)

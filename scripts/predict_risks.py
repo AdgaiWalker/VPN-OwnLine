@@ -10,10 +10,10 @@ from server.nodekit import jev
 SYSTEM_STATE = """
 梯子系统架构与运行状态全景：
 1. 节点与拓扑：
-   - 硅谷 (Ubuntu 24.04, 43.153.56.137)：主控面板 (admin.py:8000 + Caddy:8443)，同时也是 Reality (TCP 443, SNI: gateway.icloud.com) 与 Hysteria2 (UDP 8443) 的落地节点。
-   - 北京 (Ubuntu 24.04, 49.233.210.101)：国内中转机，iptables 转发 TCP 443 / UDP 8443 直连硅谷；兼任国内探活端与异地备份存储端。
-   - 广州 (OpenCloudOS 9, 43.140.37.38)：国内中转机，iptables 转发 TCP 443 到硅谷。用户明确决定不续费，到期日为 2026-11-12 (约 13 天后停机)。
-   - 新加坡 (Windows Server 2022, 43.163.4.104)：独立落地节点。装有宝塔面板，80/443 端口被宝塔 Nginx 占用，因此 sing-box Reality 运行在非标 8443 端口。由 Windows 任务计划管理，缺少自动化 addnode.sh 脚本支持。
+   - 硅谷 (Ubuntu 24.04, 203.0.113.10)：主控面板 (admin.py:8099 + Caddy:8443)，同时也是 Reality (TCP 443, SNI: gateway.icloud.com) 与 Hysteria2 (UDP 443) 的落地节点。
+   - 北京 (Ubuntu 24.04, 198.51.100.10)：国内中转机，sing-box 中转出站连往海外出口；兼任国内探活端。
+   - 广州 (OpenCloudOS 9, 198.51.100.20)：国内中转机。用户明确决定不续费，到期日为 2026-11-12 (约 13 天后停机)。
+   - 新加坡 (Windows Server 2022, 203.0.113.20)：独立落地节点。装有宝塔面板，80/443 端口被宝塔 Nginx 占用，因此 sing-box Reality 运行在非标 8443 端口。由 Windows 任务计划管理，缺少自动化 addnode.sh 脚本支持。
 
 2. 订阅与网络：
    - 订阅链接通过主控 /s/<token> 下发，目前使用免域名证书 (sslip.io 或直接 IP/域名)，Reality SNI 使用 gateway.icloud.com。

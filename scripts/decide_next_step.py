@@ -10,8 +10,8 @@ from server.nodekit import jev
 DECISION_STATE = """
 当前系统现状与上下文：
 1. 节点与网络拓扑现状：
-   - 硅谷 walker-sv (Ubuntu 24.04)：主控面板 + Reality 443 + HY2 443 出口，运行健康。
-   - 北京 walker-bj (Ubuntu 24.04)：sing-box 双落地 urltest 中继（硅谷主 + 新加坡备），混沌演练通过。
+   - 硅谷出口 (Ubuntu 24.04, 203.0.113.10)：主控面板 + Reality 443 + HY2 443 出口，运行健康。
+   - 北京中转 (Ubuntu 24.04, 198.51.100.10)：sing-box 双落地 urltest 中继（硅谷主 + 新加坡备），混沌演练通过。
    - 广州 (OpenCloudOS 9)：13 天后到期（2026-11-12），已纳入 lifecycle 排空，运行健康。
    - 新加坡 (Windows Server 2022)：宝塔 Nginx 占 443，Reality 运行于 8443 出口，双视角探测通过。
 2. 架构与测试现状：

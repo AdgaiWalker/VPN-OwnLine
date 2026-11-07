@@ -2,7 +2,7 @@
 """配置漂移检查：线上配置能不能被模板原样生成？
 
 用法：
-    python3 scripts/drift.py walker-sv walker-bj
+    python3 scripts/drift.py <ssh-host-1> [ssh-host-2 ...]
 
 做法是「往返比对」：从线上配置里取出参数，用 templates 重新生成一遍，
 再和线上逐字段比。一样 = 模板覆盖了这台机器的全部现状；不一样 = 有人手改过。
@@ -83,7 +83,11 @@ def render_from_live(cfg):
 
 
 def main():
-    hosts = sys.argv[1:] or ["walker-sv", "walker-bj"]
+    env_hosts = [h for h in os.environ.get("LADDER_DRIFT_HOSTS", "").split() if h]
+    hosts = sys.argv[1:] or env_hosts
+    if not hosts:
+        print("用法: python3 scripts/drift.py <ssh-host-1> [ssh-host-2 ...]", file=sys.stderr)
+        return 2
     bad = 0
     for host in hosts:
         cfg = live_config(host)
