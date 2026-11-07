@@ -7,6 +7,7 @@ get() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));v=d.get(sys.a
 
 IP=$(get ip); UNAME=$(get user); AUTH=$(get auth_type); NAME=$(get name)
 PORT=$(get port); ROLE=$(get role); SECRET=$(get secret_file); DRY=$(get dry_run)
+SSH_PORT=$(get ssh_port); PIN_HOSTS=$(get pin_hosts_file); PASSPHRASE_FILE=$(get passphrase_file); EXPECT_MACHINE=$(get machine_id); JOB_ID=$(get job_id)
 DRY=$(echo "$DRY" | tr 'A-Z' 'a-z')
 
 [ -n "$IP" ] || { echo "缺少服务器地址"; exit 2; }
@@ -14,6 +15,13 @@ DRY=$(echo "$DRY" | tr 'A-Z' 'a-z')
 PORT="${PORT:-443}"
 ROLE="${ROLE:-auto}"
 UNAME="${UNAME:-root}"
+[[ "$UNAME" =~ ^[a-zA-Z_][a-zA-Z0-9_-]{0,31}$ ]] || { echo "SSH 用户名格式不正确"; exit 2; }
+SSH_PORT="${SSH_PORT:-22}"
+[[ "$SSH_PORT" =~ ^[0-9]{1,5}$ ]] && [ "$SSH_PORT" -ge 1 ] && [ "$SSH_PORT" -le 65535 ] || { echo "SSH 端口无效"; exit 2; }
+if [ -n "$EXPECT_MACHINE" ]; then [[ "$EXPECT_MACHINE" =~ ^[a-f0-9]{32}$ ]] || { echo "服务器身份无效"; exit 2; }; fi
+if [ -z "$JOB_ID" ]; then JOB_ID="$$"; fi
+[[ "$JOB_ID" =~ ^[a-zA-Z0-9_-]{1,64}$ ]] || { echo "任务标识无效"; exit 2; }
+REMOTE_ARCHIVE="/tmp/ownline-node-$JOB_ID.tgz"
 
 VER="1.14.4"
 GH="github.com/SagerNet/sing-box/releases/download/v$VER/sing-box-$VER-linux"
@@ -21,15 +29,29 @@ CACHE_DIR="/opt/sing-box/pkg"
 KH="/opt/sing-box/known_hosts"
 touch "$KH" 2>/dev/null || true
 chmod 600 "$KH" 2>/dev/null || true
-# 首次连接记下指纹（TOFU），之后同一台必须对得上 —— 防中间人偷密码
-OPTS=(-o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=10)
+if [ -n "$PIN_HOSTS" ]; then
+  [ -f "$PIN_HOSTS" ] || { echo "缺少已确认的服务器指纹"; exit 2; }
+  OPTS=(-p "$SSH_PORT" -o UserKnownHostsFile="$PIN_HOSTS" -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=20 -o ServerAliveInterval=10)
+else
+  # Legacy callers keep their existing known-hosts policy; new installs must pin.
+  OPTS=(-p "$SSH_PORT" -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=10)
+fi
 
 if [ "$AUTH" = "key" ]; then
-  SSH=(ssh -i "$SECRET" -o IdentitiesOnly=yes -o BatchMode=yes)
+  if [ -n "$PASSPHRASE_FILE" ]; then
+    [ -f "$PASSPHRASE_FILE" ] || { echo "缺少私钥口令"; exit 2; }
+    SSH=(sshpass -P 'Enter passphrase' -f "$PASSPHRASE_FILE" ssh -i "$SECRET" -o IdentitiesOnly=yes)
+  else
+    SSH=(ssh -i "$SECRET" -o IdentitiesOnly=yes -o BatchMode=yes)
+  fi
 else
   SSH=(sshpass -f "$SECRET" ssh)
 fi
 rsh() { "${SSH[@]}" "${OPTS[@]}" "$UNAME@$IP" "$@"; }
+
+if [ -n "$EXPECT_MACHINE" ] && ! rsh "test \"\$(cat /etc/machine-id 2>/dev/null)\" = '$EXPECT_MACHINE'"; then
+  echo "服务器身份与检查时不同，已停止安装"; exit 3
+fi
 
 echo "STEP 1 正在连接服务器"
 CONN=""
@@ -41,7 +63,7 @@ if ! printf '%s' "$CONN" | grep -qE "^(x86_64|aarch64|arm64)"; then
   if printf '%s' "$CONN" | grep -qiE "(permission denied|authentication failed)"; then
     echo "连接失败：用户名或 root 密码错误（Permission denied），请在云控制台重置 root 密码后再试"; exit 1
   elif printf '%s' "$CONN" | grep -qiE "(connection timed out|no route to host)"; then
-    echo "连接失败：网络超时无法连接，请确认服务器已开机且云厂商安全组已放行 22 端口"; exit 1
+    echo "连接失败：网络超时无法连接，请确认服务器已开机且云厂商安全组已放行 ${SSH_PORT} 端口"; exit 1
   elif printf '%s' "$CONN" | grep -qiE "(connection refused)"; then
     echo "连接失败：连接被拒绝（Connection refused），目标服务器未开启 SSH 服务或端口未开放"; exit 1
   else
@@ -59,7 +81,24 @@ fi
 eval "$PF_OUT"
 rm -f "$PF"
 echo "  预检通过：架构 $ARCH"
+# 不将已有 sing-box 当作可接管服务，避免覆盖其他业务。
+if ! rsh "command -v systemctl >/dev/null 2>&1 && systemctl list-units --all --no-legend --no-pager >/dev/null 2>&1 || { echo '无法检查系统服务'; exit 3; }; for p in /opt/sing-box /etc/systemd/system/sing-box.service /lib/systemd/system/sing-box.service /usr/lib/systemd/system/sing-box.service; do if [ -e \"\$p\" ]; then echo '检测到已有 sing-box，未安装；请人工检查'; exit 3; fi; done; if systemctl is-active --quiet sing-box 2>/dev/null; then echo '检测到运行中的 sing-box，未安装'; exit 3; fi"; then
+  echo "目标服务器的既有服务检查未通过，已停止安装"; exit 3
+fi
 if [ "$DRY" = "true" ]; then echo "演练模式：预检通过，未安装"; exit 0; fi
+if [ -n "$PIN_HOSTS" ]; then
+  if ! rsh "mkdir /run/ownline-node-install.lock"; then
+    echo "目标上已有安装任务或待确认状态，请检查后再试"; exit 3
+  fi
+  cleanup_remote_lock() { rsh "rmdir /run/ownline-node-install.lock 2>/dev/null || true" >/dev/null 2>&1 || true; }
+  trap cleanup_remote_lock EXIT
+fi
+read -r CTL_TYPE CTL_KEY _ < /root/.ssh/node_ctl.pub || { echo "无法读取管理公钥"; exit 6; }
+[[ "$CTL_TYPE" =~ ^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)$ ]] && [[ "$CTL_KEY" =~ ^[A-Za-z0-9+/=]+$ ]] || { echo "管理公钥格式无效"; exit 6; }
+CTL_PUB="$CTL_TYPE $CTL_KEY"
+if ! rsh "h=\$(getent passwd '$UNAME' | cut -d: -f6); [ -n \"\$h\" ] && [ -d \"\$h\" ] && [ ! -L \"\$h/.ssh\" ] && [ ! -L \"\$h/.ssh/authorized_keys\" ]"; then
+  echo "无法安全确认 SSH 授权路径，请人工检查"; exit 6
+fi
 # 先保证目标机有 curl，再做“能不能直连国外”的判断。
 # 否则一台没装 curl 的干净机器会被误判成“出不去”，装上不该装的中转配置。
 echo "  检查目标机依赖"
@@ -97,24 +136,43 @@ echo "  指纹: ${EXPECT:0:16}…"
 
 
 DL_OK=0
-for pair in \
-  "20|https://$GH-${ARCH}.tar.gz" \
-  "240|https://ghfast.top/https://$GH-${ARCH}.tar.gz" \
-  "240|https://gh-proxy.com/https://$GH-${ARCH}.tar.gz" \
-  "240|https://ghproxy.net/https://$GH-${ARCH}.tar.gz" ; do
-  MT="${pair%%|*}"; U="${pair#*|}"
-  echo "  尝试(${MT}s): $U"
-  if rsh "curl -fsSL --connect-timeout 6 --max-time $MT -o /tmp/sb.tgz '$U'" >/dev/null 2>&1; then
-    GOT=$(rsh "sha256sum /tmp/sb.tgz 2>/dev/null | cut -d' ' -f1" | tr -d '\r')
-    if [ "$GOT" != "$EXPECT" ]; then
-      echo "  校验失败（期望 ${EXPECT:0:12}… 实际 ${GOT:0:12}…），换下一个源"
-      rsh "rm -f /tmp/sb.tgz" >/dev/null 2>&1
-      continue
+LOCAL_PKG="$CACHE_DIR/sing-box-$VER-linux-$ARCH.tar.gz"
+if [ -f "$LOCAL_PKG" ]; then
+  LOCAL_SHA=$(sha256sum "$LOCAL_PKG" 2>/dev/null | cut -d' ' -f1)
+  if [ "$LOCAL_SHA" = "$EXPECT" ]; then
+    echo "  优先从主控本地缓存同步安装包 ($LOCAL_PKG)"
+    if rsh "cat > '$REMOTE_ARCHIVE'" < "$LOCAL_PKG" 2>/dev/null; then
+      GOT=$(rsh "sha256sum '$REMOTE_ARCHIVE' 2>/dev/null | cut -d' ' -f1" | tr -d '\r')
+      if [ "$GOT" = "$EXPECT" ]; then
+        echo "  本地缓存同步成功，SHA256 校验通过"
+        DL_OK=1
+      else
+        rsh "rm -f '$REMOTE_ARCHIVE'" >/dev/null 2>&1 || true
+      fi
     fi
-    echo "  下载成功，SHA256 校验通过"
-    DL_OK=1; break
   fi
-done
+fi
+
+if [ "$DL_OK" != "1" ]; then
+  for pair in \
+    "20|https://$GH-${ARCH}.tar.gz" \
+    "240|https://ghfast.top/https://$GH-${ARCH}.tar.gz" \
+    "240|https://gh-proxy.com/https://$GH-${ARCH}.tar.gz" \
+    "240|https://ghproxy.net/https://$GH-${ARCH}.tar.gz" ; do
+    MT="${pair%%|*}"; U="${pair#*|}"
+    echo "  尝试(${MT}s): $U"
+    if rsh "curl -fsSL --connect-timeout 6 --max-time $MT -o '$REMOTE_ARCHIVE' '$U'" >/dev/null 2>&1; then
+      GOT=$(rsh "sha256sum '$REMOTE_ARCHIVE' 2>/dev/null | cut -d' ' -f1" | tr -d '\r')
+      if [ "$GOT" != "$EXPECT" ]; then
+        echo "  校验失败（期望 ${EXPECT:0:12}… 实际 ${GOT:0:12}…），换下一个源"
+        rsh "rm -f '$REMOTE_ARCHIVE'" >/dev/null 2>&1
+        continue
+      fi
+      echo "  下载成功，SHA256 校验通过"
+      DL_OK=1; break
+    fi
+  done
+fi
 if [ "$DL_OK" != "1" ]; then echo "全部下载源都失败"; exit 3; fi
 
 CONFIG=$(TARGET_DIRECT="$DIRECT" python3 - "$J" "$PORT" <<'PYCFG'
@@ -140,7 +198,7 @@ else:
         "obfs_password": node.get("obfs_password") or "tz-obfs",
         "sni": node.get("hy2_sni") or "www.bing.com",
     }
-    conf = templates.exit_config(port, node["uuid"], node["sni"], node["private_key"], node["sid"], hy2=hy2_opts)
+    conf = templates.exit_config(port, node["uuid"], node["sni"], node["private_key"], node["sid"], hy2=hy2_opts, isp=node.get("isp"))
 errs = templates.validate(conf)
 if errs:
     sys.stderr.write("配置校验失败: %s\n" % ",".join(errs))
@@ -170,23 +228,20 @@ fi
 REMOTE=$(cat <<'EOS'
 set -e
 echo "STEP 3 正在安装并启动"
-mkdir -p /opt/sing-box
-tar xzf /tmp/sb.tgz -C /opt/sing-box --strip-components=1
-rm -f /tmp/sb.tgz
+# 再次检查，避免下载期间出现既有文件后继续覆盖。
+command -v systemctl >/dev/null 2>&1 && systemctl list-units --all --no-legend --no-pager >/dev/null 2>&1 || { echo "无法检查系统服务"; exit 3; }
+for p in /opt/sing-box/config.json /opt/sing-box/sing-box /etc/systemd/system/sing-box.service /lib/systemd/system/sing-box.service /usr/lib/systemd/system/sing-box.service; do
+  if [ -e "$p" ]; then echo "检测到已有 sing-box，未覆盖；请人工检查"; exit 3; fi
+done
+if systemctl is-active --quiet sing-box 2>/dev/null; then echo "检测到运行中的 sing-box，未覆盖"; exit 3; fi
+[ ! -e /opt/sing-box ] || { echo "检测到已有 sing-box 目录，未覆盖"; exit 3; }
+mkdir /opt/sing-box
+tar xzf "__ARCHIVE__" -C /opt/sing-box --strip-components=1
+rm -f "__ARCHIVE__"
 
 if [ "__HAS_HY2__" = "1" ] && [ ! -f /opt/sing-box/hy2.key ]; then
   openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null || true
   chmod 600 /opt/sing-box/hy2.key 2>/dev/null || true
-fi
-
-# 开启 BBR 拥塞控制
-if modprobe tcp_bbr 2>/dev/null; then
-  echo "tcp_bbr" > /etc/modules-load.d/bbr.conf 2>/dev/null || true
-  cat > /etc/sysctl.d/99-bbr.conf << 'BBR'
-net.core.default_qdisc = fq
-net.ipv4.tcp_congestion_control = bbr
-BBR
-  sysctl -p /etc/sysctl.d/99-bbr.conf 2>/dev/null || true
 fi
 
 cat > /opt/sing-box/config.json <<'JSONCFG'
@@ -197,6 +252,7 @@ cat > /etc/systemd/system/sing-box.service <<'UNIT'
 Description=sing-box service
 After=network-online.target
 Wants=network-online.target
+ConditionPathExists=!/var/lib/ownline/quota-paused
 
 [Service]
 ExecStart=/opt/sing-box/sing-box run -c /opt/sing-box/config.json
@@ -222,10 +278,23 @@ if command -v firewall-cmd >/dev/null 2>&1; then
   firewall-cmd --reload >/dev/null 2>&1 || true
 fi
 AUTH_HOME=$(getent passwd "__UNAME__" | cut -d: -f6)
-mkdir -p "$AUTH_HOME/.ssh"; touch "$AUTH_HOME/.ssh/authorized_keys"
-grep -qF "__CTL_PUB__" "$AUTH_HOME/.ssh/authorized_keys" 2>/dev/null || echo "__CTL_PUB__" >> "$AUTH_HOME/.ssh/authorized_keys"
-chmod 700 "$AUTH_HOME/.ssh"; chmod 600 "$AUTH_HOME/.ssh/authorized_keys"
-chown -R "__UNAME__" "$AUTH_HOME/.ssh" 2>/dev/null || true
+[ -n "$AUTH_HOME" ] && [ -d "$AUTH_HOME" ] || { echo "无法确认 SSH 用户主目录"; exit 6; }
+SSH_DIR="$AUTH_HOME/.ssh"
+AUTH_KEYS="$SSH_DIR/authorized_keys"
+[ ! -L "$SSH_DIR" ] && [ ! -L "$AUTH_KEYS" ] || { echo "SSH 授权路径是符号链接，请人工检查"; exit 6; }
+if [ ! -d "$SSH_DIR" ]; then
+  mkdir -m 700 "$SSH_DIR"
+  chown "__UNAME__" "$SSH_DIR"
+fi
+if [ ! -e "$AUTH_KEYS" ]; then
+  install -m 600 -o "__UNAME__" /dev/null "$AUTH_KEYS"
+fi
+[ -f "$AUTH_KEYS" ] || { echo "SSH 授权文件不是普通文件"; exit 6; }
+if ! grep -qF "__CTL_PUB__" "$AUTH_KEYS" 2>/dev/null; then
+  # Keep an existing final line valid even if it lacked a newline.
+  if [ -s "$AUTH_KEYS" ] && [ -n "$(tail -c 1 "$AUTH_KEYS")" ]; then printf '\n' >> "$AUTH_KEYS"; fi
+  printf '%s\n' "__CTL_PUB__" >> "$AUTH_KEYS"
+fi
 echo PROVISION_OK
 EOS
 )
@@ -233,7 +302,8 @@ REMOTE="${REMOTE//__CONFIG__/$CONFIG}"
 REMOTE="${REMOTE//__PORT__/$PORT}"
 REMOTE="${REMOTE//__UNAME__/$UNAME}"
 REMOTE="${REMOTE//__HAS_HY2__/$HAS_HY2}"
-REMOTE="${REMOTE//__CTL_PUB__/$(cat /root/.ssh/node_ctl.pub)}"
+REMOTE="${REMOTE//__ARCHIVE__/$REMOTE_ARCHIVE}"
+REMOTE="${REMOTE//__CTL_PUB__/$CTL_PUB}"
 
 B64=$(printf '%s' "$REMOTE" | base64 -w0)
 if [ "$UNAME" = "root" ]; then
@@ -262,6 +332,7 @@ vless_out = {
     "name": job.get("name"),
     "host": job.get("ip"),
     "port": int(job.get("port") or 443),
+    "ssh_port": int(job.get("ssh_port") or 22),
     "uuid": node.get("uuid"),
     "sni": node.get("sni"),
     "pbk": node.get("pbk"),
@@ -270,6 +341,7 @@ vless_out = {
     "role": actual_role,
     "landing": job.get("landing") or None,
     "source": "builtin",
+    "quota_control_managed": True,
     "health": "unknown",
 }
 print(json.dumps(vless_out, ensure_ascii=False))
@@ -280,6 +352,7 @@ if actual_role == "exit":
         "type": "hysteria2",
         "host": job.get("ip"),
         "port": int(job.get("port") or 443),
+        "ssh_port": int(job.get("ssh_port") or 22),
         "password": node.get("hy2_password") or node.get("uuid"),
         "sni": node.get("hy2_sni") or "www.bing.com",
         "obfs_password": node.get("obfs_password") or "tz-obfs",
@@ -287,6 +360,7 @@ if actual_role == "exit":
         "role": "exit",
         "landing": None,
         "source": "builtin",
+        "quota_control_managed": True,
         "health": "unknown",
     }
     print(json.dumps(hy2_out, ensure_ascii=False))

@@ -20,36 +20,59 @@ NODES = os.environ.get("LADDER_DATA", "/opt/web-data") + "/nodes.json"
 OUT = os.environ.get("LADDER_DATA", "/opt/web-data") + "/status.json"
 
 REMOTE_PROBE_PY = """
-import base64, json, socket, subprocess, sys, time
+import base64, concurrent.futures, json, socket, subprocess, sys, time
 targets = json.loads(base64.b64decode(sys.argv[2]).decode())
-out = {}
-for t in targets:
-    t0 = time.time()
+vantage_host = sys.argv[3] if len(sys.argv) > 3 else ""
+vantage_name = base64.b64decode(sys.argv[4]).decode("utf-8", errors="replace") if len(sys.argv) > 4 else ""
+
+def probe_one(t):
     host, port, sni = t["host"], int(t["port"]), t.get("sni") or t["host"]
-    try:
-        s = socket.create_connection((str(host), port), timeout=4)
-        s.close()
-    except Exception:
-        out[t["name"]] = {"cn_ok": False, "cn_ms": 0, "cn_reason": "port"}
-        continue
+    tcp_ms = None
+    for _ in range(2):
+        t0 = time.time()
+        try:
+            s = socket.create_connection((str(host), port), timeout=2.5)
+            ms = max(1, int((time.time() - t0) * 1000))
+            s.close()
+            if tcp_ms is None or ms < tcp_ms:
+                tcp_ms = ms
+            if ms < 400:
+                break
+        except Exception:
+            pass
+    if tcp_ms is None:
+        return t["name"], {"cn_ok": False, "cn_ms": 0, "cn_reason": "port", "self_probe": bool(host == vantage_host), "vantage": vantage_name}
     try:
         p = subprocess.run(["openssl", "s_client", "-connect", "%s:%d" % (host, port), "-servername", sni],
-                           input="", capture_output=True, text=True, timeout=10)
+                           input="", capture_output=True, text=True, timeout=5)
         so = p.stdout or ""
         ok = ("Cipher is" in so) and ("Cipher is (NONE)" not in so)
     except Exception:
         ok = False
     if not ok:
-        out[t["name"]] = {"cn_ok": False, "cn_ms": 0, "cn_reason": "tls"}
-    else:
-        out[t["name"]] = {"cn_ok": True, "cn_ms": int((time.time() - t0) * 1000), "cn_reason": ""}
+        return t["name"], {"cn_ok": False, "cn_ms": 0, "cn_reason": "tls", "self_probe": bool(host == vantage_host), "vantage": vantage_name}
+    return t["name"], {
+        "cn_ok": True,
+        "cn_ms": tcp_ms,
+        "cn_reason": "",
+        "self_probe": bool(host == vantage_host),
+        "vantage": vantage_name,
+    }
+
+with concurrent.futures.ThreadPoolExecutor(max_workers=max(1, len(targets))) as ex:
+    out = dict(ex.map(probe_one, targets))
 print(json.dumps(out))
 """
 
 
 def cn_probe(nodes):
-    """借第一台国内中转机（role=relay），从国内视角对所有 TCP 节点做一次握手探活。"""
-    vantage = next((n for n in nodes if n.get("role") == "relay" and n.get("ssh_user") and n.get("host")), None)
+    """借第一台受控国内节点（中转入口或国内独立服务器），从国内网络视角如实测量各节点握手与真实毫秒延迟。"""
+    vantage = next((
+        n for n in nodes
+        if n.get("source") != "external"
+        and n.get("host")
+        and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+    ), None)
     if not vantage:
         return {}
     targets = [
@@ -58,10 +81,18 @@ def cn_probe(nodes):
     ]
     if not targets:
         return {}
-    script = base64.b64encode(REMOTE_PROBE_PY.encode()).decode()
-    payload = base64.b64encode(json.dumps(targets).encode()).decode()
-    remote = "python3 -c 'import base64,sys;exec(base64.b64decode(sys.argv[1]))' %s %s" % (script, payload)
-    cmd = verify_mod.ssh_cmd(vantage["ssh_user"], vantage["host"], timeout=6) + [remote]
+    script = base64.b64encode(REMOTE_PROBE_PY.encode("utf-8")).decode("ascii")
+    payload = base64.b64encode(json.dumps(targets).encode("utf-8")).decode("ascii")
+    vname_b64 = base64.b64encode(str(vantage.get("name") or "").encode("utf-8")).decode("ascii")
+    remote = "python3 -c 'import base64,sys;exec(base64.b64decode(sys.argv[1]))' %s %s %s %s" % (
+        script, payload, vantage["host"], vname_b64
+    )
+    cmd = verify_mod.ssh_cmd(
+        vantage.get("ssh_user") or "root",
+        vantage["host"],
+        timeout=6,
+        port=vantage.get("ssh_port") or 22,
+    ) + [remote]
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=25)
         if p.returncode != 0:
@@ -72,13 +103,28 @@ def cn_probe(nodes):
         return {}
 
 
+def tcp_ping(host, port, timeout=4):
+    best_ms = None
+    for _ in range(2):
+        t0 = time.time()
+        try:
+            s = socket.create_connection((str(host), int(port)), timeout=timeout)
+            ms = max(1, int((time.time() - t0) * 1000))
+            s.close()
+            if best_ms is None or ms < best_ms:
+                best_ms = ms
+            if ms < 400:
+                break
+        except Exception:
+            pass
+    if best_ms is not None:
+        return True, best_ms
+    return False, 0
+
+
 def tcp_ok(host, port, timeout=4):
-    try:
-        s = socket.create_connection((str(host), int(port)), timeout=timeout)
-        s.close()
-        return True
-    except Exception:
-        return False
+    ok, _ = tcp_ping(host, port, timeout=timeout)
+    return ok
 
 
 def tls_ok(host, port, sni):
@@ -108,15 +154,15 @@ def main():
         # 用 TCP+TLS 探活会给出"假绿灯"，所以不做探活，交给客户端实测。
         if n.get("type") == "hysteria2":
             continue
-        t0 = time.time()
         name = n["name"]
         host, port = n.get("host"), n.get("port")
-        if not tcp_ok(host, port):
+        ok_tcp, tcp_ms = tcp_ping(host, port)
+        if not ok_tcp:
             out[name] = {"ok": False, "ms": 0, "reason": "port"}
         elif not tls_ok(host, port, n.get("sni")):
             out[name] = {"ok": False, "ms": 0, "reason": "tls"}
         else:
-            out[name] = {"ok": True, "ms": int((time.time() - t0) * 1000), "reason": ""}
+            out[name] = {"ok": True, "ms": tcp_ms, "reason": ""}
 
         # 状态变更记录
         old_n = old_status.get(name) or {}

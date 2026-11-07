@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-import datetime, json, os, re, subprocess, sys, threading, time, urllib.parse, uuid
+import datetime, hmac, json, os, re, secrets, subprocess, sys, tempfile, threading, time, urllib.parse, uuid
+from collections import deque
+from pathlib import Path
+import fcntl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 WEB = "/opt/web"
@@ -13,10 +16,19 @@ from nodekit import logger  # noqa: E402
 from nodekit import repair as repair_mod  # noqa: E402
 from nodekit import lifecycle as lifecycle_mod  # noqa: E402
 from nodekit import quota_guard as quota_mod  # noqa: E402
+from nodekit import node_check_bridge  # noqa: E402
+from nodekit import links as links_mod  # noqa: E402
+from nodekit import templates as templates_mod  # noqa: E402
+from nodekit import remote_config as remote_cfg_mod  # noqa: E402
+import reset_admin_password as password_mod  # noqa: E402
+import tencent_discovery as tencent_discovery_mod  # noqa: E402
 sys.path.insert(0, WEB)
 NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
 JOBS = {}
+INITIAL_PASSWORD_MARKER = Path(DATA) / '.initial-password-required'
+_PASSWORD_LOCK = threading.Lock()
+_PASSWORD_ATTEMPTS = deque()
 
 def load_nodes():
     with open(NODES, encoding="utf-8") as f:
@@ -73,7 +85,7 @@ def get_sub_token():
         pass
     try:
         with open(CADDY, encoding="utf-8") as f:
-            m = re.search(r"/s/([0-9a-fA-F]{8,32})", f.read())
+            m = re.search(r"/s/([0-9a-fA-F]{8,64})", f.read())
             if m:
                 return m.group(1)
     except Exception:
@@ -268,13 +280,13 @@ def _ps_patch(uuid_new, port_new):
 
 def _build_sub_url(settings, host_header):
     token = settings.get("sub_token") or get_sub_token()
-    domain = settings.get("domain") or (host_header or "").split(":")[0] or "v.goodloop.si"
+    domain = settings.get("domain") or (host_header or "").split(":")[0] or "localhost"
     port = settings.get("sub_port")
     if port:
         port_part = "" if int(port) in (80, 443) else (":%s" % port)
     elif ":8443" in (host_header or ""):
         port_part = ":8443"
-    elif domain and not (host_header or "").endswith(":443"):
+    elif domain and domain != "localhost" and not (host_header or "").endswith(":443"):
         port_part = ":8443"
     else:
         port_part = ""
@@ -282,36 +294,8 @@ def _build_sub_url(settings, host_header):
 
 
 def patch_remote(node, uuid_new=None, port_new=None):
-    host = node.get("host", "")
-    try:
-        if node.get("local") is True or host in ("127.0.0.1", "localhost", "198.51.100.12"):
-            script = _py_patch(uuid_new, port_new)
-            r = subprocess.run(["python3", "-c", script], capture_output=True, text=True, timeout=30)
-            if r.returncode != 0:
-                return False, (r.stderr or "python 失败")[:200]
-            r2 = subprocess.run(["systemctl", "restart", "sing-box"], capture_output=True, text=True, timeout=60)
-            if r2.returncode != 0:
-                return False, "重启 sing-box 失败"
-            time.sleep(2)
-            act = subprocess.run(["systemctl", "is-active", "sing-box"], capture_output=True, text=True)
-            return (act.stdout.strip() == "active"), ("服务状态: " + act.stdout.strip())
-        u = node.get("ssh_user")
-        if not u:
-            return False, "这台没有控制权限"
-        base = verify_mod.ssh_cmd(u, host, timeout=10)
-        if node.get("os") == "windows":
-            cmd = base + ['powershell -NoProfile -Command "%s"' % _ps_patch(uuid_new, port_new).replace('"', '\\"')]
-        else:
-            script = _py_patch(uuid_new, port_new)
-            enc = _b64.b64encode(script.encode()).decode()
-            remote = ("echo %s | base64 -d > /tmp/sbpatch.py && python3 /tmp/sbpatch.py && "
-                      "systemctl restart sing-box && sleep 2 && systemctl is-active sing-box") % enc
-            cmd = base + [remote]
-        r = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
-        out = (r.stdout or "").strip()
-        return (r.returncode == 0 and "active" in out), (out or r.stderr)[-200:]
-    except Exception as e:
-        return False, str(e)[:200]
+    # 旧 sing-box 的服务与配置可能被其他业务共用，当前无法可靠证明独占。
+    return False, "无法确认服务由本项目独占，未修改服务器；请人工检查"
 
 import ipaddress as _ip
 
@@ -381,6 +365,20 @@ def _load_json(name, default):
         return default
 
 
+def _save_json(path, data):
+    """Atomically write sensitive settings with owner-only file permissions."""
+    fd, tmp = tempfile.mkstemp(prefix=".ownline-", dir=os.path.dirname(path))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
 def nodes_with_advice():
     """节点 + 一句建议（依据来自探活与流量），以及全生命周期状态。"""
     status = _load_json("status.json", {})
@@ -409,18 +407,39 @@ class H(BaseHTTPRequestHandler):
         path, _, qs = self.path.partition("?")
         path = path.rstrip("/")
 
-        # 订阅路由：/s/<token>, /s/<token>/clash, /s/<token>/sr, /sub
+        # This gate is also invoked by Caddy before every management route.
+        if path == '/password-gate':
+            if INITIAL_PASSWORD_MARKER.exists():
+                self.send_response(303)
+                self.send_header('Location', '/change-password')
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', '0')
+                self.end_headers()
+            else:
+                self.send_response(204)
+                self.send_header('Cache-Control', 'no-store')
+                self.send_header('Content-Length', '0')
+                self.end_headers()
+            return
+        if path == '/api/password/state':
+            return self._json(200, {'ok': True, 'required': INITIAL_PASSWORD_MARKER.exists()})
+        if INITIAL_PASSWORD_MARKER.exists() and not path.startswith('/s/'):
+            return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
+
+        # 订阅路由：仅放行携带合法高熵 token 的 /s/<token>[/clash|/sr]，拒绝裸 /sub 与空 token
         token = get_sub_token()
         client_ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "").split(",")[0].strip()
         if path.startswith("/s/") or path == "/sub":
             parts = path.split("/")
-            req_token = parts[2] if len(parts) > 2 else ""
-            if path.startswith("/s/") and req_token != token:
-                logger.log("WARN", "SUB", f"非法订阅 Token 请求 (IP={client_ip}, Token={req_token})")
+            req_token = parts[2] if (path.startswith("/s/") and len(parts) > 2) else ""
+            if not token or not req_token or not hmac.compare_digest(req_token, token):
+                logger.log("WARN", "SUB", f"非法订阅请求 (IP={client_ip})")
                 return self._json(404, {"ok": False, "error": "invalid subscription token"})
 
             q = urllib.parse.parse_qs(qs)
             ua = self.headers.get("User-Agent", "Unknown")
+            if path.endswith("/singbox") or (q.get("target") or [""])[0] == "singbox":
+                return self._json(404, {"ok": False, "error": "singbox subscription format is not supported"})
             is_clash = (
                 path.endswith("/clash")
                 or (q.get("target") or [""])[0] == "clash"
@@ -430,7 +449,10 @@ class H(BaseHTTPRequestHandler):
             nodes = load_nodes()
             fmt = "Clash YAML" if is_clash else "Base64"
             usage_data = _load_json("usage.json", {})
-            sub_count = sum(1 for n in nodes if subs_mod.in_subscription(n, usage_data=usage_data))
+            userinfo = subs_mod.subscription_userinfo(usage_data, nodes=nodes)
+            eligible_hosts = quota_mod.controllable_hosts(nodes)
+            sub_count = sum(1 for n in nodes if subs_mod.in_subscription(
+                n, usage_data=usage_data, controllable_hosts=eligible_hosts))
             logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={fmt}, 场景={profile}, UA={ua[:30]}, 节点数={sub_count})")
             if is_clash:
                 content = subs_mod.render_clash_yaml(nodes, profile=profile, usage_data=usage_data).encode("utf-8")
@@ -443,6 +465,8 @@ class H(BaseHTTPRequestHandler):
                 self.send_header("Content-Type", "text/plain; charset=utf-8")
                 self.send_header("Content-Disposition", 'attachment; filename="subscription.txt"')
 
+            if userinfo:
+                self.send_header("Subscription-Userinfo", userinfo)
             self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
@@ -451,7 +475,6 @@ class H(BaseHTTPRequestHandler):
 
         if path == "/backup":
             nodes = load_nodes()
-            settings = _load_json("settings.json", {})
             token = get_sub_token()
             vless_links = [subs_mod.node_uri(n) for n in nodes if subs_mod.in_subscription(n)]
             data = {
@@ -466,6 +489,7 @@ class H(BaseHTTPRequestHandler):
             self.send_response(200)
             self.send_header("Content-Type", "application/json; charset=utf-8")
             self.send_header("Content-Disposition", 'attachment; filename="ladder-nodes-backup.json"')
+            self.send_header("Cache-Control", "no-store")
             self.send_header("Content-Length", str(len(content)))
             self.end_headers()
             self.wfile.write(content)
@@ -494,6 +518,24 @@ class H(BaseHTTPRequestHandler):
                 lines = 50
             res = logger.get_syslog(service, lines=lines)
             return self._json(200 if res.get("ok") else 400, res)
+        if path == "/ping":
+            try:
+                import probe as probe_mod
+                nodes = load_nodes()
+                cn = probe_mod.cn_probe(nodes)
+                status = _load_json("status.json", {})
+                if cn:
+                    for name, cinfo in cn.items():
+                        if name in status and isinstance(cinfo, dict):
+                            status[name].update(cinfo)
+                    status["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    tmp = os.path.join(DATA, "status.json.tmp")
+                    with open(tmp, "w", encoding="utf-8") as f:
+                        json.dump(status, f, ensure_ascii=False)
+                    os.replace(tmp, os.path.join(DATA, "status.json"))
+                return self._json(200, {"ok": True, "status": status})
+            except Exception as e:
+                return self._json(500, {"ok": False, "error": str(e)})
         if path == "/settings":
             settings = _load_json("settings.json", {})
             domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
@@ -502,57 +544,100 @@ class H(BaseHTTPRequestHandler):
                 "domain": domain,
                 "sub_token": token,
                 "sub_url": sub_url,
+                "quota_threshold": quota_mod.quota_threshold(),
+                "tencent_discovery": True,
+                "backup_restore_supported": True,
+                "node_check_supported": node_check_bridge.available(),
             })
         if path == "/relay/status":
             nodes = load_nodes()
             status = _load_json("status.json", {})
-            bj = next((n for n in nodes if n.get("role") == "relay" and "北京" in n.get("name", "")), None)
-            landing_policy = (bj or {}).get("landing_policy") or {
-                "primary": {"host": "43.153.56.137", "name": "硅谷", "port": 443},
-                "fallback": {"host": "43.163.4.104", "name": "新加坡", "port": 8443},
-                "active_target": "43.153.56.137"
-            }
-            primary_st = status.get("硅谷") or {}
-            fallback_st = status.get("新加坡") or {}
+            relay_node = next((n for n in nodes if n.get("role") == "relay"), None)
+            exits = [
+                n for n in nodes
+                if n.get("type") != "hysteria2"
+                and n.get("role") not in ("relay", "standalone")
+                and (n.get("exit_country") or "").upper() != "CN"
+            ]
+            lp = dict((relay_node or {}).get("landing_policy") or {})
+            landing = dict((relay_node or {}).get("landing") or {})
+            primary_cfg = lp.get("primary") or (
+                {"host": landing["host"], "name": landing.get("name") or landing["host"], "port": landing.get("port", 443)}
+                if landing.get("host")
+                else ({"host": exits[0]["host"], "name": exits[0].get("name", exits[0]["host"]), "port": exits[0].get("port", 443)} if exits else None)
+            )
+            fallback_cfg = lp.get("fallback") or (
+                {"host": exits[1]["host"], "name": exits[1].get("name", exits[1]["host"]), "port": exits[1].get("port", 443)}
+                if len(exits) > 1 and primary_cfg and exits[1].get("host") != primary_cfg.get("host")
+                else None
+            )
+            primary_st = (status.get((primary_cfg or {}).get("name") or "") or {}) if primary_cfg else {}
+            fallback_st = (status.get((fallback_cfg or {}).get("name") or "") or {}) if fallback_cfg else {}
+            active_target = lp.get("active_target") or landing.get("host") or ((primary_cfg or {}).get("host"))
             return self._json(200, {
                 "ok": True,
-                "node": (bj or {}).get("name", "北京"),
-                "landing_policy": landing_policy,
-                "primary": {
-                    "name": "硅谷",
-                    "host": "43.153.56.137",
+                "configured": relay_node is not None,
+                "node": (relay_node or {}).get("name"),
+                "landing_policy": lp,
+                "primary": ({
+                    "name": primary_cfg.get("name"),
+                    "host": primary_cfg.get("host"),
                     "ok": primary_st.get("ok", True),
                     "ms": primary_st.get("ms"),
-                },
-                "fallback": {
-                    "name": "新加坡",
-                    "host": "43.163.4.104",
+                } if primary_cfg else None),
+                "fallback": ({
+                    "name": fallback_cfg.get("name"),
+                    "host": fallback_cfg.get("host"),
                     "ok": fallback_st.get("ok", True),
                     "ms": fallback_st.get("ms"),
-                },
-                "active_target": landing_policy.get("active_target", "43.153.56.137"),
-                "auto_failover": True,
+                } if fallback_cfg else None),
+                "active_target": active_target,
+                "auto_failover": bool(primary_cfg and fallback_cfg),
             })
         if path == "/quota/guard":
             usage = _load_json("usage.json", {})
             eval_res = quota_mod.evaluate_all(usage)
+            stopped = quota_mod.stopped_hosts()
+            known_nodes = {}
+            for node in load_nodes():
+                if node.get("host"):
+                    known_nodes.setdefault(node["host"], []).append(node)
             guards = []
-            for ip, u in eval_res.items():
-                if ip.startswith("_") or not isinstance(u, dict):
-                    continue
+            for ip, host_nodes in known_nodes.items():
+                node = host_nodes[0]
+                u = eval_res.get(ip) or quota_mod.evaluate_instance_quota(None)
+                raw_u = usage.get(ip) if isinstance(usage.get(ip), dict) else {}
+                used_val = u.get("used_gb") if u.get("used_gb") is not None else raw_u.get("used")
                 guards.append({
                     "ip": ip,
-                    "name": u.get("name", ip),
-                    "used_gb": u.get("used_gb", 0.0),
-                    "total_gb": u.get("total_gb", 1024.0),
-                    "percent": u.get("percent", 0.0),
-                    "status": u.get("status", "normal"),
+                    "name": node.get("name", ip),
+                    "used_gb": used_val,
+                    "total_gb": u.get("total_gb"),
+                    "percent": u.get("percent"),
+                    "status": u.get("status", "unknown"),
+                    "source": raw_u.get("source", "cloud_api"),
+                    "control_supported": all(quota_mod.supports_quota_control(n) for n in host_nodes),
+                    "paused": ip in stopped,
                 })
             return self._json(200, {
                 "ok": True,
                 "watermarks": eval_res.get("_summary", {}).get("watermarks", {"warning": 75, "tripped": 85}),
+                "usage_fresh": quota_mod.usage_is_fresh(usage),
                 "guards": guards,
             })
+        if path == "/node/job":
+            q = urllib.parse.parse_qs(qs)
+            jid = (q.get("id") or [""])[0]
+            if not re.fullmatch(r"[a-f0-9]{12}", jid):
+                return self._json(400, {"ok": False, "error": "任务编号无效"})
+            job = JOBS.get(jid)
+            if not job:
+                return self._json(404, {"ok": False, "error": "任务状态未知"})
+            # Do not return raw logs or node credentials in the progress view.
+            verification = job.get("verify") or {}
+            return self._json(200, {"ok": True, "state": job.get("state", "unknown"),
+                                    "step": job.get("step", 0),
+                                    "health": verification.get("health", "unknown")})
         if path == "/job":
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
@@ -580,13 +665,16 @@ class H(BaseHTTPRequestHandler):
         src = self.headers.get("Origin") or self.headers.get("Referer") or ""
         if not src:
             return True                      # 命令行 / curl：没有 Origin
-        host = (self.headers.get("Host") or "").split(":")[0]
-        return bool(host) and (host in src)
+        parsed = urllib.parse.urlsplit(src)
+        host = (self.headers.get("Host") or "").lower()
+        return parsed.scheme in ("http", "https") and bool(host) and parsed.netloc.lower() == host
 
     def do_POST(self):
         if not self._origin_ok():
             return self._json(403, {"ok": False, "error": "跨站请求被拒绝"})
         path = self.path.rstrip("/")
+        if INITIAL_PASSWORD_MARKER.exists() and path != '/api/password/change':
+            return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
             return self._json(413, {"ok": False, "error": "请求体过大"})
@@ -598,13 +686,72 @@ class H(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             return self._json(400, {"ok": False, "error": "请求体必须是对象"})
 
+        if path == '/api/password/change':
+            old, new, confirm = body.get('current'), body.get('new'), body.get('confirm')
+            try:
+                valid = (all(isinstance(x, str) for x in (old, new, confirm)) and
+                         new == confirm and new != old and len(new) >= 12 and
+                         len(new.encode()) <= 72 and not any(c in new for c in '\r\n\x00'))
+            except UnicodeEncodeError:
+                valid = False
+            if not valid:
+                return self._json(400, {'ok': False, 'error': '新密码至少 12 位，两次输入一致且不能与原密码相同'})
+            if not _PASSWORD_LOCK.acquire(blocking=False):
+                return self._json(409, {'ok': False, 'error': '密码修改正在进行，请稍后重试'})
+            try:
+                now = time.monotonic()
+                while _PASSWORD_ATTEMPTS and _PASSWORD_ATTEMPTS[0] < now - 300:
+                    _PASSWORD_ATTEMPTS.popleft()
+                if len(_PASSWORD_ATTEMPTS) >= 5:
+                    return self._json(429, {'ok': False, 'error': '尝试次数过多，请稍后再试'})
+                _PASSWORD_ATTEMPTS.append(now)
+                with open(password_mod.LOCKFILE, 'w', encoding='utf-8') as lock:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    cfg = password_mod.CADDYFILE.read_text(encoding='utf-8')
+                    domain, _ = password_mod.inspect_config(cfg)
+                    if '# ownline-managed-password-v1\n' not in cfg or not password_mod.local_login(domain, old, '/change-password'):
+                        return self._json(403, {'ok': False, 'error': '当前密码不正确或配置不受支持'})
+                    password_mod.reset(password_mod.CADDYFILE, new)
+                    INITIAL_PASSWORD_MARKER.unlink(missing_ok=True)
+                _PASSWORD_ATTEMPTS.clear()
+                return self._json(200, {'ok': True, 'message': '密码已修改，请使用新密码重新登录'})
+            except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
+                return self._json(500, {'ok': False, 'error': '暂时无法确认结果，请先尝试新密码；仍无法登录时在服务器终端检查'})
+            finally:
+                _PASSWORD_LOCK.release()
+
+        if path == "/node/check":
+            # Credentials stay in the request/worker memory and never enter a job file.
+            if self.headers.get_content_type() != "application/json":
+                return self._json(415, {"ok": False, "code": "INVALID_TYPE", "message": "请使用安全的管理页面。"})
+            result = node_check_bridge.check(body)
+            if result.get("ok"):
+                return self._json(200, result)
+            status = 409 if result.get("code") == "HOST_KEY_CONFIRMATION" else 503 if result.get("code") == "UNAVAILABLE" else 400
+            return self._json(status, result)
+
+        if path == "/tencent/instances":
+            try:
+                return self._json(200, tencent_discovery_mod.discover(body.get("secret_id"), body.get("secret_key")))
+            except tencent_discovery_mod.Problem as e:
+                return self._json(e.status, {"ok": False, "error": e.message})
+
+        if path == "/quota/settings":
+            try:
+                quota_mod.save_quota_threshold(body.get("threshold"))
+            except ValueError as e:
+                return self._json(400, {"ok": False, "error": str(e)})
+            except OSError:
+                return self._json(500, {"ok": False, "error": "保护阈值保存失败"})
+            return self._json(200, {"ok": True, "threshold": quota_mod.quota_threshold()})
+
         if path == "/rotate":
             msg = "旧订阅地址已失效；已连接的设备不受影响（要踢人请用「更换密钥」）"
             if body.get("dry_run"):
                 return self._json(200, {"ok": True, "dry_run": True, "message": msg,
                                         "would": "作废旧订阅地址并生成新地址"})
             try:
-                new_token = os.urandom(5).hex()
+                new_token = secrets.token_hex(32)
                 settings = _load_json("settings.json", {})
                 settings["sub_token"] = new_token
                 _save_json(os.path.join(DATA, "settings.json"), settings)
@@ -618,7 +765,7 @@ class H(BaseHTTPRequestHandler):
                     pass
 
                 render()
-                logger.log("WARN", "ADMIN", "轮换订阅 Token: 新 Token=%s (新订阅: %s)" % (new_token, new_url))
+                logger.log("WARN", "ADMIN", "已轮换订阅凭据")
                 return self._json(200, {"ok": True, "url": new_url, "message": msg})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
@@ -632,10 +779,16 @@ class H(BaseHTTPRequestHandler):
             valid_nodes = []
             for item in incoming_nodes:
                 if not isinstance(item, dict) or not item.get("host") or not item.get("port"):
-                    continue
-                valid_nodes.append(item)
+                    return self._json(400, {"ok": False, "error": "备份含无效节点，未进行恢复"})
+                # A backup cannot prove current service ownership on this machine.
+                restored = dict(item)
+                restored.pop("quota_control_managed", None)
+                valid_nodes.append(restored)
             if not valid_nodes:
                 return self._json(400, {"ok": False, "error": "备份中没有有效的节点数据"})
+            token = body.get("sub_token")
+            if token is not None and token != "" and (not isinstance(token, str) or not re.fullmatch(r"[0-9a-fA-F]{8,64}", token)):
+                return self._json(400, {"ok": False, "error": "备份中的订阅凭据无效，未进行恢复"})
             with _NODES_LOCK:
                 _write_nodes(valid_nodes)
             if body.get("sub_token"):
@@ -644,21 +797,17 @@ class H(BaseHTTPRequestHandler):
                     settings["sub_token"] = body["sub_token"]
                     _save_json(os.path.join(DATA, "settings.json"), settings)
                 except Exception:
-                    pass
+                    return self._json(500, {"ok": False, "error": "节点配置已写入，但订阅凭据恢复失败；请检查配置后重试"})
             render()
             logger.log("WARN", "ADMIN", f"恢复备份成功：还原了 {len(valid_nodes)} 个节点")
-            return self._json(200, {"ok": True, "restored_count": len(valid_nodes), "message": f"成功恢复 {len(valid_nodes)} 个节点"})
+            return self._json(200, {"ok": True, "restored_count": len(valid_nodes), "message": f"已恢复 {len(valid_nodes)} 个节点配置，请检查服务器实际状态"})
 
         if path == "/removenode":
             name = (body.get("name") or "").strip()
             nodes = load_nodes()
-            if len(nodes) <= 1:
-                return self._json(400, {"ok": False, "error": "至少保留一个节点"})
             target = next((n for n in nodes if n["name"] == name), None)
             if not target:
                 return self._json(404, {"ok": False, "error": "没找到这个节点"})
-            host = target.get("host")
-
             to_remove = {name}
             if name.endswith("-HY2"):
                 base_name = name[:-4]
@@ -669,27 +818,32 @@ class H(BaseHTTPRequestHandler):
                 if any(n["name"] == hy2_name for n in nodes):
                     to_remove.add(hy2_name)
 
-            update_nodes(lambda ns: [n for n in ns if n["name"] not in to_remove])
+            if body.get("cleanup_confirmed") is True:
+                if not target.get("cleanup_pending") or not all(
+                    n.get("cleanup_pending") for n in nodes if n["name"] in to_remove
+                ):
+                    return self._json(400, {"ok": False, "error": "请先移出订阅并完成服务器人工清理"})
+                update_nodes(lambda ns: [n for n in ns if n["name"] not in to_remove])
+                render()
+                logger.log("WARN", "NODE", "用户确认已人工清理，移除节点记录: %s" % name)
+                return self._json(200, {"ok": True, "cleanup_pending": False, "confirmed_by_user": True,
+                                        "message": "已按你的确认移除记录；服务器清理结果未由系统验证"})
+
+            def _mark_cleanup(ns):
+                for n in ns:
+                    if n["name"] in to_remove:
+                        n["enabled"] = False
+                        n["cleanup_pending"] = True
+                        n.pop("quota_control_managed", None)
+                return ns
+            update_nodes(_mark_cleanup)
             try:
                 render()
             except Exception as e:
                 return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
-            stopped = None
-            u = target.get("ssh_user")
-            still_has_host = any(n.get("host") == host for n in load_nodes())
-            if u and not still_has_host and target.get("local") is not True and host != "198.51.100.12":
-                base = verify_mod.ssh_cmd(u, host, timeout=8)
-                if target.get("os") == "windows":
-                    remote_cmd = 'powershell -NoProfile -Command "Stop-ScheduledTask -TaskName sing-box; Disable-ScheduledTask -TaskName sing-box"'
-                else:
-                    remote_cmd = "systemctl disable --now sing-box 2>/dev/null || sudo -n systemctl disable --now sing-box"
-                try:
-                    r = subprocess.run(base + [remote_cmd], capture_output=True, text=True, timeout=40)
-                    stopped = (r.returncode == 0)
-                except Exception:
-                    stopped = False
-            logger.log("WARN", "NODE", "删除节点: %s (关联条目: %s)" % (name, ", ".join(to_remove)))
-            return self._json(200, {"ok": True, "remaining": len(load_nodes()), "stopped": stopped, "removed": list(to_remove)})
+            logger.log("WARN", "NODE", "节点已移出订阅，待用户人工清理: %s" % name)
+            return self._json(200, {"ok": True, "cleanup_pending": True, "stopped": None,
+                                    "message": "已移出订阅；服务器未作改动，请人工清理后确认"})
 
         if path == "/editnode":
             name = (body.get("name") or "").strip()
@@ -697,6 +851,8 @@ class H(BaseHTTPRequestHandler):
             target = next((n for n in nodes if n["name"] == name), None)
             if not target:
                 return self._json(404, {"ok": False, "error": "没找到这个节点"})
+            if target.get("cleanup_pending") and body.get("enabled") is True:
+                return self._json(409, {"ok": False, "error": "节点待人工清理，不能重新启用"})
             newname = (body.get("newname") or "").strip()
             newkey = bool(body.get("newkey"))
             port_raw = body.get("port")
@@ -711,9 +867,53 @@ class H(BaseHTTPRequestHandler):
             new_uuid = str(uuid.uuid4()) if newkey else None
             need_remote = bool(new_uuid) or (new_port is not None and new_port != target.get("port"))
             if need_remote:
-                ok, msg = patch_remote(target, uuid_new=new_uuid, port_new=new_port)
-                if not ok:
-                    return self._json(500, {"ok": False, "error": "服务器上改配置失败：" + msg})
+                return self._json(409, {"ok": False, "error": "无法确认服务独占，暂不能修改服务器端口或密钥；请人工检查"})
+
+            parsed_isp = None
+            isp_changed = False
+            if "isp" in body:
+                isp_changed = True
+                raw_isp = body["isp"]
+                if raw_isp in (None, ""):
+                    parsed_isp = None
+                elif isinstance(raw_isp, str):
+                    try:
+                        parsed_isp = links_mod.parse_isp_proxy(raw_isp)
+                    except links_mod.LinkError as e:
+                        return self._json(400, {"ok": False, "error": str(e)})
+                elif isinstance(raw_isp, dict):
+                    if not raw_isp.get("server") or not raw_isp.get("server_port"):
+                        return self._json(400, {"ok": False, "error": "ISP 代理缺少服务器地址或端口"})
+                    try:
+                        port_num = int(raw_isp["server_port"])
+                        if port_num < 1 or port_num > 65535:
+                            raise ValueError()
+                    except Exception:
+                        return self._json(400, {"ok": False, "error": "端口号无效"})
+                    parsed_isp = {
+                        "type": raw_isp.get("type", "socks"),
+                        "server": str(raw_isp["server"]),
+                        "server_port": port_num,
+                    }
+                    if raw_isp.get("username"):
+                        parsed_isp["username"] = str(raw_isp["username"])
+                    if raw_isp.get("password"):
+                        parsed_isp["password"] = str(raw_isp["password"])
+                else:
+                    return self._json(400, {"ok": False, "error": "ISP 代理参数格式不正确"})
+
+            isp_sync_res = None
+            if isp_changed:
+                isp_sync_res = remote_cfg_mod.sync_isp(target, parsed_isp)
+                if not isp_sync_res.get("ok"):
+                    logger.log("WARN", "NODE", "节点 [%s] 静态住宅代理同步失败: %s" % (name, isp_sync_res.get("error")))
+                    return self._json(502, {
+                        "ok": False,
+                        "error": isp_sync_res.get("error") or "远端静态住宅出口同步失败",
+                        "rolled_back": isp_sync_res.get("rolled_back", False),
+                        "verify": isp_sync_res.get("verify"),
+                    })
+
             def _apply(ns):
                 for n in ns:
                     if n["name"] == name:
@@ -735,6 +935,19 @@ class H(BaseHTTPRequestHandler):
                             n["lifecycle"] = lc
                         if "landing_policy" in body and isinstance(body["landing_policy"], dict):
                             n["landing_policy"] = dict(body["landing_policy"])
+                        if isp_changed:
+                            if parsed_isp is None:
+                                n.pop("isp", None)
+                            else:
+                                n["isp"] = dict(parsed_isp)
+                            if isp_sync_res:
+                                n["health"] = "ok"
+                                if isp_sync_res.get("exit_ip"):
+                                    n["exit_ip"] = isp_sync_res["exit_ip"]
+                                if isp_sync_res.get("exit_country"):
+                                    n["exit_country"] = isp_sync_res["exit_country"]
+                                if isp_sync_res.get("health_detail"):
+                                    n["health_detail"] = isp_sync_res["health_detail"]
                 return ns
 
             update_nodes(_apply)
@@ -748,19 +961,278 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "node": target})
 
         if path == "/relay/switch":
+            name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
             if not target_host:
                 return self._json(400, {"ok": False, "error": "缺少 target 目标主机地址"})
+            nodes = load_nodes()
+            relay_node = (
+                next((n for n in nodes if n.get("name") == name and n.get("type") != "hysteria2"), None)
+                if name
+                else next((n for n in nodes if n.get("role") == "relay" and n.get("type") != "hysteria2"), None)
+            )
+            if not relay_node:
+                return self._json(404, {"ok": False, "error": "未找到可切换的中转入口节点"})
+            target_exit = next(
+                (n for n in nodes if (n.get("host") == target_host or n.get("ip") == target_host) and n.get("type") != "hysteria2"),
+                None,
+            )
+            if not target_exit:
+                return self._json(404, {"ok": False, "error": "未找到匹配的目标海外出口服务器"})
+            fallback_exit = next(
+                (
+                    n for n in nodes
+                    if n.get("type") != "hysteria2"
+                    and n.get("role") not in ("relay", "standalone")
+                    and (n.get("exit_country") or "").upper() != "CN"
+                    and n.get("host") not in (target_exit.get("host"), relay_node.get("host"))
+                ),
+                None,
+            )
+            sync_res = remote_cfg_mod.switch_relay(relay_node, target_exit, fallback_exit_node=fallback_exit)
+            if not sync_res.get("ok"):
+                logger.log("WARN", "RELAY", "中转切流失败 [%s ➔ %s]: %s" %
+                           (relay_node.get("name"), target_host, sync_res.get("error")))
+                return self._json(502, {
+                    "ok": False,
+                    "error": sync_res.get("error") or "远端中转切换失败",
+                    "rolled_back": sync_res.get("rolled_back", False),
+                    "verify": sync_res.get("verify"),
+                })
+
             def _apply_switch(ns):
                 for n in ns:
-                    if n.get("role") == "relay" and "北京" in n.get("name", ""):
-                        lp = dict(n.get("landing_policy") or {})
-                        lp["active_target"] = target_host
-                        n["landing_policy"] = lp
+                    if n.get("name") == relay_node.get("name"):
+                        n["role"] = "relay"
+                        n["landing"] = sync_res["landing"]
+                        n["landing_policy"] = sync_res["landing_policy"]
+                        n["health"] = "ok"
+                        n["exit_ip"] = sync_res["exit_ip"]
+                        n["exit_country"] = sync_res["exit_country"]
+                        n["health_detail"] = sync_res["health_detail"]
                 return ns
+
             update_nodes(_apply_switch)
-            logger.log("INFO", "RELAY", "管理员执行中转落地演练切流: 目标=%s" % target_host)
-            return self._json(200, {"ok": True, "active_target": target_host})
+            try:
+                render()
+            except Exception:
+                pass
+            logger.log("INFO", "RELAY", "管理员完成真实中转切流: 节点 [%s] ➔ 目标 [%s]" %
+                       (relay_node.get("name"), target_exit.get("name") or target_host))
+            return self._json(200, {
+                "ok": True,
+                "node": relay_node.get("name"),
+                "active_target": sync_res["landing"]["host"],
+                "verify": sync_res.get("verify"),
+            })
+
+        if path == "/relay/bind":
+            name = (body.get("name") or "").strip()
+            target_host = (body.get("target") or "").strip()
+            if not name or not target_host:
+                return self._json(400, {"ok": False, "error": "缺少节点名称 (name) 或落地目标 (target)"})
+            nodes = load_nodes()
+            relay_node = next((n for n in nodes if n.get("name") == name and n.get("type") != "hysteria2"), None)
+            if not relay_node:
+                return self._json(404, {"ok": False, "error": "未找到指定的中转入口服务器"})
+            target_exit = next(
+                (n for n in nodes if (n.get("host") == target_host or n.get("ip") == target_host) and n.get("type") != "hysteria2"),
+                None,
+            )
+            if not target_exit:
+                return self._json(404, {"ok": False, "error": "未找到匹配的目标海外出口服务器"})
+            fallback_exit = next(
+                (
+                    n for n in nodes
+                    if n.get("type") != "hysteria2"
+                    and n.get("role") not in ("relay", "standalone")
+                    and (n.get("exit_country") or "").upper() != "CN"
+                    and n.get("host") not in (target_exit.get("host"), relay_node.get("host"))
+                ),
+                None,
+            )
+
+            sync_res = remote_cfg_mod.bind_relay(relay_node, target_exit, fallback_exit_node=fallback_exit)
+            if not sync_res.get("ok"):
+                logger.log("WARN", "RELAY", "绑定中转失败 [%s ➔ %s]: %s" % (name, target_host, sync_res.get("error")))
+                return self._json(502, {
+                    "ok": False,
+                    "error": sync_res.get("error") or "远端中转绑定失败",
+                    "rolled_back": sync_res.get("rolled_back", False),
+                    "verify": sync_res.get("verify"),
+                })
+
+            def _apply_bind(ns):
+                for n in ns:
+                    if n["name"] == name:
+                        n["role"] = "relay"
+                        n["landing"] = sync_res["landing"]
+                        n["landing_policy"] = sync_res["landing_policy"]
+                        n["health"] = "ok"
+                        n["exit_ip"] = sync_res["exit_ip"]
+                        n["exit_country"] = sync_res["exit_country"]
+                        n["health_detail"] = sync_res["health_detail"]
+                return ns
+
+            update_nodes(_apply_bind)
+            try:
+                render()
+            except Exception:
+                pass
+            logger.log("INFO", "RELAY", "建立中转加速专线并完成真实出网验真: 节点 [%s] ➔ 落地 [%s]" % (name, target_exit["name"]))
+            return self._json(200, {
+                "ok": True,
+                "message": "已成功建立中转加速专线并通过真实出网验证",
+                "verify": sync_res.get("verify"),
+            })
+
+        if path == "/relay/unbind":
+            name = (body.get("name") or "").strip()
+            if not name:
+                return self._json(400, {"ok": False, "error": "缺少节点名称 (name)"})
+            nodes = load_nodes()
+            relay_node = next((n for n in nodes if n.get("name") == name and n.get("type") != "hysteria2"), None)
+            if not relay_node:
+                return self._json(404, {"ok": False, "error": "未找到指定的服务器节点"})
+
+            sync_res = remote_cfg_mod.unbind_relay(relay_node)
+            if not sync_res.get("ok"):
+                logger.log("WARN", "RELAY", "解除中转失败 [%s]: %s" % (name, sync_res.get("error")))
+                return self._json(502, {
+                    "ok": False,
+                    "error": sync_res.get("error") or "远端解除中转失败",
+                    "rolled_back": sync_res.get("rolled_back", False),
+                })
+
+            def _apply_unbind(ns):
+                for n in ns:
+                    if n["name"] == name:
+                        n["role"] = "standalone"
+                        n.pop("landing", None)
+                        n.pop("landing_policy", None)
+                        n.pop("exit_ip", None)
+                        n.pop("exit_country", None)
+                        n["health"] = sync_res.get("health", "unknown")
+                        n["health_detail"] = sync_res.get("health_detail", "国内独立服务器（未绑定中转，不进订阅）")
+                return ns
+
+            update_nodes(_apply_unbind)
+            try:
+                render()
+            except Exception:
+                pass
+            logger.log("INFO", "RELAY", "解除中转加速并已同步远端配置: 节点 [%s] 恢复为独立服务器" % name)
+            return self._json(200, {"ok": True, "message": "已解除中转关系，远端配置已还原为独立服务器"})
+
+        if path == "/hy2/toggle":
+            host = (body.get("host") or "").strip()
+            name = (body.get("name") or "").strip()
+            enabled = bool(body.get("enabled"))
+            if not host and not name:
+                return self._json(400, {"ok": False, "error": "缺少 host 或 name"})
+            base_name = name[:-4] if name.endswith("-HY2") else name
+            nodes = load_nodes()
+            vless_node = next(
+                (
+                    n for n in nodes
+                    if n.get("type") != "hysteria2"
+                    and (
+                        (host and (n.get("host") == host or n.get("ip") == host))
+                        or (base_name and n.get("name") == base_name)
+                    )
+                ),
+                None,
+            )
+            if not vless_node:
+                return self._json(404, {"ok": False, "error": "未找到对应的海外出口主节点"})
+            target_host = vless_node.get("host")
+            existing_hy2 = next(
+                (
+                    n for n in nodes
+                    if n.get("type") == "hysteria2"
+                    and (n.get("host") == target_host or n.get("name") == vless_node.get("name", "") + "-HY2")
+                ),
+                None,
+            )
+
+            sync_res = remote_cfg_mod.toggle_hy2(
+                vless_node,
+                existing_hy2_node=existing_hy2,
+                enabled=enabled,
+                open_firewall_fn=open_firewall,
+            )
+            if not sync_res.get("ok"):
+                logger.log("WARN", "NODE", "切换 HY2 失败 [%s -> %s]: %s" %
+                           (vless_node.get("name"), "开启" if enabled else "关闭", sync_res.get("error")))
+                return self._json(502, {
+                    "ok": False,
+                    "error": sync_res.get("error") or "远端切换 HY2 失败",
+                    "rolled_back": sync_res.get("rolled_back", False),
+                    "verify": sync_res.get("verify"),
+                })
+
+            hy2_record = sync_res.get("hy2_node")
+
+            def _apply_hy2(ns):
+                out_list = []
+                placed_hy2 = False
+                for n in ns:
+                    is_same_host = n.get("host") == target_host
+                    is_hy2_item = n.get("type") == "hysteria2" and (
+                        is_same_host or n.get("name") == vless_node.get("name", "") + "-HY2"
+                    )
+                    if is_hy2_item:
+                        if enabled and hy2_record:
+                            out_list.append(hy2_record)
+                            placed_hy2 = True
+                        else:
+                            updated_hy2 = dict(n)
+                            updated_hy2["enabled"] = False
+                            out_list.append(updated_hy2)
+                            placed_hy2 = True
+                    elif n.get("name") == vless_node.get("name"):
+                        updated_vless = dict(n)
+                        updated_vless["hy2_enabled"] = enabled
+                        out_list.append(updated_vless)
+                    else:
+                        out_list.append(n)
+                if enabled and hy2_record and not placed_hy2:
+                    out_list.append(hy2_record)
+                return out_list
+
+            update_nodes(_apply_hy2)
+            try:
+                render()
+            except Exception:
+                pass
+            state_str = "开启" if enabled else "关闭"
+            logger.log("INFO", "NODE", "切换 HY2 极速通道并完成远端同步: %s ➔ %s" %
+                       (vless_node.get("name") or target_host, state_str))
+            return self._json(200, {
+                "ok": True,
+                "enabled": enabled,
+                "message": f"HY2 极速通道已{state_str}并通过远端校验",
+                "verify": sync_res.get("verify"),
+            })
+
+        if path == "/ping":
+            try:
+                import probe as probe_mod
+                nodes = load_nodes()
+                cn = probe_mod.cn_probe(nodes)
+                status = _load_json("status.json", {})
+                if cn:
+                    for name, cinfo in cn.items():
+                        if name in status and isinstance(cinfo, dict):
+                            status[name].update(cinfo)
+                    status["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    tmp = os.path.join(DATA, "status.json.tmp")
+                    with open(tmp, "w", encoding="utf-8") as f:
+                        json.dump(status, f, ensure_ascii=False)
+                    os.replace(tmp, os.path.join(DATA, "status.json"))
+                return self._json(200, {"ok": True, "status": status})
+            except Exception as e:
+                return self._json(500, {"ok": False, "error": str(e)})
 
         if path == "/resetpw":
             ip = (body.get("ip") or "").strip()
@@ -805,7 +1277,7 @@ class H(BaseHTTPRequestHandler):
             if all_bad:
                 targets = [n for n in nodes if n.get("health") not in ("ok", "unknown") and n.get("source") != "external"]
                 if not targets:
-                    return self._json(200, {"ok": True, "message": "所有节点健康，无需自愈", "results": []})
+                    return self._json(200, {"ok": True, "message": "没有已识别为异常的节点", "results": []})
             else:
                 target = next((n for n in nodes if n.get("name") == name), None)
                 if not target:
@@ -816,6 +1288,9 @@ class H(BaseHTTPRequestHandler):
             for t in targets:
                 r = repair_mod.repair_node(t)
                 results.append(r)
+                if r.get("requires_manual"):
+                    logger.log("WARN", "REPAIR", "节点 [%s] 需要人工检查；未执行远程操作" % t.get("name"))
+                    continue
                 def _apply(ns):
                     for n in ns:
                         if n.get("name") == t.get("name"):
@@ -830,7 +1305,8 @@ class H(BaseHTTPRequestHandler):
                 lvl = "INFO" if r.get("ok") else "WARN"
                 logger.log(lvl, "REPAIR", "自愈节点 [%s]: %s -> %s (%s)" %
                            (t.get("name"), r.get("before"), r.get("after"), r.get("detail")))
-            render()
+            if any(not x.get("requires_manual") for x in results):
+                render()
             all_ok = all(x.get("ok") for x in results)
             return self._json(200, {"ok": True, "all_ok": all_ok, "results": results})
 
@@ -846,6 +1322,8 @@ class H(BaseHTTPRequestHandler):
             dry_run = bool(body.get("dry_run"))
             if not _valid_host(ip):
                 return self._json(400, {"ok": False, "error": "地址格式不对（IP 或域名）"})
+            if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_-]{0,31}", user):
+                return self._json(400, {"ok": False, "error": "SSH 用户名格式不正确"})
             if auth_type not in ("password", "key"):
                 return self._json(400, {"ok": False, "error": "认证方式只支持 password 或 key"})
             if auth_type == "password" and not pwd:
@@ -858,14 +1336,20 @@ class H(BaseHTTPRequestHandler):
                 return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
             if not (0 < port < 65536):
                 return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
+            try:
+                ssh_port = int(body.get("ssh_port") or 22)
+            except Exception:
+                return self._json(400, {"ok": False, "error": "SSH 端口必须是 1-65535"})
+            if not (0 < ssh_port < 65536):
+                return self._json(400, {"ok": False, "error": "SSH 端口必须是 1-65535"})
             if role not in ("auto", "exit", "relay"):
                 return self._json(400, {"ok": False, "error": "角色只支持 auto / exit / relay"})
 
-            # 装前 3 秒连通性排雷与大白话提示（非演练模式下检测 22 端口）
-            if not dry_run and not port_reachable(ip, 22, timeout=3):
+            # 装前 3 秒连通性排雷与大白话提示（非演练模式下检测目标 SSH 端口）
+            if not dry_run and not port_reachable(ip, ssh_port, timeout=3):
                 return self._json(400, {
                     "ok": False,
-                    "error": f"无法连接服务器 {ip} 的 22 端口，请检查：1. 服务器是否已在云控制台开机；2. 安全组/防火墙是否放行了 22 端口（TCP）。"
+                    "error": f"无法连接服务器 {ip} 的 {ssh_port} 端口，请检查：1. 服务器是否已在云控制台开机；2. 安全组/防火墙是否放行了 {ssh_port} 端口（TCP）。"
                 })
 
             # 防呆约束：中国大陆服务器禁止误设为直接出口
@@ -890,7 +1374,7 @@ class H(BaseHTTPRequestHandler):
             jid = uuid.uuid4().hex[:12]
             cfg_path = _write_job(jid, {
                 "ip": ip, "user": user, "auth_type": auth_type, "name": name,
-                "port": port, "role": role, "node": node, "landing": landing,
+                "port": port, "ssh_port": ssh_port, "role": role, "node": node, "landing": landing,
                 "dry_run": dry_run,
             }, secret=(key_text if auth_type == "key" else pwd))
             JOBS[jid] = {"state": "queued", "step": 0, "stepname": "", "log": []}

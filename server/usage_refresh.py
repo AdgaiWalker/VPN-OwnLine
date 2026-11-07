@@ -49,6 +49,21 @@ def main():
         except Exception as e:
             errs.append("%s traffic: %s" % (getattr(p, "name", "?"), str(e)[:80]))
 
+    # 保底：对未接入云 API 的通用 Linux 节点，直接读取 /proc/net/dev 物理网卡流量
+    try:
+        nodes_file = os.path.join(DATA, "nodes.json")
+        if os.path.exists(nodes_file):
+            from nodekit import host_traffic
+            nodes_data = json.load(open(nodes_file, encoding="utf-8"))
+            for n in (nodes_data or []):
+                host = n.get("host")
+                if host and host not in out and n.get("source") != "external":
+                    ht = host_traffic.collect_remote_traffic(n)
+                    if ht:
+                        out[host] = ht
+    except Exception as e:
+        errs.append("host_traffic fallback: %s" % str(e)[:80])
+
     if out:
         out["_ts"] = ts
         write_json(os.path.join(DATA, "usage.json"), out)
