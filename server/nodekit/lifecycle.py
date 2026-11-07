@@ -164,5 +164,7 @@ def is_in_subscription(node, now_ts=None, drain_days=DEFAULT_DRAIN_DAYS):
     bad_health = frozenset({"port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"})
     if (node or {}).get("health") in bad_health:
         return False
+    if (node or {}).get("role") == "standalone":
+        return False
     st = get_lifecycle_state(node, now_ts=now_ts, drain_days=drain_days)
     return st["is_eligible_for_sub"]

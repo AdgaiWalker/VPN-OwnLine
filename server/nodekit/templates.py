@@ -28,16 +28,42 @@ def _inbound(port, uuid, sni, private_key, sid):
     }
 
 
-def exit_config(port, uuid, sni, private_key, sid, hy2=None):
-    """海外落地节点：只出不进（直连出网）。
+def _isp_outbound(isp):
+    """3x-ui 同款静态住宅代理出站（SOCKS5 / HTTP 链式出口）。"""
+    out = {
+        "type": isp.get("type", "socks"),
+        "tag": "isp-out",
+        "server": str(isp["server"]),
+        "server_port": int(isp["server_port"]),
+    }
+    if isp.get("username"):
+        out["username"] = str(isp["username"])
+    if isp.get("password"):
+        out["password"] = str(isp["password"])
+    return out
+
+
+def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None):
+    """海外落地节点：直连出网 或 挂载 ISP 静态住宅链式出站。
 
     hy2 可选：{"port": 443, "password": ..., "obfs_password": ..., "sni": ...}
     给了就再加一条 Hysteria2 入站（UDP），和 Reality 共用端口号互不影响。
+    isp 可选：{"server": "...", "server_port": 1080, "username": "...", "password": "...", "type": "socks"}
+    绑定后节点出网流量全部转由该静态住宅 IP 代理出口。
     """
     inbounds = [_inbound(port, uuid, sni, private_key, sid)]
     if hy2:
         inbounds.append(_hy2_inbound(hy2.get("port", port), hy2["password"],
                                      hy2["obfs_password"], hy2.get("sni", sni)))
+    if isp:
+        outbounds = [_isp_outbound(isp), {"type": "direct", "tag": "direct"}]
+        route = {"rules": [{"outbound": "isp-out"}]}
+        return {
+            "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
+            "inbounds": inbounds,
+            "outbounds": outbounds,
+            "route": route,
+        }
     return {
         "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
         "inbounds": inbounds,
@@ -152,4 +178,7 @@ def validate(cfg):
                 errs.append("落地节点缺少 public_key")
             if not re.fullmatch(r"[0-9a-fA-F]{1,32}", str(r.get("short_id") or "")):
                 errs.append("落地节点 short_id 必须是十六进制")
+        if ob.get("type") in ("socks", "http"):
+            if not (ob.get("server") and ob.get("server_port")):
+                errs.append("ISP 出口代理缺少 server 或 server_port")
     return errs

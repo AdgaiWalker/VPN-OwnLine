@@ -128,7 +128,10 @@ check("Base64 中解码包含【剩3天到期】", "【剩3天到期】临期出
 # 5. 流量 85% 熔断安全锁过滤（防止产生超额账单扣费）
 node_safe_quota = node("未超标节点", host="1.1.1.1")
 node_tripped_quota = node("超标85%中转机", host="2.2.2.2")
+node_safe_quota["quota_control_managed"] = True
+node_tripped_quota["quota_control_managed"] = True
 usage_mock = {
+    "_ts": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
     "1.1.1.1": {"used": 200.0, "total": 500.0},
     "2.2.2.2": {"used": 450.0, "total": 500.0},
 }
@@ -144,5 +147,53 @@ v2ray_quota = S.render_v2ray_base64(quota_nodes, usage_data=usage_mock)
 decoded_quota = _b64.b64decode(v2ray_quota).decode("utf-8")
 check("Base64 中保留未超标节点", "未超标节点" in _u.unquote(decoded_quota))
 check("Base64 中自动熔断剔除超标节点", "超标85%中转机" not in _u.unquote(decoded_quota))
+
+mixed_managed = node("同机受控记录", host="2.2.2.2")
+mixed_managed["quota_control_managed"] = True
+mixed_unverified = node("同机未确认记录", host="2.2.2.2")
+mixed_nodes = [mixed_managed, mixed_unverified]
+mixed_clash = S.render_clash_yaml(mixed_nodes, usage_data=usage_mock)
+check("混合归属时 Clash 保留所有记录", "同机受控记录" in mixed_clash and "同机未确认记录" in mixed_clash)
+mixed_b64 = _u.unquote(_b64.b64decode(S.render_v2ray_base64(mixed_nodes, usage_data=usage_mock)).decode())
+check("混合归属时 Base64 保留所有记录", "同机受控记录" in mixed_b64 and "同机未确认记录" in mixed_b64)
+
+# Subscription-Userinfo 响应头测试
+u_hdr = S.subscription_userinfo(usage_mock)
+check("Subscription-Userinfo 头部生成成功", bool(u_hdr))
+check("Subscription-Userinfo 包含 upload", "upload=0" in u_hdr)
+check("Subscription-Userinfo 包含精确 download 字节", "download=" + str(int(650.0 * 1024 * 1024 * 1024)) in u_hdr)
+check("Subscription-Userinfo 包含精确 total 字节", "total=" + str(int(1000.0 * 1024 * 1024 * 1024)) in u_hdr)
+
+usage_with_expire = {
+    "1.1.1.1": {"used": 10.0, "total": 100.0, "expire": "2026-11-12"},
+    "2.2.2.2": {"used": 20.0, "total": 100.0, "expire": "2027-10-24"},
+}
+u_exp_hdr = S.subscription_userinfo(usage_with_expire)
+check("带到期日期的 Subscription-Userinfo 包含 expire 时间戳", "expire=" in u_exp_hdr)
+check("空或无效用量返回 None", S.subscription_userinfo(None) is None and S.subscription_userinfo({}) is None)
+
+# AI 分流组测试（按 01-PRD 客户端仅支持 Shadowrocket / Clash / FL Clash，不输出 sing-box JSON）
+check("Clash 中包含 🤖 AI 业务 分组", "🤖 AI 业务" in yaml_str)
+check("Clash 中包含 openai 规则路由至 AI 分组", "DOMAIN-KEYWORD,openai,🤖 AI 业务" in yaml_str)
+check("已移除废弃的 Sing-box 客户端配置导出函数", not hasattr(S, "render_singbox_json"))
+
+# 7. 人话专线命名与出海真实流量过滤测试
+n_bj = node("北京", role="relay", host="198.51.100.10")
+n_sv = node("硅谷", role="exit", host="203.0.113.10")
+n_sg = node("新加坡", role="exit", host="203.0.113.20")
+check("北京中继人话专线化", "北京专线 ➔ 🇺🇸 硅谷" in S.format_display_name(n_bj))
+n_bj_sa = node("北京", role="standalone", host="198.51.100.10")
+check("北京独立服务器人话显示", "国内独立服务器" in S.format_display_name(n_bj_sa))
+check("硅谷直连人话专线化", "硅谷直连" in S.format_display_name(n_sv))
+
+real_usage = {
+    "203.0.113.10": {"used": 155.5, "total": 512.0},
+    "203.0.113.20": {"used": 1.2, "total": 1024.0},
+    "198.51.100.10": {"used": 0.7, "total": 500.0},
+}
+u_filtered = S.subscription_userinfo(real_usage, nodes=[n_bj, n_sv, n_sg])
+# 仅统计 155.5 + 1.2 = 156.7 GB，而不是加上中继机的 157.4 GB；总额 512 + 1024 = 1536 GB，而不是 2036 GB
+check("Subscription-Userinfo 过滤掉国内中继跳板流量", "download=" + str(int(156.7 * 1024 * 1024 * 1024)) in u_filtered)
+check("Subscription-Userinfo 总额仅统计境外出口", "total=" + str(int(1536.0 * 1024 * 1024 * 1024)) in u_filtered)
 
 print("通过 %d 项" % ok)

@@ -88,6 +88,8 @@ def test_is_in_subscription():
     check("draining 节点不进订阅", not lifecycle.is_in_subscription({"health": "ok", "expire_at": now + 86400 * 3}, now_ts=now, drain_days=7))
     # 已过期节点不可进订阅
     check("expired 节点不进订阅", not lifecycle.is_in_subscription({"health": "ok", "expire_at": now - 100}, now_ts=now))
+    # 国内独立服务器（未绑定海外落地）不可进订阅
+    check("standalone 节点不进订阅", not lifecycle.is_in_subscription({"health": "ok", "role": "standalone"}, now_ts=now))
 
 
 def run_all():

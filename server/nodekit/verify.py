@@ -7,8 +7,10 @@ import ipaddress
 import json
 import os
 import random
+import re
 import socket
 import subprocess
+import tempfile
 import time
 import urllib.request
 
@@ -17,15 +19,20 @@ KNOWN_HOSTS = "/opt/sing-box/known_hosts"
 BIN = "/opt/sing-box/sing-box"
 
 
-def ssh_cmd(user, host, timeout=10):
+def ssh_cmd(user, host, timeout=10, port=22):
     """统一的受控节点 SSH 命令前缀：首次记住指纹（TOFU），后续严格比对。"""
-    return [
-        "ssh", "-i", CTL_KEY, "-o", "BatchMode=yes",
+    cmd = ["ssh"]
+    ssh_port = int(port or 22)
+    if ssh_port != 22:
+        cmd += ["-p", str(ssh_port)]
+    cmd += [
+        "-i", CTL_KEY, "-o", "BatchMode=yes",
         "-o", "StrictHostKeyChecking=accept-new",
         "-o", "UserKnownHostsFile=" + KNOWN_HOSTS,
         "-o", "ConnectTimeout=%d" % int(timeout),
         "%s@%s" % (user or "root", host),
     ]
+    return cmd
 
 
 def tcp_ok(host, port, timeout=6):
@@ -60,10 +67,10 @@ def is_ip(s):
         return False
 
 
-def remote_exit_ip(host, user="root", timeout=10):
+def remote_exit_ip(host, user="root", timeout=10, port=22):
     """从节点上取它自己的公网出口 IP。取不到返回空串（不当作失败）。"""
-    cmd = ssh_cmd(user, host, timeout=timeout) + [
-        "curl -s --max-time 8 https://api.ipify.org || curl -s --max-time 8 http://ifconfig.me/ip",
+    cmd = ssh_cmd(user, host, timeout=timeout, port=port) + [
+        "curl -s --max-time 8 https://api.ipify.org || curl -s --max-time 8 https://ifconfig.me/ip",
     ]
     try:
         p = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 8)
@@ -77,13 +84,28 @@ def remote_exit_ip(host, user="root", timeout=10):
 
 
 def country_of(ip):
-    try:
-        url = "http://ip-api.com/json/%s?fields=status,countryCode" % ip
-        with urllib.request.urlopen(url, timeout=8) as r:
-            d = json.loads(r.read().decode())
-        return d.get("countryCode", "") if d.get("status") == "success" else ""
-    except Exception:
+    """通过 HTTPS 查询出口 IP 所属国家代码（2 位大写字母，失败返回空串）。"""
+    if not is_ip(ip):
         return ""
+    headers = {"User-Agent": "curl/8.0"}
+    try:
+        req = urllib.request.Request("https://ipwho.is/%s" % ip, headers=headers)
+        with urllib.request.urlopen(req, timeout=6) as r:
+            d = json.loads(r.read().decode("utf-8", errors="replace"))
+        cc = str(d.get("country_code") or "").strip().upper()
+        if d.get("success") is not False and re.fullmatch(r"[A-Z]{2}", cc):
+            return cc
+    except Exception:
+        pass
+    try:
+        req = urllib.request.Request("https://ipinfo.io/%s/country" % ip, headers=headers)
+        with urllib.request.urlopen(req, timeout=6) as r:
+            cc = r.read().decode("utf-8", errors="replace").strip().upper()
+        if re.fullmatch(r"[A-Z]{2}", cc):
+            return cc
+    except Exception:
+        pass
+    return ""
 
 
 def _client_cfg(node, socks_port):
@@ -117,15 +139,13 @@ def proxy_exit_ip(node, timeout=8):
     """真的连一次：本机起个 socks，走这条节点出去，看能不能取到出口 IP。
     取到 → 说明这条节点真的能用；取不到 → 说明不能用（不管端口和握手多漂亮）。"""
     port = random.randint(20000, 45000)
-    path = "/tmp/px_%d.json" % port
+    fd, path = tempfile.mkstemp(prefix="ownline-px-", suffix=".json")
+    p = None
     try:
-        with open(path, "w", encoding="utf-8") as f:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(_client_cfg(node, port), f)
         p = subprocess.Popen([BIN, "run", "-c", path],
                              stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except Exception:
-        return ""
-    try:
         deadline = time.time() + 6
         ready = False
         while time.time() < deadline:
@@ -143,14 +163,15 @@ def proxy_exit_ip(node, timeout=8):
     except Exception:
         return ""
     finally:
-        try:
-            p.terminate()
-            p.wait(timeout=5)
-        except Exception:
+        if p is not None:
             try:
-                p.kill()
+                p.terminate()
+                p.wait(timeout=5)
             except Exception:
-                pass
+                try:
+                    p.kill()
+                except Exception:
+                    pass
         try:
             os.remove(path)
         except Exception:
@@ -197,6 +218,6 @@ def run(node):
     # 代理不通：机器还活着吗？
     if is_hy2 and tcp_ok(host, port):
         return {"health": "proxy", "detail": "机器活着，但 Hysteria2 连不通（UDP 端口未放行或密码不对）"}
-    if remote_exit_ip(host, node.get("ssh_user") or "root"):
+    if remote_exit_ip(host, node.get("ssh_user") or "root", port=node.get("ssh_port") or 22):
         return {"health": "proxy", "detail": "机器活着，但代理连不通（密钥或路由不对）"}
     return {"health": "blocked", "detail": "代理和 SSH 都不通，可能被墙" }

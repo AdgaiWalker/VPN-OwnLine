@@ -43,6 +43,16 @@ check("HY2 ALPN 是 h3", hy["tls"]["alpn"] == ["h3"])
 check("HY2 用自签证书路径", hy["tls"]["certificate_path"].endswith("hy2.crt"))
 check("HY2 有上下行带宽提示", hy["up_mbps"] and hy["down_mbps"])
 
+# --- 出口：带 ISP 静态住宅链式代理 (3x-ui 同款能力) ---
+ISP = dict(server="198.51.100.22", server_port=1080, username="att_user", password="att_password", type="socks")
+c_isp = T.exit_config(isp=ISP, **BASE)
+check("带 ISP 包含 socks 出口", any(o.get("tag") == "isp-out" and o.get("type") == "socks" for o in c_isp["outbounds"]))
+check("带 ISP 出口服务器正确", c_isp["outbounds"][0]["server"] == "198.51.100.22")
+check("带 ISP 出口端口正确", c_isp["outbounds"][0]["server_port"] == 1080)
+check("带 ISP 出口认证信息正确", c_isp["outbounds"][0]["username"] == "att_user" and c_isp["outbounds"][0]["password"] == "att_password")
+check("带 ISP 路由规则指向 isp-out", c_isp["route"]["rules"] == [{"outbound": "isp-out"}])
+check("validate 接受 ISP 静态住宅出口", T.validate(c_isp) == [])
+
 # --- 中转：单落地 ---
 LAND = dict(host="1.2.3.4", port=443, uuid="22222222-2222-4222-8222-222222222222",
             sni="www.apple.com", pbk="PUB", sid="abcd1234")

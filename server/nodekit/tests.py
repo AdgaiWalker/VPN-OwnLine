@@ -84,6 +84,26 @@ for broken, keyword in [
     except links.LinkError as e:
         ok("报错含关键词 " + keyword, keyword in str(e), str(e))
 
+# ---------- links: parse_isp_proxy (3x-ui 兼容) ----------
+isp_socks = links.parse_isp_proxy("socks5://user1:pass2@residential.isp.net:10808")
+ok("解析 socks5 ISP host", isp_socks["server"] == "residential.isp.net")
+ok("解析 socks5 ISP port", isp_socks["server_port"] == 10808)
+ok("解析 socks5 ISP user", isp_socks["username"] == "user1")
+ok("解析 socks5 ISP pass", isp_socks["password"] == "pass2")
+ok("解析 socks5 ISP type", isp_socks["type"] == "socks")
+
+isp_http = links.parse_isp_proxy("http://198.51.100.99:8080")
+ok("解析 http ISP host", isp_http["server"] == "198.51.100.99")
+ok("解析 http ISP port", isp_http["server_port"] == 8080)
+ok("解析 http ISP type", isp_http["type"] == "http")
+ok("解析 http ISP 无账号", "username" not in isp_http)
+
+try:
+    links.parse_isp_proxy("ftp://1.2.3.4:21")
+    raise AssertionError("不支持的协议应报错")
+except links.LinkError as e:
+    ok("报错含协议限制", "socks5" in str(e) or "http" in str(e))
+
 # ---------- templates ----------
 cfg = templates.exit_config(443, "11111111-1111-4111-8111-111111111111", "www.apple.com", "PRIVKEY", "abcd1234")
 ok("exit 无 vless outbound", all(o["type"] != "vless" for o in cfg["outbounds"]))

@@ -68,3 +68,41 @@ def build(node):
     return "vless://%s@%s:%s?%s#%s" % (
         node["uuid"], node["host"], node["port"], q, urllib.parse.quote(node.get("name") or node["host"])
     )
+
+
+def parse_isp_proxy(url):
+    """解析 SOCKS5 或 HTTP 代理 URL 为 dict（3x-ui 兼容格式）。
+    支持：
+      socks5://user:pass@127.0.0.1:1080
+      socks5://127.0.0.1:1080
+      http://user:pass@127.0.0.1:8080
+    """
+    if not url or not url.strip():
+        raise LinkError("代理链接为空")
+    url = url.strip()
+    try:
+        u = urllib.parse.urlparse(url)
+    except Exception:
+        raise LinkError("代理链接格式不正确")
+    scheme = (u.scheme or "").lower()
+    if scheme not in ("socks5", "socks", "http", "https"):
+        raise LinkError("只支持 socks5:// 或 http:// 格式的代理链接")
+    if not u.hostname:
+        raise LinkError("代理链接中缺少服务器地址")
+    try:
+        port = int(u.port or 0)
+    except Exception:
+        port = 0
+    if not (0 < port < 65536):
+        raise LinkError("代理端口不合法（必须是 1-65535）")
+    res = {
+        "type": "socks" if "socks" in scheme else "http",
+        "server": u.hostname,
+        "server_port": port,
+    }
+    if u.username:
+        res["username"] = urllib.parse.unquote(u.username)
+    if u.password:
+        res["password"] = urllib.parse.unquote(u.password)
+    return res
+

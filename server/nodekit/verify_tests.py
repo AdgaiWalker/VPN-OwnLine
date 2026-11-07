@@ -49,6 +49,8 @@ check("is_ip 拒绝空串", not V.is_ip(""))
 sc = V.ssh_cmd("ubuntu", "203.0.113.1", timeout=9)
 check("ssh_cmd 用 accept-new（TOFU）", "StrictHostKeyChecking=accept-new" in sc and "StrictHostKeyChecking=no" not in sc, sc)
 check("ssh_cmd 带 known_hosts 与目标", "UserKnownHostsFile=/opt/sing-box/known_hosts" in sc and sc[-1] == "ubuntu@203.0.113.1", sc)
+sc_port = V.ssh_cmd("ubuntu", "203.0.113.1", timeout=9, port=2222)
+check("ssh_cmd 自定义端口传 -p 2222", sc_port[1:3] == ["-p", "2222"], sc_port)
 
 
 # ---------- tls_ok 的三种输出 ----------

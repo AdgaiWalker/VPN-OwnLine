@@ -6,6 +6,7 @@
 import datetime
 import json
 import os
+import re
 import subprocess
 import threading
 
@@ -13,6 +14,43 @@ DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
 LOG_FILE = os.path.join(DATA, "events.log")
 MAX_LINES = 1000
 _LOCK = threading.Lock()
+
+_SECRET_FIELD = re.compile(
+    r"(?i)^(?:secret[_-]?(?:id|key)?|access[_-]?(?:key|token)|"
+    r"password|passwd|pwd|passphrase|private[_-]?key|sub[_-]?(?:url|token)|"
+    r"token|authorization|credential|密码|私钥)$"
+)
+_PEM = re.compile(r"-----BEGIN [^-\r\n]*PRIVATE KEY-----.*?-----END [^-\r\n]*PRIVATE KEY-----", re.S)
+_PEM_UNCLOSED = re.compile(r"-----BEGIN [^-\r\n]*PRIVATE KEY-----.*", re.S)
+_URI = re.compile(r"(?i)\b(?:vless|vmess|ss|ssr|trojan|hysteria2)://[^\s\"']+")
+_SUB_URL = re.compile(r"(?i)(/s/)[^/\s?#\"'()]+")
+_BEARER = re.compile(r"(?i)\bBearer\s+[^\s,;\"']+")
+_INLINE_SECRET = re.compile(
+    r"""(?i)(["']?(?:secret[_-]?(?:id|key)?|access[_-]?(?:key|token)|password|passwd|pwd|"""
+    r"""passphrase|private[_-]?key|sub[_-]?(?:url|token)|token|authorization|credential|密码|私钥)"""
+    r"""["']?\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;()]+)"""
+)
+
+
+def redact_text(value):
+    """屏蔽常见凭据；未知格式仍无法保证全部识别。"""
+    text = str(value)
+    text = _PEM.sub("[REDACTED PRIVATE KEY]", text)
+    text = _PEM_UNCLOSED.sub("[REDACTED PRIVATE KEY]", text)
+    text = _URI.sub("[REDACTED PROXY LINK]", text)
+    text = _SUB_URL.sub(r"\1[REDACTED]", text)
+    text = _BEARER.sub("Bearer [REDACTED]", text)
+    return _INLINE_SECRET.sub(r"\1[REDACTED]", text)
+
+
+def redact_item(value):
+    if isinstance(value, dict):
+        return {k: ("[REDACTED]" if _SECRET_FIELD.fullmatch(str(k)) else redact_item(v))
+                for k, v in value.items()}
+    if isinstance(value, list):
+        return [redact_item(v) for v in value]
+    return redact_text(value) if isinstance(value, str) else value
+
 
 ALLOWED_SERVICES = {
     "sing-box", "caddy", "admin", "probe", "backup-remote",
@@ -27,7 +65,7 @@ def log(level, source, message):
         "ts": now,
         "level": (level or "INFO").upper(),
         "src": (source or "SYS").upper(),
-        "msg": str(message).strip()
+        "msg": redact_text(str(message).strip())
     }
     line = json.dumps(entry, ensure_ascii=False) + "\n"
     with _LOCK:
@@ -78,7 +116,7 @@ def read_logs(limit=100, level_filter=None, src_filter=None):
                             continue
                     if src and src != "ALL" and item.get("src") != src:
                         continue
-                    out.append(item)
+                    out.append(redact_item(item))
                     if len(out) >= limit:
                         break
                 except Exception:
@@ -104,7 +142,7 @@ def get_syslog(service, lines=50):
             cmd = ["tail", "-n", str(lines_int), "/var/log/sing-box.log"]
             r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
             if r.returncode == 0 and r.stdout.strip():
-                return {"ok": True, "service": service, "source": "file", "lines": r.stdout.splitlines()}
+                return {"ok": True, "service": service, "source": "file", "lines": redact_text(r.stdout).splitlines()}
         except Exception:
             pass
 
@@ -113,6 +151,6 @@ def get_syslog(service, lines=50):
         r = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
         if r.returncode != 0:
             return {"ok": False, "error": r.stderr or "journalctl 失败"}
-        return {"ok": True, "service": service, "source": "journalctl", "lines": r.stdout.splitlines()}
+        return {"ok": True, "service": service, "source": "journalctl", "lines": redact_text(r.stdout).splitlines()}
     except Exception as e:
         return {"ok": False, "error": str(e)}
