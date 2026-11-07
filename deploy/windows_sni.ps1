@@ -60,4 +60,4 @@ Write-Host "`n后续操作步骤：" -ForegroundColor Yellow
 Write-Host "1. 在宝塔面板中，将现有 443 站点的监听端口修改为 10443"
 Write-Host "2. 打开 CMD 运行: nginx -t 检查语法"
 Write-Host "3. 运行: nginx -s reload 重载生效"
-Write-Host "4. 此时外网连接 43.163.4.104:443 即可直通 Reality 节点！" -ForegroundColor Green
+Write-Host "4. 此时外网连接 <服务器公网IP>:443 即可直通 Reality 节点！" -ForegroundColor Green

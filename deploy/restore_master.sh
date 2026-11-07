@@ -6,13 +6,18 @@
 #   单行命令从北京备份仓库拉取最新备份包并自动装配满血复活。
 #
 # 用法：
-#   bash restore_master.sh --source=49.233.210.101 --user=backup --key=/root/.ssh/id_ed25519
+#   bash restore_master.sh <备份源IP或域名> [SSH用户名] [SSH私钥路径]
+#   例：bash restore_master.sh 198.51.100.10 backup /root/.ssh/id_ed25519
 #
 set -euo pipefail
 
-SOURCE_HOST="${1:-49.233.210.101}"
+SOURCE_HOST="${1:-}"
 BACKUP_USER="${2:-backup}"
 SSH_KEY="${3:-/root/.ssh/id_ed25519}"
+if [ -z "${SOURCE_HOST}" ] && [ ! -f "/tmp/ladder_backup.tar.gz" ]; then
+    echo "用法: bash restore_master.sh <备份源IP或域名> [SSH用户名] [SSH私钥路径]" >&2
+    exit 1
+fi
 DEST_DATA="/opt/web-data"
 DEST_WEB="/opt/web"
 

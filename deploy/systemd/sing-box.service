@@ -2,6 +2,7 @@
 Description=sing-box service
 After=network-online.target
 Wants=network-online.target
+ConditionPathExists=!/var/lib/ownline/quota-paused
 
 [Service]
 Type=simple

@@ -1,0 +1,57 @@
+name: CD - Multi-Asset Release Automation
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install locked Python preflight dependencies
+        run: |
+          pip install --no-input --disable-pip-version-check --require-hashes -r requirements.lock
+
+      - name: Run Test Gate (Must Pass 100%)
+        run: |
+          chmod +x scripts/test.sh
+          ./scripts/test.sh
+
+      - name: Package Distribution Bundle
+        run: |
+          VERSION="${GITHUB_REF_NAME:-v0.0.0}"
+          ARCHIVE_NAME="vpn-ownline-${VERSION}.tar.gz"
+          tar --exclude='.git' \
+              --exclude='.pytest_cache' \
+              --exclude='.ruff_cache' \
+              --exclude='__pycache__' \
+              --exclude='*.pyc' \
+              -czf "$ARCHIVE_NAME" \
+              server deploy web scripts requirements.lock README.md LICENSE
+          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> "$GITHUB_ENV"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ARCHIVE_NAME }}
+          generate_release_notes: true
