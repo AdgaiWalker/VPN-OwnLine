@@ -7,3 +7,8 @@ config/*.json
 .DS_Store
 __pycache__/
 *.pyc
+
+# Local installer dependencies, immutable download cache and run state
+.venv/
+packages/
+.installer-local/

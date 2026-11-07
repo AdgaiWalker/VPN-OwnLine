@@ -1,12 +1,12 @@
 # Server buying and preparation guide
 
-Start here if you do not own a server yet. Compare the total ongoing cost of a suitable server, then return to [AI-assisted setup](../README.md#ai-assisted-setup). Already have one? Skip shopping and prepare its [SSH access](#prepare-your-server).
+Start here if you do not own a server yet. Compare the total ongoing cost of a suitable server, then return to [Get started](../README.md#get-started). Already have one? Skip shopping and prepare its [SSH access](#prepare-your-server).
 
 Official information checked on **2026-10-31**. Availability, eligibility and offers can change; confirm them in the provider's current console before purchasing or activating resources. All links below are official and contain no referral codes.
 
 ## Start with your budget
 
-Ask your AI to compare a small shortlist using your monthly budget, where you will connect from, intended use and estimated monthly traffic. The [README starting prompts](../README.md#useful-starting-prompts) are the single place to copy an AI request.
+Compare a small shortlist using your monthly budget, where you will connect from, intended use and estimated monthly traffic. AI assistance is optional; the [README starting prompts](../README.md#useful-starting-prompts) remain the single place to copy an AI request.
 
 This guide covers deployment **outside mainland China**, including Hong Kong, Macao and Taiwan where a provider actually offers the selected product. The five domestic providers below are the project's chosen candidates, not a market ranking. Provider origin and server location are different things. No provider listed here is assumed to offer every region.
 
@@ -41,7 +41,7 @@ These are opportunities to reduce cost, not four promises of permanently free se
 
 ## Compare the cost you will actually pay
 
-Before choosing, ask the AI to summarize **one suitable option per shortlisted provider** with official links, the check date and these items:
+Before choosing, summarize **one suitable option per shortlisted provider**, yourself or with optional AI help, using official links, the check date and these items:
 
 - Initial cost, billing period, currency and applicable tax; ongoing renewal cost after discounts or credits end.
 - Included outbound traffic, destination exclusions, bandwidth conditions and what happens after the allowance is used.
@@ -51,6 +51,15 @@ Before choosing, ask the AI to summarize **one suitable option per shortlisted p
 If a charge or condition cannot be established, mark it **unknown** rather than treating it as zero. Prefer the lowest ongoing total among options that meet your needs. Do not promise latency or reachability based on geographic proximity alone; actual routes and network conditions differ.
 
 You choose and purchase or activate the server in the official provider console. Neither this guide nor its AI prompt authorizes purchases or paid-account upgrades. Provider budget alerts do not necessarily stop spending; stopping this project's proxy does not cancel cloud billing or release separately billed disks and IPs.
+
+## Custom domain (optional)
+
+A custom domain is **completely optional**. By default, VPN-OwnLine automatically provisions a secure HTTPS domain using free `sslip.io` dynamic DNS and automated Let's Encrypt certificates (e.g. `https://43-153-56-137.sslip.io:8443`), requiring zero domain configuration.
+
+If you prefer to bind your own branded domain:
+- **Sole recommended registrar**: [Spaceship](https://www.spaceship.com/)
+- **Why Spaceship**: Low-cost top-level domains (many TLDs like `.top`, `.xyz`, or `.com` range from \$1 to \$3 for the first year), includes free lifetime WHOIS privacy protection, requires no real-name verification (no mainland China ICP or real-name filing needed), and provides instant global DNS propagation.
+- **After purchase**: Point an `A` record to your server's public IPv4 address, then bind it on the server using `/opt/web/change_domain.sh yourdomain.com` (or pass `--domain yourdomain.com` during initial installation).
 
 ## Prepare your server
 
@@ -71,6 +80,6 @@ These requirements reflect the current [first-deployment installer](../deploy/in
 
 Tencent Lighthouse is the only current native cloud API adapter for instance discovery, supported firewall actions and real cloud usage. All other candidates, including Tencent CVM, use generic SSH on a compatible host. They do not gain native discovery, cloud firewall automation or the project's 85% cloud-usage protection just by appearing in this guide. A free-tier label also does not provide those integrations. Cloud API keys and SSH credentials are separate.
 
-Once ready, return to [AI-assisted setup](../README.md#ai-assisted-setup). The AI should identify your chosen machine, inspect before changes, explain current implementation gaps and continue through the project's existing deployment path after you confirm the target and installation. If you already have a compatible server, start there; no new purchase is needed.
+Once you own a server, continue to [Find server details](../README.md#find-server-details), then installation and local-client import. The planned beginner path is graphical and does not require AI or knowledge of a terminal; it needs an installation entry and SSH backend that have not been implemented yet. Users familiar with terminals can use [one command](../README.md#command-line) today. Optional AI must inspect first, explain capability gaps and respect your installation confirmation. Already prepared or installed servers skip completed tasks. After first deployment, save the separately delivered dashboard address and login; they are not the server's SSH credentials.
 
 [Back to Need a server?](../README.md#need-a-server)
