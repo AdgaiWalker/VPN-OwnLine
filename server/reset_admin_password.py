@@ -25,7 +25,7 @@ INITIAL_PASSWORD_MARKER = Path('/opt/web-data/.initial-password-required')
 HASH = r'\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}'
 
 
-def inspect_config(raw):
+def inspect_credentials(raw):
     """Accept only the exact generated single-site structure; never rewrite a shared Caddyfile."""
     if not re.match(r'\A# ownline-setup-job:[A-Za-z0-9_-]*\n', raw):
         raise ValueError('配置没有项目安装标记')
@@ -36,14 +36,14 @@ def inspect_config(raw):
         '(app) {', 'redir /p / 308', 'redir /p/* / 308',
         'handle /s/* {', 'reverse_proxy 127.0.0.1:8099', '}',
         '@blocked path /sub*', 'handle @blocked {', 'respond 404', '}',
-        'handle_path /api/* {', 'basic_auth {', 'admin HASH', '}',
+        'handle_path /api/* {', 'basic_auth {', 'USER HASH', '}',
         'reverse_proxy 127.0.0.1:8099', '}',
         '@sensitive path /tc.json /nodes.json /retired-nodes-*.json',
         'handle @sensitive {', 'respond 404', '}',
         '@pubjson path /status.json /servers.json /usage.json /quota.json',
-        'handle @pubjson {', 'basic_auth {', 'admin HASH', '}',
+        'handle @pubjson {', 'basic_auth {', 'USER HASH', '}',
         'header Cache-Control "no-store"', 'root * /opt/web-data', 'file_server', '}',
-        'handle {', 'basic_auth {', 'admin HASH', '}',
+        'handle {', 'basic_auth {', 'USER HASH', '}',
         'header Cache-Control "no-store"', 'root * /opt/web', 'file_server', '}', '}',
         ':80 {', 'redir https://DOMAIN:8443{uri} 308', '}',
         'https://DOMAIN:8443 {', 'TLS', 'import app', '}',
@@ -52,9 +52,9 @@ def inspect_config(raw):
     if initial_gate:
         blocked_end = template.index('handle_path /api/* {')
         template[blocked_end:blocked_end] = [
-            'handle /change-password {', 'basic_auth {', 'admin HASH', '}',
+            'handle /change-password {', 'basic_auth {', 'USER HASH', '}',
             'root * /opt/web', 'rewrite * /change-password.html', 'file_server', '}',
-            'handle /api/password/* {', 'basic_auth {', 'admin HASH', '}',
+            'handle /api/password/* {', 'basic_auth {', 'USER HASH', '}',
             'reverse_proxy 127.0.0.1:8099', '}',
         ]
         # The gate must apply to API, status JSON and ordinary static resources.
@@ -62,9 +62,16 @@ def inspect_config(raw):
             start = template.index(target)
             auth_end = template.index('}', start) + 1
             template[auth_end:auth_end] = ['forward_auth 127.0.0.1:8099 {', 'uri /password-gate', '}']
-    hashes = [m.group(1) for line in lines if (m := re.fullmatch(r'admin (' + HASH + r')', line))]
-    if len(hashes) != (5 if initial_gate else 3) or len(set(hashes)) != 1:
+    user_hash_pairs = [m.groups() for line in lines if (m := re.fullmatch(r'([A-Za-z0-9_.-]{1,64}) (' + HASH + r')', line))]
+    expected_matches = 5 if initial_gate else 3
+    if len(user_hash_pairs) != expected_matches:
         raise ValueError('认证配置不符合受支持模板')
+    usernames = {u for u, _ in user_hash_pairs}
+    hashes = {h for _, h in user_hash_pairs}
+    if len(usernames) != 1 or len(hashes) != 1:
+        raise ValueError('认证配置不符合受支持模板')
+    username = user_hash_pairs[0][0]
+    hash_val = user_hash_pairs[0][1]
     domain_matches = [m.group(1) for line in lines if (m := re.fullmatch(
         r'https://([A-Za-z0-9.-]+):8443 \{', line))]
     if len(domain_matches) != 1:
@@ -72,7 +79,7 @@ def inspect_config(raw):
     domain = domain_matches[0]
     normalized = []
     for line in lines:
-        line = line.replace(hashes[0], 'HASH').replace('https://' + domain + ':8443', 'https://DOMAIN:8443')
+        line = line.replace(hash_val, 'HASH').replace(username + ' HASH', 'USER HASH').replace('https://' + domain + ':8443', 'https://DOMAIN:8443')
         normalized.append(line)
     if 'tls internal' not in normalized:
         template.remove('TLS')
@@ -80,16 +87,28 @@ def inspect_config(raw):
         normalized = ['TLS' if line == 'tls internal' else line for line in normalized]
     if normalized != template:
         raise ValueError('检测到自定义或共享 Caddy 配置，不做修改')
-    return domain, hashes[0]
+    return domain, username, hash_val
 
 
-def replace_hash(raw, new_hash):
-    domain, old_hash = inspect_config(raw)
+def inspect_config(raw):
+    """Accept only the exact generated single-site structure; never rewrite a shared Caddyfile."""
+    domain, _, hash_val = inspect_credentials(raw)
+    return domain, hash_val
+
+
+def replace_hash(raw, new_hash, new_user=None):
+    domain, old_user, old_hash = inspect_credentials(raw)
     if not re.fullmatch(HASH, new_hash):
         raise ValueError('新密码哈希无效')
-    new, count = re.subn(r'(?m)^([ \t]*admin[ \t]+)' + re.escape(old_hash) + r'([ \t]*)$',
-                         lambda match: match.group(1) + new_hash + match.group(2), raw)
-    if count != (5 if '# ownline-managed-password-v1\n' in raw else 3) or inspect_config(new) != (domain, new_hash):
+    target_user = old_user
+    if new_user is not None:
+        target_user = new_user.strip()
+        if not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', target_user):
+            raise ValueError('用户名格式无效，仅支持 1-64 位字母、数字、下划线、点或横线')
+    new, count = re.subn(r'(?m)^([ \t]*)' + re.escape(old_user) + r'([ \t]+)' + re.escape(old_hash) + r'([ \t]*)$',
+                         lambda match: match.group(1) + target_user + match.group(2) + new_hash + match.group(3), raw)
+    expected = 5 if '# ownline-managed-password-v1\n' in raw else 3
+    if count != expected or inspect_credentials(new) != (domain, target_user, new_hash):
         raise ValueError('新配置检查失败')
     return domain, new
 
@@ -107,7 +126,7 @@ def hash_password(password):
     return result_hash
 
 
-def local_login(domain, password, path='/'):
+def local_login(domain, password, path='/', username='admin'):
     """Verify Caddy on loopback only; this is not an external TLS verification."""
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
     context.check_hostname = False
@@ -127,7 +146,7 @@ def local_login(domain, password, path='/'):
             return response.status
         finally:
             conn.close()
-    authorization = 'Basic ' + base64.b64encode(('admin:' + password).encode()).decode()
+    authorization = 'Basic ' + base64.b64encode(((username or 'admin') + ':' + password).encode()).decode()
     return request() == 401 and request(authorization) == 200
 
 
@@ -146,13 +165,14 @@ def private_temp(path, content, original_stat):
         raise
 
 
-def reset(path, password):
+def reset(path, password, username=None):
     st = path.lstat()
     if not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or st.st_nlink != 1:
         raise RuntimeError('Caddyfile 不是受支持的 root 所有普通文件')
     original = path.read_text(encoding='utf-8')
-    inspect_config(original)
-    domain, candidate = replace_hash(original, hash_password(password))
+    domain, current_user, _ = inspect_credentials(original)
+    target_user = username or current_user
+    domain, candidate = replace_hash(original, hash_password(password), new_user=target_user)
     staged = private_temp(path, candidate, st)
     try:
         check = run_quiet(['caddy', 'validate', '--config', str(staged), '--adapter', 'caddyfile'])
@@ -167,7 +187,7 @@ def reset(path, password):
         try:
             reload_result = run_quiet(['systemctl', 'reload', 'caddy'])
             probe = '/change-password' if '# ownline-managed-password-v1\n' in candidate else '/'
-            if reload_result.returncode or not local_login(domain, password, probe):
+            if reload_result.returncode or not local_login(domain, password, probe, username=target_user):
                 raise RuntimeError('重载或本机认证验证失败')
         except Exception as error:
             if path.read_text(encoding='utf-8') != candidate:

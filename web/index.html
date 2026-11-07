@@ -1121,7 +1121,13 @@ footer.site-footer {
         <span class="brand-pill">OwnLine</span>
       </div>
     </a>
-    <span class="pill-preview" id="status-pill"><span id="status-dot"></span> <span id="status-text">检测中...</span></span>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="pill-preview" id="status-pill"><span id="status-dot"></span> <span id="status-text">Checking…</span></span>
+      <button class="btn tiny" id="btn-open-settings" type="button" onclick="window.openSettingsDialog()" style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:12px;background:var(--paper-card);border:1px solid var(--line);cursor:pointer;color:var(--ink)" title="Settings / 设置">
+        <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span data-i18n="topbar_settings">Settings</span>
+      </button>
+    </div>
   </header>
   <div id="wx-tip" class="warn" style="display:none;margin-top:10px;padding:10px 14px;border-left:3px solid var(--warn);background:var(--surface-soft);font-size:13px;line-height:1.5">
     <div style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:2px">
@@ -1550,10 +1556,70 @@ footer.site-footer {
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <a class="btn tiny" id="change-password-link" href="/change-password" style="display:none">修改管理员密码</a>
+      <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Settings & Credentials</span></button>
+      <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openSettingsDialog){event.preventDefault();window.openSettingsDialog();}"><span data-i18n="footer_change_pass">Change Login Credentials</span></a>
     </div>
   </footer>
 </div>
+
+<!-- Settings & Credentials Modal Dialog -->
+<dialog id="settings-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()" style="max-width:440px;width:calc(100% - 32px);border:1px solid var(--line);border-radius:12px;padding:0;background:var(--paper-card);color:var(--ink);box-shadow:0 12px 32px rgba(0,0,0,0.18)">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+    <h3 style="margin:0;font-size:16px;font-weight:600" id="settings-title" data-i18n="settings_title">Settings & Credentials</h3>
+    <button type="button" onclick="document.getElementById('settings-dialog').close()" aria-label="Close" style="border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--ink-muted);padding:4px">✕</button>
+  </div>
+  <div style="padding:20px;max-height:80vh;overflow-y:auto">
+    <!-- Language Toggle Section -->
+    <div style="margin-bottom:20px">
+      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px" id="settings-lbl-lang" data-i18n="settings_lang_lbl">Interface Language</label>
+      <div style="display:flex;gap:10px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-en-wrap">
+          <input type="radio" name="ui_lang" value="en" id="opt-lang-en" onchange="window.setLanguage('en')">
+          <span style="font-size:13px;font-weight:500">English (Default)</span>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-zh-wrap">
+          <input type="radio" name="ui_lang" value="zh" id="opt-lang-zh" onchange="window.setLanguage('zh')">
+          <span style="font-size:13px;font-weight:500">简体中文</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Login Credentials Section -->
+    <form id="settings-cred-form" onsubmit="window.ownlineSaveCredentials(event)">
+      <div style="border-top:1px solid var(--line);padding-top:16px;margin-bottom:12px">
+        <h4 style="margin:0 0 4px;font-size:14px;font-weight:600" id="settings-lbl-cred-title" data-i18n="settings_cred_title">Web Login Credentials</h4>
+        <p class="small muted" style="margin:0 0 14px;line-height:1.5" id="settings-lbl-cred-desc" data-i18n="settings_cred_desc">Change your administrator username and password for web portal access.</p>
+
+        <div class="field">
+          <label for="settings-curr-pass" id="settings-lbl-curr-pass" data-i18n="settings_curr_pass">Current Password</label>
+          <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••">
+        </div>
+
+        <div class="field">
+          <label for="settings-username"><span id="settings-lbl-username" data-i18n="settings_username">New Username</span> <span class="muted small" id="settings-hint-username" data-i18n="settings_hint_username">(leave unchanged if keeping current)</span></label>
+          <input id="settings-username" type="text" autocomplete="username" placeholder="admin">
+        </div>
+
+        <div class="field">
+          <label for="settings-new-pass"><span id="settings-lbl-new-pass" data-i18n="settings_new_pass">New Password</span> <span class="muted small" id="settings-hint-new-pass" data-i18n="settings_hint_new_pass">(at least 12 characters)</span></label>
+          <input id="settings-new-pass" type="password" autocomplete="new-password" minlength="12" placeholder="••••••••••••">
+        </div>
+
+        <div class="field">
+          <label for="settings-confirm-pass" id="settings-lbl-confirm-pass" data-i18n="settings_confirm_pass">Confirm New Password</label>
+          <input id="settings-confirm-pass" type="password" autocomplete="new-password" minlength="12" placeholder="••••••••••••">
+        </div>
+
+        <p id="settings-status" role="status" style="margin:12px 0 0;font-size:13px;min-height:1.4em;text-align:center"></p>
+
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+          <button class="btn sub tiny" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-cancel" data-i18n="settings_btn_cancel">Cancel</button>
+          <button class="btn tiny primary" type="submit" id="settings-btn-save" data-i18n="settings_btn_save">Save Changes</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</dialog>
 
 <dialog id="backup-dialog" style="max-width:420px;width:calc(100% - 32px);border:1px solid var(--line);padding:20px;color:var(--fg);background:var(--surface)">
   <form method="dialog" id="backup-password-form">
@@ -1570,6 +1636,291 @@ footer.site-footer {
 <script>
 (function () {
   "use strict";
+
+  var I18N = {
+    en: {
+      brand_sub: "OwnLine",
+      status_checking: "Checking…",
+      status_all_ok: "All Nodes Operational",
+      status_n_bad: " Nodes Degraded",
+      status_1_bad: "1 Node Degraded",
+      status_no_nodes: "No Nodes Connected",
+      topbar_settings: "Settings",
+      main_title: "Connection Profiles",
+      status_loaded: "Ready",
+      btn_add_node: "+ Add Node",
+      btn_back: "← Back",
+      quota_hero_title: "Total Monthly Egress",
+      quota_status_ok: "Normal",
+      quota_rem_lbl: "Remaining: ",
+      quota_safe_lbl: "All egress servers within quota limits",
+      connecting_svc: "Connecting to service…",
+      connect_device: "Connect This Device",
+      copy_link: "Copy Link",
+      scan_qr: "Scan QR",
+      select_client: "Select Client",
+      sr_badge: "Recommended for iOS",
+      clash_badge: "Cross-platform",
+      flclash_badge: "Cross-platform",
+      btn_open: "Open",
+      launching_client: "Launching client…",
+      not_installed: "Client not installed?",
+      need_us_apple_id: "Need US Apple ID?",
+      free_account_notice: "Free account: idapp.app (App Store only, never sign in to iCloud).",
+      manual_copy_toggle: "Manual Link Copy & QR Code",
+      sub_empty: "Subscription link unavailable",
+      sub_copy_btn: "Copy Subscription Link",
+      rotate_btn: "Revoke Old Subscription",
+      nodes_title: "Managed Nodes",
+      nodes_loading: "Loading node list…",
+      nodes_empty: "No nodes connected yet.",
+      nodes_export_backup: "Backup Nodes",
+      nodes_restore_backup: "Restore Config",
+      backup_note_desc: "Restoring will only update node configurations.",
+      quota_section_title: "Quota & Circuit Breaker Settings",
+      quota_loading: "Loading quota statistics…",
+      quota_threshold_lbl: "Circuit breaker threshold (1–100%)",
+      quota_threshold_desc: "When monthly traffic reaches this threshold, egress is automatically halted to prevent overages.",
+      quota_save_btn: "Save",
+      logs_heading: "Runtime & Diagnostic Logs",
+      logs_click_expand: "Click to expand",
+      logs_subheading: "Recent system events and subscription logs",
+      logs_health_btn: "Health Check",
+      logs_copy_diag_btn: "Copy Diagnostics",
+      logs_view_all: "View All",
+      logs_loading: "Loading logs…",
+      logs_core_summary: "Core service logs: sing-box · Caddy · Admin",
+      footer_settings: "Settings & Credentials",
+      footer_change_pass: "Change Login Credentials",
+      settings_title: "Settings & Credentials",
+      settings_lang_lbl: "Interface Language",
+      settings_cred_title: "Web Login Credentials",
+      settings_cred_desc: "Change your administrator username and password for web portal access.",
+      settings_curr_pass: "Current Password",
+      settings_username: "New Username",
+      settings_hint_username: "(leave unchanged if keeping current)",
+      settings_new_pass: "New Password",
+      settings_hint_new_pass: "(at least 12 characters)",
+      settings_confirm_pass: "Confirm New Password",
+      settings_btn_cancel: "Cancel",
+      settings_btn_save: "Save Changes"
+    },
+    zh: {
+      brand_sub: "OwnLine",
+      status_checking: "检测中...",
+      status_all_ok: "运行正常",
+      status_n_bad: " 个节点异常",
+      status_1_bad: "1 个节点异常",
+      status_no_nodes: "未连接节点",
+      topbar_settings: "设置",
+      main_title: "连接配置",
+      status_loaded: "已加载",
+      btn_add_node: "+ 添加节点",
+      btn_back: "← 返回",
+      quota_hero_title: "本月出海总流量",
+      quota_status_ok: "充足",
+      quota_rem_lbl: "剩余：",
+      quota_safe_lbl: "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板",
+      connecting_svc: "正在连接服务...",
+      connect_device: "连接本机",
+      copy_link: "复制链接",
+      scan_qr: "扫码连接",
+      select_client: "选择客户端",
+      sr_badge: "iOS 推荐",
+      clash_badge: "全平台通用",
+      flclash_badge: "全平台通用",
+      btn_open: "打开",
+      launching_client: "正在唤起客户端...",
+      not_installed: "未安装客户端？",
+      need_us_apple_id: "需要美区 Apple ID？",
+      free_account_notice: "免费账号：idapp.app（仅在 App Store 登录，切勿登录 iCloud）。",
+      manual_copy_toggle: "手动复制链接与撤销",
+      sub_empty: "订阅链接暂不可用",
+      sub_copy_btn: "复制订阅链接",
+      rotate_btn: "撤销旧订阅",
+      nodes_title: "节点列表",
+      nodes_loading: "正在加载节点列表...",
+      nodes_empty: "暂未连接任何节点。",
+      nodes_export_backup: "备份节点",
+      nodes_restore_backup: "恢复配置",
+      backup_note_desc: "恢复操作只会替换节点配置。",
+      quota_section_title: "流量熔断保护设置",
+      quota_loading: "正在加载流量统计...",
+      quota_threshold_lbl: "超额熔断阈值 (1–100%)",
+      quota_threshold_desc: "当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。",
+      quota_save_btn: "保存",
+      logs_heading: "运行与诊断日志",
+      logs_click_expand: "点击展开",
+      logs_subheading: "近期系统运行事件与订阅日志",
+      logs_health_btn: "健康检查",
+      logs_copy_diag_btn: "复制诊断",
+      logs_view_all: "查看全部",
+      logs_loading: "正在加载日志流...",
+      logs_core_summary: "核心服务日志：sing-box · Caddy · 管理员",
+      footer_settings: "系统设置",
+      footer_change_pass: "修改管理员密码",
+      settings_title: "系统设置与凭据",
+      settings_lang_lbl: "界面语言",
+      settings_cred_title: "Web 管理登录凭据",
+      settings_cred_desc: "修改访问当前管理面板的用户名与登录密码。",
+      settings_curr_pass: "当前密码",
+      settings_username: "新用户名",
+      settings_hint_username: "（如不修改用户名可保持原样）",
+      settings_new_pass: "新密码",
+      settings_hint_new_pass: "（至少 12 个字符）",
+      settings_confirm_pass: "确认新密码",
+      settings_btn_cancel: "取消",
+      settings_btn_save: "保存更改"
+    }
+  };
+
+  function getLanguage() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return 'zh';
+    }
+    return window.localStorage.getItem('ownline_lang') || 'en';
+  }
+
+  function isZh() {
+    return getLanguage() === 'zh';
+  }
+
+  function t(key) {
+    var lang = getLanguage();
+    var dict = I18N[lang] || I18N.en;
+    if (dict && dict[key] != null) return dict[key];
+    if (I18N.en && I18N.en[key] != null) return I18N.en[key];
+    return key;
+  }
+
+  function applyLanguage() {
+    var zh = isZh();
+    if (typeof document === 'undefined') return;
+    if (document.documentElement) {
+      document.documentElement.lang = zh ? 'zh-CN' : 'en';
+    }
+    var i18nElements = document.querySelectorAll('[data-i18n]');
+    for (var i = 0; i < i18nElements.length; i++) {
+      var el = i18nElements[i];
+      var key = el.getAttribute('data-i18n');
+      var val = t(key);
+      if (val) el.textContent = val;
+    }
+    var optEn = document.getElementById('opt-lang-en');
+    var optZh = document.getElementById('opt-lang-zh');
+    if (optEn) optEn.checked = !zh;
+    if (optZh) optZh.checked = zh;
+
+    if (typeof detectClient === 'function') detectClient();
+    if (typeof paintStatus === 'function') paintStatus();
+    if (typeof renderNodes === 'function' && Array.isArray(NODES)) renderNodes(NODES, STATUS, STATE.quota);
+    if (typeof renderQuota === 'function' && STATE.quota) renderQuota(STATE.quota);
+  }
+
+  function setLanguage(lang) {
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('ownline_lang', lang);
+    }
+    applyLanguage();
+  }
+  window.setLanguage = setLanguage;
+
+  function openSettingsDialog() {
+    var dlg = document.getElementById('settings-dialog');
+    if (!dlg) return;
+    var optEn = document.getElementById('opt-lang-en'), optZh = document.getElementById('opt-lang-zh');
+    if (optEn) optEn.checked = !isZh();
+    if (optZh) optZh.checked = isZh();
+    var cur = document.getElementById('settings-curr-pass'), p1 = document.getElementById('settings-new-pass'), p2 = document.getElementById('settings-confirm-pass');
+    if (cur) cur.value = '';
+    if (p1) p1.value = '';
+    if (p2) p2.value = '';
+    var st = document.getElementById('settings-status');
+    if (st) { st.textContent = ''; st.style.color = ''; }
+
+    fetch('/api/user', { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(res) {
+      if (res && res.username) {
+        var u = document.getElementById('settings-username');
+        if (u) { u.value = res.username; u.placeholder = res.username; }
+      }
+    }).catch(function() {});
+
+    if (typeof dlg.showModal === 'function') {
+      dlg.showModal();
+    } else {
+      dlg.setAttribute('open', '');
+    }
+  }
+  window.openSettingsDialog = openSettingsDialog;
+
+  window.ownlineSaveCredentials = async function(event) {
+    if (event && event.preventDefault) event.preventDefault();
+    var zh = isZh();
+    var curEl = document.getElementById('settings-curr-pass');
+    var userEl = document.getElementById('settings-username');
+    var newEl = document.getElementById('settings-new-pass');
+    var confEl = document.getElementById('settings-confirm-pass');
+    var stEl = document.getElementById('settings-status');
+    var btnEl = document.getElementById('settings-btn-save');
+
+    var cur = curEl ? curEl.value : '';
+    var user = userEl ? userEl.value.trim() : '';
+    var p1 = newEl ? newEl.value : '';
+    var p2 = confEl ? confEl.value : '';
+
+    if (!cur) {
+      if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '请输入当前密码' : 'Please enter current password'; }
+      return;
+    }
+    if (p1 || p2) {
+      if (p1 !== p2) {
+        if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '两次输入的新密码不一致' : 'New passwords do not match'; }
+        return;
+      }
+      if (p1.length < 12) {
+        if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '新密码长度至少需要 12 个字符' : 'New password must be at least 12 characters'; }
+        return;
+      }
+      if (p1 === cur && !user) {
+        if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '新密码不能与原密码相同' : 'New password cannot be identical to current password'; }
+        return;
+      }
+    } else if (!user) {
+      if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '请至少修改用户名或密码' : 'Please provide a new username or new password'; }
+      return;
+    }
+
+    if (btnEl) btnEl.disabled = true;
+    if (stEl) { stEl.style.color = 'var(--ink-muted)'; stEl.textContent = zh ? '正在保存更改…' : 'Saving changes…'; }
+
+    try {
+      var payload = { current: cur };
+      if (user) payload.username = user;
+      if (p1) { payload.new = p1; payload.confirm = p2; }
+      var res = await fetch('/api/password/change', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        cache: 'no-store'
+      });
+      var data = await res.json();
+      if (!res.ok || !data.ok) {
+        if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = data.error || (zh ? '保存失败，请检查输入' : 'Failed to update credentials'); }
+        return;
+      }
+      if (stEl) {
+        stEl.style.color = 'var(--green)';
+        stEl.textContent = zh ? '凭据已修改，请使用新凭据重新登录' : 'Credentials updated. Please log in with your new credentials.';
+      }
+      setTimeout(function() {
+        window.location.reload();
+      }, 1500);
+    } catch (err) {
+      if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '网络错误或无法确认结果，请尝试使用新凭据登录' : 'Error updating credentials. Please try logging in with new credentials.'; }
+    } finally {
+      if (btnEl) btnEl.disabled = false;
+    }
+  };
 
   var STATE = {
     cloudMode: "other",
@@ -2051,13 +2402,14 @@ footer.site-footer {
     var itemFl = document.getElementById("client-item-flclash");
     if (itemFl) itemFl.style.display = flSupported ? "" : "none";
     var devBadge = document.getElementById("client-device-badge");
-    var devName = os === "ios" ? "iPhone / iPad" : (os === "mac" ? "macOS" : (os === "android" ? "Android" : (os === "win" ? "Windows" : (os === "linux" ? "Linux" : "当前设备"))));
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var devName = os === "ios" ? "iPhone / iPad" : (os === "mac" ? "macOS" : (os === "android" ? "Android" : (os === "win" ? "Windows" : (os === "linux" ? "Linux" : (zh ? "当前设备" : "This Device")))));
     if (devBadge) {
       devBadge.textContent = devName;
     }
     var hubTitle = document.getElementById("hub-device-title");
     if (hubTitle) {
-      hubTitle.textContent = "在 " + devName + " 上连接";
+      hubTitle.textContent = zh ? ("在 " + devName + " 上连接") : ("Connect on " + devName);
     }
   }
 
@@ -2108,8 +2460,9 @@ footer.site-footer {
   }
 
   function wireLinks(importAvailable) {
+    var zh = (typeof isZh === 'function') ? isZh() : true;
     var sub = BASE_SUB_URL, code = document.getElementById("suburl");
-    if (!sub) { code.textContent = "订阅链接暂不可用"; return; }
+    if (!sub) { code.textContent = zh ? "订阅链接暂不可用" : "Subscription link unavailable"; return; }
     code.textContent = sub;
     var title = encodeURIComponent("Evergreen-OwnLine");
     var sr = document.getElementById("btn-sr"), cl = document.getElementById("btn-clash"), fl = document.getElementById("btn-flclash");
@@ -2136,11 +2489,13 @@ footer.site-footer {
       button.onclick = function (event) {
         if (!importAvailable) { event.preventDefault(); return; }
         var note = document.getElementById("import-note");
-        if (note) note.textContent = "正在尝试打开客户端。若未自动拉起，请先下载客户端或手动复制链接导入。";
+        if (note) note.textContent = zh
+          ? "正在尝试打开客户端。若未自动拉起，请先下载客户端或手动复制链接导入。"
+          : "Attempting to launch client. If it doesn't open automatically, please download the client or copy the link manually.";
         activateAssist(pair.key);
       };
     });
-    document.getElementById("import-note").textContent = importAvailable ? "" : "当前暂无已确认可用的在线节点，您可以先复制订阅链接备用。";
+    document.getElementById("import-note").textContent = importAvailable ? "" : (zh ? "当前暂无已确认可用的在线节点，您可以先复制订阅链接备用。" : "No verified online nodes available yet. You may copy the subscription link for future use.");
     var btnCopySub = document.getElementById("btn-copy-sub");
     if (btnCopySub) btnCopySub.onclick = function () { copyText(sub); };
     var btnCopySubManual = document.getElementById("btn-copy-sub-manual");
@@ -2570,6 +2925,7 @@ footer.site-footer {
     var total = NODES.length;
     var badCount = 0;
     var okCount = 0;
+    var zh = (typeof isZh === 'function') ? isZh() : true;
 
     NODES.forEach(function (n, i) {
       var d = document.getElementById("d" + i), s = document.getElementById("s" + i);
@@ -2577,13 +2933,13 @@ footer.site-footer {
       if (st && st.ok === false) {
         badCount++;
         if (d) d.className = "dot bad";
-        if (s) s.textContent = st.reason === "port" ? "端口关闭 · 阻断" : (st.reason === "tls" ? "服务未响应" : "连接失败");
+        if (s) s.textContent = st.reason === "port" ? (zh ? "端口关闭 · 阻断" : "Port Blocked") : (st.reason === "tls" ? (zh ? "服务未响应" : "No Response") : (zh ? "连接失败" : "Connection Failed"));
         return;
       }
       if (st && st.cn_ok === false) {
         badCount++;
         if (d) d.className = "dot bad";
-        if (s) s.textContent = "国内直连不通 · 疑似被墙";
+        if (s) s.textContent = zh ? "国内直连不通 · 疑似被墙" : "Blocked in China";
         return;
       }
       var isHealthy = (st && st.ok === true) || n.health === "ok";
@@ -2595,14 +2951,14 @@ footer.site-footer {
         if (ms != null) {
           var cls = ms <= 200 ? "fast" : (ms <= 350 ? "medium" : "slow");
           var msNum = Math.round(Number(ms)) || 0;
-          var pingLabel = (st && st.self_probe) ? (msNum + "ms (探针本机)") : (msNum + "ms");
+          var pingLabel = (st && st.self_probe) ? (msNum + (zh ? "ms (探针本机)" : "ms (local probe)")) : (msNum + "ms");
           pingHtml = '<span class="ping-pill ' + cls + '">' + pingLabel + '</span>';
         } else {
-          pingHtml = '<span class="ping-pill fast">正常</span>';
+          pingHtml = '<span class="ping-pill fast">' + (zh ? "正常" : "OK") + '</span>';
         }
         var exitNotice = "";
         if (n.role !== "relay" && n.exit_ip && n.exit_ip !== n.host && n.exit_ip !== n.ip) {
-          exitNotice = ' · 出口 ' + esc(n.exit_ip);
+          exitNotice = (zh ? ' · 出口 ' : ' · Egress ') + esc(n.exit_ip);
         }
         if (s) s.innerHTML = pingHtml + exitNotice;
         return;
@@ -2615,23 +2971,23 @@ footer.site-footer {
         return;
       }
       if (d) d.className = "dot";
-      if (s) s.textContent = n.source === "external" ? "外部节点（未验证）" : "未验证";
+      if (s) s.textContent = n.source === "external" ? (zh ? "外部节点（未验证）" : "External Node (Unverified)") : (zh ? "未验证" : "Unverified");
     });
 
     var pill = document.getElementById("status-pill"), pillText = document.getElementById("status-text");
     if (pill && pillText) {
       if (total === 0) {
         pill.className = "pill-preview";
-        pillText.textContent = "未连接节点";
+        pillText.textContent = zh ? "未连接节点" : "No Nodes Connected";
       } else if (badCount > 0) {
         pill.className = "pill-preview warn";
-        pillText.textContent = badCount + " 个节点异常";
+        pillText.textContent = zh ? (badCount + " 个节点异常") : (badCount + (badCount > 1 ? " Nodes Degraded" : " Node Degraded"));
       } else if (okCount > 0) {
         pill.className = "pill-preview ok";
-        pillText.textContent = "运行正常";
+        pillText.textContent = zh ? "运行正常" : "All Nodes Operational";
       } else {
         pill.className = "pill-preview";
-        pillText.textContent = "检测中...";
+        pillText.textContent = zh ? "检测中..." : "Checking…";
       }
     }
   }
@@ -2784,47 +3140,52 @@ footer.site-footer {
 
   function nodeMenu(i) {
     var n = NODES[i], st = STATUS[n.name];
+    var zh = (typeof isZh === 'function') ? isZh() : true;
     var items = [];
 
-    items.push({label: "修改名称与端口", id: "edit"});
+    items.push({label: zh ? "修改名称与端口" : "Edit Name & Port", id: "edit"});
 
-    var toggleLabel = (n.enabled === false) ? "恢复使用" : "暂停使用";
+    var toggleLabel = (n.enabled === false)
+      ? (zh ? "恢复使用" : "Enable Node")
+      : (zh ? "暂停使用" : "Pause Node");
     items.push({label: toggleLabel, id: "toggle"});
 
     var isDom = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
     var isBonded = (isDom && n.role === "relay" && n.landing && n.landing.host);
     if (isBonded) {
-      items.push({label: "解除中转加速（恢复独立）", id: "unbind_relay"});
-      items.push({label: "更换中转落地目标", id: "bind_relay"});
+      items.push({label: zh ? "解除中转加速（恢复独立）" : "Unbind Relay (Restore Standalone)", id: "unbind_relay"});
+      items.push({label: zh ? "更换中转落地目标" : "Change Egress Target", id: "bind_relay"});
     } else if (isDom) {
-      items.push({label: "设为中转加速专线", id: "bind_relay"});
+      items.push({label: zh ? "设为中转加速专线" : "Configure as Relay Node", id: "bind_relay"});
     } else {
-      var ispLabel = n.isp ? "解绑住宅 IP" : "绑定住宅 IP";
+      var ispLabel = n.isp
+        ? (zh ? "解绑住宅 IP" : "Unmount Residential IP")
+        : (zh ? "绑定住宅 IP" : "Mount Residential IP");
       items.push({label: ispLabel, id: "isp"});
     }
 
-    items.push({label: "设置到期提醒", id: "lifecycle"});
+    items.push({label: zh ? "设置到期提醒" : "Set Expiration Notice", id: "lifecycle"});
 
     if (n.source !== "external") {
-      items.push({label: "重置密钥（断开所有设备）", id: "rotate"});
+      items.push({label: zh ? "重置密钥（断开所有设备）" : "Reset Key (Disconnect All Devices)", id: "rotate"});
     }
 
-    items.push({label: "删除节点", id: "del", danger: true});
+    items.push({label: zh ? "删除节点" : "Delete Node", id: "del", danger: true});
 
     var ms = (st && st.cn_ms != null) ? st.cn_ms : ((st && st.ms != null) ? st.ms : null);
     var statusSummary = "";
     if (n.source === "external") {
-      statusSummary = "外部订阅节点";
+      statusSummary = zh ? "外部订阅节点" : "External Subscription Node";
     } else if (st && st.ok === false) {
-      statusSummary = "服务异常 · 端口阻断";
+      statusSummary = zh ? "服务异常 · 端口阻断" : "Offline · Port Blocked";
     } else if (st && st.cn_ok === false) {
-      statusSummary = "国内直连不通";
+      statusSummary = zh ? "国内直连不通" : "Unreachable from China";
     } else if (st && st.ok) {
-      statusSummary = ms != null ? ("在线 · 延迟 " + ms + "ms") : "在线";
+      statusSummary = ms != null ? (zh ? ("在线 · 延迟 " + ms + "ms") : ("Online · " + ms + "ms")) : (zh ? "在线" : "Online");
     } else {
-      statusSummary = "未验证";
+      statusSummary = zh ? "未验证" : "Unverified";
     }
-    var subtext = (n.host || n.ip) + " · 端口 " + (n.port || 443) + "\n" + statusSummary;
+    var subtext = (n.host || n.ip) + (zh ? " · 端口 " : " · Port ") + (n.port || 443) + "\n" + statusSummary;
 
     choose(n.name, subtext, items).then(function (k) {
       var item = items[k];
@@ -3929,6 +4290,7 @@ footer.site-footer {
 
   // 11. Initialization & refresh
   function init() {
+    applyLanguage();
     setupInputHighlights();
     initSceneRouter();
     initCloudParallelSwitch();

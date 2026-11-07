@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import datetime, hmac, json, os, re, secrets, subprocess, sys, tempfile, threading, time, urllib.parse, uuid
+import base64, datetime, hmac, json, os, re, secrets, subprocess, sys, tempfile, threading, time, urllib.parse, uuid
 from collections import deque
 from pathlib import Path
 import fcntl
@@ -423,6 +423,22 @@ class H(BaseHTTPRequestHandler):
             return
         if path == '/api/password/state':
             return self._json(200, {'ok': True, 'required': INITIAL_PASSWORD_MARKER.exists()})
+        if path == '/api/user':
+            user = ''
+            auth = self.headers.get('Authorization', '')
+            if auth.startswith('Basic '):
+                try:
+                    cred = base64.b64decode(auth[6:].strip()).decode('utf-8', errors='ignore')
+                    if ':' in cred:
+                        user = cred.split(':', 1)[0]
+                except Exception:
+                    pass
+            if not user and password_mod.CADDYFILE.exists():
+                try:
+                    _, user, _ = password_mod.inspect_credentials(password_mod.CADDYFILE.read_text(encoding='utf-8'))
+                except Exception:
+                    pass
+            return self._json(200, {'ok': True, 'username': user or 'admin'})
         if INITIAL_PASSWORD_MARKER.exists() and not path.startswith('/s/'):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
 
@@ -673,7 +689,7 @@ class H(BaseHTTPRequestHandler):
         if not self._origin_ok():
             return self._json(403, {"ok": False, "error": "跨站请求被拒绝"})
         path = self.path.rstrip("/")
-        if INITIAL_PASSWORD_MARKER.exists() and path != '/api/password/change':
+        if INITIAL_PASSWORD_MARKER.exists() and path not in ('/api/password/change', '/api/credentials/change'):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
@@ -686,16 +702,31 @@ class H(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             return self._json(400, {"ok": False, "error": "请求体必须是对象"})
 
-        if path == '/api/password/change':
-            old, new, confirm = body.get('current'), body.get('new'), body.get('confirm')
-            try:
-                valid = (all(isinstance(x, str) for x in (old, new, confirm)) and
-                         new == confirm and new != old and len(new) >= 12 and
-                         len(new.encode()) <= 72 and not any(c in new for c in '\r\n\x00'))
-            except UnicodeEncodeError:
-                valid = False
-            if not valid:
-                return self._json(400, {'ok': False, 'error': '新密码至少 12 位，两次输入一致且不能与原密码相同'})
+        if path in ('/api/password/change', '/api/credentials/change'):
+            old = body.get('current')
+            new = body.get('new')
+            confirm = body.get('confirm')
+            req_user = body.get('username')
+            new_user = None
+            if req_user is not None and isinstance(req_user, str) and req_user.strip():
+                new_user = req_user.strip()
+                if not re.fullmatch(r'[A-Za-z0-9_.-]{1,64}', new_user):
+                    return self._json(400, {'ok': False, 'error': '用户名格式无效，仅支持 1-64 位字母、数字、下划线、点或横线'})
+
+            changing_password = bool(new or confirm)
+            if changing_password:
+                try:
+                    valid = (isinstance(old, str) and isinstance(new, str) and isinstance(confirm, str) and
+                             new == confirm and (new != old or bool(new_user)) and len(new) >= 12 and
+                             len(new.encode()) <= 72 and not any(c in new for c in '\r\n\x00'))
+                except UnicodeEncodeError:
+                    valid = False
+                if not valid:
+                    return self._json(400, {'ok': False, 'error': '新密码至少 12 位，两次输入一致且不能与原密码相同'})
+            else:
+                if not isinstance(old, str) or not new_user:
+                    return self._json(400, {'ok': False, 'error': '请输入当前密码以验证身份'})
+
             if not _PASSWORD_LOCK.acquire(blocking=False):
                 return self._json(409, {'ok': False, 'error': '密码修改正在进行，请稍后重试'})
             try:
@@ -708,13 +739,15 @@ class H(BaseHTTPRequestHandler):
                 with open(password_mod.LOCKFILE, 'w', encoding='utf-8') as lock:
                     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
                     cfg = password_mod.CADDYFILE.read_text(encoding='utf-8')
-                    domain, _ = password_mod.inspect_config(cfg)
-                    if '# ownline-managed-password-v1\n' not in cfg or not password_mod.local_login(domain, old, '/change-password'):
+                    domain, current_user, _ = password_mod.inspect_credentials(cfg)
+                    if '# ownline-managed-password-v1\n' not in cfg or not password_mod.local_login(domain, old, '/change-password', username=current_user):
                         return self._json(403, {'ok': False, 'error': '当前密码不正确或配置不受支持'})
-                    password_mod.reset(password_mod.CADDYFILE, new)
+                    target_pwd = new if changing_password else old
+                    target_user = new_user or current_user
+                    password_mod.reset(password_mod.CADDYFILE, target_pwd, username=target_user)
                     INITIAL_PASSWORD_MARKER.unlink(missing_ok=True)
                 _PASSWORD_ATTEMPTS.clear()
-                return self._json(200, {'ok': True, 'message': '密码已修改，请使用新密码重新登录'})
+                return self._json(200, {'ok': True, 'message': '凭据已修改，请使用新凭据重新登录', 'username': target_user})
             except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
                 return self._json(500, {'ok': False, 'error': '暂时无法确认结果，请先尝试新密码；仍无法登录时在服务器终端检查'})
             finally:

@@ -43,6 +43,21 @@ class ResetConfigTests(unittest.TestCase):
         self.assertIn('# unrelated historical hash: ' + OLD, after)
         self.assertEqual(reset_tool.inspect_config(template().replace('\n\t\n\timport app', '\n\ttls internal\n\timport app'))[0], domain)
 
+    def test_supports_custom_username_and_updating_username(self):
+        before = template()
+        domain, user, old_hash = reset_tool.inspect_credentials(before)
+        self.assertEqual(domain, 'example.test')
+        self.assertEqual(user, 'admin')
+        self.assertEqual(old_hash, OLD)
+
+        domain2, after = reset_tool.replace_hash(before, NEW, new_user='walker')
+        self.assertEqual(domain2, 'example.test')
+        self.assertIn('walker ' + NEW, after)
+        self.assertNotIn('admin ' + NEW, after)
+        d3, u3, h3 = reset_tool.inspect_credentials(after)
+        self.assertEqual(u3, 'walker')
+        self.assertEqual(h3, NEW)
+
     def test_refuses_custom_or_shared_configs(self):
         for candidate in (template() + '\nother.example {\n respond 200\n}\n',
                           template().replace('# ownline-setup-job:testjob', '# another-project'),
