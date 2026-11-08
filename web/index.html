@@ -725,8 +725,103 @@ dialog::backdrop {
   margin-top: 3px;
   line-height: 1.45;
 }
-.adv { margin-top: 4px; color: var(--red); font-size: 12px; }
-.adv span { margin-left: 6px; color: var(--ink-muted); }
+.adv { margin-top: 8px; font-size: 12.5px; line-height: 1.45; }
+.adv.error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(194, 65, 12, 0.06);
+  border: 1px solid rgba(194, 65, 12, 0.22);
+  color: var(--red);
+}
+.adv.error.warn {
+  background: rgba(180, 83, 9, 0.06);
+  border-color: rgba(180, 83, 9, 0.22);
+  color: var(--amber);
+}
+.adv-text { flex: 1; min-width: 180px; }
+.adv-title {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+}
+.adv.error span {
+  display: block;
+  margin-top: 2px;
+  margin-left: 0;
+  color: var(--ink-muted);
+  font-size: 12px;
+}
+.adv-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.adv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11.5px;
+  font-weight: 500;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  color: var(--ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition: all .15s ease;
+  line-height: 1.4;
+}
+.adv-btn:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--navy);
+  color: var(--navy);
+}
+.adv-btn.primary {
+  background: var(--navy);
+  border-color: var(--navy);
+  color: #fff;
+}
+.adv-btn.primary:hover {
+  background: var(--navy-hover);
+}
+.relay-pipeline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-muted);
+  padding: 2px 0;
+  margin-top: 2px;
+  flex-wrap: wrap;
+}
+.pipeline-hop {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  color: var(--ink);
+}
+.pipeline-hop b { font-weight: 600; }
+.pipeline-arrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--ink-subtle);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: var(--paper-card-secondary);
+  border: 1px solid var(--line-light);
+}
 
 .node-quota-row {
   margin-top: 6px;
@@ -1131,6 +1226,7 @@ footer.site-footer {
   <symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></symbol>
   <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
 </svg>
 
 
@@ -2567,7 +2663,19 @@ footer.site-footer {
           dismiss.disabled = false;
           if (typeof refreshState === "function") refreshState();
         } else if (job.state === "error") {
-          title.textContent = "安装未完成"; message.textContent = "请先检查目标服务器状态后再重试。";
+          title.textContent = "安装未完成";
+          var errDetail = job.error || "";
+          var reasonText = "请先检查目标服务器状态后再重试。";
+          if (/timeout|timed out|fetch|curl|download/i.test(errDetail)) {
+            reasonText = "下载核心依赖超时，请检查目标服务器外网网络连通性。";
+          } else if (/lock|dpkg|apt/i.test(errDetail)) {
+            reasonText = "目标服务器软件包管理器被后台占用，请稍后再试。";
+          } else if (/port|443|bind/i.test(errDetail)) {
+            reasonText = "端口冲突：目标服务器 443 端口可能已被占用。";
+          } else if (errDetail) {
+            reasonText = "安装未完成：" + errDetail;
+          }
+          message.textContent = reasonText;
           dismiss.disabled = false;
         } else throw new Error("unknown");
       } catch (_) {
@@ -3302,8 +3410,12 @@ footer.site-footer {
         displayName = (zh ? n.name + "专线 ➔ " : n.name + " Relay ➔ ") + targetText;
         relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
           '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
-        detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
-          (zh ? ' · 落地出口: ' : ' · Egress: ') + esc(targetHost);
+        detailLine = '<div class="relay-pipeline">' +
+          '<span class="pipeline-hop">' + (zh ? '入口 ' : 'Entry ') + '<b>' + esc(n.host || n.ip) + '</b></span>' +
+          '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg> ' + (zh ? '专线跳板' : 'Relay Hop') + '</span>' +
+          '<span class="pipeline-hop">' + (zh ? '落地 ' : 'Egress ') + '<b>' + esc(targetText) + '</b></span>' +
+          ' · ' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
+        '</div>';
       } else if (isDomestic) {
         displayName = n.name;
         relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
@@ -3352,11 +3464,61 @@ footer.site-footer {
         '</div>';
       }
 
+      var advHtml = "";
+      if (isBad) {
+        var advTitle = "";
+        var advReason = "";
+        var advCls = "adv error";
+        var advBtns = [];
+
+        var hasDomesticRelay = (nodes || []).some(function (x) {
+          var isDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN");
+          return isDom && !(x.landing && x.landing.host);
+        });
+
+        if (st && st.cn_ok === false) {
+          advCls = "adv error warn";
+          advTitle = zh ? "国内直连不通 · 疑似被墙" : "Blocked in China";
+          advReason = zh ? "国内网络握手被阻断。建议绑定国内专线中转跳板，或切换为 HY2 极速通道。" : "Handshake from China blocked. Recommend binding to a domestic relay or enabling HY2.";
+          if (!isDomestic && hasDomesticRelay) {
+            advBtns.push('<button type="button" class="adv-btn primary" onclick="window.ownlineBindDomesticRelayFor(\'' + esc(n.host || n.ip) + '\')"><svg class="ico" width="11" height="11"><use href="#i-plus"/></svg>' + (zh ? "绑定专线跳板" : "Bind Relay") + '</button>');
+          }
+          if (hasHy2 && !isHy2Active) {
+            advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineToggleHy2ByIndex(' + i + ', true)">' + (zh ? "开启 HY2 极速" : "Enable HY2") + '</button>');
+          }
+        } else if (st && st.reason === "port") {
+          advTitle = zh ? "服务未响应 · 端口阻断" : "Port Blocked";
+          advReason = zh ? "无法连接节点 " + (n.port || 443) + " 端口。请确认服务器开机并在云安全组放行该端口。" : "Cannot reach port " + (n.port || 443) + ". Please check cloud firewall security group.";
+          advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineEditNodeByIndex(' + i + ')">' + (zh ? "修改端口" : "Edit Port") + '</button>');
+        } else if (st && st.reason === "tls") {
+          advTitle = zh ? "安全握手失败 · 证书异常" : "TLS Handshake Failed";
+          advReason = zh ? "TCP 端口已通但 TLS 握手失败。建议重置 Reality 密钥或同步服务器时钟。" : "TCP port reachable but TLS handshake failed. Resetting keys or syncing clock is recommended.";
+          if (n.source !== "external") {
+            advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRotateKeyByIndex(' + i + ')">' + (zh ? "重置密钥" : "Reset Key") + '</button>');
+          }
+        } else {
+          advTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
+          advReason = (n.advice && n.advice.reason) || (st && st.reason) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+        }
+
+        if (n.source !== "external") {
+          advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRecheckNode(\'' + esc(n.name) + '\')"><svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck") + '</button>');
+        }
+
+        advHtml = '<div class="' + advCls + '">' +
+          '<div class="adv-text">' +
+            '<div class="adv-title"><svg class="ico" width="13" height="13" style="vertical-align:-2px"><use href="#i-alert"/></svg> ' + esc(advTitle) + '</div>' +
+            '<span>' + esc(advReason) + '</span>' +
+          '</div>' +
+          (advBtns.length ? ('<div class="adv-actions">' + advBtns.join("") + '</div>') : '') +
+        '</div>';
+      }
+
       htmlParts.push('<div class="node"><span class="dot" id="d' + i + '"></span>' +
         '<div class="nmeta"><b>' + esc(displayName) + (n.source === "external" ? '<span class="tag">' + (zh ? '外部' : 'External') + '</span>' : "") + expBadge + protoBadges + relayPill + ispPill + "</b>" +
         "<small>" + detailLine + "</small>" +
         quotaRow +
-        (isBad ? ('<div class="adv error">' + esc((n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error")) + "<span>" + esc((n.advice && n.advice.reason) || (st && st.reason) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status")) + "</span></div>") : "") + "</div>" +
+        advHtml + "</div>" +
         '<button class="more" aria-label="' + (zh ? '更多操作' : 'More options') + '" onclick="window.ownlineNodeMenu(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button></div>');
     });
 
@@ -4002,6 +4164,79 @@ footer.site-footer {
   window.ownlineToggleHy2ByIndex = function (idx, enable) {
     var n = NODES[idx];
     if (n) toggleHy2(n.name, n.host || n.ip, enable);
+  };
+  window.ownlineEditNodeByIndex = function (idx) {
+    if (typeof editNode === "function") editNode(idx);
+  };
+  window.ownlineRotateKeyByIndex = function (idx) {
+    if (typeof rotateKey === "function") rotateKey(idx);
+  };
+  window.ownlineBindDomesticRelayFor = function (targetHost) {
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var dom = (NODES || []).find(function (x) {
+      var isDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN");
+      return isDom && !(x.landing && x.landing.host);
+    });
+    if (!dom) {
+      dom = (NODES || []).find(function (x) {
+        return (x.role === "relay" || x.role === "standalone" || x.country === "CN");
+      });
+    }
+    if (dom) {
+      openRelayDialog(dom.name, dom.host || dom.ip);
+    } else {
+      dialog({
+        title: zh ? "暂无可用国内中转跳板" : "No Domestic Relay Available",
+        message: zh ? "当前尚未接入国内独立服务器。请先接入一台国内机器（如腾讯云国内轻量），即可秒级开启专线加速。" : "No domestic server connected yet. Connect a domestic VPS first to enable relay acceleration.",
+        confirmText: zh ? "确定" : "OK",
+        cancelText: null
+      });
+    }
+  };
+  window.ownlineRecheckNode = function (name) {
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var node = (NODES || []).find(function (x) { return x.name === name; });
+    if (!node) return;
+    dialog({
+      title: zh ? "正在验真节点连通性..." : "Verifying Node Connectivity...",
+      message: (zh ? "正在对节点【" : "Testing node [") + name + (zh ? "】进行端口、TLS 握手及真实出口校验..." : "] for port, TLS handshake, and egress..."),
+      confirmText: zh ? "后台检测" : "Check in Background",
+      cancelText: null
+    });
+    jsonRequest("/api/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name })
+    }).then(function (d) {
+      if (document.querySelector("dialog.sheet[open]")) {
+        var active = document.querySelector("dialog.sheet[open]");
+        if (active && active.close) active.close();
+      }
+      var res = d.result || {};
+      if (res.health === "ok") {
+        dialog({
+          title: zh ? "验真通过 · 节点恢复正常" : "Verification Passed",
+          message: (zh ? "节点【" : "Node [") + name + (zh ? "】已确认连通！\n\n出口 IP: " : "] is operational!\n\nEgress IP: ") + (res.exit_ip || "-") + " (" + (res.exit_country || "") + ")\n" + (res.detail || ""),
+          confirmText: zh ? "好" : "OK",
+          cancelText: null
+        });
+      } else {
+        dialog({
+          title: zh ? "连通性受限" : "Connectivity Degraded",
+          message: (zh ? "节点【" : "Node [") + name + (zh ? "】验真未通过：\n\n原因: " : "] verification failed:\n\nReason: ") + (res.detail || (zh ? "服务未响应" : "No response")),
+          confirmText: zh ? "知道了" : "Dismiss",
+          cancelText: null
+        });
+      }
+      if (typeof refreshState === "function") refreshState();
+    }).catch(function (e) {
+      dialog({
+        title: zh ? "请求异常" : "Request Error",
+        message: String(e),
+        confirmText: zh ? "确定" : "OK",
+        cancelText: null
+      });
+    });
   };
 
   function refreshPing(btn) {
