@@ -191,10 +191,8 @@ def _build_windows_apply_script(cfg_json_text, cfg_path=r"C:\proxy\config.json",
         cert_write = ""
         if crt_b64 and key_b64:
             cert_write = f"""
-if (-not (Test-Path '{crt_path}') -or -not (Test-Path '{key_path}')) {{
-    [IO.File]::WriteAllBytes('{crt_path}', [Convert]::FromBase64String('{crt_b64}'))
-    [IO.File]::WriteAllBytes('{key_path}', [Convert]::FromBase64String('{key_b64}'))
-}}
+[IO.File]::WriteAllBytes('{crt_path}', [Convert]::FromBase64String('{crt_b64}'))
+[IO.File]::WriteAllBytes('{key_path}', [Convert]::FromBase64String('{key_b64}'))
 """
         hy2_prep = f"""
 {cert_write}
@@ -208,6 +206,7 @@ netsh advfirewall firewall add rule name="OwnLine-HY2-UDP" dir=in action=allow p
 [IO.File]::WriteAllBytes('{prov_path}', [Convert]::FromBase64String('{b64_prov}'))
 """
     ps_script = f"""$ErrorActionPreference = 'Stop'
+{hy2_prep}
 [IO.File]::WriteAllBytes('{stg_path}', [Convert]::FromBase64String('{b64_cfg}'))
 & '{bin_path}' check -c '{stg_path}'
 if ($LASTEXITCODE -ne 0) {{
@@ -220,7 +219,6 @@ if (Test-Path '{cfg_path}') {{
 }}
 Move-Item -Force '{stg_path}' '{cfg_path}'
 {prov_prep}
-{hy2_prep}
 Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
 Start-Sleep -Milliseconds 600
 Start-ScheduledTask -TaskName 'sing-box'
@@ -307,13 +305,12 @@ fi
 
 
 def generate_self_signed_cert_pem(sni="www.bing.com"):
-    """使用 OpenSSL 生成自签名 EC 证书及私钥（PEM 文本）。"""
+    """使用 OpenSSL 生成通用自签名证书及私钥（PEM 文本，RSA 2048 跨平台兼容）。"""
     with tempfile.TemporaryDirectory() as td:
         crt_file = os.path.join(td, "cert.crt")
         key_file = os.path.join(td, "cert.key")
         cmd = [
-            "openssl", "req", "-x509", "-newkey", "ec",
-            "-pkeyopt", "ec_paramgen_curve:prime256v1",
+            "openssl", "req", "-x509", "-newkey", "rsa:2048",
             "-days", "3650", "-nodes",
             "-subj", f"/CN={sni}",
             "-keyout", key_file,
