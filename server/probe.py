@@ -65,14 +65,43 @@ print(json.dumps(out))
 """
 
 
-def cn_probe(nodes):
-    """借第一台受控国内节点（中转入口或国内独立服务器），从国内网络视角如实测量各节点握手与真实毫秒延迟。"""
-    vantage = next((
-        n for n in nodes
-        if n.get("source") != "external"
-        and n.get("host")
-        and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
-    ), None)
+def cn_probe(nodes, preferred_vantage=None):
+    """从国内受控节点网络视角如实测量各节点握手与真实毫秒延迟。支持动态指定探测基准节点。"""
+    vantage = None
+    if preferred_vantage:
+        vantage = next((
+            n for n in nodes
+            if n.get("source") != "external"
+            and n.get("host")
+            and (n.get("name") == preferred_vantage or n.get("host") == preferred_vantage)
+            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+        ), None)
+
+    if not vantage:
+        settings_path = os.environ.get("LADDER_DATA", "/opt/web-data") + "/settings.json"
+        if os.path.exists(settings_path):
+            try:
+                with open(settings_path, "r", encoding="utf-8") as f:
+                    cfg_pref = json.load(f).get("probe_vantage")
+                    if cfg_pref:
+                        vantage = next((
+                            n for n in nodes
+                            if n.get("source") != "external"
+                            and n.get("host")
+                            and (n.get("name") == cfg_pref or n.get("host") == cfg_pref)
+                            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+                        ), None)
+            except Exception:
+                pass
+
+    if not vantage:
+        vantage = next((
+            n for n in nodes
+            if n.get("source") != "external"
+            and n.get("host")
+            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+        ), None)
+
     if not vantage:
         return {}
     targets = [

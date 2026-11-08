@@ -70,6 +70,23 @@ subprocess.run = lambda *a, **k: DummyProc()
         self.assertEqual(captured[0][1:3], ["-p", "2202"])
         self.assertIn("ubuntu@198.51.100.20", captured[0])
 
+    def test_cn_probe_honors_preferred_vantage(self):
+        nodes = [
+            {"name": "北京", "host": "198.51.100.1", "port": 443, "role": "standalone", "ssh_user": "root"},
+            {"name": "广州", "host": "198.51.100.2", "port": 443, "role": "standalone", "ssh_user": "root"},
+            {"name": "美西", "host": "203.0.113.10", "port": 443, "role": "exit"},
+        ]
+        captured = []
+
+        def fake_run(cmd, **kw):
+            captured.append(cmd)
+            return subprocess.CompletedProcess(cmd, 0, stdout='{"美西":{"cn_ok":true,"cn_ms":150}}\n', stderr="")
+
+        with patch.object(probe.subprocess, "run", side_effect=fake_run):
+            out = probe.cn_probe(nodes, preferred_vantage="广州")
+        self.assertEqual(out["美西"]["cn_ms"], 150)
+        self.assertIn("root@198.51.100.2", captured[0])
+
 
 if __name__ == "__main__":
     unittest.main()

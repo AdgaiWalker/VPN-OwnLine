@@ -3295,8 +3295,13 @@ footer.site-footer {
         if (ms != null) {
           var cls = ms <= 200 ? "fast" : (ms <= 350 ? "medium" : "slow");
           var msNum = Math.round(Number(ms)) || 0;
-          var pingLabel = (st && st.self_probe) ? (msNum + (zh ? "ms (探针本机)" : "ms (local probe)")) : (msNum + "ms");
-          pingHtml = '<span class="ping-pill ' + cls + '">' + pingLabel + '</span>';
+          var isSelf = (st && st.self_probe) || false;
+          var pingLabel = isSelf ? (msNum + (zh ? "ms (探针本机)" : "ms (local probe)")) : (msNum + "ms");
+          var tip = isSelf
+            ? (zh ? "当前节点为系统国内探测基准锚点（点击右侧 ⋯ 或卡片可更换）" : "Active domestic vantage anchor for latency measurement")
+            : (st && st.vantage ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得") : ("Probed via [" + st.vantage + "]")) : "");
+          var tipAttr = tip ? (' title="' + esc(tip) + '"') : '';
+          pingHtml = '<span class="ping-pill ' + cls + '"' + tipAttr + '>' + pingLabel + '</span>';
         } else {
           pingHtml = '<span class="ping-pill fast">' + (zh ? "正常" : "OK") + '</span>';
         }
@@ -3397,8 +3402,8 @@ footer.site-footer {
         return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
       });
       var isDomestic = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
-      var isWindows = (n.os === "windows" || n.ssh_user === "Administrator");
-      var hasHy2 = !isWindows && (isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean");
+      var isOverseasExit = !isDomestic && n.source !== "external";
+      var hasHy2 = isOverseasExit || isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean";
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
 
       if (hasHy2) {
@@ -3430,8 +3435,12 @@ footer.site-footer {
         '</div>';
       } else if (isDomestic) {
         displayName = n.name;
+        var isVantage = (st && st.self_probe);
+        var vantageBtn = isVantage
+          ? ('<span class="tag ok" style="cursor:pointer;margin-left:6px" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</span>')
+          : ('<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:2px 7px;height:24px" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
         relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
-          '<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>';
+          '<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>' + vantageBtn;
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');
       } else {
         detailLine = esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>';
@@ -3555,8 +3564,10 @@ footer.site-footer {
     if (isBonded) {
       items.push({label: zh ? "解除中转加速（恢复独立）" : "Unbind Relay (Restore Standalone)", id: "unbind_relay"});
       items.push({label: zh ? "更换中转落地目标" : "Change Egress Target", id: "bind_relay"});
+      items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
     } else if (isDom) {
       items.push({label: zh ? "设为中转加速专线" : "Configure as Relay Node", id: "bind_relay"});
+      items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
     } else {
       var ispLabel = n.isp
         ? (zh ? "解绑住宅 IP" : "Unmount Residential IP")
@@ -3596,6 +3607,15 @@ footer.site-footer {
       else if (act === "drill") drillRelaySwitch(i);
       else if (act === "bind_relay") openRelayDialog(n.name, n.host || n.ip);
       else if (act === "unbind_relay") unbindRelay(n.name);
+      else if (act === "set_vantage") setProbeVantage(n.name);
+      else if (act === "toggle_hy2") {
+        var host = n.host || n.ip;
+        var hy2Node = (NODES || []).find(function(x) {
+          return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
+        });
+        var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
+        toggleHy2(n.name, n.host || n.ip, !isHy2Active);
+      }
       else if (act === "isp") mountIsp(i);
       else if (act === "lifecycle") setNodeLifecycle(i);
       else if (act === "rotate") rotateKey(i);
@@ -4154,6 +4174,34 @@ footer.site-footer {
     });
   }
 
+  function setProbeVantage(name) {
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    jsonRequest("/api/probe/vantage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name })
+    }).then(function (res) {
+      if (res && res.ok) {
+        if (typeof toast === "function") {
+          toast(zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
+        } else {
+          alert(zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
+        }
+        refreshState();
+        refreshPing();
+      } else {
+        alert("设置基准失败：" + ((res && res.error) || "未知错误"));
+      }
+    }).catch(function (err) {
+      alert("请求失败：" + err.message);
+    });
+  }
+
+  window.ownlineSetProbeVantage = setProbeVantage;
+  window.ownlineSetProbeVantageByIndex = function (idx) {
+    var n = NODES[idx];
+    if (n) setProbeVantage(n.name);
+  };
   window.ownlineNodeMenu = nodeMenu;
   window.ownlineMountIsp = mountIsp;
   window.ownlineRelaySwitch = drillRelaySwitch;
@@ -4306,7 +4354,12 @@ footer.site-footer {
       var ts = Date.now();
       if (sub && location.protocol !== "file:") {
         qrImg.src = "/api/qr?url=" + encodeURIComponent(sub) + "&t=" + ts;
-        qrImg.onerror = function () { qrImg.src = "qr-sub.png?t=" + ts; };
+        qrImg.onerror = function () {
+          qrImg.src = "/qr?url=" + encodeURIComponent(sub) + "&t=" + ts;
+          qrImg.onerror = function () {
+            qrImg.src = "qr-sub.png?t=" + ts;
+          };
+        };
       } else {
         qrImg.src = "qr-sub.png?t=" + ts;
       }

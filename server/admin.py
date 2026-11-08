@@ -515,7 +515,7 @@ class H(BaseHTTPRequestHandler):
             self.wfile.write(content)
             return
 
-        if path == "/qr":
+        if path in ("/qr", "/api/qr"):
             q = urllib.parse.parse_qs(qs)
             raw_url = (q.get("url") or [None])[0]
             if not raw_url:
@@ -576,7 +576,8 @@ class H(BaseHTTPRequestHandler):
             try:
                 import probe as probe_mod
                 nodes = load_nodes()
-                cn = probe_mod.cn_probe(nodes)
+                settings = _load_json("settings.json", {})
+                cn = probe_mod.cn_probe(nodes, preferred_vantage=settings.get("probe_vantage"))
                 status = _load_json("status.json", {})
                 if cn:
                     for name, cinfo in cn.items():
@@ -590,6 +591,10 @@ class H(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True, "status": status})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
+
+        if path == "/probe/vantage":
+            settings = _load_json("settings.json", {})
+            return self._json(200, {"ok": True, "vantage": settings.get("probe_vantage")})
         if path == "/settings":
             settings = _load_json("settings.json", {})
             domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
@@ -598,6 +603,7 @@ class H(BaseHTTPRequestHandler):
                 "domain": domain,
                 "sub_token": token,
                 "sub_url": sub_url,
+                "probe_vantage": settings.get("probe_vantage"),
                 "quota_threshold": quota_mod.quota_threshold(),
                 "tencent_discovery": True,
                 "backup_restore_supported": True,
@@ -963,7 +969,8 @@ class H(BaseHTTPRequestHandler):
             try:
                 import probe as probe_mod
                 nodes = load_nodes()
-                cn = probe_mod.cn_probe(nodes)
+                settings = _load_json("settings.json", {})
+                cn = probe_mod.cn_probe(nodes, preferred_vantage=settings.get("probe_vantage"))
                 status = _load_json("status.json", {})
                 if cn:
                     for name, cinfo in cn.items():
@@ -977,6 +984,33 @@ class H(BaseHTTPRequestHandler):
                 return self._json(200, {"ok": True, "status": status})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
+
+        if path == "/probe/vantage":
+            name = (body.get("name") or body.get("vantage") or "").strip()
+            nodes = load_nodes()
+            target = next((n for n in nodes if (n.get("name") == name or n.get("host") == name) and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn" or (n.get("country") or "").upper() == "CN")), None)
+            if not target:
+                return self._json(400, {"ok": False, "error": "未找到指定的国内探测基准节点"})
+            settings = _load_json("settings.json", {})
+            settings["probe_vantage"] = target["name"]
+            _save_json(os.path.join(DATA, "settings.json"), settings)
+            logger.log("INFO", "PROBE", "管理员切换国内探测基准锚点为 [%s]" % target["name"])
+            try:
+                import probe as probe_mod
+                cn = probe_mod.cn_probe(nodes, preferred_vantage=target["name"])
+                status = _load_json("status.json", {})
+                if cn:
+                    for k, v in cn.items():
+                        if k in status and isinstance(v, dict):
+                            status[k].update(v)
+                    status["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                    tmp = os.path.join(DATA, "status.json.tmp")
+                    with open(tmp, "w", encoding="utf-8") as f:
+                        json.dump(status, f, ensure_ascii=False)
+                    os.replace(tmp, os.path.join(DATA, "status.json"))
+            except Exception:
+                pass
+            return self._json(200, {"ok": True, "vantage": target["name"]})
 
         if path == "/resetpw":
             ip = (body.get("ip") or "").strip()

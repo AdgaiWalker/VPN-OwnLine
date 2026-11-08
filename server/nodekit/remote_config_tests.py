@@ -272,6 +272,40 @@ def test_hy2_toggle_cert_verify_and_rollback():
         check("关闭 HY2 后原 ISP 出站仍保留", off_cfg["outbounds"][0]["tag"] == "isp-out")
 
 
+def test_windows_node_support():
+    win_node = {"name": "新加坡", "host": "43.163.4.104", "os": "windows", "role": "exit", "source": "builtin"}
+    check("默认禁止无意控制 Windows", RC.check_controllable(win_node, allow_windows=False)[0] is False)
+    check("显式允许控制 Windows", RC.check_controllable(win_node, allow_windows=True)[0] is True)
+
+    with tempfile.TemporaryDirectory() as td:
+        cfg_path = os.path.join(td, "config.json")
+        init_cfg = templates.exit_config(
+            port=8443,
+            uuid="cea12c3b-ae9a-4ab9-8b0c-378bc738c8a6",
+            sni="www.microsoft.com",
+            private_key="test_pk",
+            sid="02974b90",
+        )
+        Path(cfg_path).write_text(json.dumps(init_cfg), encoding="utf-8")
+
+        def fake_runner(cmd, capture_output=True, text=True, timeout=25):
+            class R:
+                returncode = 0
+                stdout = json.dumps(init_cfg)
+                stderr = ""
+            return R()
+
+        res = RC.toggle_hy2(
+            win_node,
+            enabled=True,
+            runner=fake_runner,
+            verifier=lambda n: {"health": "ok", "exit_ip": "43.163.4.104", "exit_country": "SG"},
+            cfg_path=cfg_path,
+        )
+        check("Windows 节点成功开启 HY2", res["ok"] is True, res)
+        check("Windows HY2 节点记录标注 os=windows", res.get("hy2_node", {}).get("os") == "windows")
+
+
 def test_boundary_rejections():
     check("拒绝外部节点", RC.check_controllable({"source": "external"})[0] is False)
     check("拒绝 Windows 节点", RC.check_controllable({"os": "windows", "host": "203.0.113.9"})[0] is False)
@@ -281,5 +315,6 @@ def test_boundary_rejections():
 if __name__ == "__main__":
     test_relay_bind_switch_unbind_and_rollback()
     test_hy2_toggle_cert_verify_and_rollback()
+    test_windows_node_support()
     test_boundary_rejections()
     print(f"通过 {ok} 项")
