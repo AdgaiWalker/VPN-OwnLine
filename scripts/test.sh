@@ -47,6 +47,7 @@ for f in \
   server/nodekit/host_traffic_tests.py \
   server/nodekit/ports_tests.py \
   server/nodekit/http_utils_tests.py \
+  server/nodekit/node_manager_tests.py \
   server/nodekit/relay_service_tests.py \
   server/nodekit/hy2_service_tests.py \
   server/nodekit/node_service_tests.py

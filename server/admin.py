@@ -24,6 +24,7 @@ from nodekit import http_utils  # noqa: E402
 from nodekit.relay_service import RelayService  # noqa: E402
 from nodekit.hy2_service import Hy2Service  # noqa: E402
 from nodekit.node_service import NodeService  # noqa: E402
+from nodekit.node_manager import FileNodeStore, NodeManager, NodeManagerError  # noqa: E402
 import reset_admin_password as password_mod  # noqa: E402
 import tencent_discovery as tencent_discovery_mod  # noqa: E402
 sys.path.insert(0, WEB)
@@ -34,33 +35,27 @@ INITIAL_PASSWORD_MARKER = Path(DATA) / '.initial-password-required'
 _PASSWORD_LOCK = threading.Lock()
 _PASSWORD_ATTEMPTS = deque()
 
+node_manager = NodeManager(
+    store=FileNodeStore(lambda: NODES),
+    remote_cfg_mod=remote_cfg_mod,
+    links_mod=links_mod,
+    logger=logger,
+    open_firewall_fn=lambda ip, port, proto="TCP": open_firewall(ip, port, proto),
+    on_change=lambda: render(),
+)
+
+
 def load_nodes():
-    with open(NODES, encoding="utf-8") as f:
-        return json.load(f)
-
-_NODES_LOCK = threading.Lock()
-
-
-def _write_nodes(nodes):
-    tmp = NODES + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(nodes, f, ensure_ascii=False, indent=1)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, NODES)          # 原子替换：写一半断电也不会留下坏 JSON
+    return node_manager.list_nodes()
 
 
 def save_nodes(nodes):
-    with _NODES_LOCK:
-        _write_nodes(nodes)
+    node_manager.save_nodes(nodes)
 
 
 def update_nodes(mutator):
     """读-改-写 全程持锁，避免两个任务同时改导致丢更新。"""
-    with _NODES_LOCK:
-        nodes = mutator(load_nodes())
-        _write_nodes(nodes)
-        return nodes
+    return node_manager.update_nodes(mutator)
 
 def vless(n):
     q = ("encryption=none&flow=xtls-rprx-vision&security=reality"
@@ -866,8 +861,7 @@ class H(BaseHTTPRequestHandler):
             token = body.get("sub_token")
             if token is not None and token != "" and (not isinstance(token, str) or not re.fullmatch(r"[0-9a-fA-F]{8,64}", token)):
                 return self._json(400, {"ok": False, "error": "备份中的订阅凭据无效，未进行恢复"})
-            with _NODES_LOCK:
-                _write_nodes(valid_nodes)
+            save_nodes(valid_nodes)
             if body.get("sub_token"):
                 try:
                     settings = _load_json("settings.json", {})
@@ -881,89 +875,76 @@ class H(BaseHTTPRequestHandler):
 
         if path == "/removenode":
             name = (body.get("name") or "").strip()
-            nodes = load_nodes()
             cleanup_confirmed = body.get("cleanup_confirmed") is True
-            code, resp, mutator = NodeService.remove_node(nodes, name, cleanup_confirmed, logger)
-            if code != 200 or not mutator:
-                return self._json(code, resp)
-            update_nodes(mutator)
             try:
-                render()
-            except Exception as e:
-                return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
-            return self._json(code, resp)
+                resp = node_manager.remove_node(name, cleanup_confirmed=cleanup_confirmed)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if path == "/editnode":
             name = (body.get("name") or "").strip()
-            nodes = load_nodes()
-            code, resp, mutator = NodeService.edit_node(nodes, name, body, links_mod, remote_cfg_mod, logger)
-            if code != 200 or not mutator:
-                return self._json(code, resp)
-            update_nodes(mutator)
-            target = next((n for n in load_nodes() if n["name"] == resp.get("target_name", name)), None)
             try:
-                render()
-            except Exception as e:
-                return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
-            return self._json(200, {"ok": True, "node": target})
+                resp = node_manager.edit_node(name, body)
+                target = node_manager.get_node(resp.get("target_name", name))
+                return self._json(200, {"ok": True, "node": target})
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if path == "/relay/switch":
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
-            nodes = load_nodes()
-            code, resp, mutator = RelayService.switch(nodes, name, target_host, remote_cfg_mod, logger)
-            if code != 200 or not mutator:
-                return self._json(code, resp)
-            update_nodes(mutator)
             try:
-                render()
-            except Exception:
-                pass
-            return self._json(code, resp)
+                resp = node_manager.switch_relay(name, target_host)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if path == "/relay/bind":
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
-            nodes = load_nodes()
-            code, resp, mutator = RelayService.bind(nodes, name, target_host, remote_cfg_mod, logger)
-            if code != 200 or not mutator:
-                return self._json(code, resp)
-            update_nodes(mutator)
+            fallback_host = (body.get("fallback") or "").strip() or None
             try:
-                render()
-            except Exception:
-                pass
-            return self._json(code, resp)
+                resp = node_manager.bind_relay(name, target_host, fallback_host)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if path == "/relay/unbind":
             name = (body.get("name") or "").strip()
-            nodes = load_nodes()
-            code, resp, mutator = RelayService.unbind(nodes, name, remote_cfg_mod, logger)
-            if code != 200 or not mutator:
-                return self._json(code, resp)
-            update_nodes(mutator)
             try:
-                render()
-            except Exception:
-                pass
-            return self._json(code, resp)
+                resp = node_manager.unbind_relay(name)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if path == "/hy2/toggle":
             host = (body.get("host") or "").strip()
             name = (body.get("name") or "").strip()
             enabled = bool(body.get("enabled"))
-            nodes = load_nodes()
-            code, resp, mutator = Hy2Service.toggle(
-                nodes, host, name, enabled, remote_cfg_mod, open_firewall, logger
-            )
-            if code != 200 or not mutator:
-                return self._json(code, resp)
-            update_nodes(mutator)
             try:
-                render()
-            except Exception:
-                pass
-            return self._json(code, resp)
+                resp = node_manager.toggle_hy2(name=name, host=host, enabled=enabled)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if path == "/ping":
             try:
