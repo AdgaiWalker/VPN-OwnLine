@@ -50,7 +50,7 @@ def check_controllable(node, allow_windows=False):
 
 
 def run_target(node, script, runner=None, timeout=25):
-    """在目标节点执行脚本（Linux 走 bash/sudo -n；Windows 走 powershell -EncodedCommand）。"""
+    """在目标节点执行脚本（Linux 走 bash/sudo -n；Windows 走 powershell stdin Invoke-Expression）。"""
     runner = runner or DEFAULT_RUNNER
     is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
     if is_local_node(node):
@@ -59,23 +59,26 @@ def run_target(node, script, runner=None, timeout=25):
     port = int(node.get("ssh_port") or 22)
     if is_win:
         win_ps = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n{script}"
-        b64_ps = base64.b64encode(win_ps.encode("utf-16le")).decode("ascii")
         cmd = verify_mod.ssh_cmd(user, node["host"], timeout=min(timeout, 15), port=port) + [
-            f"powershell -NoProfile -NonInteractive -EncodedCommand {b64_ps}"
+            'powershell -NoProfile -Command "$raw = [Console]::In.ReadToEnd(); Invoke-Expression $raw"'
         ]
+        try:
+            res = runner(cmd, input=win_ps, capture_output=True, timeout=timeout)
+            if hasattr(res, "stdout") and isinstance(res.stdout, bytes):
+                res.stdout = res.stdout.decode("utf-8", errors="replace")
+            if hasattr(res, "stderr") and isinstance(res.stderr, bytes):
+                res.stderr = res.stderr.decode("utf-8", errors="replace")
+            if hasattr(res, "stderr") and res.stderr:
+                filtered = [ln for ln in res.stderr.splitlines() if not ln.startswith("**") and "openssh.com" not in ln]
+                res.stderr = "\n".join(filtered).strip()
+            return res
+        except TypeError:
+            return runner(cmd, capture_output=True, text=True, timeout=timeout)
     else:
         b64 = base64.b64encode(script.encode("utf-8")).decode("ascii")
         shell_exec = "bash" if user == "root" else "sudo -n bash"
         remote_cmd = "echo %s | base64 -d | %s" % (b64, shell_exec)
         cmd = verify_mod.ssh_cmd(user, node["host"], timeout=min(timeout, 12), port=port) + [remote_cmd]
-    try:
-        res = runner(cmd, capture_output=True, timeout=timeout)
-        if hasattr(res, "stdout") and isinstance(res.stdout, bytes):
-            res.stdout = res.stdout.decode("utf-8", errors="replace")
-        if hasattr(res, "stderr") and isinstance(res.stderr, bytes):
-            res.stderr = res.stderr.decode("utf-8", errors="replace")
-        return res
-    except TypeError:
         return runner(cmd, capture_output=True, text=True, timeout=timeout)
 
 
