@@ -1738,7 +1738,7 @@ footer.site-footer {
 
         <div class="field">
           <label for="settings-username"><span id="settings-lbl-username" data-i18n="settings_username">New Username</span> <span class="muted small" id="settings-hint-username" data-i18n="settings_hint_username">(leave empty to keep current)</span></label>
-          <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" placeholder="Leave empty to keep current">
+          <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly')" placeholder="Leave empty to keep current">
         </div>
 
         <div class="field">
@@ -2127,7 +2127,10 @@ footer.site-footer {
     var u = document.getElementById('settings-username');
     if (u) {
       u.value = '';
+      u.setAttribute('readonly', 'readonly');
       u.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
+      setTimeout(function() { if (u && !u.matches(':focus')) u.value = ''; }, 60);
+      setTimeout(function() { if (u && !u.matches(':focus')) u.value = ''; }, 200);
     }
     var st = document.getElementById('settings-status');
     if (st) { st.textContent = ''; st.style.color = ''; }
