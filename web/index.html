@@ -3226,7 +3226,8 @@ footer.site-footer {
         return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
       });
       var isDomestic = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
-      var hasHy2 = isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean" || (!isDomestic && n.source !== "external");
+      var isWindows = (n.os === "windows" || n.ssh_user === "Administrator");
+      var hasHy2 = !isWindows && (isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean");
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
 
       if (hasHy2) {
@@ -3786,9 +3787,33 @@ footer.site-footer {
       text += "[节点状态]:\n";
       ns.forEach(function (n) {
         var s = st[n.name] || {};
+        var probeText = "";
+        if (n.type === "hysteria2") {
+          var parentNode = ns.find(function (x) {
+            return (x.host === n.host || x.ip === n.host) && x.type !== "hysteria2";
+          });
+          var parentStatus = parentNode ? st[parentNode.name] : null;
+          probeText = parentStatus && parentStatus.ok ? (parentStatus.ms + "ms(宿主同端口)") : "免探活(UDP通道)";
+        } else if (s.ok) {
+          probeText = s.ms + "ms" + (s.self_probe ? "(本机)" : "");
+        } else if (s.ok === false) {
+          probeText = "异常:" + (s.reason || "连接失败");
+        } else {
+          probeText = "未测";
+        }
+        var cnProbeText = "";
+        if (n.type === "hysteria2") {
+          cnProbeText = "客户端实测";
+        } else if (s.cn_ok) {
+          cnProbeText = s.cn_ms + "ms";
+        } else if (s.cn_ok === false) {
+          cnProbeText = "阻断";
+        } else {
+          cnProbeText = "未测";
+        }
         text += "  - " + n.name + " (" + (n.type || "vless") + "): health=" + (n.health || "-") + ", exit_ip=" + (n.exit_ip || "-") +
-                ", 主控探活=" + (s.ok ? (s.ms + "ms" + (s.self_probe ? "(本机)" : "")) : ("异常:" + s.reason)) +
-                ", 国内探活=" + (s.cn_ok ? (s.cn_ms + "ms") : (s.cn_ok === false ? "阻断" : "未测")) + "\n";
+                ", 主控探活=" + probeText +
+                ", 国内探活=" + cnProbeText + "\n";
       });
       text += "\n[近期日志]:\n";
       lg.forEach(function (l) {
