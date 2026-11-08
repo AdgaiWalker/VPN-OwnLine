@@ -10,6 +10,7 @@ import datetime
 import json
 import time
 import urllib.parse
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     from . import lifecycle
@@ -21,6 +22,55 @@ except ImportError:
 # 这些状态表示节点有问题，不能进订阅。
 # unknown 不在此列：外部节点永远未验证，但仍可被用户手动选择。
 BAD_HEALTH = frozenset({"port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"})
+
+
+class SubscriptionUserInfo:
+    """标准 Subscription-Userinfo 响应头值对象。
+
+    格式：upload=0; download=<used_bytes>; total=<total_bytes>; expire=<earliest_expire_epoch>
+    """
+
+    def __init__(
+        self,
+        upload: int = 0,
+        download: int = 0,
+        total: int = 0,
+        expire: Optional[int] = None,
+    ) -> None:
+        self.upload = max(0, int(upload))
+        self.download = max(0, int(download))
+        self.total = max(0, int(total))
+        self.expire = int(expire) if expire is not None else None
+
+    def format(self) -> str:
+        parts = [f"upload={self.upload}", f"download={self.download}", f"total={self.total}"]
+        if self.expire:
+            parts.append(f"expire={self.expire}")
+        return "; ".join(parts)
+
+    @classmethod
+    def parse(cls, header_value: str) -> Optional["SubscriptionUserInfo"]:
+        if not header_value or not isinstance(header_value, str):
+            return None
+        parts = {}
+        for item in header_value.split(";"):
+            item = item.strip()
+            if "=" in item:
+                k, v = item.split("=", 1)
+                parts[k.strip().lower()] = v.strip()
+        if not any(k in parts for k in ("upload", "download", "total")):
+            return None
+        try:
+            exp_val = parts.get("expire")
+            exp_ts = int(exp_val) if exp_val and exp_val.isdigit() else None
+            return cls(
+                upload=int(parts.get("upload", 0)),
+                download=int(parts.get("download", 0)),
+                total=int(parts.get("total", 0)),
+                expire=exp_ts,
+            )
+        except Exception:
+            return None
 
 
 def in_subscription(node, now_ts=None, usage_data=None, controllable_hosts=None):
@@ -96,10 +146,13 @@ def subscription_userinfo(usage_data, nodes=None):
         return None
     download_bytes = int(used_gb * 1024 * 1024 * 1024)
     total_bytes = int(total_gb * 1024 * 1024 * 1024)
-    parts = ["upload=0", f"download={download_bytes}", f"total={total_bytes}"]
-    if earliest_ts:
-        parts.append(f"expire={earliest_ts}")
-    return "; ".join(parts)
+    info = SubscriptionUserInfo(
+        upload=0,
+        download=download_bytes,
+        total=total_bytes,
+        expire=earliest_ts,
+    )
+    return info.format()
 
 
 def _parse_date_epoch(val):

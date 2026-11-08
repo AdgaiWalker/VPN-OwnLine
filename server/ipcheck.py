@@ -8,6 +8,7 @@ import json
 import os
 import time
 import urllib.request
+from nodekit.store import AtomicJsonStore
 
 NODES = os.environ.get("LADDER_DATA", "/opt/web-data") + "/nodes.json"
 OUT = os.environ.get("LADDER_DATA", "/opt/web-data") + "/iphealth.json"
@@ -46,7 +47,7 @@ def main():
         }
         time.sleep(1.4)  # ip-api 免费额度：45 次/分钟
     out["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-    json.dump(out, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    AtomicJsonStore.dump(OUT, out)
     print(json.dumps({k: (v.get("asn"), v.get("hosting"), v.get("proxy")) for k, v in out.items() if k != "_ts"},
                      ensure_ascii=False))
 

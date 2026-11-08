@@ -10,17 +10,13 @@ import time
 
 sys.path.insert(0, "/opt/web")
 import providers
+from nodekit.store import AtomicJsonStore
 
 DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
 
 
 def write_json(path, data):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=1)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    AtomicJsonStore.dump(path, data)
 
 
 def main():

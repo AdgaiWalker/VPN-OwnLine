@@ -144,3 +144,16 @@ def collect_remote_traffic(node, runner=subprocess.run, timeout=8, local_net_dev
     except Exception:
         pass
     return None
+
+
+class HostTrafficCollector:
+    """物理网卡流量保底采集门面。"""
+
+    @classmethod
+    def collect(cls, node, runner=subprocess.run, timeout=8, local_net_dev="/proc/net/dev"):
+        return collect_remote_traffic(node, runner=runner, timeout=timeout, local_net_dev=local_net_dev)
+
+    @classmethod
+    def parse(cls, net_dev_text, quota_limit_gb=None):
+        return calculate_host_usage(net_dev_text, quota_limit_gb=quota_limit_gb)
+

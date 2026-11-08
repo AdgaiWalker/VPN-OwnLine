@@ -14,6 +14,8 @@ import time
 import urllib.parse
 import urllib.request
 
+from nodekit.store import AtomicJsonStore
+
 DATA = os.environ.get("LADDER_DATA", "/opt/web-data")
 CFG_PATH = os.path.join(DATA, "alert.json")
 STATE_PATH = os.path.join(DATA, "alert_state.json")
@@ -22,20 +24,11 @@ FAIL_THRESHOLD = 2
 
 
 def _load_json(path, default):
-    try:
-        with open(path, encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return default
+    return AtomicJsonStore.load(path, default=default)
 
 
 def _save_json(path, obj):
-    tmp = path + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(obj, f, ensure_ascii=False, indent=1)
-        f.flush()
-        os.fsync(f.fileno())
-    os.replace(tmp, path)
+    AtomicJsonStore.dump(path, obj)
 
 
 def evaluate(status, prev_state, fail_threshold=FAIL_THRESHOLD):

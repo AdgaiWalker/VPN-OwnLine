@@ -20,6 +20,10 @@ from nodekit import node_check_bridge  # noqa: E402
 from nodekit import links as links_mod  # noqa: E402
 from nodekit import templates as templates_mod  # noqa: E402
 from nodekit import remote_config as remote_cfg_mod  # noqa: E402
+from nodekit import http_utils  # noqa: E402
+from nodekit.relay_service import RelayService  # noqa: E402
+from nodekit.hy2_service import Hy2Service  # noqa: E402
+from nodekit.node_service import NodeService  # noqa: E402
 import reset_admin_password as password_mod  # noqa: E402
 import tencent_discovery as tencent_discovery_mod  # noqa: E402
 sys.path.insert(0, WEB)
@@ -838,415 +842,88 @@ class H(BaseHTTPRequestHandler):
         if path == "/removenode":
             name = (body.get("name") or "").strip()
             nodes = load_nodes()
-            target = next((n for n in nodes if n["name"] == name), None)
-            if not target:
-                return self._json(404, {"ok": False, "error": "没找到这个节点"})
-            to_remove = {name}
-            if name.endswith("-HY2"):
-                base_name = name[:-4]
-                if any(n["name"] == base_name for n in nodes):
-                    to_remove.add(base_name)
-            else:
-                hy2_name = name + "-HY2"
-                if any(n["name"] == hy2_name for n in nodes):
-                    to_remove.add(hy2_name)
-
-            if body.get("cleanup_confirmed") is True:
-                if not target.get("cleanup_pending") or not all(
-                    n.get("cleanup_pending") for n in nodes if n["name"] in to_remove
-                ):
-                    return self._json(400, {"ok": False, "error": "请先移出订阅并完成服务器人工清理"})
-                update_nodes(lambda ns: [n for n in ns if n["name"] not in to_remove])
-                render()
-                logger.log("WARN", "NODE", "用户确认已人工清理，移除节点记录: %s" % name)
-                return self._json(200, {"ok": True, "cleanup_pending": False, "confirmed_by_user": True,
-                                        "message": "已按你的确认移除记录；服务器清理结果未由系统验证"})
-
-            def _mark_cleanup(ns):
-                for n in ns:
-                    if n["name"] in to_remove:
-                        n["enabled"] = False
-                        n["cleanup_pending"] = True
-                        n.pop("quota_control_managed", None)
-                return ns
-            update_nodes(_mark_cleanup)
+            cleanup_confirmed = body.get("cleanup_confirmed") is True
+            code, resp, mutator = NodeService.remove_node(nodes, name, cleanup_confirmed, logger)
+            if code != 200 or not mutator:
+                return self._json(code, resp)
+            update_nodes(mutator)
             try:
                 render()
             except Exception as e:
                 return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
-            logger.log("WARN", "NODE", "节点已移出订阅，待用户人工清理: %s" % name)
-            return self._json(200, {"ok": True, "cleanup_pending": True, "stopped": None,
-                                    "message": "已移出订阅；服务器未作改动，请人工清理后确认"})
+            return self._json(code, resp)
 
         if path == "/editnode":
             name = (body.get("name") or "").strip()
             nodes = load_nodes()
-            target = next((n for n in nodes if n["name"] == name), None)
-            if not target:
-                return self._json(404, {"ok": False, "error": "没找到这个节点"})
-            if target.get("cleanup_pending") and body.get("enabled") is True:
-                return self._json(409, {"ok": False, "error": "节点待人工清理，不能重新启用"})
-            newname = (body.get("newname") or "").strip()
-            newkey = bool(body.get("newkey"))
-            port_raw = body.get("port")
-            new_port = None
-            if port_raw not in (None, ""):
-                try:
-                    new_port = int(port_raw)
-                    if new_port < 1 or new_port > 65535:
-                        raise ValueError()
-                except Exception:
-                    return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
-            new_uuid = str(uuid.uuid4()) if newkey else None
-            need_remote = bool(new_uuid) or (new_port is not None and new_port != target.get("port"))
-            if need_remote:
-                return self._json(409, {"ok": False, "error": "无法确认服务独占，暂不能修改服务器端口或密钥；请人工检查"})
-
-            parsed_isp = None
-            isp_changed = False
-            if "isp" in body:
-                isp_changed = True
-                raw_isp = body["isp"]
-                if raw_isp in (None, ""):
-                    parsed_isp = None
-                elif isinstance(raw_isp, str):
-                    try:
-                        parsed_isp = links_mod.parse_isp_proxy(raw_isp)
-                    except links_mod.LinkError as e:
-                        return self._json(400, {"ok": False, "error": str(e)})
-                elif isinstance(raw_isp, dict):
-                    if not raw_isp.get("server") or not raw_isp.get("server_port"):
-                        return self._json(400, {"ok": False, "error": "ISP 代理缺少服务器地址或端口"})
-                    try:
-                        port_num = int(raw_isp["server_port"])
-                        if port_num < 1 or port_num > 65535:
-                            raise ValueError()
-                    except Exception:
-                        return self._json(400, {"ok": False, "error": "端口号无效"})
-                    parsed_isp = {
-                        "type": raw_isp.get("type", "socks"),
-                        "server": str(raw_isp["server"]),
-                        "server_port": port_num,
-                    }
-                    if raw_isp.get("username"):
-                        parsed_isp["username"] = str(raw_isp["username"])
-                    if raw_isp.get("password"):
-                        parsed_isp["password"] = str(raw_isp["password"])
-                else:
-                    return self._json(400, {"ok": False, "error": "ISP 代理参数格式不正确"})
-
-            isp_sync_res = None
-            if isp_changed:
-                isp_sync_res = remote_cfg_mod.sync_isp(target, parsed_isp)
-                if not isp_sync_res.get("ok"):
-                    logger.log("WARN", "NODE", "节点 [%s] 静态住宅代理同步失败: %s" % (name, isp_sync_res.get("error")))
-                    return self._json(502, {
-                        "ok": False,
-                        "error": isp_sync_res.get("error") or "远端静态住宅出口同步失败",
-                        "rolled_back": isp_sync_res.get("rolled_back", False),
-                        "verify": isp_sync_res.get("verify"),
-                    })
-
-            def _apply(ns):
-                for n in ns:
-                    if n["name"] == name:
-                        if new_uuid:
-                            n["uuid"] = new_uuid
-                        if new_port is not None:
-                            n["port"] = new_port
-                        if newname and newname != name:
-                            n["name"] = newname
-                        if "enabled" in body:
-                            n["enabled"] = bool(body["enabled"])
-                        if "expire_at" in body:
-                            n["expire_at"] = body["expire_at"]
-                        if "lifecycle" in body and isinstance(body["lifecycle"], dict):
-                            n["lifecycle"] = dict(body["lifecycle"])
-                        if "state" in body:
-                            lc = dict(n.get("lifecycle") or {})
-                            lc["state"] = body["state"]
-                            n["lifecycle"] = lc
-                        if "landing_policy" in body and isinstance(body["landing_policy"], dict):
-                            n["landing_policy"] = dict(body["landing_policy"])
-                        if isp_changed:
-                            if parsed_isp is None:
-                                n.pop("isp", None)
-                            else:
-                                n["isp"] = dict(parsed_isp)
-                            if isp_sync_res:
-                                n["health"] = "ok"
-                                if isp_sync_res.get("exit_ip"):
-                                    n["exit_ip"] = isp_sync_res["exit_ip"]
-                                if isp_sync_res.get("exit_country"):
-                                    n["exit_country"] = isp_sync_res["exit_country"]
-                                if isp_sync_res.get("health_detail"):
-                                    n["health_detail"] = isp_sync_res["health_detail"]
-                return ns
-
-            update_nodes(_apply)
-            target = next((n for n in load_nodes() if n["name"] == (newname or name)), target)
+            code, resp, mutator = NodeService.edit_node(nodes, name, body, links_mod, remote_cfg_mod, logger)
+            if code != 200 or not mutator:
+                return self._json(code, resp)
+            update_nodes(mutator)
+            target = next((n for n in load_nodes() if n["name"] == resp.get("target_name", name)), None)
             try:
                 render()
             except Exception as e:
                 return self._json(500, {"ok": False, "error": "订阅更新失败: %s" % e})
-            logger.log("INFO", "NODE", "编辑节点 %s: 新名称=%s, 端口=%s, 更换密钥=%s" %
-                       (name, newname or "未改", new_port or "未改", "是" if newkey else "否"))
             return self._json(200, {"ok": True, "node": target})
 
         if path == "/relay/switch":
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
-            if not target_host:
-                return self._json(400, {"ok": False, "error": "缺少 target 目标主机地址"})
             nodes = load_nodes()
-            relay_node = (
-                next((n for n in nodes if n.get("name") == name and n.get("type") != "hysteria2"), None)
-                if name
-                else next((n for n in nodes if n.get("role") == "relay" and n.get("type") != "hysteria2"), None)
-            )
-            if not relay_node:
-                return self._json(404, {"ok": False, "error": "未找到可切换的中转入口节点"})
-            target_exit = next(
-                (n for n in nodes if (n.get("host") == target_host or n.get("ip") == target_host) and n.get("type") != "hysteria2"),
-                None,
-            )
-            if not target_exit:
-                return self._json(404, {"ok": False, "error": "未找到匹配的目标海外出口服务器"})
-            fallback_exit = next(
-                (
-                    n for n in nodes
-                    if n.get("type") != "hysteria2"
-                    and n.get("role") not in ("relay", "standalone")
-                    and (n.get("exit_country") or "").upper() != "CN"
-                    and n.get("host") not in (target_exit.get("host"), relay_node.get("host"))
-                ),
-                None,
-            )
-            sync_res = remote_cfg_mod.switch_relay(relay_node, target_exit, fallback_exit_node=fallback_exit)
-            if not sync_res.get("ok"):
-                logger.log("WARN", "RELAY", "中转切流失败 [%s ➔ %s]: %s" %
-                           (relay_node.get("name"), target_host, sync_res.get("error")))
-                return self._json(502, {
-                    "ok": False,
-                    "error": sync_res.get("error") or "远端中转切换失败",
-                    "rolled_back": sync_res.get("rolled_back", False),
-                    "verify": sync_res.get("verify"),
-                })
-
-            def _apply_switch(ns):
-                for n in ns:
-                    if n.get("name") == relay_node.get("name"):
-                        n["role"] = "relay"
-                        n["landing"] = sync_res["landing"]
-                        n["landing_policy"] = sync_res["landing_policy"]
-                        n["health"] = "ok"
-                        n["exit_ip"] = sync_res["exit_ip"]
-                        n["exit_country"] = sync_res["exit_country"]
-                        n["health_detail"] = sync_res["health_detail"]
-                return ns
-
-            update_nodes(_apply_switch)
+            code, resp, mutator = RelayService.switch(nodes, name, target_host, remote_cfg_mod, logger)
+            if code != 200 or not mutator:
+                return self._json(code, resp)
+            update_nodes(mutator)
             try:
                 render()
             except Exception:
                 pass
-            logger.log("INFO", "RELAY", "管理员完成真实中转切流: 节点 [%s] ➔ 目标 [%s]" %
-                       (relay_node.get("name"), target_exit.get("name") or target_host))
-            return self._json(200, {
-                "ok": True,
-                "node": relay_node.get("name"),
-                "active_target": sync_res["landing"]["host"],
-                "verify": sync_res.get("verify"),
-            })
+            return self._json(code, resp)
 
         if path == "/relay/bind":
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
-            if not name or not target_host:
-                return self._json(400, {"ok": False, "error": "缺少节点名称 (name) 或落地目标 (target)"})
             nodes = load_nodes()
-            relay_node = next((n for n in nodes if n.get("name") == name and n.get("type") != "hysteria2"), None)
-            if not relay_node:
-                return self._json(404, {"ok": False, "error": "未找到指定的中转入口服务器"})
-            target_exit = next(
-                (n for n in nodes if (n.get("host") == target_host or n.get("ip") == target_host) and n.get("type") != "hysteria2"),
-                None,
-            )
-            if not target_exit:
-                return self._json(404, {"ok": False, "error": "未找到匹配的目标海外出口服务器"})
-            fallback_exit = next(
-                (
-                    n for n in nodes
-                    if n.get("type") != "hysteria2"
-                    and n.get("role") not in ("relay", "standalone")
-                    and (n.get("exit_country") or "").upper() != "CN"
-                    and n.get("host") not in (target_exit.get("host"), relay_node.get("host"))
-                ),
-                None,
-            )
-
-            sync_res = remote_cfg_mod.bind_relay(relay_node, target_exit, fallback_exit_node=fallback_exit)
-            if not sync_res.get("ok"):
-                logger.log("WARN", "RELAY", "绑定中转失败 [%s ➔ %s]: %s" % (name, target_host, sync_res.get("error")))
-                return self._json(502, {
-                    "ok": False,
-                    "error": sync_res.get("error") or "远端中转绑定失败",
-                    "rolled_back": sync_res.get("rolled_back", False),
-                    "verify": sync_res.get("verify"),
-                })
-
-            def _apply_bind(ns):
-                for n in ns:
-                    if n["name"] == name:
-                        n["role"] = "relay"
-                        n["landing"] = sync_res["landing"]
-                        n["landing_policy"] = sync_res["landing_policy"]
-                        n["health"] = "ok"
-                        n["exit_ip"] = sync_res["exit_ip"]
-                        n["exit_country"] = sync_res["exit_country"]
-                        n["health_detail"] = sync_res["health_detail"]
-                return ns
-
-            update_nodes(_apply_bind)
+            code, resp, mutator = RelayService.bind(nodes, name, target_host, remote_cfg_mod, logger)
+            if code != 200 or not mutator:
+                return self._json(code, resp)
+            update_nodes(mutator)
             try:
                 render()
             except Exception:
                 pass
-            logger.log("INFO", "RELAY", "建立中转加速专线并完成真实出网验真: 节点 [%s] ➔ 落地 [%s]" % (name, target_exit["name"]))
-            return self._json(200, {
-                "ok": True,
-                "message": "已成功建立中转加速专线并通过真实出网验证",
-                "verify": sync_res.get("verify"),
-            })
+            return self._json(code, resp)
 
         if path == "/relay/unbind":
             name = (body.get("name") or "").strip()
-            if not name:
-                return self._json(400, {"ok": False, "error": "缺少节点名称 (name)"})
             nodes = load_nodes()
-            relay_node = next((n for n in nodes if n.get("name") == name and n.get("type") != "hysteria2"), None)
-            if not relay_node:
-                return self._json(404, {"ok": False, "error": "未找到指定的服务器节点"})
-
-            sync_res = remote_cfg_mod.unbind_relay(relay_node)
-            if not sync_res.get("ok"):
-                logger.log("WARN", "RELAY", "解除中转失败 [%s]: %s" % (name, sync_res.get("error")))
-                return self._json(502, {
-                    "ok": False,
-                    "error": sync_res.get("error") or "远端解除中转失败",
-                    "rolled_back": sync_res.get("rolled_back", False),
-                })
-
-            def _apply_unbind(ns):
-                for n in ns:
-                    if n["name"] == name:
-                        n["role"] = "standalone"
-                        n.pop("landing", None)
-                        n.pop("landing_policy", None)
-                        n.pop("exit_ip", None)
-                        n.pop("exit_country", None)
-                        n["health"] = sync_res.get("health", "unknown")
-                        n["health_detail"] = sync_res.get("health_detail", "国内独立服务器（未绑定中转，不进订阅）")
-                return ns
-
-            update_nodes(_apply_unbind)
+            code, resp, mutator = RelayService.unbind(nodes, name, remote_cfg_mod, logger)
+            if code != 200 or not mutator:
+                return self._json(code, resp)
+            update_nodes(mutator)
             try:
                 render()
             except Exception:
                 pass
-            logger.log("INFO", "RELAY", "解除中转加速并已同步远端配置: 节点 [%s] 恢复为独立服务器" % name)
-            return self._json(200, {"ok": True, "message": "已解除中转关系，远端配置已还原为独立服务器"})
+            return self._json(code, resp)
 
         if path == "/hy2/toggle":
             host = (body.get("host") or "").strip()
             name = (body.get("name") or "").strip()
             enabled = bool(body.get("enabled"))
-            if not host and not name:
-                return self._json(400, {"ok": False, "error": "缺少 host 或 name"})
-            base_name = name[:-4] if name.endswith("-HY2") else name
             nodes = load_nodes()
-            vless_node = next(
-                (
-                    n for n in nodes
-                    if n.get("type") != "hysteria2"
-                    and (
-                        (host and (n.get("host") == host or n.get("ip") == host))
-                        or (base_name and n.get("name") == base_name)
-                    )
-                ),
-                None,
+            code, resp, mutator = Hy2Service.toggle(
+                nodes, host, name, enabled, remote_cfg_mod, open_firewall, logger
             )
-            if not vless_node:
-                return self._json(404, {"ok": False, "error": "未找到对应的海外出口主节点"})
-            target_host = vless_node.get("host")
-            existing_hy2 = next(
-                (
-                    n for n in nodes
-                    if n.get("type") == "hysteria2"
-                    and (n.get("host") == target_host or n.get("name") == vless_node.get("name", "") + "-HY2")
-                ),
-                None,
-            )
-
-            sync_res = remote_cfg_mod.toggle_hy2(
-                vless_node,
-                existing_hy2_node=existing_hy2,
-                enabled=enabled,
-                open_firewall_fn=open_firewall,
-            )
-            if not sync_res.get("ok"):
-                logger.log("WARN", "NODE", "切换 HY2 失败 [%s -> %s]: %s" %
-                           (vless_node.get("name"), "开启" if enabled else "关闭", sync_res.get("error")))
-                return self._json(502, {
-                    "ok": False,
-                    "error": sync_res.get("error") or "远端切换 HY2 失败",
-                    "rolled_back": sync_res.get("rolled_back", False),
-                    "verify": sync_res.get("verify"),
-                })
-
-            hy2_record = sync_res.get("hy2_node")
-
-            def _apply_hy2(ns):
-                out_list = []
-                placed_hy2 = False
-                for n in ns:
-                    is_same_host = n.get("host") == target_host
-                    is_hy2_item = n.get("type") == "hysteria2" and (
-                        is_same_host or n.get("name") == vless_node.get("name", "") + "-HY2"
-                    )
-                    if is_hy2_item:
-                        if enabled and hy2_record:
-                            out_list.append(hy2_record)
-                            placed_hy2 = True
-                        else:
-                            updated_hy2 = dict(n)
-                            updated_hy2["enabled"] = False
-                            out_list.append(updated_hy2)
-                            placed_hy2 = True
-                    elif n.get("name") == vless_node.get("name"):
-                        updated_vless = dict(n)
-                        updated_vless["hy2_enabled"] = enabled
-                        out_list.append(updated_vless)
-                    else:
-                        out_list.append(n)
-                if enabled and hy2_record and not placed_hy2:
-                    out_list.append(hy2_record)
-                return out_list
-
-            update_nodes(_apply_hy2)
+            if code != 200 or not mutator:
+                return self._json(code, resp)
+            update_nodes(mutator)
             try:
                 render()
             except Exception:
                 pass
-            state_str = "开启" if enabled else "关闭"
-            logger.log("INFO", "NODE", "切换 HY2 极速通道并完成远端同步: %s ➔ %s" %
-                       (vless_node.get("name") or target_host, state_str))
-            return self._json(200, {
-                "ok": True,
-                "enabled": enabled,
-                "message": f"HY2 极速通道已{state_str}并通过远端校验",
-                "verify": sync_res.get("verify"),
-            })
+            return self._json(code, resp)
 
         if path == "/ping":
             try:

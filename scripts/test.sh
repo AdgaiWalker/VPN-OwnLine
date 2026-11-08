@@ -44,7 +44,11 @@ for f in \
   server/nodekit/quota_api_tests.py \
   server/nodekit/remote_config_tests.py \
   server/nodekit/host_traffic_tests.py \
-  server/nodekit/ports_tests.py
+  server/nodekit/ports_tests.py \
+  server/nodekit/http_utils_tests.py \
+  server/nodekit/relay_service_tests.py \
+  server/nodekit/hy2_service_tests.py \
+  server/nodekit/node_service_tests.py
 do
   if out="$("$PYTHON_BIN" "$f" 2>&1)"; then
     n="$(printf '%s\n' "$out" | sed -n -e 's/^通过 \([0-9][0-9]*\) 项$/\1/p' -e 's/^Ran \([0-9][0-9]*\) test.*/\1/p' | tail -1)"

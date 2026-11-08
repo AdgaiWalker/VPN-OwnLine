@@ -3,24 +3,31 @@
 核心代码（admin.py / usage_refresh.py）只认这个接口，不认识任何一家云。
 新增一家云 = 在 providers/ 下加一个文件 + 在 __init__._MODULES 里注册一行。
 """
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional, Tuple
 
 
 class Provider:
-    name = "base"
+    """云厂商适配器抽象基类。"""
 
-    def available(self):
+    name: str = "base"
+
+    def available(self) -> bool:
         """配置齐全、依赖可用时返回 True。"""
         return False
 
-    def list_instances(self):
+    def list_instances(self) -> List[Dict[str, Any]]:
         """返回 [{"name","ip","id","region","regionId","expire","state"}]，没有就返回 []。"""
         return []
 
-    def traffic(self):
+    def traffic(self) -> Dict[str, Dict[str, Any]]:
         """返回 {ip: {"used","total","start","end","overflow","region"}}。"""
         return {}
 
-    def open_port(self, ip, port, proto="TCP", dry_run=False):
+    def open_port(
+        self, ip: str, port: int, proto: str = "TCP", dry_run: bool = False
+    ) -> Tuple[str, str]:
         """返回 (状态, 说明)。状态取值：opened / already / fail / skip / dry。
 
         proto 取值 TCP / UDP（默认 TCP）。
@@ -30,7 +37,9 @@ class Provider:
         """
         return ("skip", "")
 
-    def reset_password(self, ip, dry_run=False):
+    def reset_password(
+        self, ip: str, dry_run: bool = False
+    ) -> Tuple[str, str, Dict[str, Any]]:
         """返回 (状态, 说明, 附加数据)，附加数据里可带 {"password": 新密码}。
 
         dry_run=True 时只描述"会做什么"，绝不产生副作用。

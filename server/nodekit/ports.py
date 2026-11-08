@@ -99,3 +99,31 @@ def suggest_safe_ports(node_list: typing.List[dict]) -> typing.List[int]:
     used_ports = {int(n.get("port")) for n in node_list if n.get("port") and str(n.get("port")).isdigit()}
     candidates = [443, 8443, 20443, 4433, 2083, 2087, 8888]
     return [p for p in candidates if p not in used_ports]
+
+
+class PortCoordinator:
+    """端口协调器：深度封装冲突避让、探测与安全分配。"""
+
+    @classmethod
+    def allocate(
+        cls,
+        node: dict,
+        os_type: str = "linux",
+        has_web_server: bool = False,
+        occupied_ports: typing.Optional[typing.Set[int]] = None,
+    ) -> dict:
+        return resolve_node_ports(
+            node,
+            os_type=os_type,
+            has_web_server=has_web_server,
+            occupied_ports=occupied_ports,
+        )
+
+    @classmethod
+    def is_free(cls, port: int, proto: str = "tcp") -> bool:
+        return is_port_free_local(port, proto=proto)
+
+    @classmethod
+    def safe_candidates(cls, node_list: typing.List[dict]) -> typing.List[int]:
+        return suggest_safe_ports(node_list)
+

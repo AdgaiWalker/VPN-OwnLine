@@ -5,12 +5,12 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)]()
-[![Tests: 465 Passed](https://img.shields.io/badge/Tests-465%20Passed%20(100%25)-success.svg)]()
+[![Tests: 492 Passed](https://img.shields.io/badge/Tests-492%20Passed%20(100%25)-success.svg)]()
 [![Live Verify: Active](https://img.shields.io/badge/Live%20Verify-Active-success.svg)]()
 
 ---
 
-**Current patch validation:** 16 offline nodekit Python suites / 381 checks passed + 31 Python unittests + 27 Node.js frontend contract tests + 20 Shell syntax & compatibility checks (**465 checks passed 100%**). Live production server `walker-sv` is active and running (`sing-box`, `admin`, `caddy` active) with `Subscription-Userinfo` native headers, Apple HIG icon/typography refinement, bilingual English/Chinese UI, and AI smart routing verified over public HTTPS. A Mac zero-dependency launcher `deploy/setup-mac.sh` is provided to deploy and auto-launch the browser.
+**Current patch validation:** 20 offline nodekit Python suites / 397 checks passed + 42 Python unittests + 27 Node.js frontend contract tests + 26 Shell syntax & compatibility checks (**492 checks passed 100%**). Live production server `walker-sv` is active and running (`sing-box`, `admin`, `caddy` active) with `Subscription-Userinfo` native headers, Apple HIG icon/typography refinement, bilingual English/Chinese UI, and AI smart routing verified over public HTTPS. A Mac zero-dependency launcher `deploy/setup-mac.sh` is provided to deploy and auto-launch the browser.
 
 ## Get started
 
