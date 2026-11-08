@@ -412,25 +412,52 @@ input::placeholder, textarea::placeholder {
   margin-left: 2px;
 }
 .apple-hero-copy, .apple-hero-qr {
+  width: 44px;
   height: 44px;
-  padding: 0 14px;
-  border-radius: 6px;
-  font-size: 13.5px;
-  font-weight: 500;
+  padding: 0;
+  border-radius: 8px;
   background: var(--paper-card);
   color: var(--ink);
   border: 1px solid var(--line);
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  flex: none;
   cursor: pointer;
   transition: all .15s ease;
 }
 .apple-hero-copy:hover, .apple-hero-qr:hover {
   background: var(--paper-card-secondary);
   border-color: var(--ink-muted);
+  color: var(--navy);
+  transform: translateY(-1px);
 }
-.apple-hero-copy:active, .apple-hero-qr:active { transform: scale(0.985); }
+.apple-hero-copy:active, .apple-hero-qr:active { transform: scale(0.96); }
+
+.icon-btn-round {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s ease;
+  flex: none;
+}
+.icon-btn-round:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--ink-muted);
+  color: var(--navy);
+  transform: scale(1.05);
+}
+.icon-btn-round:active {
+  transform: scale(0.95);
+}
 
 /* Dialogs & Modal Sheets (Modern Web Guidance & OpenDesign) */
 dialog:modal {
@@ -1019,18 +1046,25 @@ footer.site-footer {
 .btn-ping {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 5px;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 50%;
   font-size: 12px;
-  font-weight: 500;
   color: var(--ink-muted);
   background: var(--paper-card);
   border: 1px solid var(--line);
   cursor: pointer;
   transition: all .15s ease;
+  flex: none;
 }
-.btn-ping:hover { background: var(--paper-card-secondary); color: var(--ink); }
+.btn-ping:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--ink-muted);
+  color: var(--navy);
+  transform: scale(1.05);
+}
 .btn-ping.refreshing svg {
   animation: spin 0.6s linear infinite;
 }
@@ -1080,6 +1114,7 @@ footer.site-footer {
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
@@ -1123,9 +1158,8 @@ footer.site-footer {
     </a>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="pill-preview" id="status-pill"><span id="status-dot"></span> <span id="status-text">Checking…</span></span>
-      <button class="btn tiny" id="btn-open-settings" type="button" onclick="window.openSettingsDialog()" style="display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:999px;font-size:12px;background:var(--paper-card);border:1px solid var(--line);cursor:pointer;color:var(--ink)" title="Settings / 设置">
-        <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span data-i18n="topbar_settings">Settings</span>
+      <button class="icon-btn-round" id="btn-open-settings" type="button" onclick="window.openSettingsDialog()" aria-label="Settings" title="Settings">
+        <svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       </button>
     </div>
   </header>
@@ -1156,8 +1190,8 @@ footer.site-footer {
         </div>
         <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
         <div style="margin-left:auto;display:flex;gap:8px">
-          <button class="btn btn-outline tiny" type="button" id="btn-enter-setup" style="font-weight:500;display:inline-flex;align-items:center;gap:4px">
-            <span data-i18n="btn_add_node">+ 添加节点</span>
+          <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点">
+            <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
           </button>
         </div>
       </div>
@@ -1193,17 +1227,14 @@ footer.site-footer {
       <div id="client-ready-box" style="display:none;margin-top:14px">
         <div class="apple-hero-bar">
           <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
-            <span class="apple-hero-icon"><svg class="ico" width="15" height="15"><use href="#i-zap"/></svg></span>
             <span class="apple-hero-title" data-i18n="connect_device">连接本机</span>
             <span id="client-device-badge" class="apple-device-pill">检测中...</span>
           </button>
-          <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="复制订阅链接">
-            <svg class="ico" width="14" height="14"><use href="#i-copy"/></svg>
-            <span data-i18n="copy_link">复制链接</span>
+          <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="复制链接" aria-label="复制链接">
+            <svg class="ico" width="16" height="16"><use href="#i-copy"/></svg>
           </button>
-          <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="扫码导入订阅">
-            <svg class="ico" width="14" height="14"><use href="#i-qr"/></svg>
-            <span data-i18n="scan_qr">扫码连接</span>
+          <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="扫码连接" aria-label="扫码连接">
+            <svg class="ico" width="16" height="16"><use href="#i-qr"/></svg>
           </button>
         </div>
         <div id="copy-note" class="small" role="status" style="display:none;margin-top:6px;color:var(--ok)"></div>
@@ -1240,7 +1271,7 @@ footer.site-footer {
                   <span class="assist-prompt" data-i18n="not_installed">未安装客户端？</span>
                   <div class="assist-btn-group">
                     <a class="btn tiny assist-action-btn" id="download-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="display:none">
-                      <svg class="ico" width="12" height="12"><use href="#i-smartphone"/></svg> App Store
+                      App Store
                     </a>
                     <button class="btn tiny assist-action-btn" type="button" onclick="window.ownlineToggleAppleId()" data-i18n="need_us_apple_id">
                       需要美区 Apple ID？
@@ -1359,9 +1390,8 @@ footer.site-footer {
       <details class="inner" id="nodes-section" open style="margin-top:20px">
         <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
           <span><span data-i18n="nodes_title">节点列表</span> <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span></span>
-          <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)">
-            <svg class="ico ping-icon" width="12" height="12"><use href="#i-refresh"/></svg>
-            <span data-i18n="btn_speedtest">测速</span>
+          <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
+            <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
           </button>
         </summary>
         <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
@@ -1396,7 +1426,9 @@ footer.site-footer {
         <div>
           <h2 id="setup-title" tabindex="-1" style="font-size:16px;margin:0;display:inline-block" data-i18n="setup_title">添加服务器</h2>
         </div>
-        <button class="btn tiny" type="button" id="btn-cancel-setup" style="font-weight:500" data-i18n="btn_back">← 返回</button>
+        <button class="icon-btn-round" type="button" id="btn-cancel-setup" aria-label="返回" title="返回">
+          <svg class="ico" width="14" height="14"><use href="#i-chevron-left"/></svg>
+        </button>
       </div>
 
       <!-- Segment Switching: Direct Connection vs Tencent Cloud -->
@@ -1479,7 +1511,6 @@ footer.site-footer {
         <div class="check-result-box" id="other-check-result" role="status" style="display:none"></div>
         <div id="node-install-confirm-box" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px">
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <svg class="ico" width="16" height="16" style="color:var(--apple-blue)"><use href="#i-zap"/></svg>
             <span data-i18n="install_ready_title">就绪，可开始安装</span>
           </div>
           <div class="field" style="margin-bottom:8px">
@@ -1495,8 +1526,7 @@ footer.site-footer {
             </select>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-            <button class="btn primary" id="btn-submit-addnode" type="button" style="font-weight:600;display:inline-flex;align-items:center;gap:6px">
-              <svg class="ico" width="14" height="14"><use href="#i-check"/></svg>
+            <button class="btn primary" id="btn-submit-addnode" type="button" style="font-weight:600">
               <span data-i18n="btn_start_install">开始安装节点</span>
             </button>
             <span class="small muted" id="addnode-submit-status" role="status"></span>
@@ -1513,7 +1543,6 @@ footer.site-footer {
   <details class="panel-card inner" id="section-logs" style="margin-top:24px">
     <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
       <span class="log-heading" style="font-size:16px;margin:0" data-i18n="logs_heading">运行与诊断日志</span>
-      <span class="small muted" data-i18n="logs_click_expand">点击展开</span>
     </summary>
     <div style="margin-top:14px">
       <div class="log-section-head" style="margin-top:0">
@@ -1914,6 +1943,43 @@ footer.site-footer {
     var optZh = document.getElementById('opt-lang-zh');
     if (optEn) optEn.checked = !zh;
     if (optZh) optZh.checked = zh;
+
+    var btnSettings = document.getElementById('btn-open-settings');
+    if (btnSettings) {
+      var sText = zh ? '系统设置' : 'Settings';
+      btnSettings.title = sText;
+      btnSettings.setAttribute('aria-label', sText);
+    }
+    var btnAddNode = document.getElementById('btn-enter-setup');
+    if (btnAddNode) {
+      var aText = zh ? '添加节点' : 'Add Node';
+      btnAddNode.title = aText;
+      btnAddNode.setAttribute('aria-label', aText);
+    }
+    var btnCopySub = document.getElementById('btn-copy-sub');
+    if (btnCopySub) {
+      var cText = zh ? '复制链接' : 'Copy Link';
+      btnCopySub.title = cText;
+      btnCopySub.setAttribute('aria-label', cText);
+    }
+    var btnHeroQr = document.getElementById('btn-hero-qr');
+    if (btnHeroQr) {
+      var qText = zh ? '扫码连接' : 'Scan QR';
+      btnHeroQr.title = qText;
+      btnHeroQr.setAttribute('aria-label', qText);
+    }
+    var btnPing = document.getElementById('btn-ping-action');
+    if (btnPing) {
+      var pText = zh ? '测速' : 'Speedtest';
+      btnPing.title = pText;
+      btnPing.setAttribute('aria-label', pText);
+    }
+    var btnCancelSetup = document.getElementById('btn-cancel-setup');
+    if (btnCancelSetup) {
+      var bText = zh ? '返回' : 'Back';
+      btnCancelSetup.title = bText;
+      btnCancelSetup.setAttribute('aria-label', bText);
+    }
 
     if (typeof detectClient === 'function') detectClient();
     if (typeof paintStatus === 'function') paintStatus();
@@ -3164,9 +3230,9 @@ footer.site-footer {
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
 
       if (hasHy2) {
-        protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? '⚡️ HY2 极速: 已开启' : '⚡️ HY2: Enabled') : (zh ? '⚡️ HY2 极速: 已关闭' : '⚡️ HY2: Disabled')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? '🛡️ Reality 稳定' : '🛡️ Reality Stable') + '</span>';
+        protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       } else if (!isDomestic && n.source !== "external") {
-        protoBadges = '<span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? '🛡️ Reality 稳定' : '🛡️ Reality Stable') + '</span>';
+        protoBadges = '<span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       }
 
       var relayPill = "";
@@ -3181,13 +3247,13 @@ footer.site-footer {
           return (x.host === targetHost || x.ip === targetHost) && x.type !== "hysteria2";
         });
         var targetText = (targetNode && targetNode.name) || targetHost;
-        displayName = (zh ? "🇨🇳 " + n.name + "专线 ➔ " : "🇨🇳 " + n.name + " Relay ➔ ") + targetText;
+        displayName = (zh ? n.name + "专线 ➔ " : n.name + " Relay ➔ ") + targetText;
         relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
           '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
           (zh ? ' · 落地出口: ' : ' · Egress: ') + esc(targetHost);
       } else if (isDomestic) {
-        displayName = "🇨🇳 " + n.name;
+        displayName = n.name;
         relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
           '<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>';
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');

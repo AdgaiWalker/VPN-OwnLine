@@ -12,3 +12,7 @@ __pycache__/
 .venv/
 packages/
 .installer-local/
+
+# CodeGraph 本地索引
+.codegraph/
+
