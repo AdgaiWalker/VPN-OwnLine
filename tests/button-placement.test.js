@@ -109,3 +109,27 @@ test('nodeMenu: concise action items without jargon, self-heal hidden when node 
   assert.equal(html.includes('ownlineRepairNode'), false, 'repair button must be removed');
   assert.equal(html.includes('ownlineRepairAllBad'), false, 'repair-all button must be removed');
 });
+
+test('apple hig: round icon buttons and credentials form autofill protection', () => {
+  // 1. #btn-enter-setup must be an icon button with svg and must not be overwritten by textContent in refreshState
+  assert(html.includes('id="btn-enter-setup"'), '#btn-enter-setup must exist');
+  assert(html.includes('class="icon-btn-round" type="button" id="btn-enter-setup"'), '#btn-enter-setup must have class icon-btn-round');
+  assert(html.includes('<svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>'), '#btn-enter-setup must contain plus svg icon');
+  assert.equal(html.includes('btn.textContent = zh ? "+ 添加节点" : "+ Add Node";'), false, 'refreshState must not wipe out plus icon with btn.textContent');
+
+  // 2. .icon-btn-round must defensively contain overflow and nowrap
+  assert.match(html, /\.icon-btn-round\s*\{[\s\S]*?overflow:\s*hidden;/);
+  assert.match(html, /\.icon-btn-round\s*\{[\s\S]*?white-space:\s*nowrap;/);
+
+  // 3. Settings dialog: username must have autocomplete="off" and current account must be displayed
+  assert(html.includes('id="settings-display-username"'), 'Current account display must exist');
+  assert.match(html, /<input[^>]*id="settings-username"[^>]*autocomplete="off"[^>]*>/, '#settings-username must have autocomplete="off" to prevent IP autofill');
+  assert.equal(html.includes('id="settings-username" type="text" autocomplete="username"'), false, '#settings-username must not declare autocomplete="username"');
+
+  // 4. change-password.html: username must also have autocomplete="off" and current account display
+  const cpPath = path.join(__dirname, '../web/change-password.html');
+  const cpHtml = fs.readFileSync(cpPath, 'utf8');
+  assert(cpHtml.includes('id="display-username"'), 'Current account display must exist in change-password.html');
+  assert.match(cpHtml, /<input[^>]*id="username"[^>]*autocomplete="off"[^>]*>/, '#username in change-password.html must have autocomplete="off"');
+});
+

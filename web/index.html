@@ -448,6 +448,8 @@ input::placeholder, textarea::placeholder {
   cursor: pointer;
   transition: all .15s ease;
   flex: none;
+  overflow: hidden;
+  white-space: nowrap;
 }
 .icon-btn-round:hover {
   background: var(--paper-card-secondary);
@@ -1619,14 +1621,19 @@ footer.site-footer {
         <h4 style="margin:0 0 4px;font-size:14px;font-weight:600" id="settings-lbl-cred-title" data-i18n="settings_cred_title">Web Login Credentials</h4>
         <p class="small muted" style="margin:0 0 14px;line-height:1.5" id="settings-lbl-cred-desc" data-i18n="settings_cred_desc">Change your administrator username and password for web portal access.</p>
 
+        <div style="margin-bottom:14px;padding:8px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:13px">
+          <span style="color:var(--ink-muted)" id="settings-lbl-curr-user" data-i18n="settings_curr_user">Current Account</span>
+          <strong id="settings-display-username" style="font-family:var(--mono);color:var(--ink);letter-spacing:0.02em">admin</strong>
+        </div>
+
         <div class="field">
           <label for="settings-curr-pass" id="settings-lbl-curr-pass" data-i18n="settings_curr_pass">Current Password</label>
           <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••">
         </div>
 
         <div class="field">
-          <label for="settings-username"><span id="settings-lbl-username" data-i18n="settings_username">New Username</span> <span class="muted small" id="settings-hint-username" data-i18n="settings_hint_username">(leave unchanged if keeping current)</span></label>
-          <input id="settings-username" type="text" autocomplete="username" placeholder="admin">
+          <label for="settings-username"><span id="settings-lbl-username" data-i18n="settings_username">New Username</span> <span class="muted small" id="settings-hint-username" data-i18n="settings_hint_username">(leave empty to keep current)</span></label>
+          <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" placeholder="Leave empty to keep current">
         </div>
 
         <div class="field">
@@ -1777,9 +1784,10 @@ footer.site-footer {
       settings_lang_lbl: "Interface Language",
       settings_cred_title: "Web Login Credentials",
       settings_cred_desc: "Change your administrator username and password for web portal access.",
+      settings_curr_user: "Current Account",
       settings_curr_pass: "Current Password",
       settings_username: "New Username",
-      settings_hint_username: "(leave unchanged if keeping current)",
+      settings_hint_username: "(leave empty to keep current)",
       settings_new_pass: "New Password",
       settings_hint_new_pass: "(at least 12 characters)",
       settings_confirm_pass: "Confirm New Password",
@@ -1896,9 +1904,10 @@ footer.site-footer {
       settings_lang_lbl: "界面语言",
       settings_cred_title: "Web 管理登录凭据",
       settings_cred_desc: "修改访问当前管理面板的用户名与登录密码。",
+      settings_curr_user: "当前账号",
       settings_curr_pass: "当前密码",
       settings_username: "新用户名",
-      settings_hint_username: "（如不修改用户名可保持原样）",
+      settings_hint_username: "（如不修改请留空）",
       settings_new_pass: "新密码",
       settings_hint_new_pass: "（至少 12 个字符）",
       settings_confirm_pass: "确认新密码",
@@ -1980,6 +1989,10 @@ footer.site-footer {
       btnCancelSetup.title = bText;
       btnCancelSetup.setAttribute('aria-label', bText);
     }
+    var inputUser = document.getElementById('settings-username');
+    if (inputUser) {
+      inputUser.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
+    }
 
     if (typeof detectClient === 'function') detectClient();
     if (typeof paintStatus === 'function') paintStatus();
@@ -1998,20 +2011,27 @@ footer.site-footer {
   function openSettingsDialog() {
     var dlg = document.getElementById('settings-dialog');
     if (!dlg) return;
+    var zh = isZh();
     var optEn = document.getElementById('opt-lang-en'), optZh = document.getElementById('opt-lang-zh');
-    if (optEn) optEn.checked = !isZh();
-    if (optZh) optZh.checked = isZh();
+    if (optEn) optEn.checked = !zh;
+    if (optZh) optZh.checked = zh;
     var cur = document.getElementById('settings-curr-pass'), p1 = document.getElementById('settings-new-pass'), p2 = document.getElementById('settings-confirm-pass');
     if (cur) cur.value = '';
     if (p1) p1.value = '';
     if (p2) p2.value = '';
+    var u = document.getElementById('settings-username');
+    if (u) {
+      u.value = '';
+      u.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
+    }
     var st = document.getElementById('settings-status');
     if (st) { st.textContent = ''; st.style.color = ''; }
 
     fetch('/api/user', { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(res) {
       if (res && res.username) {
-        var u = document.getElementById('settings-username');
-        if (u) { u.value = res.username; u.placeholder = res.username; }
+        STATE.currentUsername = res.username;
+        var disp = document.getElementById('settings-display-username');
+        if (disp) disp.textContent = res.username;
       }
     }).catch(function() {});
 
@@ -2037,12 +2057,29 @@ footer.site-footer {
     var user = userEl ? userEl.value.trim() : '';
     var p1 = newEl ? newEl.value : '';
     var p2 = confEl ? confEl.value : '';
+    var currentUsername = STATE.currentUsername || 'admin';
 
     if (!cur) {
       if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '请输入当前密码' : 'Please enter current password'; }
       return;
     }
-    if (p1 || p2) {
+
+    var isChangingUser = !!user && user !== currentUsername;
+    var isChangingPass = !!p1;
+
+    if (!isChangingUser && !isChangingPass) {
+      if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '未做任何修改（如需修改请提供新密码或新用户名）' : 'No changes detected. Please provide a new username or new password.'; }
+      return;
+    }
+
+    if (isChangingUser) {
+      if (!/^[A-Za-z0-9_.-]{1,64}$/.test(user)) {
+        if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '用户名仅支持字母、数字、点、减号或下划线（1-64位）' : 'Username only supports letters, numbers, dot, hyphen, underscore (1-64 chars)'; }
+        return;
+      }
+    }
+
+    if (isChangingPass) {
       if (p1 !== p2) {
         if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '两次输入的新密码不一致' : 'New passwords do not match'; }
         return;
@@ -2051,13 +2088,10 @@ footer.site-footer {
         if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '新密码长度至少需要 12 个字符' : 'New password must be at least 12 characters'; }
         return;
       }
-      if (p1 === cur && !user) {
+      if (p1 === cur && !isChangingUser) {
         if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '新密码不能与原密码相同' : 'New password cannot be identical to current password'; }
         return;
       }
-    } else if (!user) {
-      if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '请至少修改用户名或密码' : 'Please provide a new username or new password'; }
-      return;
     }
 
     if (btnEl) btnEl.disabled = true;
@@ -2065,8 +2099,8 @@ footer.site-footer {
 
     try {
       var payload = { current: cur };
-      if (user) payload.username = user;
-      if (p1) { payload.new = p1; payload.confirm = p2; }
+      if (isChangingUser) payload.username = user;
+      if (isChangingPass) { payload.new = p1; payload.confirm = p2; }
       var res = await fetch('/api/password/change', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -2082,6 +2116,15 @@ footer.site-footer {
         stEl.style.color = 'var(--green)';
         stEl.textContent = zh ? '凭据已修改，请使用新凭据重新登录' : 'Credentials updated. Please log in with your new credentials.';
       }
+      if (data.username) {
+        STATE.currentUsername = data.username;
+        var disp = document.getElementById('settings-display-username');
+        if (disp) disp.textContent = data.username;
+      }
+      if (curEl) curEl.value = '';
+      if (userEl) userEl.value = '';
+      if (newEl) newEl.value = '';
+      if (confEl) confEl.value = '';
       setTimeout(function() {
         window.location.reload();
       }, 1500);
@@ -2919,12 +2962,20 @@ footer.site-footer {
       if (nodes) {
         document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
         document.getElementById("serving-node-ip").textContent = nodes.length ? (zh ? nodes.length + " 个节点已加载" : nodes.length + " nodes loaded") : (zh ? "暂无节点连接" : "No nodes connected");
-        btn.textContent = zh ? "+ 添加节点" : "+ Add Node";
+        if (btn) {
+          var aText = zh ? "添加节点" : "Add Node";
+          btn.title = aText;
+          btn.setAttribute("aria-label", aText);
+        }
         var bManage = document.getElementById("btn-manage-servers");
         if (bManage) bManage.style.display = "none";
       } else {
         document.getElementById("serving-node-ip").textContent = zh ? "无法获取服务器状态" : "Unable to reach server";
-        btn.textContent = zh ? "+ 添加节点" : "+ Add Node";
+        if (btn) {
+          var aText2 = zh ? "添加节点" : "Add Node";
+          btn.title = aText2;
+          btn.setAttribute("aria-label", aText2);
+        }
         var bManage2 = document.getElementById("btn-manage-servers");
         if (bManage2) bManage2.style.display = "none";
       }
