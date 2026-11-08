@@ -1189,14 +1189,14 @@ footer.site-footer {
   text-align: center;
 }
 .qr-img-wrap {
-  width: 170px;
-  height: 170px;
-  margin: 14px auto;
-  padding: 8px;
+  width: 190px;
+  height: 190px;
+  margin: 14px auto 10px;
+  padding: 10px;
   background: #ffffff;
-  border-radius: 10px;
+  border-radius: 12px;
   border: 1px solid var(--line);
-  box-shadow: 0 2px 8px rgba(31, 29, 24, 0.06);
+  box-shadow: 0 4px 16px rgba(31, 29, 24, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1205,6 +1205,9 @@ footer.site-footer {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 </style>
 </head>
@@ -1467,6 +1470,12 @@ footer.site-footer {
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
           <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用系统相机或小火箭扫描添加。</p>
+          <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
+            <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
+              <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
+            </button>
+            <div id="qr-sub-url-text" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
+          </div>
         </div>
       </dialog>
 
@@ -4286,12 +4295,17 @@ footer.site-footer {
     var dlg = document.getElementById("qr-dialog");
     var qrImg = document.getElementById("qr-code-img");
     var sub = BASE_SUB_URL;
+    var urlText = document.getElementById("qr-sub-url-text");
+    if (urlText) {
+      urlText.textContent = sub || "";
+    }
     if (qrImg) {
+      var ts = Date.now();
       if (sub && location.protocol !== "file:") {
-        qrImg.src = "/qr?url=" + encodeURIComponent(sub);
-        qrImg.onerror = function () { qrImg.src = "qr-sub.png"; };
+        qrImg.src = "/api/qr?url=" + encodeURIComponent(sub) + "&t=" + ts;
+        qrImg.onerror = function () { qrImg.src = "qr-sub.png?t=" + ts; };
       } else {
-        qrImg.src = "qr-sub.png";
+        qrImg.src = "qr-sub.png?t=" + ts;
       }
     }
     if (dlg) {
@@ -4303,6 +4317,25 @@ footer.site-footer {
     }
   }
   window.ownlineOpenQrModal = openQrModal;
+
+  function copyQrSubUrl(btn) {
+    var sub = BASE_SUB_URL;
+    if (!sub) return;
+    function done() {
+      var lbl = document.getElementById("copy-qr-label");
+      if (lbl) {
+        var orig = lbl.textContent;
+        lbl.textContent = (typeof isZh === 'function' && !isZh()) ? "Copied! ✓" : "已复制订阅链接 ✓";
+        setTimeout(function () { lbl.textContent = orig; }, 1800);
+      }
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(sub).then(done).catch(done);
+    } else {
+      done();
+    }
+  }
+  window.ownlineCopyQrSubUrl = copyQrSubUrl;
 
   function autoFixOffer(host) {
     var resultBox = document.getElementById("other-check-result");

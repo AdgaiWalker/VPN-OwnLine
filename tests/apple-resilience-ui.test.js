@@ -119,3 +119,10 @@ test('apple hig: china-blocked node renders contextual recovery banner with acti
   assert(innerHTML.includes('ownlineBindDomesticRelayFor'), 'Binding domestic relay action must be available');
   assert(innerHTML.includes('ownlineRecheckNode'), 'Recheck node action must be available');
 });
+
+test('apple hig: qr dialog contains real image source, copy url button and url preview', () => {
+  assert(html.includes('id="btn-copy-qr-url"'), '#btn-copy-qr-url must exist');
+  assert(html.includes('id="qr-sub-url-text"'), '#qr-sub-url-text must exist');
+  assert(html.includes('window.ownlineCopyQrSubUrl'), 'ownlineCopyQrSubUrl must be wired');
+  assert(html.includes('/api/qr?url='), 'qr modal must query dynamic /api/qr endpoint');
+});

@@ -515,6 +515,40 @@ class H(BaseHTTPRequestHandler):
             self.wfile.write(content)
             return
 
+        if path == "/qr":
+            q = urllib.parse.parse_qs(qs)
+            raw_url = (q.get("url") or [None])[0]
+            if not raw_url:
+                settings = _load_json("settings.json", {})
+                _, _, raw_url = _build_sub_url(settings, self.headers.get("Host"))
+            try:
+                p = subprocess.run(["qrencode", "-o", "-", "-s", "8", "-m", "2", "-t", "PNG", raw_url],
+                                   capture_output=True, timeout=5)
+                if p.returncode == 0 and p.stdout:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "image/png")
+                    self.send_header("Content-Length", str(len(p.stdout)))
+                    self.send_header("Cache-Control", "private, no-cache")
+                    self.end_headers()
+                    self.wfile.write(p.stdout)
+                    return
+            except Exception:
+                pass
+            static_qr = os.path.join(WEB, "qr-sub.png")
+            if os.path.exists(static_qr):
+                try:
+                    data = open(static_qr, "rb").read()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "image/png")
+                    self.send_header("Content-Length", str(len(data)))
+                    self.send_header("Cache-Control", "private, no-cache")
+                    self.end_headers()
+                    self.wfile.write(data)
+                    return
+                except Exception:
+                    pass
+            return self._json(404, {"ok": False, "error": "QR code unavailable"})
+
         if path in ("/nodes", ""):
             return self._json(200, nodes_with_advice())
         if path == "/logs":
