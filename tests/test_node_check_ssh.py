@@ -3,6 +3,7 @@
 import json
 import socket
 import threading
+import time
 import unittest
 
 import paramiko
@@ -61,6 +62,9 @@ class LoopbackNodeCheckTests(unittest.TestCase):
                         "singbox_service": "inactive", "machine_id": "a" * 32}
                 chan.sendall(json.dumps(data).encode())
                 chan.send_exit_status(0)
+                wait_until = time.monotonic() + 2.0
+                while not chan.closed and transport.is_active() and time.monotonic() < wait_until:
+                    time.sleep(0.02)
                 chan.close()
             transport.close()
         except (OSError, EOFError, paramiko.SSHException):
