@@ -461,6 +461,179 @@ input::placeholder, textarea::placeholder {
   transform: scale(0.95);
 }
 
+/* User Pill Button (Top Nav) */
+.user-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 5px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.user-pill-btn:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--navy);
+  transform: translateY(-0.5px);
+}
+.user-avatar-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.user-pill-name {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Account Overview Card */
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.account-avatar-large {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.account-info-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-username-text {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.account-role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--green);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.account-auth-desc {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+/* Password Input & Eye Toggle */
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.password-input-wrap input {
+  width: 100%;
+  padding-right: 36px;
+}
+.pwd-eye-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color .15s ease;
+}
+.pwd-eye-btn:hover {
+  color: var(--ink);
+}
+
+/* Password Strength Meter */
+.pwd-strength-bar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.pwd-strength-seg {
+  flex: 1;
+  height: 100%;
+  background: var(--line);
+  border-radius: 2px;
+  transition: background-color .2s ease;
+}
+.account-collapse summary {
+  list-style: none;
+}
+.account-collapse summary::-webkit-details-marker {
+  display: none;
+}
+.account-collapse[open] .details-arrow {
+  transform: rotate(180deg);
+}
+
+/* Success Icon Circle */
+.success-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 2px solid rgba(16, 185, 129, 0.25);
+}
+
 /* Dialogs & Modal Sheets (Modern Web Guidance & OpenDesign) */
 dialog:modal {
   overscroll-behavior: contain;
@@ -1259,6 +1432,10 @@ footer.site-footer {
     </a>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="pill-preview" id="status-pill"><span id="status-dot"></span> <span id="status-text">Checking…</span></span>
+      <button class="user-pill-btn" id="btn-open-account" type="button" onclick="window.openAccountDialog()" aria-label="Account & Security" title="Account & Security">
+        <span class="user-avatar-badge" id="topbar-user-avatar">D</span>
+        <span class="user-pill-name" id="topbar-user-name">dora</span>
+      </button>
       <button class="icon-btn-round" id="btn-open-settings" type="button" onclick="window.openSettingsDialog()" aria-label="Settings" title="Settings">
         <svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
       </button>
@@ -1692,73 +1869,159 @@ footer.site-footer {
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Settings & Credentials</span></button>
-      <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openSettingsDialog){event.preventDefault();window.openSettingsDialog();}"><span data-i18n="footer_change_pass">Change Login Credentials</span></a>
+      <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
+      <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
   </footer>
 </div>
 
-<!-- Settings & Credentials Modal Dialog -->
-<dialog id="settings-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()" style="max-width:440px;width:calc(100% - 32px);border:1px solid var(--line);border-radius:12px;padding:0;background:var(--paper-card);color:var(--ink);box-shadow:0 12px 32px rgba(0,0,0,0.18)">
-  <div style="padding:16px 20px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
-    <h3 style="margin:0;font-size:16px;font-weight:600" id="settings-title" data-i18n="settings_title">Settings & Credentials</h3>
-    <button type="button" onclick="document.getElementById('settings-dialog').close()" aria-label="Close" style="border:0;background:transparent;cursor:pointer;font-size:18px;line-height:1;color:var(--ink-muted);padding:4px">✕</button>
-  </div>
-  <div style="padding:20px;max-height:80vh;overflow-y:auto">
-    <!-- Language Toggle Section -->
-    <div style="margin-bottom:20px">
-      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px" id="settings-lbl-lang" data-i18n="settings_lang_lbl">Interface Language</label>
+<!-- Preferences Modal Dialog -->
+<dialog id="settings-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(400px, calc(100vw - 32px))">
+    <div class="apple-sheet-header">
+      <h2 class="apple-sheet-title" id="settings-title" data-i18n="settings_title">Preferences</h2>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('settings-dialog').close()" aria-label="Close">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div style="margin-bottom:18px">
+      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:10px" id="settings-lbl-lang" data-i18n="settings_lang_lbl">Interface Language</label>
       <div style="display:flex;gap:10px">
-        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-en-wrap">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-en-wrap">
           <input type="radio" name="ui_lang" value="en" id="opt-lang-en" onchange="window.setLanguage('en')">
-          <span style="font-size:13px;font-weight:500">English (Default)</span>
+          <span style="font-size:13.5px;font-weight:500">English</span>
         </label>
-        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--line);border-radius:6px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-zh-wrap">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-zh-wrap">
           <input type="radio" name="ui_lang" value="zh" id="opt-lang-zh" onchange="window.setLanguage('zh')">
-          <span style="font-size:13px;font-weight:500">简体中文</span>
+          <span style="font-size:13.5px;font-weight:500">简体中文</span>
         </label>
       </div>
     </div>
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn tiny primary" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-done" data-i18n="settings_btn_done">Done</button>
+    </div>
+  </div>
+</dialog>
 
-    <!-- Login Credentials Section -->
-    <form id="settings-cred-form" onsubmit="window.ownlineSaveCredentials(event)">
-      <div style="border-top:1px solid var(--line);padding-top:16px;margin-bottom:12px">
-        <h4 style="margin:0 0 4px;font-size:14px;font-weight:600" id="settings-lbl-cred-title" data-i18n="settings_cred_title">Web Login Credentials</h4>
-        <p class="small muted" style="margin:0 0 14px;line-height:1.5" id="settings-lbl-cred-desc" data-i18n="settings_cred_desc">Change your administrator username and password for web portal access.</p>
+<!-- Account & Security Modal Dialog (macOS Sequoia Style) -->
+<dialog id="account-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
+    <div class="apple-sheet-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg class="ico" width="18" height="18" style="color:var(--navy)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <h2 class="apple-sheet-title" id="account-dialog-title" data-i18n="account_dialog_title">Account & Security</h2>
+      </div>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('account-dialog').close()" aria-label="Close">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
 
-        <div style="margin-bottom:14px;padding:8px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:6px;display:flex;justify-content:space-between;align-items:center;font-size:13px">
-          <span style="color:var(--ink-muted)" id="settings-lbl-curr-user" data-i18n="settings_curr_user">Current Account</span>
-          <strong id="settings-display-username" style="font-family:var(--mono);color:var(--ink);letter-spacing:0.02em">admin</strong>
+    <!-- Account Overview Card -->
+    <div class="account-card-header">
+      <div class="account-avatar-large" id="account-modal-avatar">D</div>
+      <div class="account-info-group">
+        <div class="account-name-row">
+          <strong class="account-username-text" id="settings-display-username">dora</strong>
+          <span class="account-role-badge" id="account-role-badge" data-i18n="account_role_admin">System Admin</span>
         </div>
+        <p class="account-auth-desc" id="account-auth-desc" data-i18n="account_auth_desc">Protected by Basic Auth & Rate Limiting</p>
+      </div>
+    </div>
 
-        <div class="field">
-          <label for="settings-curr-pass" id="settings-lbl-curr-pass" data-i18n="settings_curr_pass">Current Password</label>
-          <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••">
-        </div>
+    <!-- Credentials Edit Form -->
+    <form id="settings-cred-form" onsubmit="window.ownlineSaveCredentials(event)" autocomplete="off">
+      <input type="text" style="display:none" tabindex="-1" aria-hidden="true">
+      <input type="password" style="display:none" tabindex="-1" aria-hidden="true">
 
-        <div class="field">
-          <label for="settings-username"><span id="settings-lbl-username" data-i18n="settings_username">New Username</span> <span class="muted small" id="settings-hint-username" data-i18n="settings_hint_username">(leave empty to keep current)</span></label>
-          <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly')" placeholder="Leave empty to keep current">
-        </div>
-
-        <div class="field">
-          <label for="settings-new-pass"><span id="settings-lbl-new-pass" data-i18n="settings_new_pass">New Password</span> <span class="muted small" id="settings-hint-new-pass" data-i18n="settings_hint_new_pass">(at least 12 characters)</span></label>
-          <input id="settings-new-pass" type="password" autocomplete="new-password" minlength="12" placeholder="••••••••••••">
-        </div>
-
-        <div class="field">
-          <label for="settings-confirm-pass" id="settings-lbl-confirm-pass" data-i18n="settings_confirm_pass">Confirm New Password</label>
-          <input id="settings-confirm-pass" type="password" autocomplete="new-password" minlength="12" placeholder="••••••••••••">
-        </div>
-
-        <p id="settings-status" role="status" style="margin:12px 0 0;font-size:13px;min-height:1.4em;text-align:center"></p>
-
-        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
-          <button class="btn sub tiny" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-cancel" data-i18n="settings_btn_cancel">Cancel</button>
-          <button class="btn tiny primary" type="submit" id="settings-btn-save" data-i18n="settings_btn_save">Save Changes</button>
+      <div class="field" style="margin-top:12px">
+        <label for="settings-curr-pass" style="display:flex;justify-content:space-between">
+          <span id="account-lbl-curr-pass" data-i18n="account_curr_pass">Current Password</span>
+          <span class="small muted" id="account-hint-curr-pass" data-i18n="account_hint_curr_pass">(Identity Verification)</span>
+        </label>
+        <div class="password-input-wrap">
+          <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••" data-lpignore="true" data-1p-ignore="true">
+          <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-curr-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
         </div>
       </div>
+
+      <!-- Collapsible Change Username Section -->
+      <details class="account-collapse" id="account-user-details" style="margin:12px 0">
+        <summary style="font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;user-select:none">
+          <svg class="ico details-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          <span id="account-lbl-opt-user" data-i18n="account_opt_user">Change Login Username</span>
+          <span class="muted small" style="font-weight:normal" id="account-hint-opt-user" data-i18n="account_hint_opt_user">(leave empty to keep current)</span>
+        </summary>
+        <div class="field" style="margin-top:8px;padding-left:12px;border-left:2px solid var(--line-light)">
+          <label for="settings-username" id="account-lbl-new-user" data-i18n="account_new_user">New Username</label>
+          <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly')" placeholder="Leave empty to keep current">
+          <p class="small muted" style="margin:4px 0 0;font-size:11.5px" id="account-tip-username" data-i18n="account_tip_username">Supports 1-64 letters, numbers, _, ., or -</p>
+        </div>
+      </details>
+
+      <!-- New Password Field -->
+      <div class="field" style="margin-top:10px">
+        <label for="settings-new-pass" style="display:flex;justify-content:space-between">
+          <span id="account-lbl-new-pass" data-i18n="account_new_pass">New Password</span>
+          <span class="small muted" id="account-hint-new-pass" data-i18n="account_hint_new_pass">(at least 12 characters)</span>
+        </label>
+        <div class="password-input-wrap">
+          <input id="settings-new-pass" type="password" autocomplete="new-password" minlength="12" placeholder="Leave empty to keep current" data-lpignore="true" data-1p-ignore="true" oninput="window.updatePasswordStrength(this.value)">
+          <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-new-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+        <!-- Dynamic Password Strength Meter -->
+        <div id="pwd-strength-wrap" style="display:none;margin-top:6px">
+          <div class="pwd-strength-bar">
+            <div class="pwd-strength-seg" id="pwd-seg-1"></div>
+            <div class="pwd-strength-seg" id="pwd-seg-2"></div>
+            <div class="pwd-strength-seg" id="pwd-seg-3"></div>
+            <div class="pwd-strength-seg" id="pwd-seg-4"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+            <span class="small muted" id="pwd-strength-text" style="font-size:11.5px">Password Strength</span>
+            <span class="small muted" id="pwd-strength-hint" style="font-size:11.5px">Mix letters, numbers & symbols</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Password Field -->
+      <div class="field" style="margin-top:10px">
+        <label for="settings-confirm-pass" id="account-lbl-confirm-pass" data-i18n="account_confirm_pass">Confirm New Password</label>
+        <div class="password-input-wrap">
+          <input id="settings-confirm-pass" type="password" autocomplete="new-password" minlength="12" placeholder="Re-enter new password" data-lpignore="true" data-1p-ignore="true" oninput="window.checkPasswordMatch()">
+          <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-confirm-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+        <div id="pwd-match-text" class="small" style="display:none;margin-top:4px;font-size:11.5px"></div>
+      </div>
+
+      <p id="settings-status" role="status" style="margin:14px 0 0;font-size:13px;min-height:1.4em;text-align:center"></p>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+        <button class="btn sub tiny" type="button" onclick="document.getElementById('account-dialog').close()" id="settings-btn-cancel" data-i18n="account_btn_cancel">Cancel</button>
+        <button class="btn tiny primary" type="submit" id="settings-btn-save" data-i18n="account_btn_save">Save Changes</button>
+      </div>
     </form>
+
+    <!-- Post-Save Success Card -->
+    <div id="account-success-card" style="display:none;text-align:center;padding:20px 8px 10px">
+      <div class="success-icon-circle">
+        <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="account-success-title" data-i18n="account_success_title">Credentials Updated</h3>
+      <p class="muted small" style="margin:0 0 18px;line-height:1.5" id="account-success-desc">
+        新账号：<strong id="account-success-user" style="font-family:var(--mono);color:var(--ink)">dora</strong><br>
+        <span id="account-success-subdesc" data-i18n="account_success_subdesc">新凭据已生效，请重新登录。</span>
+      </p>
+      <button class="btn primary" type="button" onclick="window.location.reload()" id="account-btn-relogin" style="width:100%;padding:10px;font-size:14px;font-weight:600" data-i18n="account_btn_relogin">立即使用新凭据登录</button>
+    </div>
   </div>
 </dialog>
 
@@ -1883,10 +2146,29 @@ footer.site-footer {
       backup_confirm_lbl: "Confirm Passphrase",
       backup_cancel: "Cancel",
       backup_submit: "Continue",
-      footer_settings: "Settings & Credentials",
-      footer_change_pass: "Change Login Credentials",
-      settings_title: "Settings & Credentials",
+      footer_settings: "Preferences",
+      footer_account_security: "Account & Security",
+      footer_change_pass: "Account & Security",
+      settings_title: "Preferences",
       settings_lang_lbl: "Interface Language",
+      settings_btn_done: "Done",
+      account_dialog_title: "Account & Security",
+      account_role_admin: "System Admin",
+      account_auth_desc: "Protected by Basic Auth & Rate Limiting",
+      account_curr_pass: "Current Password",
+      account_hint_curr_pass: "(Identity Verification)",
+      account_opt_user: "Change Login Username",
+      account_hint_opt_user: "(leave empty to keep current)",
+      account_new_user: "New Username",
+      account_tip_username: "Supports 1-64 letters, numbers, _, ., or -",
+      account_new_pass: "New Password",
+      account_hint_new_pass: "(at least 12 characters)",
+      account_confirm_pass: "Confirm New Password",
+      account_btn_cancel: "Cancel",
+      account_btn_save: "Save Changes",
+      account_success_title: "Credentials Updated Successfully",
+      account_success_subdesc: "New credentials saved. Please re-authenticate.",
+      account_btn_relogin: "Log In With New Credentials",
       settings_cred_title: "Web Login Credentials",
       settings_cred_desc: "Change your administrator username and password for web portal access.",
       settings_curr_user: "Current Account",
@@ -2003,10 +2285,29 @@ footer.site-footer {
       backup_confirm_lbl: "确认备份口令",
       backup_cancel: "取消",
       backup_submit: "继续",
-      footer_settings: "系统设置",
-      footer_change_pass: "修改管理员密码",
-      settings_title: "系统设置与凭据",
+      footer_settings: "偏好设置",
+      footer_account_security: "账户与安全",
+      footer_change_pass: "账户与安全",
+      settings_title: "偏好设置",
       settings_lang_lbl: "界面语言",
+      settings_btn_done: "完成",
+      account_dialog_title: "账户与安全",
+      account_role_admin: "系统管理员",
+      account_auth_desc: "受 HTTP 基础凭据与防暴力破解策略保护",
+      account_curr_pass: "当前密码",
+      account_hint_curr_pass: "（验证身份）",
+      account_opt_user: "修改登录用户名",
+      account_hint_opt_user: "（如不修改请留空/保持当前）",
+      account_new_user: "新用户名",
+      account_tip_username: "支持 1-64 位英文字母、数字、下划线、点或横线",
+      account_new_pass: "新密码",
+      account_hint_new_pass: "（至少 12 个字符）",
+      account_confirm_pass: "确认新密码",
+      account_btn_cancel: "取消",
+      account_btn_save: "保存更改",
+      account_success_title: "管理凭据修改成功",
+      account_success_subdesc: "新凭据已安全生效，请使用新凭据重新登录。",
+      account_btn_relogin: "立即使用新凭据登录",
       settings_cred_title: "Web 管理登录凭据",
       settings_cred_desc: "修改访问当前管理面板的用户名与登录密码。",
       settings_curr_user: "当前账号",
@@ -2058,9 +2359,15 @@ footer.site-footer {
     if (optEn) optEn.checked = !zh;
     if (optZh) optZh.checked = zh;
 
+    var btnAccount = document.getElementById('btn-open-account');
+    if (btnAccount) {
+      var accText = zh ? '账户与安全' : 'Account & Security';
+      btnAccount.title = accText;
+      btnAccount.setAttribute('aria-label', accText);
+    }
     var btnSettings = document.getElementById('btn-open-settings');
     if (btnSettings) {
-      var sText = zh ? '系统设置' : 'Settings';
+      var sText = zh ? '偏好设置' : 'Preferences';
       btnSettings.title = sText;
       btnSettings.setAttribute('aria-label', sText);
     }
@@ -2096,7 +2403,8 @@ footer.site-footer {
     }
     var inputUser = document.getElementById('settings-username');
     if (inputUser) {
-      inputUser.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
+      var curr = STATE.currentUsername || '';
+      inputUser.placeholder = zh ? (curr ? ('保持当前用户名 (' + curr + ')') : '如不修改请留空') : (curr ? ('Keep current (' + curr + ')') : 'Leave empty to keep current');
     }
 
     if (typeof detectClient === 'function') detectClient();
@@ -2113,6 +2421,36 @@ footer.site-footer {
   }
   window.setLanguage = setLanguage;
 
+  function updateUserInfo(user) {
+    if (!user) return;
+    STATE.currentUsername = user;
+    var initial = (user.charAt(0) || 'U').toUpperCase();
+    var elTopName = document.getElementById('topbar-user-name');
+    var elTopAvatar = document.getElementById('topbar-user-avatar');
+    var elModalUser = document.getElementById('settings-display-username');
+    var elModalAvatar = document.getElementById('account-modal-avatar');
+    var elNewUser = document.getElementById('settings-username');
+    var zh = isZh();
+
+    if (elTopName) elTopName.textContent = user;
+    if (elTopAvatar) elTopAvatar.textContent = initial;
+    if (elModalUser) elModalUser.textContent = user;
+    if (elModalAvatar) elModalAvatar.textContent = initial;
+    if (elNewUser) elNewUser.placeholder = zh ? ('保持当前用户名 (' + user + ')') : ('Keep current (' + user + ')');
+  }
+
+  function fetchUserInfo() {
+    fetch('/api/user', { cache: 'no-store' })
+      .then(function(r) { return r.json(); })
+      .then(function(res) {
+        if (res && res.username) {
+          updateUserInfo(res.username);
+        }
+      })
+      .catch(function() {});
+  }
+  window.fetchUserInfo = fetchUserInfo;
+
   function openSettingsDialog() {
     var dlg = document.getElementById('settings-dialog');
     if (!dlg) return;
@@ -2120,29 +2458,6 @@ footer.site-footer {
     var optEn = document.getElementById('opt-lang-en'), optZh = document.getElementById('opt-lang-zh');
     if (optEn) optEn.checked = !zh;
     if (optZh) optZh.checked = zh;
-    var cur = document.getElementById('settings-curr-pass'), p1 = document.getElementById('settings-new-pass'), p2 = document.getElementById('settings-confirm-pass');
-    if (cur) cur.value = '';
-    if (p1) p1.value = '';
-    if (p2) p2.value = '';
-    var u = document.getElementById('settings-username');
-    if (u) {
-      u.value = '';
-      u.setAttribute('readonly', 'readonly');
-      u.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
-      setTimeout(function() { if (u && !u.matches(':focus')) u.value = ''; }, 60);
-      setTimeout(function() { if (u && !u.matches(':focus')) u.value = ''; }, 200);
-    }
-    var st = document.getElementById('settings-status');
-    if (st) { st.textContent = ''; st.style.color = ''; }
-
-    fetch('/api/user', { cache: 'no-store' }).then(function(r) { return r.json(); }).then(function(res) {
-      if (res && res.username) {
-        STATE.currentUsername = res.username;
-        var disp = document.getElementById('settings-display-username');
-        if (disp) disp.textContent = res.username;
-      }
-    }).catch(function() {});
-
     if (typeof dlg.showModal === 'function') {
       dlg.showModal();
     } else {
@@ -2150,6 +2465,133 @@ footer.site-footer {
     }
   }
   window.openSettingsDialog = openSettingsDialog;
+
+  function openAccountDialog() {
+    var dlg = document.getElementById('account-dialog');
+    if (!dlg) return;
+    var zh = isZh();
+    var cur = document.getElementById('settings-curr-pass'),
+        p1 = document.getElementById('settings-new-pass'),
+        p2 = document.getElementById('settings-confirm-pass'),
+        u = document.getElementById('settings-username');
+    if (cur) cur.value = '';
+    if (p1) p1.value = '';
+    if (p2) p2.value = '';
+    if (u) {
+      u.value = '';
+      u.setAttribute('readonly', 'readonly');
+      u.placeholder = zh ? (STATE.currentUsername ? ('保持当前用户名 (' + STATE.currentUsername + ')') : '如不修改请留空') : (STATE.currentUsername ? ('Keep current (' + STATE.currentUsername + ')') : 'Leave empty to keep current');
+    }
+    var st = document.getElementById('settings-status');
+    if (st) { st.textContent = ''; st.style.color = ''; }
+    var strWrap = document.getElementById('pwd-strength-wrap');
+    if (strWrap) strWrap.style.display = 'none';
+    var matchText = document.getElementById('pwd-match-text');
+    if (matchText) matchText.style.display = 'none';
+    var formCard = document.getElementById('settings-cred-form');
+    if (formCard) formCard.style.display = '';
+    var succCard = document.getElementById('account-success-card');
+    if (succCard) succCard.style.display = 'none';
+    var btnEl = document.getElementById('settings-btn-save');
+    if (btnEl) btnEl.disabled = false;
+    var userDetails = document.getElementById('account-user-details');
+    if (userDetails) userDetails.removeAttribute('open');
+
+    // Anti-autofill clearing pass
+    setTimeout(function() {
+      if (cur && !cur.matches(':focus')) cur.value = '';
+      if (p1 && !p1.matches(':focus')) p1.value = '';
+      if (p2 && !p2.matches(':focus')) p2.value = '';
+      if (u && !u.matches(':focus')) u.value = '';
+    }, 60);
+
+    fetchUserInfo();
+
+    if (typeof dlg.showModal === 'function') {
+      dlg.showModal();
+    } else {
+      dlg.setAttribute('open', '');
+    }
+  }
+  window.openAccountDialog = openAccountDialog;
+
+  function togglePasswordVisibility(id, btn) {
+    var input = document.getElementById(id);
+    if (!input) return;
+    var isPass = input.type === 'password';
+    input.type = isPass ? 'text' : 'password';
+    if (btn) {
+      var openIco = btn.querySelector('.eye-open');
+      var closedIco = btn.querySelector('.eye-closed');
+      if (openIco) openIco.style.display = isPass ? 'none' : '';
+      if (closedIco) closedIco.style.display = isPass ? '' : 'none';
+    }
+  }
+  window.togglePasswordVisibility = togglePasswordVisibility;
+
+  function updatePasswordStrength(val) {
+    var wrap = document.getElementById('pwd-strength-wrap');
+    if (!wrap) return;
+    if (!val) {
+      wrap.style.display = 'none';
+      return;
+    }
+    wrap.style.display = '';
+    var zh = isZh();
+    var score = 0;
+    if (val.length >= 12) score++;
+    if (val.length >= 16) score++;
+    if (/[a-z]/.test(val) && /[A-Z]/.test(val)) score++;
+    if (/\d/.test(val)) score++;
+    if (/[^a-zA-Z0-9]/.test(val)) score++;
+
+    var level = 1;
+    if (score <= 1) level = 1;
+    else if (score === 2) level = 2;
+    else if (score <= 4) level = 3;
+    else level = 4;
+
+    var colors = ['var(--red)', 'var(--amber)', '#3b82f6', 'var(--green)'];
+    var labelsZh = ['密码强度：弱', '密码强度：一般', '密码强度：良好', '密码强度：极佳'];
+    var labelsEn = ['Strength: Weak', 'Strength: Fair', 'Strength: Good', 'Strength: Strong'];
+    var color = colors[level - 1];
+
+    for (var i = 1; i <= 4; i++) {
+      var seg = document.getElementById('pwd-seg-' + i);
+      if (seg) seg.style.backgroundColor = (i <= level) ? color : 'var(--line)';
+    }
+
+    var txt = document.getElementById('pwd-strength-text');
+    if (txt) {
+      txt.textContent = zh ? labelsZh[level - 1] : labelsEn[level - 1];
+      txt.style.color = color;
+    }
+    window.checkPasswordMatch();
+  }
+  window.updatePasswordStrength = updatePasswordStrength;
+
+  function checkPasswordMatch() {
+    var p1El = document.getElementById('settings-new-pass');
+    var p2El = document.getElementById('settings-confirm-pass');
+    var matchEl = document.getElementById('pwd-match-text');
+    if (!p1El || !p2El || !matchEl) return;
+    var p1 = p1El.value;
+    var p2 = p2El.value;
+    if (!p2) {
+      matchEl.style.display = 'none';
+      return;
+    }
+    matchEl.style.display = '';
+    var zh = isZh();
+    if (p1 === p2) {
+      matchEl.style.color = 'var(--green)';
+      matchEl.textContent = zh ? '✓ 两次输入的密码一致' : '✓ Passwords match';
+    } else {
+      matchEl.style.color = 'var(--red)';
+      matchEl.textContent = zh ? '✕ 两次输入的密码不一致' : '✕ Passwords do not match';
+    }
+  }
+  window.checkPasswordMatch = checkPasswordMatch;
 
   window.ownlineSaveCredentials = async function(event) {
     if (event && event.preventDefault) event.preventDefault();
@@ -2220,22 +2662,21 @@ footer.site-footer {
         if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = data.error || (zh ? '保存失败，请检查输入' : 'Failed to update credentials'); }
         return;
       }
-      if (stEl) {
-        stEl.style.color = 'var(--green)';
-        stEl.textContent = zh ? '凭据已修改，请使用新凭据重新登录' : 'Credentials updated. Please log in with your new credentials.';
-      }
-      if (data.username) {
-        STATE.currentUsername = data.username;
-        var disp = document.getElementById('settings-display-username');
-        if (disp) disp.textContent = data.username;
-      }
-      if (curEl) curEl.value = '';
-      if (userEl) userEl.value = '';
-      if (newEl) newEl.value = '';
-      if (confEl) confEl.value = '';
+
+      var updatedUser = data.username || (isChangingUser ? user : currentUsername);
+      updateUserInfo(updatedUser);
+
+      // Show Apple-style post-save transition card
+      var formCard = document.getElementById('settings-cred-form');
+      var succCard = document.getElementById('account-success-card');
+      var succUser = document.getElementById('account-success-user');
+      if (succUser) succUser.textContent = updatedUser;
+      if (formCard) formCard.style.display = 'none';
+      if (succCard) succCard.style.display = '';
+
       setTimeout(function() {
         window.location.reload();
-      }, 1500);
+      }, 2200);
     } catch (err) {
       if (stEl) { stEl.style.color = 'var(--red)'; stEl.textContent = zh ? '网络错误或无法确认结果，请尝试使用新凭据登录' : 'Error updating credentials. Please try logging in with new credentials.'; }
     } finally {
@@ -4865,6 +5306,7 @@ footer.site-footer {
   // 11. Initialization & refresh
   function init() {
     applyLanguage();
+    fetchUserInfo();
     setupInputHighlights();
     initSceneRouter();
     initCloudParallelSwitch();

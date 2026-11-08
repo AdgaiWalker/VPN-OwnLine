@@ -420,9 +420,9 @@ class H(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', '0')
                 self.end_headers()
             return
-        if path == '/api/password/state':
+        if path in ('/api/password/state', '/password/state'):
             return self._json(200, {'ok': True, 'required': INITIAL_PASSWORD_MARKER.exists()})
-        if path == '/api/user':
+        if path in ('/api/user', '/user'):
             user = ''
             auth = self.headers.get('Authorization', '')
             if auth.startswith('Basic '):
@@ -436,7 +436,13 @@ class H(BaseHTTPRequestHandler):
                 try:
                     _, user, _ = password_mod.inspect_credentials(password_mod.CADDYFILE.read_text(encoding='utf-8'))
                 except Exception:
-                    pass
+                    try:
+                        raw = password_mod.CADDYFILE.read_text(encoding='utf-8')
+                        m = re.search(r'basic_auth\s*\{[^}]*?([A-Za-z0-9_.-]{1,64})\s+\$2[aby]?\$', raw, re.DOTALL)
+                        if m:
+                            user = m.group(1)
+                    except Exception:
+                        pass
             return self._json(200, {'ok': True, 'username': user or 'admin'})
         if INITIAL_PASSWORD_MARKER.exists() and not path.startswith('/s/'):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
@@ -728,7 +734,9 @@ class H(BaseHTTPRequestHandler):
         if not self._origin_ok():
             return self._json(403, {"ok": False, "error": "跨站请求被拒绝"})
         path = self.path.rstrip("/")
-        if INITIAL_PASSWORD_MARKER.exists() and path not in ('/api/password/change', '/api/credentials/change'):
+        if INITIAL_PASSWORD_MARKER.exists() and path not in (
+            '/api/password/change', '/password/change', '/api/credentials/change', '/credentials/change'
+        ):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
@@ -741,7 +749,7 @@ class H(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             return self._json(400, {"ok": False, "error": "请求体必须是对象"})
 
-        if path in ('/api/password/change', '/api/credentials/change'):
+        if path in ('/api/password/change', '/password/change', '/api/credentials/change', '/credentials/change'):
             old = body.get('current')
             new = body.get('new')
             confirm = body.get('confirm')
