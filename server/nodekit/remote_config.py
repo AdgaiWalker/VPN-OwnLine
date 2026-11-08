@@ -59,21 +59,25 @@ def run_target(node, script, runner=None, timeout=25):
     port = int(node.get("ssh_port") or 22)
     if is_win:
         win_ps = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n{script}"
+        win_bytes = win_ps.encode("utf-8")
         cmd = verify_mod.ssh_cmd(user, node["host"], timeout=min(timeout, 15), port=port) + [
-            'powershell -NoProfile -Command "$raw = [Console]::In.ReadToEnd(); Invoke-Expression $raw"'
+            'powershell -NoProfile -Command "$input | Out-String | Invoke-Expression"'
         ]
         try:
-            res = runner(cmd, input=win_ps, capture_output=True, timeout=timeout)
-            if hasattr(res, "stdout") and isinstance(res.stdout, bytes):
-                res.stdout = res.stdout.decode("utf-8", errors="replace")
-            if hasattr(res, "stderr") and isinstance(res.stderr, bytes):
-                res.stderr = res.stderr.decode("utf-8", errors="replace")
-            if hasattr(res, "stderr") and res.stderr:
-                filtered = [ln for ln in res.stderr.splitlines() if not ln.startswith("**") and "openssh.com" not in ln]
-                res.stderr = "\n".join(filtered).strip()
-            return res
+            res = runner(cmd, input=win_bytes, capture_output=True, timeout=timeout)
         except TypeError:
-            return runner(cmd, capture_output=True, text=True, timeout=timeout)
+            try:
+                res = runner(cmd, input=win_ps, capture_output=True, timeout=timeout)
+            except Exception:
+                res = runner(cmd, capture_output=True, timeout=timeout)
+        if hasattr(res, "stdout") and isinstance(res.stdout, bytes):
+            res.stdout = res.stdout.decode("utf-8", errors="replace")
+        if hasattr(res, "stderr") and isinstance(res.stderr, bytes):
+            res.stderr = res.stderr.decode("utf-8", errors="replace")
+        if hasattr(res, "stderr") and res.stderr:
+            filtered = [ln for ln in res.stderr.splitlines() if not ln.startswith("**") and "openssh.com" not in ln]
+            res.stderr = "\n".join(filtered).strip()
+        return res
     else:
         b64 = base64.b64encode(script.encode("utf-8")).decode("ascii")
         shell_exec = "bash" if user == "root" else "sudo -n bash"
