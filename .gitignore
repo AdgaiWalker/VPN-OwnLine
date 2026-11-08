@@ -16,3 +16,6 @@ packages/
 # CodeGraph 本地索引
 .codegraph/
 
+# Antigravity/Editor 内部软链接
+.agents
+
