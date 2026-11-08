@@ -42,29 +42,42 @@ class LoopbackNodeCheckTests(unittest.TestCase):
         self.addCleanup(self.listener.close)
         self.port = self.listener.getsockname()[1]
         self.servers = []
+        self.lock = threading.Lock()
         self.thread = threading.Thread(target=self.serve, daemon=True)
         self.thread.start()
 
+    def handle_client(self, conn):
+        try:
+            transport = paramiko.Transport(conn)
+            transport.add_server_key(self.key)
+            server = FakeServer()
+            with self.lock:
+                self.servers.append(server)
+            transport.start_server(server=server)
+            chan = transport.accept(10)
+            if chan and server.exec_event.wait(10):
+                data = {"os": "ubuntu", "version": "22.04", "architecture": "x86_64",
+                        "root": True, "systemd": True, "existing_singbox": False,
+                        "singbox_service": "inactive", "machine_id": "a" * 32}
+                chan.sendall(json.dumps(data).encode())
+                chan.send_exit_status(0)
+                chan.close()
+            transport.close()
+        except (OSError, EOFError, paramiko.SSHException):
+            pass
+
     def serve(self):
+        threads = []
         for _ in range(3):
             try:
                 conn, _ = self.listener.accept()
-                transport = paramiko.Transport(conn)
-                transport.add_server_key(self.key)
-                server = FakeServer()
-                self.servers.append(server)
-                transport.start_server(server=server)
-                chan = transport.accept(10)
-                if chan and server.exec_event.wait(10):
-                    data = {"os": "ubuntu", "version": "22.04", "architecture": "x86_64",
-                            "root": True, "systemd": True, "existing_singbox": False,
-                            "singbox_service": "inactive", "machine_id": "a" * 32}
-                    chan.sendall(json.dumps(data).encode())
-                    chan.send_exit_status(0)
-                    chan.close()
-                transport.close()
-            except (OSError, EOFError, paramiko.SSHException):
-                continue
+                t = threading.Thread(target=self.handle_client, args=(conn,), daemon=True)
+                t.start()
+                threads.append(t)
+            except (OSError, socket.timeout):
+                break
+        for t in threads:
+            t.join(10)
 
     def test_unconfirmed_and_changed_host_never_receive_password(self):
         body = {"host": "127.0.0.1", "ssh_port": self.port, "username": "root", "password": "fixture-password"}
@@ -76,7 +89,9 @@ class LoopbackNodeCheckTests(unittest.TestCase):
         self.assertEqual(mismatch.exception.code, "HOST_KEY_CHANGED")
         result = check({**body, "fingerprint": fingerprint(self.key)}, allowed_targets=("127.0.0.1",))
         self.thread.join(10)
-        self.assertEqual([server.auth_calls for server in self.servers], [0, 0, 1])
+        with self.lock:
+            calls = [server.auth_calls for server in self.servers]
+        self.assertEqual(calls, [0, 0, 1])
         self.assertEqual(result["os"], "ubuntu")
         self.assertTrue(result["ready_for_install"])
 
