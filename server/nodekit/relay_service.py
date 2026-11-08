@@ -241,3 +241,111 @@ class RelayService:
             },
             _apply_unbind,
         )
+
+    @staticmethod
+    def evaluate_failover(
+        nodes: List[Dict[str, Any]],
+        status_dict: Dict[str, Any],
+        remote_cfg_mod: Any,
+        logger: Any,
+        now_ts: Optional[float] = None,
+    ) -> List[Dict[str, Any]]:
+        """专线主备双落地自愈判定器 (Autonomous Relay Transit Failover).
+
+        基于 Honest Probe 探测状态与配置的主备落地拓扑，自动执行：
+        1. 主落地受阻 (cn_ok=False 或探测失联) ➔ 零宕机原子热切换至备用落地 (Standby Landing)；
+        2. 主落地恢复健康且度过冷却期 ➔ 自动回切至主落地 (Primary Landing) 复原拓扑。
+        """
+        import time
+        current_time = now_ts if now_ts is not None else time.time()
+        updated_nodes = [dict(n) for n in nodes]
+
+        for idx, node in enumerate(nodes):
+            if node.get("role") != "relay":
+                continue
+
+            primary_target = node.get("landing_primary")
+            standby_target = node.get("landing_standby")
+
+            if not (primary_target and standby_target):
+                if node.get("landing") and node.get("fallback_landing"):
+                    primary_target = primary_target or (node.get("landing") or {}).get("host")
+                    standby_target = standby_target or (node.get("fallback_landing") or {}).get("host")
+
+            if not (primary_target and standby_target):
+                continue
+
+            p_node = next(
+                (n for n in updated_nodes if n.get("host") == primary_target or n.get("name") == primary_target),
+                None,
+            )
+            s_node = next(
+                (n for n in updated_nodes if n.get("host") == standby_target or n.get("name") == standby_target),
+                None,
+            )
+            if not (p_node and s_node):
+                continue
+
+            active_host = (
+                node.get("landing_active")
+                or ((node.get("landing") or {}).get("host"))
+                or p_node.get("host")
+            )
+
+            p_st = status_dict.get(p_node.get("name")) or status_dict.get(p_node.get("host")) or {}
+            s_st = status_dict.get(s_node.get("name")) or status_dict.get(s_node.get("host")) or {}
+
+            # Case 1: 当前运行在主落地
+            if active_host in (p_node.get("host"), p_node.get("name")):
+                p_failed = (p_st.get("cn_ok") is False) or (p_st.get("ok") is False)
+                s_healthy = (s_st.get("cn_ok") is not False) and (s_st.get("ok") is not False)
+                if p_failed and s_healthy:
+                    target_host = s_node.get("host")
+                    code, resp, mutator = RelayService.switch(
+                        updated_nodes, node.get("name"), target_host, remote_cfg_mod, logger
+                    )
+                    if code == 200 and mutator:
+                        updated_nodes = mutator(updated_nodes)
+                        for n in updated_nodes:
+                            if n.get("name") == node.get("name"):
+                                n["landing_primary"] = primary_target
+                                n["landing_standby"] = standby_target
+                                n["landing_active"] = target_host
+                                n["last_failover_ts"] = current_time
+                                n["failover_reason"] = "主落地直连受阻 (cn_ok=False)，自愈引擎已自动原子热切换至备用落地"
+                        logger.log(
+                            "WARN",
+                            "FAILOVER",
+                            "专线中转 [%s] 自动切换至备用落地 [%s]"
+                            % (node.get("name"), s_node.get("name") or target_host),
+                        )
+
+            # Case 2: 当前运行在备用落地，检测主落地是否自愈恢复
+            elif active_host in (s_node.get("host"), s_node.get("name")):
+                p_recovered = (p_st.get("cn_ok") is True) and (p_st.get("ok") is True)
+                policy = node.get("failover_policy") or {}
+                cooldown = policy.get("cooldown_seconds", 300)
+                last_ts = node.get("last_failover_ts", 0)
+
+                if p_recovered and (current_time - last_ts >= cooldown):
+                    target_host = p_node.get("host")
+                    code, resp, mutator = RelayService.switch(
+                        updated_nodes, node.get("name"), target_host, remote_cfg_mod, logger
+                    )
+                    if code == 200 and mutator:
+                        updated_nodes = mutator(updated_nodes)
+                        for n in updated_nodes:
+                            if n.get("name") == node.get("name"):
+                                n["landing_primary"] = primary_target
+                                n["landing_standby"] = standby_target
+                                n["landing_active"] = target_host
+                                n["last_failover_ts"] = current_time
+                                n.pop("failover_reason", None)
+                        logger.log(
+                            "INFO",
+                            "FAILOVER",
+                            "专线中转 [%s] 主落地健康探测已恢复并度过冷却期，自愈引擎已自动切回主落地 [%s]"
+                            % (node.get("name"), p_node.get("name") or target_host),
+                        )
+
+        return updated_nodes

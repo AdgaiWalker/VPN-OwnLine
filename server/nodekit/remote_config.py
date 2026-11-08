@@ -16,6 +16,7 @@ import secrets
 import shlex
 import subprocess
 
+from . import provenance as prov_mod
 from . import templates
 from . import verify as verify_mod
 
@@ -150,12 +151,22 @@ def read_live_config(node, runner=None, cfg_path=CFG_PATH):
     return True, "", cfg
 
 
-def _build_apply_script(cfg_json_text, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None):
+def _build_apply_script(cfg_json_text, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None, prov_json_text=None):
     b64_cfg = base64.b64encode(cfg_json_text.encode("utf-8")).decode("ascii")
     q_cfg = shlex.quote(cfg_path)
     q_bak = shlex.quote(cfg_path + ".ownline.bak")
     q_stg = shlex.quote(cfg_path + ".ownline.staged")
     q_bin = shlex.quote(bin_path)
+
+    prov_prep = ""
+    if prov_json_text:
+        b64_prov = base64.b64encode(prov_json_text.encode("utf-8")).decode("ascii")
+        prov_path = "/etc/sing-box/.evergreen-provenance.json"
+        prov_prep = f"""
+mkdir -p /etc/sing-box
+echo {shlex.quote(b64_prov)} | base64 -d > {prov_path}
+chmod 600 {prov_path}
+"""
 
     hy2_prep = ""
     if ensure_hy2_cert:
@@ -200,6 +211,7 @@ if ! {q_bin} check -c {q_stg}; then
   exit 14
 fi
 mv -f {q_stg} {q_cfg}
+{prov_prep}
 if [ ! -f /var/lib/ownline/quota-paused ]; then
   if ! (systemctl restart sing-box && systemctl is-active --quiet sing-box); then
     cp -pf {q_bak} {q_cfg} || true
@@ -217,7 +229,7 @@ fi
     )
 
 
-def apply_config(node, new_cfg, runner=None, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None):
+def apply_config(node, new_cfg, runner=None, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None, master_secret=None):
     """校验并原子下发新配置至目标节点并重启 sing-box。"""
     ok, reason = check_controllable(node)
     if not ok:
@@ -226,7 +238,12 @@ def apply_config(node, new_cfg, runner=None, cfg_path=CFG_PATH, bin_path=BIN_PAT
     if errs:
         return False, "配置模板校验未通过：" + "；".join(errs)
     cfg_text = json.dumps(new_cfg, ensure_ascii=False, indent=2) + "\n"
-    script = _build_apply_script(cfg_text, cfg_path=cfg_path, bin_path=bin_path, ensure_hy2_cert=ensure_hy2_cert)
+    prov_text = None
+    if master_secret:
+        node_id = (node or {}).get("name") or (node or {}).get("host") or "unknown_node"
+        manifest = prov_mod.sign_provenance(node_id, prov_mod.compute_config_sha256(cfg_text), master_secret)
+        prov_text = json.dumps(manifest, indent=2, ensure_ascii=False)
+    script = _build_apply_script(cfg_text, cfg_path=cfg_path, bin_path=bin_path, ensure_hy2_cert=ensure_hy2_cert, prov_json_text=prov_text)
     try:
         res = run_target(node, script, runner=runner, timeout=30)
     except Exception as exc:

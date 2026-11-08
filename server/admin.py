@@ -1028,9 +1028,11 @@ class H(BaseHTTPRequestHandler):
                     return self._json(404, {"ok": False, "error": "没找到这个节点"})
                 targets = [target]
 
+            settings = _load_json("settings.json", {})
+            master_secret = settings.get("master_secret") or settings.get("sub_token") or "ownline_default_secret"
             results = []
             for t in targets:
-                r = repair_mod.repair_node(t)
+                r = repair_mod.repair_node(t, master_secret=master_secret)
                 results.append(r)
                 if r.get("requires_manual"):
                     logger.log("WARN", "REPAIR", "节点 [%s] 需要人工检查；未执行远程操作" % t.get("name"))
@@ -1038,12 +1040,11 @@ class H(BaseHTTPRequestHandler):
                 def _apply(ns):
                     for n in ns:
                         if n.get("name") == t.get("name"):
-                            n["health"] = t.get("health")
-                            if t.get("exit_ip"):
-                                n["exit_ip"] = t["exit_ip"]
-                                n["exit_country"] = t.get("exit_country", "")
-                            if t.get("health_detail"):
-                                n["health_detail"] = t["health_detail"]
+                            n["health"] = r.get("after") or "ok"
+                            if r.get("exit_ip"):
+                                n["exit_ip"] = r["exit_ip"]
+                            if r.get("detail"):
+                                n["health_detail"] = r["detail"]
                     return ns
                 update_nodes(_apply)
                 lvl = "INFO" if r.get("ok") else "WARN"

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""未经独占验证的服务不得执行自愈；测试无需连接真实服务器。"""
+"""未经独占验证的服务不得执行自愈；验证独占存证后方可执行安全闭环自愈。"""
+import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from nodekit import repair  # noqa: E402
+from nodekit import provenance, repair  # noqa: E402
 
 
 def test_manual_checks_preserve_node():
@@ -45,11 +46,91 @@ def test_execute_remote_local():
     print("  OK 远程执行工具的本机寻址保持不变")
 
 
+def test_provenance_verified_self_heal_success():
+    secret = "test_master_secret_123"
+    node = {"name": "香港节点", "host": "192.0.2.10", "port": 443, "health": "bad"}
+    cfg_sha = provenance.compute_config_sha256('{"inbounds":[]}')
+    manifest = provenance.sign_provenance("香港节点", cfg_sha, secret)
+
+    class DummyRes:
+        def __init__(self, code, out):
+            self.returncode = code
+            self.stdout = out
+            self.stderr = ""
+
+    captured_cmds = []
+
+    def fake_exec(n, cmd, **kwargs):
+        captured_cmds.append(cmd)
+        if ".evergreen-provenance.json" in cmd:
+            return DummyRes(0, json.dumps(manifest))
+        if "ss -lptn" in cmd:
+            return DummyRes(0, 'LISTEN 0 128 *:443 *:* users:(("sing-box",pid=1234,fd=3))')
+        if "BIN check" in cmd or "SYNTAX" in cmd:
+            return DummyRes(0, "SYNTAX_OK")
+        if "systemctl restart sing-box" in cmd:
+            return DummyRes(0, "active")
+        return DummyRes(0, "")
+
+    def fake_verifier(n):
+        return {"health": "ok", "ok": True, "exit_ip": "192.0.2.10", "detail": "探测正常"}
+
+    res = repair.repair_node(
+        node,
+        execute_remote_fn=fake_exec,
+        verifier=fake_verifier,
+        sleep_fn=lambda s: None,
+        master_secret=secret,
+    )
+    assert res["ok"] is True
+    assert res["after"] == "ok"
+    assert "自愈成功" in res["detail"]
+    assert any("systemctl restart sing-box" in c for c in captured_cmds)
+    print("  OK 持有合法存证且端口正常的节点安全自愈成功并重载")
+
+
+def test_provenance_port_conflict_safety_abort():
+    secret = "test_master_secret_123"
+    node = {"name": "东京节点", "host": "192.0.2.20", "port": 443, "health": "bad"}
+    cfg_sha = provenance.compute_config_sha256('{"inbounds":[]}')
+    manifest = provenance.sign_provenance("东京节点", cfg_sha, secret)
+
+    class DummyRes:
+        def __init__(self, code, out):
+            self.returncode = code
+            self.stdout = out
+
+    restarted = []
+
+    def fake_exec(n, cmd, **kwargs):
+        if ".evergreen-provenance.json" in cmd:
+            return DummyRes(0, json.dumps(manifest))
+        if "ss -lptn" in cmd:
+            # 端口被第三方 nginx 占用
+            return DummyRes(0, 'LISTEN 0 128 *:443 *:* users:(("nginx",pid=888,fd=4))')
+        if "restart" in cmd:
+            restarted.append(cmd)
+        return DummyRes(0, "")
+
+    res = repair.repair_node(
+        node,
+        execute_remote_fn=fake_exec,
+        master_secret=secret,
+    )
+    assert res["ok"] is False
+    assert res["requires_manual"] is True
+    assert "被非 sing-box 进程占用" in res["detail"]
+    assert len(restarted) == 0  # 绝对未执行任何重启操作
+    print("  OK 目标端口被其他进程占用时安全终止自愈，未误杀外部服务")
+
+
 def run_all():
     test_manual_checks_preserve_node()
     test_external_no_execution()
     test_execute_remote_local()
-    print("通过 3 项")
+    test_provenance_verified_self_heal_success()
+    test_provenance_port_conflict_safety_abort()
+    print("通过 5 项")
 
 
 if __name__ == "__main__":
