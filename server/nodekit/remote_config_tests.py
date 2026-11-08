@@ -73,6 +73,7 @@ def _make_sandbox(tmp_dir, initial_cfg):
                 script = base64.b64decode(b64).decode("utf-8")
             else:
                 script = remote_part
+            script = script.replace("/run/ownline-service.lock", str(root / "ownline-service.lock"))
             return subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=15)
         return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=15)
 

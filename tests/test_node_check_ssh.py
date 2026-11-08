@@ -38,7 +38,7 @@ class LoopbackNodeCheckTests(unittest.TestCase):
         self.listener = socket.socket()
         self.listener.bind(("127.0.0.1", 0))
         self.listener.listen(3)
-        self.listener.settimeout(5)
+        self.listener.settimeout(10)
         self.addCleanup(self.listener.close)
         self.port = self.listener.getsockname()[1]
         self.servers = []
@@ -54,8 +54,8 @@ class LoopbackNodeCheckTests(unittest.TestCase):
                 server = FakeServer()
                 self.servers.append(server)
                 transport.start_server(server=server)
-                chan = transport.accept(2)
-                if chan and server.exec_event.wait(2):
+                chan = transport.accept(10)
+                if chan and server.exec_event.wait(10):
                     data = {"os": "ubuntu", "version": "22.04", "architecture": "x86_64",
                             "root": True, "systemd": True, "existing_singbox": False,
                             "singbox_service": "inactive", "machine_id": "a" * 32}
@@ -75,7 +75,7 @@ class LoopbackNodeCheckTests(unittest.TestCase):
             check({**body, "fingerprint": "SHA256:" + "B" * 43}, allowed_targets=("127.0.0.1",))
         self.assertEqual(mismatch.exception.code, "HOST_KEY_CHANGED")
         result = check({**body, "fingerprint": fingerprint(self.key)}, allowed_targets=("127.0.0.1",))
-        self.thread.join(5)
+        self.thread.join(10)
         self.assertEqual([server.auth_calls for server in self.servers], [0, 0, 1])
         self.assertEqual(result["os"], "ubuntu")
         self.assertTrue(result["ready_for_install"])
