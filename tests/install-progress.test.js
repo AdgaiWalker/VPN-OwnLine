@@ -35,3 +35,27 @@ test('completed task does not claim a connection without verification',async()=>
   assert.match(e['install-task-message'].textContent,/尚未确认连通/);
   assert.equal(e['install-task-dismiss'].disabled,false);
 });
+
+test('completed task with delivery displays self-bootstrapping credentials and title', async () => {
+  const {e} = await run({
+    ok: true,
+    json: async () => ({
+      ok: true,
+      state: 'done',
+      health: 'ok',
+      delivery: {
+        dashboard_url: 'https://1.2.3.4:8443/',
+        username: 'admin',
+        temp_password: 'pass-1234567890',
+        deep_links: {
+          shadowrocket: 'shadowrocket://add/sub://abc',
+          clash: 'clash://install-config?url=def'
+        }
+      }
+    })
+  });
+  assert.match(e['install-task-title'].textContent, /私人专属资产/);
+  assert.match(e['install-task-message'].textContent, /1\.2\.3\.4:8443/);
+  assert.equal(e['install-task-dismiss'].disabled, false);
+});
+

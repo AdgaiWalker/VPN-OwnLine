@@ -132,6 +132,7 @@ def _gen_node():
         "hy2_password": os.urandom(12).hex(),
         "obfs_password": os.urandom(8).hex(),
         "hy2_sni": "www.bing.com",
+        "initial_password": secrets.token_urlsafe(16),
     }
 
 
@@ -237,6 +238,20 @@ def run_job(jid, cfg_path):
                     except Exception as e:
                         if n.get("name") == j["node"].get("name"):
                             j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
+            if j.get("node"):
+                host = j["node"]["host"]
+                token = j["node"].get("sub_token") or get_sub_token()
+                direct_sub_url = f"https://{host}:8443/s/{token}"
+                temp_pass = j.get("temp_password") or j["node"].get("initial_password") or j["node"].get("hy2_password") or j["node"].get("password") or "admin"
+                deep_links = links_mod.build_deep_links(direct_sub_url, name=j["node"].get("name", "OwnLine"))
+                j["delivery"] = {
+                    "dashboard_url": f"https://{host}:8443/",
+                    "username": "admin",
+                    "temp_password": temp_pass,
+                    "sub_token": token,
+                    "direct_sub_url": direct_sub_url,
+                    "deep_links": deep_links,
+                }
             j["state"] = "done"
     except Exception as e:
         j["state"] = "error"
@@ -550,9 +565,9 @@ class H(BaseHTTPRequestHandler):
                     pass
             return self._json(404, {"ok": False, "error": "QR code unavailable"})
 
-        if path in ("/nodes", ""):
+        if path in ("/nodes", "/api/nodes", ""):
             return self._json(200, nodes_with_advice())
-        if path == "/logs":
+        if path in ("/logs", "/api/logs"):
             q = urllib.parse.parse_qs(qs)
             try:
                 limit = int((q.get("limit") or ["100"])[0])
@@ -564,7 +579,7 @@ class H(BaseHTTPRequestHandler):
                 "ok": True,
                 "logs": logger.read_logs(limit=limit, level_filter=lvl, src_filter=src)
             })
-        if path == "/syslogs":
+        if path in ("/syslogs", "/api/syslogs"):
             q = urllib.parse.parse_qs(qs)
             service = (q.get("service") or ["sing-box"])[0]
             try:
@@ -573,7 +588,7 @@ class H(BaseHTTPRequestHandler):
                 lines = 50
             res = logger.get_syslog(service, lines=lines)
             return self._json(200 if res.get("ok") else 400, res)
-        if path == "/ping":
+        if path in ("/ping", "/api/ping"):
             try:
                 import probe as probe_mod
                 nodes = load_nodes()
@@ -593,10 +608,10 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
-        if path == "/probe/vantage":
+        if path in ("/probe/vantage", "/api/probe/vantage"):
             settings = _load_json("settings.json", {})
             return self._json(200, {"ok": True, "vantage": settings.get("probe_vantage")})
-        if path == "/settings":
+        if path in ("/settings", "/api/settings"):
             settings = _load_json("settings.json", {})
             domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
             return self._json(200, {
@@ -610,7 +625,7 @@ class H(BaseHTTPRequestHandler):
                 "backup_restore_supported": True,
                 "node_check_supported": node_check_bridge.available(),
             })
-        if path == "/relay/status":
+        if path in ("/relay/status", "/api/relay/status"):
             nodes = load_nodes()
             status = _load_json("status.json", {})
             relay_node = next((n for n in nodes if n.get("role") == "relay"), None)
@@ -655,7 +670,7 @@ class H(BaseHTTPRequestHandler):
                 "active_target": active_target,
                 "auto_failover": bool(primary_cfg and fallback_cfg),
             })
-        if path == "/quota/guard":
+        if path in ("/quota/guard", "/api/quota/guard"):
             usage = _load_json("usage.json", {})
             eval_res = quota_mod.evaluate_all(usage)
             stopped = quota_mod.stopped_hosts()
@@ -686,7 +701,7 @@ class H(BaseHTTPRequestHandler):
                 "usage_fresh": quota_mod.usage_is_fresh(usage),
                 "guards": guards,
             })
-        if path == "/node/job":
+        if path in ("/node/job", "/api/node/job"):
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
             if not re.fullmatch(r"[a-f0-9]{12}", jid):
@@ -696,10 +711,17 @@ class H(BaseHTTPRequestHandler):
                 return self._json(404, {"ok": False, "error": "任务状态未知"})
             # Do not return raw logs or node credentials in the progress view.
             verification = job.get("verify") or {}
-            return self._json(200, {"ok": True, "state": job.get("state", "unknown"),
-                                    "step": job.get("step", 0),
-                                    "health": verification.get("health", "unknown")})
-        if path == "/job":
+            res = {
+                "ok": True,
+                "state": job.get("state", "unknown"),
+                "step": job.get("step", 0),
+                "stepname": job.get("stepname", ""),
+                "health": verification.get("health", "unknown"),
+            }
+            if job.get("delivery"):
+                res["delivery"] = job["delivery"]
+            return self._json(200, res)
+        if path in ("/job", "/api/job"):
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
             j = JOBS.get(jid)
@@ -717,6 +739,8 @@ class H(BaseHTTPRequestHandler):
                 out["hint"] = j["hint"]
             if j.get("verify"):
                 out["verify"] = j["verify"]
+            if j.get("delivery"):
+                out["delivery"] = j["delivery"]
             return self._json(200, out)
         self._json(404, {"ok": False, "error": "not found"})
 
@@ -800,7 +824,7 @@ class H(BaseHTTPRequestHandler):
             finally:
                 _PASSWORD_LOCK.release()
 
-        if path == "/node/check":
+        if path in ("/node/check", "/api/node/check"):
             # Credentials stay in the request/worker memory and never enter a job file.
             if self.headers.get_content_type() != "application/json":
                 return self._json(415, {"ok": False, "code": "INVALID_TYPE", "message": "请使用安全的管理页面。"})
@@ -810,7 +834,7 @@ class H(BaseHTTPRequestHandler):
             status = 409 if result.get("code") == "HOST_KEY_CONFIRMATION" else 503 if result.get("code") == "UNAVAILABLE" else 400
             return self._json(status, result)
 
-        if path == "/tencent/instances":
+        if path in ("/tencent/instances", "/api/tencent/instances"):
             try:
                 return self._json(200, tencent_discovery_mod.discover(body.get("secret_id"), body.get("secret_key")))
             except tencent_discovery_mod.Problem as e:
@@ -881,7 +905,7 @@ class H(BaseHTTPRequestHandler):
             logger.log("WARN", "ADMIN", f"恢复备份成功：还原了 {len(valid_nodes)} 个节点")
             return self._json(200, {"ok": True, "restored_count": len(valid_nodes), "message": f"已恢复 {len(valid_nodes)} 个节点配置，请检查服务器实际状态"})
 
-        if path == "/removenode":
+        if path in ("/removenode", "/api/removenode"):
             name = (body.get("name") or "").strip()
             cleanup_confirmed = body.get("cleanup_confirmed") is True
             try:
@@ -893,7 +917,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path == "/editnode":
+        if path in ("/editnode", "/api/editnode"):
             name = (body.get("name") or "").strip()
             try:
                 resp = node_manager.edit_node(name, body)
@@ -905,7 +929,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path == "/relay/switch":
+        if path in ("/relay/switch", "/api/relay/switch"):
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
             try:
@@ -917,7 +941,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path == "/relay/bind":
+        if path in ("/relay/bind", "/api/relay/bind"):
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
             fallback_host = (body.get("fallback") or "").strip() or None
@@ -930,7 +954,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path == "/relay/unbind":
+        if path in ("/relay/unbind", "/api/relay/unbind"):
             name = (body.get("name") or "").strip()
             try:
                 resp = node_manager.unbind_relay(name)
@@ -941,7 +965,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path == "/hy2/toggle":
+        if path in ("/hy2/toggle", "/api/hy2/toggle"):
             host = (body.get("host") or "").strip()
             name = (body.get("name") or "").strip()
             enabled = bool(body.get("enabled"))
@@ -1078,7 +1102,7 @@ class H(BaseHTTPRequestHandler):
             all_ok = all(x.get("ok") for x in results)
             return self._json(200, {"ok": True, "all_ok": all_ok, "results": results})
 
-        if path == "/addnode":
+        if path in ("/addnode", "/api/addnode"):
             ip = (body.get("ip") or "").strip()
             user = (body.get("user") or "root").strip() or "root"
             auth_type = (body.get("auth_type") or "password").strip()
@@ -1088,6 +1112,7 @@ class H(BaseHTTPRequestHandler):
             role = (body.get("role") or "auto").strip()
             landing = body.get("landing") or None
             dry_run = bool(body.get("dry_run"))
+            self_bootstrap = bool(body.get("self_bootstrap", True))
             if not _valid_host(ip):
                 return self._json(400, {"ok": False, "error": "地址格式不对（IP 或域名）"})
             if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_-]{0,31}", user):
@@ -1143,9 +1168,9 @@ class H(BaseHTTPRequestHandler):
             cfg_path = _write_job(jid, {
                 "ip": ip, "user": user, "auth_type": auth_type, "name": name,
                 "port": port, "ssh_port": ssh_port, "role": role, "node": node, "landing": landing,
-                "dry_run": dry_run,
+                "dry_run": dry_run, "self_bootstrap": self_bootstrap,
             }, secret=(key_text if auth_type == "key" else pwd))
-            JOBS[jid] = {"state": "queued", "step": 0, "stepname": "", "log": []}
+            JOBS[jid] = {"state": "queued", "step": 0, "stepname": "", "log": [], "temp_password": node.get("initial_password")}
             t = threading.Thread(target=run_job, args=(jid, cfg_path), daemon=True)
             t.start()
             return self._json(200, {"ok": True, "job": jid})

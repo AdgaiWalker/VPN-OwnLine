@@ -104,6 +104,12 @@ try:
 except links.LinkError as e:
     ok("报错含协议限制", "socks5" in str(e) or "http" in str(e))
 
+# ---------- links: build_deep_links ----------
+d_links = links.build_deep_links("https://43.153.56.137:8443/s/testtoken", name="香港节点-01")
+ok("生成 Shadowrocket Deep Link", d_links["shadowrocket"].startswith("shadowrocket://add/sub://") and "title=%E9%A6%99%E6%B8%AF%E8%8A%82%E7%82%B9-01" in d_links["shadowrocket"])
+ok("生成 Clash Deep Link", d_links["clash"].startswith("clash://install-config?url=") and "%2Fclash" in d_links["clash"])
+ok("空订阅地址保护", links.build_deep_links("") == {"shadowrocket": "", "clash": ""})
+
 # ---------- templates ----------
 cfg = templates.exit_config(443, "11111111-1111-4111-8111-111111111111", "www.apple.com", "PRIVKEY", "abcd1234")
 ok("exit 无 vless outbound", all(o["type"] != "vless" for o in cfg["outbounds"]))

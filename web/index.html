@@ -3111,8 +3111,21 @@ footer.site-footer {
           title.textContent = "正在安装节点"; message.textContent = labels[step] + "。离开此页面不会中断后台任务。";
           timer = setTimeout(update, 5000);
         } else if (job.state === "done") {
-          title.textContent = "安装任务已结束";
-          message.textContent = job.health === "ok" ? "节点已通过连通性校验，可在主面板导入订阅。" : "节点尚未确认连通，请检查服务器防火墙与运行状态。";
+          title.textContent = job.delivery ? "安装就绪 · 私人专属资产已就绪" : "安装任务已结束";
+          var baseMsg = job.health === "ok" ? "节点已通过连通性校验，可在主面板导入订阅。" : "节点尚未确认连通，请检查服务器防火墙与运行状态。";
+          if (job.delivery && job.delivery.dashboard_url) {
+            var d = job.delivery;
+            message.textContent = baseMsg + " (专属后台: " + d.dashboard_url + ")";
+            var srLink = (d.deep_links && d.deep_links.shadowrocket) ? '<a href="' + d.deep_links.shadowrocket + '" class="btn primary" style="font-size:12px;padding:4px 10px;text-decoration:none;">一键导入小火箭</a>' : '';
+            var clashLink = (d.deep_links && d.deep_links.clash) ? '<a href="' + d.deep_links.clash + '" class="btn primary" style="font-size:12px;padding:4px 10px;text-decoration:none;">一键导入 Clash</a>' : '';
+            message.innerHTML = baseMsg + '<div style="margin-top:10px;padding:10px;background:rgba(0,0,0,0.05);border-radius:6px;font-size:13px;line-height:1.6;">' +
+              '<div><strong>专属后台：</strong><a href="' + d.dashboard_url + '" target="_blank" rel="noopener">' + d.dashboard_url + '</a></div>' +
+              '<div><strong>初始账号：</strong><code>' + (d.username || 'admin') + '</code> ｜ <strong>初始密码：</strong><code>' + (d.temp_password || '已预设') + '</code></div>' +
+              ((srLink || clashLink) ? ('<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' + srLink + clashLink + '</div>') : '') +
+              '</div>';
+          } else {
+            message.textContent = baseMsg;
+          }
           dismiss.disabled = false;
           if (typeof refreshState === "function") refreshState();
         } else if (job.state === "error") {

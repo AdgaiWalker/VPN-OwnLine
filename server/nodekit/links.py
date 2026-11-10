@@ -106,3 +106,25 @@ def parse_isp_proxy(url):
         res["password"] = urllib.parse.unquote(u.password)
     return res
 
+
+def build_deep_links(sub_url: str, name: str = "OwnLine") -> dict:
+    """生成 iOS Shadowrocket 与 Clash 的一键唤醒 URL Scheme。
+    契约遵循 05-interface-contracts.md 第 4.2 节。
+    """
+    if not sub_url:
+        return {"shadowrocket": "", "clash": ""}
+    import base64
+    b64_url = base64.b64encode(sub_url.encode("utf-8")).decode("ascii")
+    sr_link = f"shadowrocket://add/sub://{b64_url}?title={urllib.parse.quote(name)}"
+
+    clash_target_url = sub_url.rstrip("/")
+    if not clash_target_url.endswith("/clash"):
+        clash_target_url += "/clash"
+    clash_link = f"clash://install-config?url={urllib.parse.quote(clash_target_url, safe='')}&name={urllib.parse.quote(name)}"
+
+    return {
+        "shadowrocket": sr_link,
+        "clash": clash_link,
+    }
+
+
