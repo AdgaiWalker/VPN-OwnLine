@@ -7,6 +7,7 @@
 - Answer user questions first before executing edits or commands.
 - State whether you agree or disagree with user feedback before explaining changes.
 - Explain non-trivial designs as: problem, concrete trace, then solution.
+- **Value-First Decision**: Always explain user and business value in plain, non-technical terms before proposing actions or asking for decisions. Do not dump raw protocol terms without stating what problem it solves and what the user actually gets.
 
 ## Code Quality & Architecture
 
