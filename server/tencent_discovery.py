@@ -95,15 +95,25 @@ def discover(secret_id, secret_key):
                                 break
                         except ValueError:
                             continue
+                    cpu = instance.get("CPU")
+                    mem = instance.get("Memory")
+                    bw = (instance.get("InternetAccessible") or {}).get("InternetMaxBandwidthOut", 0)
+                    bundle_str = f"{cpu}核{mem}G" + (f"-{bw}Mbps" if bw else "") if (cpu and mem) else str(instance.get("BundleId") or "")
+                    state_str = str(instance.get("InstanceState") or "未知")[:64]
                     found.append(
                         {
                             "id": str(instance.get("InstanceId") or "")[:128],
                             "name": str(instance.get("InstanceName") or "未命名")[:128],
-                            "state": str(instance.get("InstanceState") or "未知")[:64],
+                            "state": state_str,
+                            "status": state_str,
                             "os": str(instance.get("OsName") or "系统未知")[:128],
                             "ip": address,
+                            "public_ip": address,
                             "region": label,
+                            "region_name": label,
                             "region_id": region,
+                            "bundle": bundle_str,
+                            "firewall_ready": True,
                         }
                     )
                 if len(instances) < 50:
@@ -119,5 +129,10 @@ def discover(secret_id, secret_key):
         results = list(pool.map(region_instances, regions))
     servers = [server for group, _ in results for server in group]
     failed = [region for _, region in results if region]
-    return {"instances": servers, "incomplete_regions": failed}
+    return {
+        "ok": True,
+        "regions_scanned": len(regions),
+        "instances": servers,
+        "incomplete_regions": failed,
+    }
 

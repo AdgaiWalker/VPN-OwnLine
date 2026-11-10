@@ -5124,9 +5124,13 @@ footer.site-footer {
     sec.style.display = "block";
     box.innerHTML = STATE.tcServers.map(function (s, i) {
       var isSel = (STATE.tcPickedIndex === i);
+      var badge = s.bundle ? (" · " + esc(s.bundle)) : "";
+      var isRunning = (s.state === "RUNNING" || s.status === "RUNNING");
+      var statusBadge = isRunning ? " · <span style='color:var(--ok)'>运行中</span>" : (" · <span style='color:var(--warn)'>" + esc(s.state || s.status || "未知") + "</span>");
+      var regName = s.region_name || s.region || "未知地域";
       return "<button class='srvrow" + (isSel ? " sel" : "") + "' data-i='" + i + "' type='button'>" +
-        "<span><b>" + esc(s.name || s.ip) + "</b>" +
-        "<small>" + esc(s.ip || "无公网 IP") + " · " + esc(s.region || "未知地域") + " · " + esc(s.os || "未知系统") + "</small></span>" +
+        "<span><b>" + esc(s.name || s.ip || s.public_ip) + "</b>" +
+        "<small>" + esc(s.ip || s.public_ip || "无公网 IP") + " · " + esc(regName) + badge + statusBadge + "</small></span>" +
         "<i class='chk'></i></button>";
     }).join("");
 
@@ -5172,6 +5176,12 @@ footer.site-footer {
         warnBox.style.display = "none";
         warnBox.innerHTML = "";
       }
+    }
+
+    var btnConnect = document.getElementById("btn-tc-connect");
+    if (btnConnect && s && (s.ip || s.public_ip)) {
+      if (typeof btnConnect.click === "function") btnConnect.click();
+      else if (typeof btnConnect.onclick === "function") btnConnect.onclick();
     }
   }
 

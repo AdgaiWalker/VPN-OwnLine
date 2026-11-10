@@ -95,6 +95,54 @@ class DeliveryContractTests(unittest.TestCase):
         self.assertEqual(captured["data"]["delivery"]["username"], "admin")
         self.assertIn("shadowrocket", captured["data"]["delivery"]["deep_links"])
 
+    def test_tencent_instances_contract_and_dual_prefix(self):
+        fake_result = {
+            "ok": True,
+            "regions_scanned": 12,
+            "instances": [
+                {
+                    "id": "lhins-test01",
+                    "name": "HK-Lighthouse-01",
+                    "region": "ap-hongkong",
+                    "region_name": "中国香港",
+                    "public_ip": "43.153.56.137",
+                    "ip": "43.153.56.137",
+                    "status": "RUNNING",
+                    "state": "RUNNING",
+                    "os": "Ubuntu 22.04 LTS",
+                    "bundle": "1核1G-30Mbps",
+                    "firewall_ready": True,
+                }
+            ],
+            "incomplete_regions": [],
+        }
+
+        handler = MagicMock()
+        captured = {}
+
+        def fake_json(status, data):
+            captured["status"] = status
+            captured["data"] = data
+
+        handler._json = fake_json
+        handler.headers = {"Content-Type": "application/json"}
+        handler._origin_ok.return_value = True
+
+        from unittest.mock import patch
+        with patch.object(admin.tencent_discovery_mod, "discover", return_value=fake_result) as mock_disc:
+            # Test /api/tencent/instances
+            handler.path = "/api/tencent/instances"
+            admin.http_utils.parse_json_body = lambda h, limit: ({"secret_id": "AKIDtest", "secret_key": "skeytest"}, None)
+            admin.H.do_POST(handler)
+            self.assertEqual(captured["status"], 200)
+            self.assertTrue(captured["data"]["ok"])
+            self.assertEqual(len(captured["data"]["instances"]), 1)
+            inst = captured["data"]["instances"][0]
+            self.assertEqual(inst["bundle"], "1核1G-30Mbps")
+            self.assertEqual(inst["public_ip"], "43.153.56.137")
+            self.assertTrue(inst["firewall_ready"])
+
+
 
 if __name__ == "__main__":
     unittest.main()
