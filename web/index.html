@@ -855,13 +855,51 @@ dialog::backdrop {
 }
 .node {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  flex-direction: column;
+  align-items: stretch;
   min-height: 58px;
-  padding: 13px 0;
+  padding: 11px 12px;
   border-bottom: 1px solid var(--line-light);
+  border-radius: 10px;
+  transition: background 0.15s ease;
 }
 .node:last-child { border-bottom: none; }
+.node:hover {
+  background: var(--paper-card-subtle, rgba(0, 0, 0, 0.02));
+}
+.node.active {
+  background: var(--paper-card-subtle, rgba(0, 0, 0, 0.035));
+}
+.node-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  cursor: pointer;
+}
+.node-drawer {
+  display: none;
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--paper-card, #fff);
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  animation: nodeDrawerIn 0.16s ease-out;
+}
+@keyframes nodeDrawerIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.drawer-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
 .dot {
   width: 8px;
   height: 8px;
@@ -1475,7 +1513,7 @@ footer.site-footer {
       </div>
 
       <!-- Quota Hero Summary Banner -->
-      <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:14px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line)">
+      <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:14px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line);cursor:pointer" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:8px">
             <span style="font-size:13px;font-weight:600;color:var(--apple-fg)" data-i18n="quota_hero_title">本月出海总流量</span>
@@ -3995,12 +4033,23 @@ footer.site-footer {
         '</div>';
       }
 
-      htmlParts.push('<div class="node"><span class="dot" id="d' + i + '"></span>' +
-        '<div class="nmeta"><b>' + esc(displayName) + (n.source === "external" ? '<span class="tag">' + (zh ? '外部' : 'External') + '</span>' : "") + expBadge + protoBadges + relayPill + ispPill + "</b>" +
-        "<small>" + detailLine + "</small>" +
-        quotaRow +
-        advHtml + "</div>" +
-        '<button class="more" aria-label="' + (zh ? '更多操作' : 'More options') + '" onclick="window.ownlineNodeMenu(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button></div>');
+      var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
+      var drawerActions = protoBadges + relayPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
+
+      htmlParts.push('<div class="node" id="node-row-' + i + '">' +
+        '<div class="node-main" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
+          '<span class="dot" id="d' + i + '"></span>' +
+          '<div class="nmeta"><b>' + esc(displayName) + (n.source === "external" ? '<span class="tag">' + (zh ? '外部' : 'External') + '</span>' : "") + expBadge + statusBadges + "</b>" +
+          "<small>" + detailLine + "</small>" +
+          quotaRow +
+          advHtml + "</div>" +
+          '<button class="more" type="button" aria-label="' + (zh ? '更多操作' : 'More options') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button>' +
+        '</div>' +
+        '<div class="node-drawer" id="node-drawer-' + i + '" style="display:none">' +
+          '<div class="drawer-group">' + drawerActions + '</div>' +
+          '<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineNodeMenu(' + i + ')">' + (zh ? '更多选项…' : 'More…') + '</button>' +
+        '</div>' +
+      '</div>');
     });
 
     box.innerHTML = htmlParts.join("");
@@ -4801,6 +4850,34 @@ footer.site-footer {
     });
   }
   window.ownlineRefreshPing = refreshPing;
+
+  function toggleNodeDrawer(i) {
+    var drawer = document.getElementById("node-drawer-" + i);
+    var row = document.getElementById("node-row-" + i);
+    if (!drawer) return;
+    var isOpen = (drawer.style.display !== "none");
+    var allDrawers = document.querySelectorAll(".node-drawer");
+    allDrawers.forEach(function (d) { d.style.display = "none"; });
+    var allRows = document.querySelectorAll(".node");
+    allRows.forEach(function (r) { r.classList.remove("active"); });
+    if (!isOpen) {
+      drawer.style.display = "flex";
+      if (row) row.classList.add("active");
+    }
+  }
+  window.ownlineToggleNodeDrawer = toggleNodeDrawer;
+
+  function toggleQuota() {
+    var qs = document.getElementById("quota-section");
+    if (!qs) return;
+    qs.open = !qs.open;
+    var settings = document.getElementById("quota-settings");
+    if (settings) settings.style.display = qs.open ? "block" : "none";
+    if (qs.open) {
+      qs.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+  }
+  window.ownlineToggleQuota = toggleQuota;
 
   function openQrModal() {
     var dlg = document.getElementById("qr-dialog");

@@ -126,3 +126,38 @@ test('apple hig: qr dialog contains real image source, copy url button and url p
   assert(html.includes('window.ownlineCopyQrSubUrl'), 'ownlineCopyQrSubUrl must be wired');
   assert(html.includes('/api/qr?url='), 'qr modal must query dynamic /api/qr endpoint');
 });
+
+test('just-in-time disclosure: node drawer and quota drawer only open upon user interaction', () => {
+  assert(html.includes('window.ownlineToggleNodeDrawer'), 'window.ownlineToggleNodeDrawer must be registered');
+  assert(html.includes('window.ownlineToggleQuota'), 'window.ownlineToggleQuota must be registered');
+  assert(html.includes('class="node-drawer"'), 'node-drawer class must exist');
+  assert(html.includes('class="node-main"'), 'node-main class must exist');
+
+  function source(name) {
+    const match = html.match(new RegExp('^  function ' + name + '\\([^\\n]*\\)\\s*\\{[\\s\\S]*?^  \\}', 'm'));
+    assert(match, `missing ${name}`);
+    return match[0];
+  }
+  let innerHTML = '';
+  const box = { set innerHTML(val) { innerHTML = val; }, get innerHTML() { return innerHTML; } };
+  const c = vm.createContext({
+    document: { getElementById: (id) => (id === 'nodes' ? box : null) },
+    esc: (v) => String(v),
+    isZh: () => true,
+    paintStatus: () => {},
+    STATE: null,
+    STATUS: {},
+    NODES: []
+  });
+  vm.runInContext(source('renderNodes'), c);
+
+  const nodes = [
+    { name: '日本01', host: '198.51.100.10', role: 'exit', country: 'JP', port: 443 }
+  ];
+  c.renderNodes(nodes, {}, null);
+
+  assert(innerHTML.includes('id="node-row-0"'), 'node row id must exist');
+  assert(innerHTML.includes('window.ownlineToggleNodeDrawer(0)'), 'toggleNodeDrawer(0) must be attached to node-main and more button');
+  assert(innerHTML.includes('id="node-drawer-0"'), 'node-drawer-0 must exist');
+  assert(innerHTML.includes('style="display:none"'), 'node drawer must be hidden by default until triggered');
+});
