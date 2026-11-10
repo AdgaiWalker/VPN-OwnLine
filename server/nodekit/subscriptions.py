@@ -388,10 +388,10 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "",
             "proxy-groups:",
             '  - name: "🛡️ 安全办公"',
-            "    type: url-test",
+            "    type: fallback",
             "    proxies: [" + escaped_names + "]",
             "    url: http://www.gstatic.com/generate_204",
-            "    interval: 180",
+            "    interval: 120",
             "",
             "rules:",
         ])
@@ -419,7 +419,8 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "    type: url-test",
             "    proxies: [" + escaped_names + "]",
             "    url: http://www.gstatic.com/generate_204",
-            "    interval: 300",
+            "    interval: 180",
+            "    tolerance: 50",
             "",
             "rules:",
         ])
@@ -459,12 +460,14 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
                 ai_proxies.append(x)
         if "自动选择" not in ai_proxies:
             ai_proxies.append("自动选择")
+        if "🛡️ 故障转移" not in ai_proxies:
+            ai_proxies.append("🛡️ 故障转移")
         for x in names:
             if x not in ai_proxies:
                 ai_proxies.append(x)
         escaped_ai = ", ".join('"%s"' % x for x in ai_proxies)
 
-        node_select_proxies = ['"自动选择"', '"🤖 AI 业务"'] + ['"%s"' % x for x in names if x not in ("自动选择", "🤖 AI 业务")]
+        node_select_proxies = ['"自动选择"', '"🛡️ 故障转移"', '"🤖 AI 业务"'] + ['"%s"' % x for x in names if x not in ("自动选择", "🛡️ 故障转移", "🤖 AI 业务")]
         escaped_node_select = ", ".join(node_select_proxies)
 
         lines.extend([
@@ -474,7 +477,14 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "    type: url-test",
             "    proxies: [" + escaped_names + "]",
             "    url: http://www.gstatic.com/generate_204",
-            "    interval: 300",
+            "    interval: 180",
+            "    tolerance: 50",
+            "",
+            '  - name: "🛡️ 故障转移"',
+            "    type: fallback",
+            "    proxies: [" + escaped_names + "]",
+            "    url: http://www.gstatic.com/generate_204",
+            "    interval: 120",
             "",
             '  - name: "🤖 AI 业务"',
             "    type: select",

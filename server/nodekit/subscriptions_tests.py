@@ -197,4 +197,9 @@ u_filtered = S.subscription_userinfo(real_usage, nodes=[n_bj, n_sv, n_sg])
 check("Subscription-Userinfo 过滤掉国内中继跳板流量", "download=" + str(int(156.7 * 1024 * 1024 * 1024)) in u_filtered)
 check("Subscription-Userinfo 总额仅统计境外出口", "total=" + str(int(1536.0 * 1024 * 1024 * 1024)) in u_filtered)
 
+# 验证智能策略组：自动测速容差与故障转移 fallback
+check("Clash 自动选择包含 50ms 防抖容差", "tolerance: 50" in yaml_str)
+check("Clash 包含 🛡️ 故障转移 fallback 策略组", 'name: "🛡️ 故障转移"' in yaml_str and "type: fallback" in yaml_str)
+check("office 安全办公采用 fallback 保障 IP 连续性", 'name: "🛡️ 安全办公"' in yaml_office and "type: fallback" in yaml_office)
+
 print("通过 %d 项" % ok)

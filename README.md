@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 541 Passed](https://img.shields.io/badge/Tests-541%20Passed%20(100%25)-success.svg)]()
+[![Tests: 544 Passed](https://img.shields.io/badge/Tests-544%20Passed%20(100%25)-success.svg)]()
 
 ---
 
