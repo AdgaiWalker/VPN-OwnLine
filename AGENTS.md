@@ -20,8 +20,9 @@
 
 ## Dual-Track Research & Sync
 
+- **Changelog Scope**: Only record user-facing changes, production incident fixes, or test gate upgrades in [`docs/01-变更记录.md`](docs/01-变更记录.md). Never log minor code refactors, typos, or isolated unit tests.
+- **ADR Append**: Append a new entry to [`research/04-adr-decisions.md`](research/04-adr-decisions.md) whenever an architectural trade-off or system-wide invariant changes (never rewrite existing records).
 - **Atomic Commits**: Update [`research/05-interface-contracts.md`](research/05-interface-contracts.md) in the exact same commit whenever an API payload, return structure, or deployment flag changes.
-- **Immutable ADRs**: Never rewrite existing records in [`research/04-adr-decisions.md`](research/04-adr-decisions.md); append new entries when decisions change.
 - **Honest Status**: Mark unimplemented specifications as `[STATUS: PROPOSED]`, and completed implementations as `[STATUS: IMPLEMENTED]`.
 
 ## Git & Delivery
@@ -29,7 +30,7 @@
 - Stage explicit files (`git add <file1> <file2>`); never use `git add .` or `git add -A`.
 - Conventional commit message format: `{feat,fix,docs,refactor}[(scope)]: <concise description>`.
 - Never run destructive git commands: `git reset --hard`, `git clean -fd`, `git commit --no-verify`.
-- Before marking any task complete, verify that `./scripts/test.sh` passes 100% (525+ checks green).
+- Before marking any task complete, verify that `./scripts/test.sh` passes 100% (538+ checks green), auto-update matching docs above, then commit and push.
 
 ## User Override
 
