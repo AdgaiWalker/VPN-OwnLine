@@ -1,5 +1,5 @@
 #!/bin/bash
-# 把 仓库/ 和 GitHub 对齐。
+# 把本地工作区和 GitHub 对齐。
 # 需要 GitHub 直连（Shadowrocket 隧道开着）或本脚本自动借道 walker-sv。
 set -uo pipefail
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # 把本地 main 分支提交安全推送到 GitHub（可选推送指定 tag）。
-# 用法：bash ~/Desktop/梯子/运维/push.sh [tag名]
+# 用法：bash scripts/ops/push.sh [tag名]
 # Token 通过临时 0700 GIT_ASKPASS 传递，不进进程命令行、不落盘保存。
 set -euo pipefail
 [ -z "${HOME:-}" ] && { HOME="/Users/$(id -un)"; export HOME; }
