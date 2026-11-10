@@ -86,7 +86,75 @@
         pillText.textContent = zh ? "检测中..." : "Checking…";
       }
     }
+    if (typeof updateContextualAwakening === "function") {
+      updateContextualAwakening(NODES, STATUS);
+    }
   }
+
+  function deriveNodeState(n, nodes, status, qMap, zh) {
+    var host = n.host || n.ip;
+    var st = (status && status[n.name]) || {};
+    var isBad = (n.health && n.health !== "ok" && n.health !== "unknown") || (st && (st.ok === false || st.cn_ok === false));
+
+    var lc = n.lifecycle || {};
+    var expBadge = "";
+    if (lc.state === "draining") {
+      expBadge = '<span class="tag warn">' + esc(lc.badge_text || (zh ? "下线中" : "Draining")) + "</span>";
+    } else if (lc.state === "expired") {
+      expBadge = '<span class="tag bad">' + (zh ? "已过期" : "Expired") + '</span>';
+    } else if (lc.state === "disabled" || n.enabled === false) {
+      expBadge = '<span class="tag">' + (zh ? "已暂停" : "Paused") + '</span>';
+    } else if (lc.days_left !== undefined && lc.days_left !== null && lc.days_left <= 15) {
+      expBadge = '<span class="tag warn">' + lc.days_left + (zh ? "天到期" : "d left") + "</span>";
+    } else if (n.expire_at) {
+      var days = Math.ceil((new Date(n.expire_at).getTime() - Date.now()) / (86400 * 1000));
+      if (days <= 0) expBadge = '<span class="tag bad">' + (zh ? "已过期" : "Expired") + '</span>';
+      else if (days <= 15) expBadge = '<span class="tag warn">' + days + (zh ? "天到期" : "d left") + "</span>";
+    }
+
+    var hy2Node = (nodes || []).find(function(x) {
+      return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
+    });
+    var isDomestic = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
+    var isOverseasExit = !isDomestic && n.source !== "external";
+    var isMultiProtoHost = (host && (nodes || []).filter(function(x){ return (x.host || x.ip) === host; }).length > 1);
+    var hasHy2 = isOverseasExit || isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean";
+    var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
+
+    var isBondedRelay = isDomestic && (n.role === "relay" && n.landing && n.landing.host);
+    var targetText = "";
+    if (isBondedRelay) {
+      var targetHost = n.landing.host;
+      var targetNode = (nodes || []).find(function (x) {
+        return (x.host === targetHost || x.ip === targetHost) && x.type !== "hysteria2";
+      });
+      targetText = (targetNode && targetNode.name) || targetHost;
+    }
+
+    var qInfo = (qMap && qMap[host]) || null;
+    if (!qInfo && (n.used_gb != null || n.total_gb != null)) {
+      qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true };
+    }
+
+    var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
+    var isCongested = isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
+
+    return {
+      host: host,
+      st: st,
+      isBad: isBad,
+      expBadge: expBadge,
+      hasHy2: hasHy2,
+      isHy2Active: isHy2Active,
+      isDomestic: isDomestic,
+      isBondedRelay: isBondedRelay,
+      targetText: targetText,
+      qInfo: qInfo,
+      ms: ms,
+      isCongested: isCongested
+    };
+  }
+  if (typeof window !== "undefined") window.deriveNodeState = deriveNodeState;
 
   function renderNodes(nodes, status, quota) {
     var box = document.getElementById("nodes");
@@ -105,10 +173,13 @@
     }
 
     function deriveNodeState(n) {
+      var fn = (typeof window !== "undefined" && window.deriveNodeState) || (typeof globalThis !== "undefined" && globalThis.deriveNodeState);
+      if (typeof fn === "function") {
+        return fn(n, nodes, status, qMap, zh);
+      }
       var host = n.host || n.ip;
       var st = (status && status[n.name]) || {};
       var isBad = (n.health && n.health !== "ok" && n.health !== "unknown") || (st && (st.ok === false || st.cn_ok === false));
-
       var lc = n.lifecycle || {};
       var expBadge = "";
       if (lc.state === "draining") {
@@ -124,7 +195,6 @@
         if (days <= 0) expBadge = '<span class="tag bad">' + (zh ? "已过期" : "Expired") + '</span>';
         else if (days <= 15) expBadge = '<span class="tag warn">' + days + (zh ? "天到期" : "d left") + "</span>";
       }
-
       var hy2Node = (nodes || []).find(function(x) {
         return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
       });
@@ -133,7 +203,6 @@
       var isMultiProtoHost = (host && (nodes || []).filter(function(x){ return (x.host || x.ip) === host; }).length > 1);
       var hasHy2 = isOverseasExit || isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean";
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
-
       var isBondedRelay = isDomestic && (n.role === "relay" && n.landing && n.landing.host);
       var targetText = "";
       if (isBondedRelay) {
@@ -143,12 +212,12 @@
         });
         targetText = (targetNode && targetNode.name) || targetHost;
       }
-
-      var qInfo = qMap[host] || null;
+      var qInfo = (qMap && qMap[host]) || null;
       if (!qInfo && (n.used_gb != null || n.total_gb != null)) {
         qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true };
       }
-
+      var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
+      var isCongested = isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
       return {
         host: host,
         st: st,
@@ -159,7 +228,9 @@
         isDomestic: isDomestic,
         isBondedRelay: isBondedRelay,
         targetText: targetText,
-        qInfo: qInfo
+        qInfo: qInfo,
+        ms: ms,
+        isCongested: isCongested
       };
     }
 
@@ -235,32 +306,6 @@
       }
 
       var qInfo = m.qInfo;
-      var quotaRow = "";
-      if (qInfo && qInfo.total_gb != null && Number(qInfo.total_gb) > 0) {
-        var usedNum = Number(qInfo.used_gb || 0);
-        var totalNum = Number(qInfo.total_gb || 0);
-        var pctNum = qInfo.percent != null ? Number(qInfo.percent) : Math.round((usedNum / totalNum) * 100);
-        var remNum = Math.max(0, totalNum - usedNum);
-        var isWarnQ = pctNum >= 75 && pctNum < 85;
-        var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
-        var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
-        var barW = Math.max(0, Math.min(100, pctNum));
-        var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
-        var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
-
-        quotaRow = '<div class="node-quota-row">' +
-          '<div class="node-quota-bar">' +
-            '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
-          '</div>' +
-          '<span class="node-quota-text">' +
-            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span> · ' + (zh ? '剩余 <strong>' : 'Remaining <strong>') + Math.round(remNum) + ' GB</strong>' +
-          '</span>' + noteBadge + quotaRoleTip +
-        '</div>';
-      } else if (qInfo && qInfo.used_gb != null) {
-        quotaRow = '<div class="node-quota-row">' +
-          '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong> <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
-        '</div>';
-      }
       var quotaRow = "";
       if (qInfo && qInfo.total_gb != null && Number(qInfo.total_gb) > 0) {
         var usedNum = Number(qInfo.used_gb || 0);
@@ -939,6 +984,7 @@
   function submitRelayBind(name, targetHost) {
     var dialog = document.getElementById("relay-dialog");
     if (dialog) dialog.close();
+    if (typeof window !== "undefined") window.isRelayMutating = true;
     jsonRequest("/api/relay/bind", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -951,11 +997,14 @@
       }
     }).catch(function (err) {
       alert("绑定请求失败：" + err.message);
+    }).finally(function () {
+      if (typeof window !== "undefined") window.isRelayMutating = false;
     });
   }
 
   function unbindRelay(name) {
     if (!confirm("确定要解除【" + name + "】的中转关系，将其恢复为独立服务器吗？")) return;
+    if (typeof window !== "undefined") window.isRelayMutating = true;
     jsonRequest("/api/relay/unbind", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -968,15 +1017,19 @@
       }
     }).catch(function (err) {
       alert("请求失败：" + err.message);
+    }).finally(function () {
+      if (typeof window !== "undefined") window.isRelayMutating = false;
     });
   }
 
   var isTogglingHy2 = false;
+  if (typeof window !== "undefined") window.isTogglingHy2 = false;
   function toggleHy2(name, host, enable) {
     if (isTogglingHy2) {
       return;
     }
     isTogglingHy2 = true;
+    if (typeof window !== "undefined") window.isTogglingHy2 = true;
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var actText = enable ? (zh ? "开启" : "Enable") : (zh ? "关闭" : "Disable");
     if (document.body) document.body.style.cursor = "wait";
@@ -995,9 +1048,120 @@
       alert((zh ? "请求失败：" : "Request failed: ") + err.message);
     }).finally(function () {
       isTogglingHy2 = false;
+      if (typeof window !== "undefined") window.isTogglingHy2 = false;
       if (document.body) document.body.style.cursor = "default";
     });
   }
+
+  var dismissedAwakening = (typeof window !== "undefined" && window.dismissedAwakening) ? window.dismissedAwakening : {};
+  if (typeof window !== "undefined") window.dismissedAwakening = dismissedAwakening;
+
+  function updateContextualAwakening(nodes, status) {
+    var container = (typeof document !== "undefined" && document.getElementById) ? document.getElementById("contextual-awakening") : null;
+    if (!container) return;
+    if (!nodes || !nodes.length) {
+      container.style.display = "none";
+      container.innerHTML = "";
+      return;
+    }
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var dismissed = (typeof window !== "undefined" && window.dismissedAwakening) ? window.dismissedAwakening : (typeof dismissedAwakening !== "undefined" ? dismissedAwakening : {});
+
+    // 筛选支持 HY2 但未开启、且探测发生丢包或晚高峰延迟偏高（>=220ms）的出海出口节点
+    var candidate = null;
+    var maxScore = -1;
+
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (n.enabled === false) continue;
+      var host = n.host || n.ip;
+      if (dismissed[n.name] || dismissed[host]) continue;
+
+      var isDomestic = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
+      if (isDomestic || n.source === "external") continue;
+
+      var hy2Node = nodes.find(function (x) {
+        return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
+      });
+      var hasHy2 = !isDomestic || (host && nodes.filter(function (x) { return (x.host || x.ip) === host; }).length > 1) || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean";
+      var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
+
+      if (!hasHy2 || isHy2Active) continue;
+
+      var st = (status && status[n.name]) || {};
+      var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
+      var isBlocked = (st && st.cn_ok === false);
+      var isHighLatency = (ms != null && ms >= 220);
+      var isDegraded = (st && st.ok === false);
+
+      if (isBlocked || isHighLatency || isDegraded) {
+        var score = isBlocked ? 1000 : (isDegraded ? 800 : (ms || 300));
+        if (score > maxScore) {
+          maxScore = score;
+          candidate = {
+            node: n,
+            ms: ms,
+            isBlocked: isBlocked,
+            isDegraded: isDegraded
+          };
+        }
+      }
+    }
+
+    if (!candidate) {
+      container.style.display = "none";
+      container.innerHTML = "";
+      return;
+    }
+
+    var cNode = candidate.node;
+    var cHost = cNode.host || cNode.ip;
+    var reasonText = "";
+    if (candidate.isBlocked) {
+      reasonText = zh ? "国内直连握手受阻" : "Direct handshake blocked from China";
+    } else if (candidate.ms != null) {
+      reasonText = zh ? ("晚高峰骨干网拥堵 · 延迟 " + Math.round(candidate.ms) + "ms") : ("Peak evening congestion · " + Math.round(candidate.ms) + "ms latency");
+    } else {
+      reasonText = zh ? "跨境链路波动" : "Cross-border route unstable";
+    }
+
+    var awakeningMsg = zh
+      ? ('检测到【<b>' + esc(cNode.name) + '</b>】' + reasonText + '，推荐一键唤醒【HY2 极速抢跑】')
+      : ('High latency on [<b>' + esc(cNode.name) + '</b>] (' + reasonText + '). Tap to awaken HY2 Turbo.');
+
+    var btnText = zh ? "⚡️ 唤醒 HY2 抢跑" : "⚡️ Awaken HY2";
+
+    container.innerHTML = '<div class="awakening-capsule" role="alert">' +
+      '<div class="awakening-content">' +
+        '<span class="awakening-icon">⚡️</span>' +
+        '<div class="awakening-text">' + awakeningMsg + '</div>' +
+      '</div>' +
+      '<div class="awakening-actions">' +
+        '<button type="button" class="awakening-btn" onclick="window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')">' + btnText + '</button>' +
+        '<button type="button" class="awakening-dismiss" aria-label="' + (zh ? '忽略' : 'Dismiss') + '" onclick="window.ownlineDismissAwakening(\'' + esc(cNode.name) + '\')" title="' + (zh ? '本次忽略' : 'Dismiss') + '"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>' +
+      '</div>' +
+    '</div>';
+    container.style.display = "block";
+  }
+
+  function awakenHy2(name, host) {
+    toggleHy2(name, host, true);
+  }
+
+  function dismissAwakening(name) {
+    if (typeof window !== "undefined" && window.dismissedAwakening) {
+      window.dismissedAwakening[name] = true;
+    }
+    if (typeof dismissedAwakening !== "undefined") {
+      dismissedAwakening[name] = true;
+    }
+    var container = (typeof document !== "undefined" && document.getElementById) ? document.getElementById("contextual-awakening") : null;
+    if (container) container.style.display = "none";
+  }
+
+  window.ownlineAwakenHy2 = awakenHy2;
+  window.ownlineDismissAwakening = dismissAwakening;
+  window.updateContextualAwakening = updateContextualAwakening;
 
   function setProbeVantage(name) {
     var zh = (typeof isZh === 'function') ? isZh() : true;

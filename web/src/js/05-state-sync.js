@@ -155,6 +155,9 @@
 
   var refreshStateAbortController = null;
   function refreshState() {
+    if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) {
+      return;
+    }
     if (refreshStateAbortController) {
       try { refreshStateAbortController.abort(); } catch (_) {}
     }
@@ -217,6 +220,7 @@
       jsonRequest("/api/setup", { signal: signal })
     ]).then(function (res) {
       if (signal && signal.aborted) return;
+      if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
       var settings = res[0].status === "fulfilled" ? res[0].value : null;
       var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
       var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
@@ -231,11 +235,14 @@
       var zh = (typeof isZh === 'function') ? isZh() : true;
       if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = zh ? "当前服务器后端不支持备份恢复。" : "Backup restore is not supported by current server backend.";
       if (settings && settings.ok === true) {
-        jsonRequest("/api/password/state").then(function (result) {
+        jsonRequest("/api/password/state", { signal: signal }).then(function (result) {
+          if (signal && signal.aborted) return;
           document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
         }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
       }
-      jsonRequest("/status.json?_t=" + Date.now()).then(function (st) {
+      jsonRequest("/status.json?_t=" + Date.now(), { signal: signal }).then(function (st) {
+        if (signal && signal.aborted) return;
+        if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
         STATUS = st || {};
         paintStatus();
       }).catch(function () {});
