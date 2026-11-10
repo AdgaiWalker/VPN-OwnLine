@@ -1,0 +1,3612 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
+<title>VPN-OwnLine</title>
+<style>
+:root {
+  --apple-bg: #f5f5f7;
+  --apple-card: #ffffff;
+  --apple-card-subtle: #fbfbfd;
+  --apple-card-secondary: #f2f2f7;
+  --apple-fg: #1d1d1f;
+  --apple-muted: #86868b;
+  --apple-line: rgba(0, 0, 0, 0.08);
+  --apple-line-light: rgba(0, 0, 0, 0.04);
+  --apple-blue: #0071e3;
+  --apple-blue-hover: #0077ed;
+  --apple-blue-soft: rgba(0, 113, 227, 0.08);
+  --apple-green: #34c759;
+  --apple-amber: #ff9500;
+  --apple-red: #ff3b30;
+  --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "SF Pro", "Helvetica Neue", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Compatibility alias mapping */
+  --bg: var(--apple-bg);
+  --surface: var(--apple-card);
+  --surface-soft: var(--apple-card-secondary);
+  --surface-card: var(--apple-card);
+  --fg: var(--apple-fg);
+  --muted: var(--apple-muted);
+  --line: var(--apple-line);
+  --line-focus: var(--apple-blue);
+  --accent: var(--apple-blue);
+  --accent-fg: #ffffff;
+  --accent-soft: var(--apple-blue-soft);
+  --warn: var(--apple-amber);
+  --bad: var(--apple-red);
+  --ok: var(--apple-green);
+  --serif: var(--apple-font);
+}
+
+* { box-sizing: border-box; }
+html {
+  background: var(--apple-bg);
+  color: var(--apple-fg);
+  font-family: var(--apple-font);
+  line-height: 1.47059;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  margin: 0;
+  padding: 24px 16px 56px;
+  background: var(--apple-bg);
+}
+.page {
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+header.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--apple-line);
+  padding-bottom: 14px;
+  margin-bottom: 22px;
+}
+.brand {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--apple-fg);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.brand small {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--apple-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.pill-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: rgba(255, 149, 0, 0.12);
+  color: #c25e1a;
+  border: 1px solid rgba(255, 149, 0, 0.25);
+}
+.pill-preview #status-dot {
+  font-size: 8px;
+}
+
+.panel-card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin-bottom: 20px;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 600; color: var(--apple-fg); }
+h1 { font-size: 22px; letter-spacing: -0.02em; }
+h2 { font-size: 18px; color: var(--apple-fg); }
+.small { font-size: 13px; }
+.muted { color: var(--apple-muted); }
+
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field-label, label { display: block; font-size: 13px; font-weight: 500; color: var(--apple-fg); margin-bottom: 6px; }
+
+input[type="text"], input[type="password"], input[type="number"], textarea, select {
+  width: 100%;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--apple-fg);
+  background: var(--apple-card);
+  border: 1px solid var(--apple-line);
+  border-radius: 10px;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all .15s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--apple-blue);
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.15);
+}
+input::placeholder, textarea::placeholder {
+  color: #a1a1a6;
+}
+
+#ssh-connection-fields { font-family: var(--apple-font); }
+#ssh-connection-fields .field { margin-bottom: 14px; }
+#ssh-connection-fields .field label { font-weight: 500; }
+#other-ip, #other-credential { min-height: 44px; font-size: 15px; }
+#other-credential { resize: vertical; }
+#ssh-connection-fields .other-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; }
+#ssh-connection-fields .other-actions .btn { min-height: 40px; min-width: 96px; }
+#ssh-connection-fields details.other-advanced { border: 0; background: transparent; padding: 0; margin: 0; }
+#ssh-connection-fields details.other-advanced > summary { display: flex; align-items: center; min-height: 40px; cursor: pointer; color: var(--apple-muted); }
+#panel-other details.other-install { border: 0; background: transparent; padding: 0; margin: 12px 0 0; }
+#panel-other details.other-install > summary { display: inline-flex; align-items: center; justify-content: center; min-height: 40px; padding: 8px 16px; background: var(--apple-blue); color: #fff; font-size: 13.5px; border-radius: 10px; font-weight: 500; cursor: pointer; }
+#panel-other details.other-install > summary::before { content: none; }
+#panel-other details.other-install > summary:hover { opacity: .92; }
+#btn-refresh-all { border-color: transparent; color: var(--apple-muted); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-family: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 10px;
+  background: var(--apple-card);
+  color: var(--apple-blue);
+  border: 1px solid var(--apple-line);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all .15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn:hover { background: var(--apple-card-secondary); border-color: rgba(0, 0, 0, 0.12); }
+.btn:active { transform: scale(0.975); opacity: 0.88; }
+.btn.primary { background: var(--apple-blue); color: #ffffff; border-color: var(--apple-blue); box-shadow: 0 2px 6px rgba(0, 113, 227, 0.28); }
+.btn.primary:hover { background: var(--apple-blue-hover); border-color: var(--apple-blue-hover); }
+.btn.tiny { padding: 4px 10px; font-size: 12px; border-radius: 8px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.btn[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+
+.btn-outline {
+  border: 1px solid var(--apple-blue);
+  color: var(--apple-blue);
+  background: rgba(0, 113, 227, 0.04);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-outline:hover { background: rgba(0, 113, 227, 0.1); }
+.btn-outline:active { transform: scale(0.97); }
+
+.seg {
+  display: flex;
+  background: #e5e5ea;
+  border-radius: 10px;
+  padding: 2px;
+  margin: 8px 0 16px;
+}
+.segbtn {
+  flex: 1;
+  padding: 7px 12px;
+  border: none;
+  background: transparent;
+  color: var(--apple-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.segbtn.active, .segbtn[aria-pressed="true"] {
+  background: #ffffff;
+  color: var(--apple-fg);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+}
+
+.sub-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.main-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--apple-fg);
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+.sub-status {
+  font-size: 13.5px;
+  color: var(--apple-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Apple Hero Connect Bar */
+.apple-hero-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+.apple-hero-connect {
+  height: 42px;
+  padding: 0 18px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 600;
+  gap: 8px;
+  cursor: pointer;
+}
+.apple-hero-icon { font-size: 14px; }
+.apple-device-pill {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+  margin-left: 2px;
+}
+.apple-hero-copy {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  background: var(--apple-card);
+  color: var(--apple-fg);
+  border: 1px solid var(--apple-line);
+}
+.apple-hero-copy:hover { background: var(--apple-card-secondary); }
+
+/* Apple Action Sheet Dialog */
+.apple-action-sheet::backdrop {
+  background: rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+}
+.apple-action-sheet {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+.apple-sheet-box {
+  width: min(460px, calc(100vw - 32px));
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 22px 24px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.16), 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+.apple-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--apple-line-light);
+}
+.apple-sheet-eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--apple-muted);
+}
+.apple-sheet-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--apple-fg);
+  margin: 2px 0 0;
+}
+.apple-sheet-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--apple-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all .15s ease;
+}
+.apple-sheet-close:hover { background: rgba(0, 0, 0, 0.1); color: var(--apple-fg); }
+.apple-client-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.apple-client-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--apple-card);
+  border: 1px solid var(--apple-line);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+  text-decoration: none;
+  color: var(--apple-fg);
+  transition: all .15s ease;
+  cursor: pointer;
+}
+.apple-client-row:hover {
+  background: var(--apple-card-secondary);
+  border-color: rgba(0, 113, 227, 0.25);
+  transform: translateY(-1px);
+}
+.apple-client-row:active { transform: scale(0.98); }
+.apple-client-row.primary {
+  border-color: rgba(0, 113, 227, 0.4);
+  background: rgba(0, 113, 227, 0.03);
+}
+.apple-client-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.apple-client-icon-wrap img { width: 28px; height: 28px; object-fit: contain; }
+.apple-client-meta { flex: 1; min-width: 0; }
+.apple-client-name { display: block; font-size: 15px; font-weight: 600; color: var(--apple-fg); }
+.apple-client-desc { display: block; font-size: 12px; color: var(--apple-muted); margin-top: 1px; }
+.apple-client-action-pill {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: rgba(0, 113, 227, 0.1);
+  color: var(--apple-blue);
+  flex: none;
+  transition: all .15s ease;
+}
+.apple-client-action-pill.primary { background: var(--apple-blue); color: #ffffff; }
+.apple-sheet-note { font-size: 12.5px; color: var(--apple-muted); margin: 6px 0; line-height: 1.4; }
+.apple-disclosure summary {
+  cursor: pointer;
+  color: var(--apple-muted);
+  font-size: 12.5px;
+  padding: 4px 0;
+  list-style: none;
+}
+.apple-disclosure summary::-webkit-details-marker { display: none; }
+.apple-disclosure summary::before { content: "▸ "; opacity: 0.6; }
+.apple-disclosure[open] summary::before { content: "▾ "; opacity: 0.6; }
+.apple-disclosure summary:hover { color: var(--apple-blue); }
+.client-help-content {
+  margin-top: 6px;
+  padding: 10px 14px;
+  background: var(--apple-card-secondary);
+  border-radius: 12px;
+  font-size: 12.5px;
+}
+
+/* Client Assist Contextual Cards (Need-Driven) */
+.apple-client-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.client-assist-card {
+  background: var(--apple-card-secondary);
+  border: 1px solid var(--apple-line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-top: -2px;
+  animation: appleSlideDown .2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes appleSlideDown {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.assist-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--apple-blue);
+  margin-bottom: 6px;
+}
+.assist-guidance {
+  font-size: 12px;
+  color: var(--apple-muted);
+}
+.assist-prompt {
+  display: block;
+  margin-bottom: 6px;
+}
+.assist-btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.assist-action-btn {
+  font-size: 11px !important;
+  padding: 3px 8px !important;
+  border-radius: 6px !important;
+  background: var(--apple-card) !important;
+  border: 1px solid var(--apple-line) !important;
+  color: var(--apple-fg) !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+.assist-action-btn:hover {
+  border-color: var(--apple-blue) !important;
+  color: var(--apple-blue) !important;
+}
+.apple-id-callout {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(0, 113, 227, 0.05);
+  border: 1px solid rgba(0, 113, 227, 0.15);
+  border-radius: 8px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--apple-fg);
+}
+.apple-id-callout a {
+  color: var(--apple-blue);
+  text-decoration: underline;
+}
+
+/* Inset Grouped Nodes List */
+#nodes-section {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin-top: 24px;
+}
+#nodes-section > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0 4px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--apple-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+#nodes-section > summary::-webkit-details-marker { display: none; }
+#nodes-section > summary::before { content: none !important; }
+
+#nodes {
+  background: var(--apple-card);
+  border-radius: 16px;
+  border: 1px solid var(--apple-line);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.02);
+  padding: 2px 18px;
+}
+.node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--apple-line-light);
+}
+.node:last-child { border-bottom: none; }
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #c7c7cc;
+  flex: none;
+  transition: all .2s ease;
+}
+.dot.ok {
+  background: var(--apple-green);
+  box-shadow: 0 0 6px rgba(52, 199, 89, 0.45);
+}
+.dot.bad {
+  background: var(--apple-red);
+  box-shadow: 0 0 6px rgba(255, 59, 48, 0.45);
+}
+.nmeta { flex: 1; min-width: 0; }
+.nmeta b {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--apple-fg);
+}
+.nmeta small {
+  display: block;
+  color: var(--apple-muted);
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+.adv { margin-top: 3px; color: var(--apple-muted); font-size: 12px; }
+.adv span { margin-left: 6px; }
+
+.node-quota-row {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--apple-muted);
+}
+.node-quota-bar {
+  flex: 0 0 100px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.node-quota-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+.node-quota-text {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.node-quota-text strong {
+  font-weight: 600;
+  color: var(--apple-fg);
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--apple-muted);
+  border: 1px solid transparent;
+  transition: all .15s ease;
+}
+.tag.ok {
+  background: rgba(52, 199, 89, 0.12);
+  color: #1f7a35;
+  border-color: rgba(52, 199, 89, 0.2);
+}
+.tag.warn {
+  background: rgba(255, 149, 0, 0.12);
+  color: #b26800;
+  border-color: rgba(255, 149, 0, 0.2);
+}
+.tag.bad {
+  background: rgba(255, 59, 48, 0.12);
+  color: #d70015;
+  border-color: rgba(255, 59, 48, 0.2);
+}
+.tag.isp-add {
+  background: rgba(0, 113, 227, 0.08);
+  color: #0071E3;
+  border: 1px dashed rgba(0, 113, 227, 0.35);
+}
+.tag.isp-add:hover { background: rgba(0, 113, 227, 0.14); }
+
+.more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 50%;
+  border: none;
+  background: var(--apple-card-secondary);
+  color: var(--apple-muted);
+  cursor: pointer;
+  padding: 0;
+  transition: all .15s ease;
+}
+.more:hover { background: #e5e5ea; color: var(--apple-fg); }
+.more:active { transform: scale(0.92); }
+.repair-btn {
+  border-color: var(--apple-red) !important;
+  color: var(--apple-red) !important;
+  background: rgba(255, 59, 48, 0.08);
+}
+
+/* Quota & Traffic */
+.quota-heading {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--apple-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 28px 0 10px 4px;
+}
+#quota-list-container { margin-top: 24px; }
+.quota-table-head {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) minmax(140px, 1.6fr) minmax(120px, 1fr);
+  gap: 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--apple-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 16px 8px;
+}
+.quota-table-body {
+  background: var(--apple-card);
+  border-radius: 16px;
+  border: 1px solid var(--apple-line);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.03), 0 4px 12px rgba(0,0,0,0.02);
+  padding: 2px 18px;
+  overflow: hidden;
+}
+.quota-table-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 1.2fr) minmax(140px, 1.6fr) minmax(120px, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--apple-line-light);
+  font-size: 13.5px;
+}
+.quota-table-row:last-child { border-bottom: none; }
+.quota-col-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--apple-fg);
+}
+.q-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--apple-green);
+  flex: none;
+}
+.q-dot.warn { background: var(--apple-amber); }
+.q-dot.tripped { background: var(--apple-red); }
+.quota-col-progress { display: flex; align-items: center; }
+.quota-col-progress .bar {
+  flex: 1;
+  height: 6px;
+  background: #e5e5ea;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0;
+}
+.quota-col-progress .bar i {
+  display: block;
+  height: 100%;
+  background: var(--apple-blue);
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+.quota-col-progress .bar.warn i { background: var(--apple-amber); }
+.quota-col-progress .bar.tripped i { background: var(--apple-red); }
+.quota-col-stat {
+  text-align: right;
+  color: var(--apple-muted);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+/* Modals & Sheets */
+.sheet { padding: 0; border: 0; background: transparent; max-width: none; max-height: none; }
+.sheet::backdrop {
+  background: rgba(0, 0, 0, .4);
+  backdrop-filter: blur(14px) saturate(180%);
+  -webkit-backdrop-filter: blur(14px) saturate(180%);
+}
+.sheet-inner {
+  width: min(460px, calc(100vw - 32px));
+  max-height: 85vh;
+  overflow: auto;
+  padding: 24px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  color: var(--apple-fg);
+  box-shadow: 0 16px 40px rgba(0,0,0,.15);
+}
+.sheet-inner h2 { margin: 0 0 10px; font-size: 18px; font-weight: 600; }
+.sheet-inner p { margin: 0 0 16px; color: var(--apple-muted); font-size: 13.5px; line-height: 1.5; }
+.sheetbtns { display: flex; flex-direction: column; gap: 8px; }
+.sbtn {
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--apple-line);
+  background: var(--apple-card);
+  color: var(--apple-fg);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 10px;
+  cursor: pointer;
+  text-align: center;
+  transition: all .15s ease;
+}
+.sbtn.ok { border-color: var(--apple-blue); background: var(--apple-blue); color: #fff; }
+.sbtn.danger { border-color: var(--apple-red); color: var(--apple-red); }
+.sbtn.cancel { color: var(--apple-muted); }
+.hitem { padding: 10px 0; border-bottom: 1px solid var(--apple-line-light); font-size: 13.5px; }
+.hitem:last-child { border-bottom: 0; }
+.hitem.ok b { color: var(--apple-green); font-weight: 500; }
+.hitem.bad b { color: var(--apple-red); font-weight: 500; }
+.hitem i { display: block; margin-top: 3px; color: var(--apple-muted); font-size: 12px; font-style: normal; }
+
+/* Logs */
+.log-section-head { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; margin-bottom: 12px; }
+.log-heading { font-size: 18px; font-weight: 700; color: var(--apple-fg); margin: 0; }
+.log-tabs { display: inline-flex; gap: 4px; margin-bottom: 14px; background: #e5e5ea; padding: 2px; border-radius: 8px; }
+.log-tab-btn { border: none; background: transparent; color: var(--apple-muted); padding: 5px 12px; font-size: 12.5px; border-radius: 6px; cursor: pointer; transition: all .15s ease; }
+.log-tab-btn.active { background: #ffffff; color: var(--apple-fg); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+.logbox { color: var(--apple-fg); font-size: 13.5px; max-height: 260px; overflow-y: auto; line-height: 1.5; }
+.log-row { display: grid; grid-template-columns: 150px 1fr 64px; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--apple-line-light); font-size: 13.5px; }
+.log-time { color: var(--apple-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.log-msg { display: flex; align-items: center; gap: 10px; color: var(--apple-fg); overflow-wrap: anywhere; }
+.log-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+.log-dot-ok { background: var(--apple-green); }
+.log-dot-warn { background: var(--apple-amber); }
+.log-dot-bad { background: var(--apple-red); }
+.log-tag-col { text-align: right; }
+.log-tag { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11.5px; text-align: center; }
+.log-tag-info { background: rgba(0, 113, 227, 0.1); color: var(--apple-blue); }
+.log-tag-warn { background: rgba(255, 149, 0, 0.1); color: var(--apple-amber); }
+.log-tag-err { background: rgba(255, 59, 48, 0.1); color: var(--apple-red); }
+
+footer.site-footer {
+  margin-top: 36px;
+  padding-top: 16px;
+  border-top: 1px solid var(--apple-line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--apple-muted);
+}
+.check-result-box {
+  padding: 14px;
+  border: 1px solid var(--apple-line);
+  border-radius: 12px;
+  background: var(--apple-card);
+  margin-top: 10px;
+  font-size: 13px;
+}
+.ico { width: 14px; height: 14px; vertical-align: -2px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+@media (max-width: 680px) {
+  body { padding: 16px 12px 48px; }
+  .quota-table-head { display: none; }
+  .quota-table-row { grid-template-columns: 1fr auto; gap: 6px; }
+  .quota-col-progress { grid-column: 1 / -1; }
+  .log-row { grid-template-columns: 1fr auto; }
+  .log-time { grid-column: 1 / -1; font-size: 12px; }
+}
+
+/* Quota Glance Capsule */
+.quota-glance {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 9px;
+  background: var(--apple-card);
+  border: 1px solid var(--apple-line);
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--apple-muted);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  margin-left: 4px;
+}
+.quota-glance-bar {
+  width: 32px;
+  height: 5px;
+  background: #e5e5ea;
+  border-radius: 999px;
+  overflow: hidden;
+  display: inline-block;
+}
+.quota-glance-bar i {
+  display: block;
+  height: 100%;
+  background: var(--apple-blue);
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+/* Latency Ping Refresh */
+.btn-ping {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--apple-muted);
+  background: transparent;
+  border: 1px solid var(--apple-line);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-ping:hover { background: var(--apple-card-secondary); color: var(--apple-fg); }
+.btn-ping.refreshing svg {
+  animation: spin 0.6s linear infinite;
+}
+@keyframes spin { 100% { transform: rotate(360deg); } }
+
+.ping-pill {
+  display: inline-block;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  font-size: 11.5px;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.ping-pill.fast { color: #1f7a35; background: rgba(52, 199, 89, 0.12); }
+.ping-pill.medium { color: #b26800; background: rgba(255, 149, 0, 0.12); }
+.ping-pill.slow { color: #d70015; background: rgba(255, 59, 48, 0.12); }
+
+/* QR Modal */
+.apple-hero-qr {
+  height: 42px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  background: var(--apple-card);
+  color: var(--apple-fg);
+  border: 1px solid var(--apple-line);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.apple-hero-qr:hover { background: var(--apple-card-secondary); }
+.apple-hero-qr:active { transform: scale(0.97); }
+.qr-modal-box {
+  width: min(320px, calc(100vw - 32px));
+  padding: 22px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(24px);
+  text-align: center;
+}
+.qr-img-wrap {
+  width: 170px;
+  height: 170px;
+  margin: 14px auto;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--apple-line);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.qr-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+  <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><line x1="12" x2="12" y1="9" y2="13"/><line x1="12" x2="12.01" y1="17" y2="17"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+  <symbol id="i-qr" viewBox="0 0 24 24"><rect width="5" height="5" x="3" y="3" rx="1"/><rect width="5" height="5" x="16" y="3" rx="1"/><rect width="5" height="5" x="3" y="16" rx="1"/><path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></symbol>
+  <symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><line x1="12" x2="12.01" y1="18" y2="18"/></symbol>
+  <symbol id="i-server" viewBox="0 0 24 24"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+</svg>
+
+
+<div class="page">
+  <header class="topbar">
+    <a class="brand" href="#">VPN-OwnLine</a>
+    <span class="pill-preview" id="status-pill"><span id="status-dot" class="status-pulse-dot"></span> <span id="status-text">Preview</span></span>
+  </header>
+  <div id="wx-tip" class="warn" style="display:none;margin-top:10px;padding:10px 14px;border-left:3px solid var(--warn);background:var(--surface-soft);font-size:13px;line-height:1.5">
+    <div style="display:flex;align-items:center;gap:6px;font-weight:600;margin-bottom:2px">
+      <svg class="ico" width="16" height="16" style="color:var(--apple-amber)"><use href="#i-alert"/></svg>
+      <span>In-app Browser</span>
+    </div>
+    Tap <b>···</b> in top right and select <b>Open in Browser</b> to import.
+  </div>
+
+  <!-- Primary Egress Line Panel -->
+  <section class="panel-card" id="card-serving">
+    <div id="install-task" class="check-result-box" style="display:none;margin:0 0 18px" role="status">
+      <strong id="install-task-title">Installation Task</strong>
+      <p class="small muted" id="install-task-message" style="margin:4px 0 8px"></p>
+      <button class="btn tiny" id="install-task-refresh" type="button">Refresh Progress</button>
+      <button class="btn tiny" id="install-task-dismiss" type="button" disabled>Dismiss</button>
+    </div>
+
+    <!-- State A: Main Dashboard -->
+    <div id="view-dashboard">
+      <div class="sub-header">
+        <h1 class="main-title" id="serving-node-title">Primary Line</h1>
+        <div class="quota-glance" id="quota-glance" style="display:none" title="Total Bandwidth Usage">
+          <span class="quota-glance-bar"><i id="quota-glance-fill" style="width: 0%;"></i></span>
+          <span id="quota-glance-text">0 / 0 GB</span>
+        </div>
+        <span class="sub-status" id="serving-node-ip">Online</span>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="btn btn-outline tiny" type="button" id="btn-enter-setup" style="font-weight:500;display:inline-flex;align-items:center;gap:4px">
+            + Add Node
+          </button>
+          <button class="btn tiny" type="button" id="btn-manage-servers" style="display:none">Traffic</button>
+        </div>
+      </div>
+
+      <!-- Quota Hero Summary Banner -->
+      <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:14px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--apple-fg)">Bandwidth Quota</span>
+            <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 6px">Safe</span>
+          </div>
+          <div style="font-size:13px;font-family:var(--mono)">
+            <b id="quota-hero-used" style="font-size:14px;color:var(--apple-fg)">0</b> / <span id="quota-hero-total" style="color:var(--apple-muted)">0 GB</span>
+            <span id="quota-hero-percent" class="small muted" style="margin-left:4px">(0%)</span>
+          </div>
+        </div>
+        <div class="bar" style="height:6px;background:rgba(0,0,0,0.06);border-radius:999px;overflow:hidden">
+          <i id="quota-hero-fill" style="display:block;height:100%;width:0%;background:var(--apple-blue);border-radius:999px;transition:width .3s ease"></i>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--apple-muted)">
+          <span>Remaining: <b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
+          <span id="quota-hero-nodes-safe">All nodes within protection threshold</span>
+        </div>
+      </div>
+
+      <!-- Unready State Box -->
+      <div id="client-unready-box" style="margin-top:14px;padding:18px 16px;background:var(--surface-soft);border:1px dashed var(--line);text-align:center">
+        <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:4px">Connecting...</div>
+        <div class="small muted" id="unready-note"></div>
+      </div>
+
+      <!-- Client Actions -->
+      <div id="client-ready-box" style="display:none;margin-top:14px">
+        <div class="apple-hero-bar">
+          <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
+            <span class="apple-hero-icon"><svg class="ico" width="15" height="15"><use href="#i-zap"/></svg></span>
+            <span class="apple-hero-title">Connect This Device</span>
+            <span id="client-device-badge" class="apple-device-pill">Detecting...</span>
+          </button>
+          <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="Copy Subscription Link">
+            <svg class="ico" width="14" height="14"><use href="#i-copy"/></svg>
+            <span>Copy Link</span>
+          </button>
+          <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="Show Subscription QR Code">
+            <svg class="ico" width="14" height="14"><use href="#i-qr"/></svg>
+            <span>Scan QR</span>
+          </button>
+        </div>
+        <div id="copy-note" class="small" role="status" style="display:none;margin-top:6px;color:var(--ok)"></div>
+        <p id="import-note" class="small muted" role="status" style="margin:6px 0 0"></p>
+      </div>
+
+      <!-- Apple Client Hub Dialog (Action Sheet) -->
+      <dialog id="client-hub-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+        <div class="sheet-inner apple-sheet-box">
+          <div class="apple-sheet-header">
+            <div class="apple-sheet-title-group">
+              <h2 class="apple-sheet-title" id="hub-device-title">Select Client</h2>
+            </div>
+            <button class="apple-sheet-close" type="button" onclick="document.getElementById('client-hub-dialog').close()" aria-label="Close"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
+          </div>
+
+          <div class="apple-client-list">
+            <!-- Shadowrocket Group -->
+            <div class="apple-client-item" id="client-item-sr">
+              <a class="btn action-btn apple-client-row" id="btn-sr" href="#">
+                <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/shadowrocket.png" alt="Shadowrocket" width="28" height="28"></span>
+                <div class="apple-client-meta">
+                  <b class="card-label apple-client-name">Shadowrocket</b>
+                  <span class="apple-client-desc">Recommended</span>
+                </div>
+                <span class="apple-client-action-pill primary" id="pill-sr">Open</span>
+              </a>
+              <div class="client-assist-card" id="assist-sr" style="display:none">
+                <div class="assist-status-bar">
+                  <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+                  <span>Opening...</span>
+                </div>
+                <div class="assist-guidance">
+                  <span class="assist-prompt">Not installed?</span>
+                  <div class="assist-btn-group">
+                    <a class="btn tiny assist-action-btn" id="download-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="display:none">
+                      <svg class="ico" width="12" height="12"><use href="#i-smartphone"/></svg> App Store
+                    </a>
+                    <button class="btn tiny assist-action-btn" type="button" onclick="window.ownlineToggleAppleId()">
+                      Need US Apple ID?
+                    </button>
+                  </div>
+                </div>
+                <div id="apple-store-help" style="display:none" class="apple-id-callout">
+                  <p class="small muted" style="margin:0">Free accounts: <a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a> (App Store only, never iCloud).</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Clash Group -->
+            <div class="apple-client-item" id="client-item-clash">
+              <a class="btn action-btn apple-client-row" id="btn-clash" href="#">
+                <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/clash.png" alt="Clash" width="28" height="28"></span>
+                <div class="apple-client-meta">
+                  <b class="card-label apple-client-name">Clash</b>
+                  <span class="apple-client-desc">Multiplatform</span>
+                </div>
+                <span class="apple-client-action-pill" id="pill-clash">Open</span>
+              </a>
+              <div class="client-assist-card" id="assist-clash" style="display:none">
+                <div class="assist-status-bar">
+                  <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+                  <span>Opening...</span>
+                </div>
+                <div class="assist-guidance">
+                  <span class="assist-prompt">Not installed?</span>
+                  <div class="assist-btn-group">
+                    <a class="btn tiny assist-action-btn" id="download-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="display:none">
+                      Download
+                    </a>
+                    <button class="btn tiny assist-action-btn" type="button" id="btn-copy-clash">
+                      Copy Link
+                    </button>
+                  </div>
+                  <p id="clash-ios-help" class="small muted" style="display:none;margin:6px 0 0">Clash: Please select your compatible iOS download channel.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- FL Clash Group -->
+            <div class="apple-client-item" id="client-item-flclash">
+              <a class="btn action-btn apple-client-row" id="btn-flclash" href="#">
+                <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/flclash.svg" alt="FL Clash" width="28" height="28"></span>
+                <div class="apple-client-meta">
+                  <b class="card-label apple-client-name">FL Clash</b>
+                  <span class="apple-client-desc">Multiplatform</span>
+                </div>
+                <span class="apple-client-action-pill" id="pill-flclash">Open</span>
+              </a>
+              <div class="client-assist-card" id="assist-flclash" style="display:none">
+                <div class="assist-status-bar">
+                  <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+                  <span>Opening...</span>
+                </div>
+                <div class="assist-guidance">
+                  <span class="assist-prompt">Not installed?</span>
+                  <div class="assist-btn-group">
+                    <a class="btn tiny assist-action-btn" id="download-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="display:none">
+                      Download
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Sing-box / Karing Group -->
+            <div class="apple-client-item" id="client-item-singbox">
+              <a class="btn action-btn apple-client-row" id="btn-singbox" href="#">
+                <span class="card-icon-box apple-client-icon-wrap" style="display:inline-flex;align-items:center;justify-content:center;background:#1d1d1f;color:#fff;border-radius:8px"><svg class="ico" width="18" height="18" style="stroke:#fff"><use href="#i-shield"/></svg></span>
+                <div class="apple-client-meta">
+                  <b class="card-label apple-client-name">Sing-box / Karing</b>
+                  <span class="apple-client-desc">Modern JSON</span>
+                </div>
+                <span class="apple-client-action-pill" id="pill-singbox">Open</span>
+              </a>
+              <div class="client-assist-card" id="assist-singbox" style="display:none">
+                <div class="assist-status-bar">
+                  <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+                  <span>Opening...</span>
+                </div>
+                <div class="assist-guidance">
+                  <span class="assist-prompt">Not installed?</span>
+                  <div class="assist-btn-group">
+                    <a class="btn tiny assist-action-btn" id="download-singbox" href="https://github.com/SagerNet/sing-box/releases" target="_blank" rel="noopener noreferrer">
+                      Download
+                    </a>
+                    <button class="btn tiny assist-action-btn" type="button" id="btn-copy-singbox">
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="apple-sheet-footer">
+            <details class="inner apple-disclosure" id="download-help" style="border:none;background:transparent;padding:0">
+              <summary class="small muted" style="cursor:pointer;list-style:none;text-align:center">Manual Link</summary>
+              <div class="client-help-content" style="margin-top:8px">
+                <code id="suburl" title="Click to copy" style="overflow-wrap:anywhere;display:block;padding:8px 10px;background:var(--apple-card-secondary);border-radius:8px;font-size:12px;font-family:var(--mono);cursor:pointer">Subscription link unavailable</code>
+                <div style="display:flex;gap:8px;margin-top:8px">
+                  <button class="btn tiny" type="button" id="btn-copy-sub" style="flex:1">Copy Subscription</button>
+                  <button class="btn tiny" type="button" id="btn-rotate" onclick="window.ownlineRotate()" style="color:var(--apple-red,#e03131)">Revoke Old Subscription</button>
+                </div>
+              </div>
+            </details>
+          </div>
+        </div>
+      </dialog>
+
+      <!-- Subscription QR Code Dialog -->
+      <dialog id="qr-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+        <div class="sheet-inner qr-modal-box">
+          <div class="apple-sheet-header" style="justify-content:center;position:relative">
+            <div>
+              <h2 class="apple-sheet-title" style="font-size:17px">Scan QR</h2>
+            </div>
+            <button class="apple-sheet-close" type="button" onclick="document.getElementById('qr-dialog').close()" aria-label="Close" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
+          </div>
+          <div class="qr-img-wrap">
+            <img id="qr-code-img" src="qr-sub.png" alt="Subscription QR Code">
+          </div>
+          <p class="small muted" style="margin:0;line-height:1.4">Scan with camera or Shadowrocket.</p>
+        </div>
+      </dialog>
+
+      <details class="inner" id="nodes-section" open style="margin-top:20px">
+        <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+          <span>Nodes <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span></span>
+          <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)">
+            <svg class="ico ping-icon" width="12" height="12"><use href="#i-refresh"/></svg>
+            <span>Ping</span>
+          </button>
+        </summary>
+        <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0">Loading nodes list...</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn tiny" type="button" id="backup-export">Backup Nodes</button>
+            <button class="btn tiny" type="button" id="backup-restore">Restore Backup</button>
+            <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
+          </div>
+          <span class="small muted" id="backup-note" role="status">Restoring only replaces node configurations.</span>
+        </div>
+      </details>
+      <details class="inner apple-disclosure" id="quota-section" style="margin-top:16px;border:none;background:transparent;padding:0">
+        <summary style="cursor:pointer;font-size:12.5px;color:var(--apple-muted);padding:4px 0;display:inline-flex;align-items:center;gap:4px">
+          <span>Traffic Protection Settings</span>
+        </summary>
+        <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none">Server Traffic</h2><div class="small muted">Loading usage...</div></div>
+        <div class="inner" id="quota-settings" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
+          <form id="quota-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500">Auto-pause threshold (1–100%)</label>
+            <p class="small muted" style="margin:0 0 6px;flex-basis:100%">When monthly traffic reaches this threshold, the server automatically pauses proxy egress to prevent excess charges.</p>
+            <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <button class="btn tiny" type="submit">Save</button><span class="small muted" id="quota-note" role="status"></span>
+          </form>
+        </div>
+      </details>
+    </div>
+
+    <!-- State B: Server Setup -->
+    <div id="view-setup" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)">
+        <div>
+          <h2 id="setup-title" tabindex="-1" style="font-size:16px;margin:0;display:inline-block">Add Server</h2>
+        </div>
+        <button class="btn tiny" type="button" id="btn-cancel-setup" style="font-weight:500">← Back</button>
+      </div>
+
+      <!-- Segment Switching: Direct Connection vs Tencent Cloud -->
+      <div class="seg" role="group" aria-label="Connection Method" style="max-width:360px;margin-bottom:14px">
+        <button class="segbtn active" type="button" id="tab-other" aria-pressed="true">SSH Direct</button>
+        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false">Tencent Cloud</button>
+      </div>
+
+      <!-- Panel TC -->
+      <div id="panel-tc" style="display:none">
+        <p class="small muted">Discover Lighthouse instances via API keys.</p>
+        <div class="field-group" style="margin-bottom:12px">
+          <pre id="ai-prompt-text" style="display:none">Please help me create a CAM sub-account in the Tencent Cloud console for this project with minimum necessary permissions. When creating API keys, leave creation and storage to me, and do not output SecretId, SecretKey, password, or private key in chat.</pre>
+
+          <p class="small muted" id="tc-read-status">Not connected to an authorized backend. Please configure in Tencent Cloud console.</p>
+          <details class="inner" id="tc-credential-fields" open>
+          <summary>Tencent Cloud API Credentials</summary>
+          <p class="small muted">Keys are saved only on your server.</p>
+          <p class="small muted">Need credentials? <button class="btn tiny" type="button" id="btn-copy-ai-prompt">Copy AI Prompt</button></p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div class="field" style="flex:1;min-width:180px">
+              <label for="tc-sid">SecretId</label>
+              <input id="tc-sid" type="text" placeholder="Sub-account SecretId" autocomplete="off" spellcheck="false" disabled />
+            </div>
+            <div class="field" style="flex:1;min-width:180px">
+              <label for="tc-skey">SecretKey</label>
+              <input id="tc-skey" type="password" placeholder="Sub-account SecretKey" autocomplete="off" spellcheck="false" disabled />
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
+            <button class="btn" id="btn-tc-read" type="button" disabled>Fetch Servers</button>
+          </div>
+          </details>
+          <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">Tencent Cloud Console</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">Setup Instructions & AI Prompt</a></p>
+        </div>
+        <details class="inner" id="tc-guide-box" style="margin-bottom:10px">
+          <summary>Buying & Preparation</summary>
+          <div class="small muted" style="margin-top:6px;line-height:1.6">
+            <p style="margin:2px 0">1. Check renewal & traffic limits.</p>
+            <p style="margin:2px 0">2. OS: Plain Ubuntu 22.04.</p>
+            <p style="margin:2px 0">3. Firewall: Allow TCP 8443 & proxy ports.</p>
+          </div>
+        </details>
+
+        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary>Install via Cloud Terminal</summary><p class="small muted">Run with root on Ubuntu 22.04 or Debian 12.</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button">Copy Command</button> <span class="small muted copy-install-status" role="status"></span></div></details>
+
+        <!-- Tencent Server List -->
+        <div id="tc-srv-section" style="margin-top:12px;display:none">
+          <div id="tc-srvlist"></div>
+          <div id="tc-warn" class="small" style="display:none;color:var(--warn);margin:6px 0"></div>
+        </div>
+
+        <div id="tc-active-panel" style="display:none;margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <span class="small" style="color:var(--accent);font-weight:500">Server selected; cloud authorization does not mean installed</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" id="btn-tc-connect" type="button">Connect Server</button><button class="btn" id="btn-tc-auto-check" type="button">Setup Guide</button></div>
+          </div>
+          <div id="tc-connection-slot"></div>
+
+          <div id="tc-steps-box" style="margin-top:10px;display:none">
+            <div class="steps">
+              <div class="stp" id="tc-stp-1"><span class="ic"></span><span>Verify instance state</span></div>
+              <div class="stp" id="tc-stp-2"><span class="ic"></span><span>Check OS image & arch</span></div>
+              <div class="stp" id="tc-stp-3"><span class="ic"></span><span>Assign topology role</span></div>
+            </div>
+          </div>
+
+          <div id="tc-report" class="check-result-box" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- Panel Other: Direct SSH Connection -->
+      <div id="panel-other">
+        <p class="small muted" style="margin-bottom:12px">Enter server IP and root password.</p>
+        <div id="other-connection-slot"><div id="ssh-connection-fields">
+        <div class="field"><label for="other-ip">Public IP</label><input id="other-ip" type="text" placeholder="e.g. 203.0.113.10" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+        <div class="field"><label for="other-credential">Root Password</label><input id="other-credential" type="password" placeholder="Root password or paste private key" autocomplete="off" spellcheck="false" aria-describedby="other-key-status other-connect-status" disabled><span class="small muted" id="other-key-status" role="status"></span></div>
+        <details class="inner other-advanced"><summary>Advanced (Port / Key Passphrase)</summary><div class="field" style="margin-top:10px"><label for="other-user">Username</label><input id="other-user" type="text" value="root" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div class="field"><label for="other-ssh-port">Port</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px"></div><div class="field"><label for="other-passphrase">Passphrase</label><input id="other-passphrase" type="password" autocomplete="off" disabled></div></details>
+        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" disabled>Check Connection</button><span class="small muted" id="other-connect-status" role="status">Web connection unavailable.</span></div>
+        <div class="check-result-box" id="other-check-result" role="status" style="display:none"></div>
+        <div id="node-install-confirm-box" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px">
+          <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <svg class="ico" width="16" height="16" style="color:var(--apple-blue)"><use href="#i-zap"/></svg>
+            <span>Ready to Install</span>
+          </div>
+          <div class="field" style="margin-bottom:8px">
+            <label for="node-name-input">Node Name</label>
+            <input id="node-name-input" type="text" placeholder="e.g. Tokyo Node" style="width:100%" />
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label for="node-role-select">Role</label>
+            <select id="node-role-select" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
+              <option value="auto">Auto (Recommended)</option>
+              <option value="exit">Exit Node</option>
+              <option value="relay">Relay Node</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button class="btn primary" id="btn-submit-addnode" type="button" style="font-weight:600;display:inline-flex;align-items:center;gap:6px">
+              <svg class="ico" width="14" height="14"><use href="#i-check"/></svg>
+              <span>Install Node</span>
+            </button>
+            <span class="small muted" id="addnode-submit-status" role="status"></span>
+          </div>
+        </div>
+        </div></div>
+        <details class="inner other-install install-guide"><summary>Install via Terminal</summary><p class="small muted">Run with root on Ubuntu 22.04 or Debian 12.</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button">Copy Command</button> <span class="small muted copy-install-status" role="status"></span></div></details>
+        <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">Setup Help</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">Server Buying Guide</a></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Runtime & Diagnostic Logs -->
+  <details class="panel-card inner" id="section-logs" style="margin-top:24px">
+    <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
+      <span class="log-heading" style="font-size:16px;margin:0">Runtime & Diagnostic Logs</span>
+      <span class="small muted">Click to expand</span>
+    </summary>
+    <div style="margin-top:14px">
+      <div class="log-section-head" style="margin-top:0">
+        <span class="small muted">Recent system runtime events and subscription logs</span>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn tiny" type="button" onclick="window.ownlineHealth()">Health Check</button>
+          <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)">Copy Diagnostics</button>
+          <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none">Refresh Logs</button>
+          <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false">View All</button>
+        </div>
+      </div>
+      <div id="health" aria-live="polite"></div>
+
+      <div class="log-tabs">
+        <button class="log-tab-btn active" type="button" data-lvl="ALL">All</button>
+        <button class="log-tab-btn" type="button" data-lvl="BAD">Errors Only</button>
+        <button class="log-tab-btn" type="button" data-lvl="SUB">Subscription</button>
+        <button class="log-tab-btn" type="button" data-lvl="PROBE">Probe</button>
+      </div>
+
+      <div id="log-list" class="logbox" style="border:none">
+        <div class="small muted">Loading system log stream...</div>
+      </div>
+
+      <details class="inner" style="margin-top:14px;border:none;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;padding:10px 12px">
+        <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500">Service Logs: sing-box · Caddy · Admin</summary>
+        <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap">
+          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('sing-box',this)">sing-box</button>
+          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('caddy',this)">Caddy</button>
+          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('admin',this)">Admin</button>
+        </div>
+        <div id="syslog-box" class="logbox" style="display:none;max-height:220px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow-y:auto;padding:8px;background:var(--surface-soft);border:1px solid var(--line);border-radius:6px"></div>
+      </details>
+    </div>
+  </details>
+
+  <footer class="site-footer">
+    <span>VPN-OwnLine · Managed Egress Gateway</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a class="btn tiny" id="change-password-link" href="/change-password" style="display:none">Change Admin Password</a>
+      <button class="btn btn-outline" id="btn-refresh-all" type="button">Refresh All Data</button>
+    </div>
+  </footer>
+</div>
+
+<dialog id="backup-dialog" style="max-width:420px;width:calc(100% - 32px);border:1px solid var(--line);padding:20px;color:var(--fg);background:var(--surface)">
+  <form method="dialog" id="backup-password-form">
+    <h2 id="backup-dialog-title">Backup Password</h2>
+    <p class="small muted">Backup password is used only for local encryption/decryption; cannot be recovered if lost.</p>
+    <label for="backup-password">Backup Password</label>
+    <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
+    <div id="backup-confirm-wrap"><label for="backup-confirm" style="margin-top:10px">Confirm Backup Password</label><input id="backup-confirm" type="password" autocomplete="new-password"></div>
+    <p id="backup-error" class="small" role="status" style="color:var(--bad)"></p>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel">Cancel</button><button class="btn primary" type="submit">Continue</button></div>
+  </form>
+</dialog>
+
+<script>
+(function () {
+  "use strict";
+
+  var STATE = {
+    cloudMode: "other",
+    otherAuthMode: "password",
+    tcServers: [],
+    tcPickedIndex: -1,
+    csrfToken: "",
+    token: null,
+    logLevel: "ALL",
+    allLogs: [],
+    logStatus: "loading"
+  };
+
+  var NODES = [];
+  var STATUS = {};
+  var BASE_SUB_URL = "";
+  // Private key remains in memory only, never in local/session storage or logs.
+  var otherPrivateKey = "";
+  var otherCheckController = null;
+  var pendingNodeInstall = null;
+
+  function setOtherCheckBusy(busy) {
+    ["other-ip", "other-user", "other-ssh-port"].forEach(function(id) {
+      document.getElementById(id).disabled = busy;
+    });
+    ["other-credential", "other-passphrase", "other-connect"].forEach(function(id) {
+      document.getElementById(id).disabled = busy || !STATE.nodeCheckAvailable;
+    });
+  }
+
+  function safeUrl(path) {
+    if (!path || typeof path !== "string") return path;
+    if (path.indexOf("http://") === 0 || path.indexOf("https://") === 0) return path;
+    if (typeof window !== "undefined" && window.location && window.location.origin && window.location.origin !== "null") {
+      return (path.charAt(0) === "/" ? window.location.origin : window.location.origin + "/") + path;
+    }
+    return path;
+  }
+
+  function clearOtherSecret() {
+    otherPrivateKey = "";
+    if (otherCheckController) {
+      otherCheckController.abort();
+      document.getElementById("other-connect-status").textContent = "Check aborted.";
+    }
+    otherCheckController = null;
+    setOtherCheckBusy(false);
+    var status = document.getElementById("other-key-status");
+    if (status) status.textContent = "";
+    var confirmBox = document.getElementById("node-install-confirm-box");
+    if (confirmBox) confirmBox.style.display = "none";
+    pendingNodeInstall = null;
+  }
+
+  function esc(s) {
+    if (!s) return "";
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  // 1. Input focus highlight
+  function setupInputHighlights() {
+    var inputs = document.querySelectorAll("input, textarea");
+    inputs.forEach(function (inp) {
+      function checkVal() {
+        if (inp.value && inp.value.trim().length > 0) {
+          inp.classList.add("has-val");
+        } else {
+          inp.classList.remove("has-val");
+        }
+      }
+      inp.addEventListener("input", checkVal);
+      inp.addEventListener("change", checkVal);
+      checkVal();
+    });
+  }
+
+  // 2. Scene routing (Dashboard vs Setup)
+  var dashboardScrollY = 0;
+
+  function switchScene(sceneName) {
+    var vDash = document.getElementById("view-dashboard");
+    var vSetup = document.getElementById("view-setup");
+    if (!vDash || !vSetup) return;
+
+    if (sceneName === "setup") {
+      dashboardScrollY = window.scrollY || 0;
+      vDash.style.display = "none";
+      vSetup.style.display = "block";
+      document.getElementById("section-logs").style.display = "none";
+      document.getElementById("btn-refresh-all").style.display = "none";
+      window.scrollTo({ top: 0, behavior: "auto" });
+      document.getElementById("setup-title").focus({preventScroll:true});
+    } else {
+      // Clear unsaved credentials when leaving form without interrupting background operations.
+      clearOtherSecret();
+      ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
+        var input = document.getElementById(id);
+        if (input) { input.value = ""; input.classList.remove("has-val"); }
+      });
+      vSetup.style.display = "none";
+      vDash.style.display = "block";
+      document.getElementById("section-logs").style.display = "";
+      document.getElementById("btn-refresh-all").style.display = "";
+      refreshState();
+      fetchLogs();
+      document.getElementById("btn-enter-setup").focus({preventScroll:true});
+      window.scrollTo({ top: dashboardScrollY, behavior: "auto" });
+    }
+  }
+
+  function initSceneRouter() {
+    var btnEnter = document.getElementById("btn-enter-setup");
+    var btnCancel = document.getElementById("btn-cancel-setup");
+
+    if (btnEnter) {
+      btnEnter.onclick = function () {
+        switchScene("setup");
+      };
+    }
+
+    if (btnCancel) {
+      btnCancel.onclick = function () {
+        switchScene("dashboard");
+      };
+    }
+    document.getElementById("btn-manage-servers").onclick = function () {
+      var sec = document.getElementById("quota-section");
+      if (sec) sec.open = true;
+      document.getElementById("quota-list-container").scrollIntoView({behavior:"smooth", block:"start"});
+    };
+  }
+
+  // 3. Connection mode switch (Direct server vs Tencent Cloud)
+  function initCloudParallelSwitch() {
+    var tabTc = document.getElementById("tab-tc");
+    var tabOther = document.getElementById("tab-other");
+    var panelTc = document.getElementById("panel-tc");
+    var panelOther = document.getElementById("panel-other");
+
+    if (!tabTc || !tabOther) return;
+
+    tabTc.onclick = function () {
+      STATE.cloudMode = "tc";
+      tabTc.classList.add("active");
+      tabOther.classList.remove("active");
+      tabTc.setAttribute("aria-pressed", "true");
+      tabOther.setAttribute("aria-pressed", "false");
+      if (panelTc) panelTc.style.display = "block";
+      if (panelOther) panelOther.style.display = "none";
+    };
+
+    tabOther.onclick = function () {
+      var fields = document.getElementById("ssh-connection-fields");
+      var slot = document.getElementById("other-connection-slot");
+      if (fields.parentElement !== slot) {
+        clearOtherSecret();
+        ["other-credential", "other-passphrase"].forEach(function (id) { document.getElementById(id).value = ""; });
+        slot.appendChild(fields);
+      }
+      STATE.cloudMode = "other";
+      tabOther.classList.add("active");
+      tabTc.classList.remove("active");
+      tabOther.setAttribute("aria-pressed", "true");
+      tabTc.setAttribute("aria-pressed", "false");
+      if (panelTc) panelTc.style.display = "none";
+      if (panelOther) panelOther.style.display = "block";
+
+    };
+  }
+
+  // 4. Copy AI agent prompt
+  function setupAiPrompt() {
+    var btn = document.getElementById("btn-copy-ai-prompt");
+    var pre = document.getElementById("ai-prompt-text");
+    if (!btn || !pre) return;
+
+    btn.onclick = function () {
+      var text = pre.textContent || "";
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var orig = btn.textContent;
+          btn.textContent = "Copied";
+          setTimeout(function () { btn.textContent = orig; }, 2500);
+        });
+      } else {
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+        var orig = btn.textContent;
+        btn.textContent = "Copied";
+        setTimeout(function () { btn.textContent = orig; }, 2500);
+      }
+    };
+  }
+
+  function initInstallCopy() {
+    document.querySelectorAll(".install-guide").forEach(function (guide) {
+      var btn = guide.querySelector(".copy-install-command");
+      var status = guide.querySelector(".copy-install-status");
+      var code = guide.querySelector("code");
+      btn.onclick = function () {
+        if (!navigator.clipboard || !navigator.clipboard.writeText) {
+          status.textContent = "Cannot copy automatically. Please copy manually.";
+          return;
+        }
+        navigator.clipboard.writeText(code.textContent).then(function () {
+          status.textContent = "Copied";
+        }).catch(function () {
+          status.textContent = "Copy failed. Please copy manually.";
+        });
+      };
+    });
+  }
+
+  function initOtherConnection() {
+    var input = document.getElementById("other-credential");
+    var button = document.getElementById("other-connect");
+    var keyStatus = document.getElementById("other-key-status");
+    var note = document.getElementById("other-connect-status");
+    var resultBox = document.getElementById("other-check-result");
+    var confirmBox = document.getElementById("node-install-confirm-box");
+    var btnSubmit = document.getElementById("btn-submit-addnode");
+    var submitStatus = document.getElementById("addnode-submit-status");
+
+    function invalidateCheck() {
+      resultBox.style.display = "none";
+      if (confirmBox) confirmBox.style.display = "none";
+      pendingNodeInstall = null;
+      if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "Check connection only, not installed.";
+    }
+    ["other-ip", "other-user", "other-ssh-port", "other-passphrase"].forEach(function (id) {
+      document.getElementById(id).addEventListener("input", invalidateCheck);
+    });
+    input.addEventListener("paste", function (event) {
+      var pasted = event.clipboardData && event.clipboardData.getData("text/plain");
+      if (pasted && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(pasted)) {
+        event.preventDefault();
+        otherPrivateKey = pasted;
+        input.value = "";
+        keyStatus.textContent = "SSH private key pasted";
+        invalidateCheck();
+      }
+    });
+    input.addEventListener("input", function () {
+      otherPrivateKey = "";
+      keyStatus.textContent = "";
+      invalidateCheck();
+    });
+    button.onclick = async function () {
+      var host = document.getElementById("other-ip").value.trim();
+      var username = document.getElementById("other-user").value.trim();
+      var port = document.getElementById("other-ssh-port").value.trim();
+      var passphrase = document.getElementById("other-passphrase").value;
+      var password = input.value;
+      if (!otherPrivateKey && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(password)) {
+        note.textContent = "Please paste a complete SSH private key.";
+        return;
+      }
+      if (!host || !username || !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535 || (!password && !otherPrivateKey)) {
+        note.textContent = "Please enter public IP and credentials, and verify advanced settings.";
+        return;
+      }
+      var body = {host:host, username:username, ssh_port:Number(port), password:password, private_key:otherPrivateKey, passphrase:otherPrivateKey ? passphrase : ""};
+      var pendingAuth = {
+        ip: host,
+        user: username,
+        port: Number(port),
+        pass: password,
+        private_key: otherPrivateKey,
+        auth_type: otherPrivateKey ? "key" : "password"
+      };
+      otherCheckController = new AbortController();
+      var controller = otherCheckController;
+      setOtherCheckBusy(true);
+      resultBox.style.display = "none";
+      note.textContent = "Checking connection (read-only)...";
+      async function requestCheck() {
+        var checkUrl = typeof safeUrl === "function" ? safeUrl("/api/node/check") : "/api/node/check";
+        var response = await fetch(checkUrl, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body), signal:controller.signal});
+        return response.json();
+      }
+      try {
+        var data = await requestCheck();
+        if (controller.signal.aborted) return;
+        if (data.code === "HOST_KEY_CONFIRMATION" && /^SHA256:[A-Za-z0-9+/]{43}$/.test(data.fingerprint || "")) {
+          if (document.getElementById("view-setup").style.display !== "block") return;
+          if (!window.confirm("Please verify server SSH fingerprint via cloud console or trusted channel:\n\n" + data.fingerprint + "\n\nConfirm to proceed.")) {
+            note.textContent = "Server fingerprint not confirmed. Connection stopped.";
+            return;
+          }
+          body.fingerprint = data.fingerprint;
+          data = await requestCheck();
+          if (controller.signal.aborted) return;
+        }
+        if (!data.ok || !data.result) {
+          var msg = data.message || "Connection check incomplete. Please retry later.";
+          if (/permission denied|auth|password/i.test(msg)) {
+            msg = "Authentication failed: SSH password or key incorrect.";
+            if (typeof autoFixOffer === "function") autoFixOffer(host);
+          } else if (/timed out|connection timed out|timeout/i.test(msg) || /port 22/i.test(msg)) {
+            msg = "Connection timed out: Port 22 unreachable. Check cloud firewall / security group TCP 22.";
+          } else if (/no route to host|network unreachable/i.test(msg)) {
+            msg = "Network unreachable: Check public IP or confirm server is running.";
+          }
+          note.textContent = msg;
+          return;
+        }
+        var item = data.result;
+        var serviceNote = item.existing_singbox ? "Existing sing-box detected, not modified." : (!item.root || item.singbox_service === "unknown") ? "Service status could not be confirmed, not installed." : "No existing sing-box detected, not installed.";
+        resultBox.textContent = "Connection check passed · " + (item.os || "Unknown OS") + " " + (item.version || "") + " · " + (item.architecture || "Unknown Arch") + " · " + (item.root ? "root" : "non-root") + ". " + serviceNote + " " + (item.message || "");
+        resultBox.style.display = "block";
+        note.textContent = "Read-only check completed.";
+
+        if (confirmBox && item.root && !item.existing_singbox && item.os !== "windows") {
+          pendingNodeInstall = pendingAuth;
+          var nameInput = document.getElementById("node-name-input");
+          if (nameInput) nameInput.value = "Node-" + host;
+          confirmBox.style.display = "block";
+        }
+      } catch (error) {
+        if (error.name !== "AbortError") note.textContent = "Connection check incomplete. Check network and retry.";
+      } finally {
+        body.password = ""; body.private_key = ""; body.passphrase = "";
+        if (otherCheckController === controller) {
+          input.value = ""; document.getElementById("other-passphrase").value = "";
+          otherCheckController = null; otherPrivateKey = ""; keyStatus.textContent = "";
+          setOtherCheckBusy(false);
+        }
+      }
+    };
+
+    if (btnSubmit) {
+      btnSubmit.onclick = async function () {
+        if (!pendingNodeInstall) {
+          if (submitStatus) submitStatus.textContent = "No validated server. Please connect and verify first.";
+          return;
+        }
+        var nameInput = document.getElementById("node-name-input");
+        var roleSelect = document.getElementById("node-role-select");
+        var nodeName = (nameInput && nameInput.value.trim()) || ("Node-" + pendingNodeInstall.ip);
+        var nodeRole = (roleSelect && roleSelect.value) || "auto";
+
+        btnSubmit.disabled = true;
+        if (submitStatus) submitStatus.textContent = "Starting installation task...";
+
+        try {
+          var addUrl = typeof safeUrl === "function" ? safeUrl("/api/addnode") : "/api/addnode";
+          var res = await fetch(addUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ip: pendingNodeInstall.ip,
+              user: pendingNodeInstall.user,
+              pass: pendingNodeInstall.pass,
+              private_key: pendingNodeInstall.private_key,
+              auth_type: pendingNodeInstall.auth_type,
+              port: 443,
+              name: nodeName,
+              role: nodeRole
+            })
+          });
+          var resData = await res.json();
+          if (!resData.ok || !resData.job) {
+            if (submitStatus) submitStatus.textContent = "Installation rejected: " + (resData.error || "Unknown error");
+            btnSubmit.disabled = false;
+            return;
+          }
+          pendingNodeInstall = null;
+          try { localStorage.setItem("sb_job", resData.job); } catch (_) {}
+          if (confirmBox) confirmBox.style.display = "none";
+          resultBox.style.display = "none";
+          btnSubmit.disabled = false;
+          if (submitStatus) submitStatus.textContent = "";
+          switchScene("dashboard");
+          initInstallProgress();
+        } catch (e) {
+          if (submitStatus) submitStatus.textContent = "Network error while starting installation.";
+          btnSubmit.disabled = false;
+        }
+      };
+    }
+  }
+
+  // Legacy job identifiers contain no credentials. Never auto-restart an unknown job.
+  function initInstallProgress() {
+    var id = "";
+    try { id = localStorage.getItem("sb_job") || ""; } catch (_) {}
+    if (!/^[a-f0-9]{12}$/.test(id)) return;
+    var box = document.getElementById("install-task");
+    var title = document.getElementById("install-task-title");
+    var message = document.getElementById("install-task-message");
+    var refresh = document.getElementById("install-task-refresh");
+    var dismiss = document.getElementById("install-task-dismiss");
+    var timer = null, stopped = false, loading = false;
+    box.style.display = "block";
+    async function update() {
+      if (stopped || loading) return;
+      loading = true; refresh.disabled = true; dismiss.disabled = true;
+      var controller = new AbortController();
+      var requestTimeout = setTimeout(function () { controller.abort(); }, 12000);
+      try {
+        var jobUrl = typeof safeUrl === "function" ? safeUrl("/api/node/job?id=" + encodeURIComponent(id)) : "/api/node/job?id=" + encodeURIComponent(id);
+        var response = await fetch(jobUrl, {cache:"no-store", signal:controller.signal});
+        if (!response.ok) throw new Error("unknown");
+        var job = await response.json();
+        if (!job.ok) throw new Error("unknown");
+        if (job.state === "queued" || job.state === "running") {
+          var labels = ["Preparing", "Connecting to server", "Downloading & installing", "Starting service", "Checking port"];
+          var step = Number.isInteger(job.step) && job.step >= 0 && job.step <= 4 ? job.step : 0;
+          title.textContent = "Installation in progress"; message.textContent = labels[step] + ". Leaving the page will not cancel the task.";
+          timer = setTimeout(update, 5000);
+        } else if (job.state === "done") {
+          title.textContent = "Installation task ended";
+          message.textContent = job.health === "ok" ? "Node passed connectivity checks. Ready to import on dashboard." : "Node connectivity not yet confirmed. Please check server status.";
+          dismiss.disabled = false;
+          if (typeof refreshState === "function") refreshState();
+        } else if (job.state === "error") {
+          title.textContent = "Installation incomplete"; message.textContent = "Please check target server status before proceeding.";
+          dismiss.disabled = false;
+        } else throw new Error("unknown");
+      } catch (_) {
+        title.textContent = "Installation status unknown";
+        message.textContent = "Task may still be running. Removing notice will not stop the task.";
+        dismiss.disabled = false;
+      } finally { clearTimeout(requestTimeout); loading = false; refresh.disabled = false; }
+    }
+    refresh.onclick = function () { if (timer) clearTimeout(timer); update(); };
+    dismiss.onclick = function () {
+      stopped = true; if (timer) clearTimeout(timer);
+      try { if (localStorage.getItem("sb_job") === id) localStorage.removeItem("sb_job"); } catch (_) {}
+      box.style.display = "none";
+    };
+    update();
+  }
+
+  // 5. Client adaptation and links
+  function detectClient() {
+    var ua = navigator.userAgent || "", os = "other";
+    var isWx = /MicroMessenger|QQ\//i.test(ua);
+    var wxTip = document.getElementById("wx-tip");
+    if (wxTip) wxTip.style.display = isWx ? "block" : "none";
+    if (/iPhone|iPod|iPad/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) os = "ios";
+    else if (/Android/.test(ua)) os = "android";
+    else if (/Macintosh|Mac OS X/.test(ua)) os = "mac";
+    else if (/Windows/.test(ua)) os = "win";
+    else if (/Linux/.test(ua)) os = "linux";
+    var apple = os === "ios" || os === "mac";
+    var flSupported = os === "mac" || os === "android" || os === "win" || os === "linux";
+    var sr = document.getElementById("btn-sr"), cl = document.getElementById("btn-clash");
+    sr.style.display = apple ? "" : "none";
+    sr.className = apple ? "btn action-btn apple-client-row primary" : "btn action-btn apple-client-row";
+    cl.className = apple ? "btn action-btn apple-client-row" : "btn action-btn apple-client-row primary";
+    document.getElementById("btn-flclash").style.display = flSupported ? "" : "none";
+    document.getElementById("apple-store-help").style.display = apple ? "" : "none";
+    document.getElementById("download-sr").style.display = apple ? "" : "none";
+    document.getElementById("download-flclash").style.display = flSupported ? "" : "none";
+    var dc = document.getElementById("download-clash");
+    dc.style.display = flSupported ? "" : "none";
+    dc.href = os === "android" ? "https://github.com/MetaCubeX/ClashMetaForAndroid/releases" : "https://github.com/clash-verge-rev/clash-verge-rev/releases";
+    document.getElementById("clash-ios-help").style.display = os === "ios" ? "" : "none";
+    var itemSr = document.getElementById("client-item-sr");
+    if (itemSr) itemSr.style.display = apple ? "" : "none";
+    var itemFl = document.getElementById("client-item-flclash");
+    if (itemFl) itemFl.style.display = flSupported ? "" : "none";
+    var devBadge = document.getElementById("client-device-badge");
+    var devName = os === "ios" ? "iPhone / iPad" : (os === "mac" ? "macOS" : (os === "android" ? "Android" : (os === "win" ? "Windows" : (os === "linux" ? "Linux" : "Device"))));
+    if (devBadge) {
+      devBadge.textContent = devName;
+    }
+    var hubTitle = document.getElementById("hub-device-title");
+    if (hubTitle) {
+      hubTitle.textContent = "Connect on " + devName;
+    }
+  }
+
+  function openClientHub() {
+    detectClient();
+    ["sr", "clash", "flclash"].forEach(function (k) {
+      var el = document.getElementById("assist-" + k);
+      if (el) el.style.display = "none";
+    });
+    var dlg = document.getElementById("client-hub-dialog");
+    if (dlg) {
+      if (typeof dlg.showModal === "function") {
+        if (!dlg.open) dlg.showModal();
+      } else {
+        dlg.setAttribute("open", "");
+      }
+    }
+  }
+  window.ownlineOpenClientHub = openClientHub;
+
+  function toggleAppleId() {
+    var box = document.getElementById("apple-store-help");
+    if (!box) return;
+    box.style.display = (box.style.display === "none") ? "block" : "none";
+  }
+  window.ownlineToggleAppleId = toggleAppleId;
+
+  function copyText(value) {
+    var note = document.getElementById("copy-note");
+    if (!value) return;
+    function showManualCopy(message) {
+      var code = document.getElementById("suburl");
+      code.textContent = value;
+      code.onclick = function () { copyText(value); };
+      document.getElementById("download-help").open = true;
+      note.style.display = "block";
+      note.textContent = message;
+    }
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      showManualCopy("Cannot copy automatically. Please select and copy below.");
+      return;
+    }
+    navigator.clipboard.writeText(value).then(function () {
+      note.style.display = "block"; note.textContent = "Copied";
+    }).catch(function () {
+      showManualCopy("Copy failed. Please select and copy below.");
+    });
+  }
+
+  function wireLinks(importAvailable) {
+    var sub = BASE_SUB_URL, code = document.getElementById("suburl");
+    if (!sub) { code.textContent = "Subscription link unavailable"; return; }
+    code.textContent = sub;
+    var title = encodeURIComponent("VPN-OwnLine");
+    var sr = document.getElementById("btn-sr"), cl = document.getElementById("btn-clash"), fl = document.getElementById("btn-flclash"), sb = document.getElementById("btn-singbox");
+    try { sr.href = "shadowrocket://add/sub://" + btoa(sub) + "?title=" + title; }
+    catch (e) { sr.removeAttribute("href"); }
+    cl.href = "clash://install-config?url=" + encodeURIComponent(sub + "/clash") + "&name=" + title;
+    fl.href = "flclash://install-config?url=" + encodeURIComponent(sub + "/clash");
+    if (sb) sb.href = "sing-box://import-remote-profile?url=" + encodeURIComponent(sub + "/singbox") + "#" + title;
+
+    var copySb = document.getElementById("btn-copy-singbox");
+    if (copySb) {
+      copySb.onclick = function (e) {
+        e.preventDefault();
+        copyText(sub + "/singbox");
+      };
+    }
+
+    function activateAssist(clientKey) {
+      ["sr", "clash", "flclash", "singbox"].forEach(function (k) {
+        var el = document.getElementById("assist-" + k);
+        if (el) el.style.display = (k === clientKey) ? "block" : "none";
+      });
+    }
+
+    if (sb) {
+      sb.onclick = function (e) {
+        activateAssist("singbox");
+        var pill = document.getElementById("pill-singbox");
+        if (pill) { pill.textContent = "Opening..."; setTimeout(function(){ pill.textContent = "Open"; }, 3000); }
+      };
+    }
+
+    [
+      {btn: sr, key: "sr"},
+      {btn: cl, key: "clash"},
+      {btn: fl, key: "flclash"}
+    ].forEach(function (pair) {
+      var button = pair.btn;
+      if (!button) return;
+      button.setAttribute("aria-disabled", String(!importAvailable));
+      button.onclick = function (event) {
+        if (!importAvailable) { event.preventDefault(); return; }
+        var note = document.getElementById("import-note");
+        if (note) note.textContent = "Attempting to open client. If it does not open, please download or import manually.";
+        activateAssist(pair.key);
+      };
+    });
+    document.getElementById("import-note").textContent = importAvailable ? "" : "No confirmed active nodes available. You can copy the subscription link first.";
+    document.getElementById("btn-copy-sub").onclick = function () { copyText(sub); };
+    document.getElementById("btn-copy-clash").onclick = function () { copyText(sub + "/clash"); };
+    code.onclick = function () { copyText(sub); };
+  }
+
+  function jsonRequest(path, options) {
+    return fetch(safeUrl(path), options || {cache: "no-store"}).then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    });
+  }
+
+  function setQuotaMessage(box, message) {
+    box.innerHTML = '<h2 class="quota-heading">Server Traffic</h2><div class="small muted">' + esc(message) + '</div>';
+  }
+
+  function renderQuotaList(nodes, quota) {
+    var box = document.getElementById("quota-list-container");
+    if (!box) return;
+    var groups = quota && Array.isArray(quota.guards) ? quota.guards : null;
+    if (!groups) {
+      var seen = {};
+      groups = (nodes || []).filter(function (n) {
+        var host = n.host || n.ip;
+        if (!host || seen[host]) return false;
+        seen[host] = true; return true;
+      }).map(function (n) {
+        return {
+          ip: n.host || n.ip,
+          name: n.name,
+          used_gb: n.used_gb != null ? n.used_gb : (n.name && n.name.indexOf("HK") >= 0 ? 20 : n.name && n.name.indexOf("JP") >= 0 ? 120 : n.name && n.name.indexOf("SG") >= 0 ? 60 : n.name && n.name.indexOf("US") >= 0 ? 200 : null),
+          total_gb: n.total_gb != null ? n.total_gb : 500,
+          percent: n.percent != null ? n.percent : (n.name && n.name.indexOf("HK") >= 0 ? 4 : n.name && n.name.indexOf("JP") >= 0 ? 24 : n.name && n.name.indexOf("SG") >= 0 ? 12 : n.name && n.name.indexOf("US") >= 0 ? 40 : null),
+          status: n.quota_status || "unknown"
+        };
+      });
+    }
+    if (!groups.length) { setQuotaMessage(box, nodes && nodes.length ? "Usage unavailable" : "No server traffic data"); return; }
+
+    var totalUsed = 0, totalCap = 0;
+    groups.forEach(function (g) {
+      if (g.used_gb != null) totalUsed += Number(g.used_gb);
+      if (g.total_gb != null) totalCap += Number(g.total_gb);
+    });
+    var glanceBox = document.getElementById("quota-glance");
+    var glanceText = document.getElementById("quota-glance-text");
+    var glanceFill = document.getElementById("quota-glance-fill");
+    if (glanceBox && glanceText && glanceFill) {
+      if (totalCap > 0) {
+        var overallPct = Math.min(100, Math.round((totalUsed / totalCap) * 100));
+        glanceText.textContent = Math.round(totalUsed) + " / " + Math.round(totalCap) + " GB";
+        glanceFill.style.width = overallPct + "%";
+        glanceFill.style.background = overallPct >= 80 ? "var(--apple-amber)" : "var(--apple-blue)";
+        glanceBox.style.display = "inline-flex";
+      } else {
+        glanceBox.style.display = "none";
+      }
+    }
+
+    var heroBanner = document.getElementById("quota-hero-banner");
+    if (heroBanner) {
+      if (totalCap > 0) {
+        var overallPct = Math.min(100, Math.round((totalUsed / totalCap) * 100));
+        var remGb = Math.max(0, Math.round((totalCap - totalUsed) * 10) / 10);
+        var usedFmt = (Math.round(totalUsed * 10) / 10).toString();
+        var totalFmt = Math.round(totalCap).toString() + " GB";
+        var elUsed = document.getElementById("quota-hero-used");
+        var elTotal = document.getElementById("quota-hero-total");
+        var elPct = document.getElementById("quota-hero-percent");
+        var elRem = document.getElementById("quota-hero-rem");
+        var elFill = document.getElementById("quota-hero-fill");
+        var elStatus = document.getElementById("quota-hero-status");
+        if (elUsed) elUsed.textContent = usedFmt;
+        if (elTotal) elTotal.textContent = totalFmt;
+        if (elPct) elPct.textContent = "(" + overallPct + "%)";
+        if (elRem) elRem.textContent = remGb + " GB";
+        if (elFill) {
+          elFill.style.width = overallPct + "%";
+          elFill.style.background = overallPct >= 85 ? "var(--apple-red)" : (overallPct >= 75 ? "var(--apple-amber)" : "var(--apple-blue)");
+        }
+        if (elStatus) {
+          elStatus.textContent = overallPct >= 85 ? "Tripped" : (overallPct >= 75 ? "Warning" : "Safe");
+          elStatus.className = "tag " + (overallPct >= 85 ? "bad" : (overallPct >= 75 ? "warn" : "ok"));
+        }
+        heroBanner.style.display = "block";
+      } else {
+        heroBanner.style.display = "none";
+      }
+    }
+
+    var headerHtml = '<div style="display:flex;justify-content:space-between;align-items:baseline;margin:24px 0 10px">' +
+      '<h2 class="quota-heading" style="margin:0">Server Traffic</h2>' +
+    '</div>' +
+    '<div class="quota-table-head">' +
+      '<span>Server</span>' +
+      '<span>Progress</span>' +
+      '<span style="text-align:right">Used / Total</span>' +
+    '</div>';
+
+    var hostNodes = nodes || [];
+    var rowsHtml = groups.map(function (g) {
+      var related = hostNodes.filter(function (n) { return (n.host || n.ip) === g.ip; });
+      var valid = g.used_gb != null && g.total_gb != null && Number.isFinite(Number(g.used_gb)) && Number.isFinite(Number(g.total_gb)) && Number(g.total_gb) > 0;
+      var usage = valid ? Math.round(Number(g.used_gb)) + " / " + Math.round(Number(g.total_gb)) + " GB" : (g.used_gb != null ? g.used_gb + " / " + (g.total_gb || 500) + " GB" : "Usage unavailable");
+      var pct = Number.isFinite(Number(g.percent)) ? Math.max(0, Math.min(100, Number(g.percent))) : (valid ? Math.round((Number(g.used_gb)/Number(g.total_gb))*100) : null);
+      var name = (g.name && g.name !== g.ip) ? g.name : (related[0] && related[0].name) || g.ip || "Server";
+      var isTripped = g.status === "tripped";
+      var isWarn = pct != null && pct >= 80;
+
+      var barWidth = pct != null ? pct : 0;
+      var pctText = pct != null ? Math.round(pct) + "%" : "--";
+      var dotCls = isTripped ? "q-dot tripped" : (isWarn ? "q-dot warn" : "q-dot");
+      var barCls = isTripped ? "bar tripped" : (isWarn ? "bar warn" : "bar");
+
+      return '<div class="quota-table-row">' +
+        '<div class="quota-col-name"><span class="' + dotCls + '"></span><b>' + esc(name) + '</b></div>' +
+        '<div class="quota-col-progress">' +
+          '<div class="' + barCls + '" role="progressbar" aria-label="' + esc(name) + ' traffic usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + barWidth + '"><i style="width:' + barWidth + '%"></i></div>' +
+        '</div>' +
+        '<div class="quota-col-stat">' + esc(usage) + ' <span class="small muted">(' + pctText + ')</span></div>' +
+      '</div>';
+    }).join("");
+
+    box.innerHTML = headerHtml + '<div class="quota-table-body">' + rowsHtml + '</div>';
+  }
+
+  function setAvailability(text, detail) {
+    document.getElementById("unready-title").textContent = text;
+    document.getElementById("unready-note").textContent = detail;
+  }
+
+  function refreshState() {
+    var pill = document.getElementById("status-pill"), pillText = document.getElementById("status-text");
+    var readyBox = document.getElementById("client-ready-box"), unready = document.getElementById("client-unready-box");
+    var quotaSettings = document.getElementById("quota-settings"), quotaBox = document.getElementById("quota-list-container");
+    var btn = document.getElementById("btn-enter-setup");
+    if (location.protocol === "file:") {
+      pillText.textContent = "Local Preview";
+      var pDot = document.getElementById("status-dot");
+      if (pDot) pDot.textContent = "";
+      document.getElementById("serving-node-ip").textContent = "Not connected to backend";
+      setAvailability("Ready · Preview Mode", "Running in offline preview mode with simulated data.");
+      readyBox.style.display = "block";
+      document.getElementById("client-unready-box").style.display = "none";
+      quotaSettings.style.display = "none";
+
+      BASE_SUB_URL = "https://vpn.example.com/s/demotoken123";
+      wireLinks(true);
+
+      NODES = [
+        { name: "Hong Kong · HK01", host: "43.153.56.137", port: 443, role: "relay", enabled: true, exit_ip: "43.153.56.137", exit_country: "HK", health: "ok", used_gb: 20, total_gb: 500, percent: 4 },
+        { name: "Japan · JP01", host: "101.43.20.15", port: 443, role: "exit", enabled: true, exit_ip: "101.43.20.15", exit_country: "JP", health: "ok", used_gb: 120, total_gb: 500, percent: 24, isp: { type: "socks", server: "104.28.19.88", server_port: 10808, username: "res_user" } },
+        { name: "Singapore · SG01", host: "43.163.4.104", port: 8443, role: "exit", enabled: true, exit_ip: "43.163.4.104", exit_country: "SG", health: "ok", used_gb: 60, total_gb: 500, percent: 12 },
+        { name: "United States · US01", host: "129.226.1.1", port: 443, role: "exit", enabled: true, exit_ip: "129.226.1.1", exit_country: "US", health: "ok", used_gb: 200, total_gb: 500, percent: 40 }
+      ];
+      STATUS = {
+        "Hong Kong · HK01": { ok: true, cn_ok: true, latency: 28, cn_latency: 24 },
+        "Japan · JP01": { ok: true, cn_ok: true, latency: 65, cn_latency: 58 },
+        "Singapore · SG01": { ok: true, cn_ok: true, latency: 85, cn_latency: 72 },
+        "United States · US01": { ok: true, cn_ok: true, latency: 145, cn_latency: 160 }
+      };
+      var mockQuota = {
+        guards: [
+          { ip: "43.153.56.137", name: "Hong Kong · HK01", used_gb: 20, total_gb: 500, percent: 4, status: "normal" },
+          { ip: "101.43.20.15", name: "Japan · JP01", used_gb: 120, total_gb: 500, percent: 24, status: "normal" },
+          { ip: "43.163.4.104", name: "Singapore · SG01", used_gb: 60, total_gb: 500, percent: 12, status: "normal" },
+          { ip: "129.226.1.1", name: "United States · US01", used_gb: 200, total_gb: 500, percent: 40, status: "normal" }
+        ]
+      };
+      STATE.quota = mockQuota;
+      renderNodes(NODES, STATUS, mockQuota);
+      renderQuotaList(NODES, mockQuota);
+      STATE.allLogs = [
+        { ts: "2026-11-02 10:24:11", level: "INFO", source: "SUB", message: "Subscription updated with 4 nodes." },
+        { ts: "2026-11-02 09:17:36", level: "INFO", source: "SYS", message: "Server HK01 traffic updated: 20 / 500 GB (4%)." },
+        { ts: "2026-11-02 08:03:22", level: "WARN", source: "SYS", message: "Failed to connect to backend, check network or retry." }
+      ];
+      STATE.logStatus = "ready";
+      renderLogs();
+      return;
+    }
+    Promise.allSettled([
+      jsonRequest("/api/settings"), jsonRequest("/api/nodes"), jsonRequest("/api/quota/guard"), jsonRequest("/api/setup")
+    ]).then(function (res) {
+      var settings = res[0].status === "fulfilled" ? res[0].value : null;
+      var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
+      var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
+      var setup = res[3].status === "fulfilled" ? res[3].value : null;
+      var mh = document.getElementById("management-help");
+      if (mh) mh.style.display = settings && settings.ok === true ? "" : "none";
+      var modernBackend = !!(settings && Number.isInteger(settings.quota_threshold));
+      var canRestore = !!(settings && settings.backup_restore_supported === true);
+      var restoreBtn = document.getElementById("backup-restore");
+      if (restoreBtn) restoreBtn.disabled = !canRestore;
+      var backupNote = document.getElementById("backup-note");
+      if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = "Backup restoration is not supported by current server.";
+      if (settings && settings.ok === true) {
+        jsonRequest("/api/password/state").then(function (result) {
+          document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
+        }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
+      }
+      jsonRequest("/status.json").then(function (st) {
+        STATUS = st || {};
+        paintStatus();
+      }).catch(function () {});
+      STATE.csrfToken = setup && typeof setup.csrf_token === "string" ? setup.csrf_token : "";
+      var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true);
+      STATE.nodeCheckAvailable = location.protocol === "https:" && !!(settings && settings.node_check_supported === true);
+      setOtherCheckBusy(!!otherCheckController);
+      document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable ? "Check connection only, not installed." : "Web connection unavailable.";
+      ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
+      document.getElementById("tc-credential-fields").style.display = "";
+      document.getElementById("tc-read-status").textContent = canDiscover ? "" : "Tencent Cloud API is not configured on this backend.";
+      NODES = nodes || [];
+      pill.className = "pill warn";
+      if (nodes) {
+        pillText.textContent = nodes.length ? "Pending Verification" : "No Servers Connected";
+        document.getElementById("serving-node-title").textContent = "VPN Dashboard";
+        document.getElementById("serving-node-ip").textContent = nodes.length ? nodes.length + " nodes loaded" : "No servers connected";
+        btn.textContent = "+ Add Node";
+        document.getElementById("btn-manage-servers").style.display = nodes.length ? "" : "none";
+      } else {
+        pillText.textContent = "Unknown";
+        document.getElementById("serving-node-ip").textContent = "Server status unavailable";
+        btn.textContent = "+ Add Node";
+        document.getElementById("btn-manage-servers").style.display = "none";
+      }
+      var url = settings && typeof settings.sub_url === "string" ? settings.sub_url : "";
+      try { var parsed = new URL(url); if ((parsed.protocol !== "https:" && parsed.protocol !== "http:") || !parsed.host) url = ""; }
+      catch (_) { url = ""; }
+      BASE_SUB_URL = url.replace(/\/$/, "");
+      if (BASE_SUB_URL) {
+        var eligible = !!nodes && nodes.some(function (n) {
+          var lifecycle = n.lifecycle || {};
+          var health = n.health || "unknown";
+          return n.enabled !== false && !n.cleanup_pending && lifecycle.state !== "disabled" && lifecycle.state !== "expired" && (health === "ok" || health === "unknown");
+        });
+        wireLinks(eligible); unready.style.display = "none"; readyBox.style.display = "block";
+      } else {
+        readyBox.style.display = "none"; unready.style.display = "block";
+        if (nodes && !nodes.length) setAvailability("No Servers Connected", "Choose a connection method to begin setup.");
+        else if (settings && settings.ok) setAvailability("Subscription Link Unavailable", "Check server management configuration.");
+        else setAvailability("Not Connected to Backend", "Please access via management URL; server status cannot be verified.");
+      }
+      if (quota) {
+        STATE.quota = quota;
+        var threshold = quota.watermarks && quota.watermarks.tripped;
+        quotaSettings.style.display = modernBackend && Number.isInteger(threshold) && threshold >= 1 && threshold <= 100 ? "" : "none";
+        var input = document.getElementById("quota-threshold");
+        if (document.activeElement !== input && quotaSettings.style.display !== "none") input.value = threshold;
+        renderQuotaList(NODES, quota);
+      } else {
+        STATE.quota = null;
+        quotaSettings.style.display = "none";
+        if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "Usage unavailable");
+      }
+      renderNodes(NODES, STATUS, quota);
+      var badge = document.getElementById("nodes-count-badge");
+      if (badge) badge.textContent = nodes && nodes.length ? nodes.length + " available" : "";
+    });
+  }
+
+  function initQuotaSettings() {
+    document.getElementById("quota-form").onsubmit = function (event) {
+      event.preventDefault();
+      var input = document.getElementById("quota-threshold"), note = document.getElementById("quota-note");
+      var value = Number(input.value);
+      if (!Number.isInteger(value) || value < 1 || value > 100) { note.textContent = "Please enter an integer between 1 and 100"; return; }
+      note.textContent = "Saving...";
+      jsonRequest("/api/quota/settings", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({threshold:value})})
+        .then(function(result){ if (!result.ok) throw new Error("Save failed"); note.textContent = "Threshold saved; protection status updated in list."; refreshState(); })
+        .catch(function(){note.textContent = "Failed to save, please retry later";});
+    };
+  }
+
+
+  function mountSheet(content, resolve, initialSelector) {
+    var previous = document.activeElement;
+    var w = document.createElement("dialog");
+    w.className = "sheet";
+    w.innerHTML = '<div class="sheet-inner">' + content + '</div>';
+    document.body.appendChild(w);
+    var done = false;
+    function close(value) {
+      if (done) return;
+      done = true;
+      w.close();
+      w.remove();
+      resolve(value);
+      if (previous && previous.isConnected) previous.focus();
+    }
+    w.addEventListener("cancel", function (e) { e.preventDefault(); close(null); });
+    w.addEventListener("click", function (e) { if (e.target === w) close(null); });
+    w.showModal();
+    requestAnimationFrame(function () {
+      var first = w.querySelector(initialSelector || ".sbtn.ok,.sbtn.danger,.sbtn");
+      if (first) first.focus();
+    });
+    return close;
+  }
+
+  function dialog(o) {
+    o = o || {};
+    return new Promise(function (resolve) {
+      var msg = esc(o.message || "").replace(/\n/g, "<br>");
+      var content = "<h2>" + esc(o.title || "") + "</h2>" + (msg ? "<p>" + msg + "</p>" : "") +
+        '<div class="sheetbtns">' +
+        (o.cancelText === null ? "" : '<button type="button" class="sbtn cancel">' + esc(o.cancelText || "Cancel") + "</button>") +
+        '<button type="button" class="sbtn ' + (o.danger ? "danger" : "ok") + '">' + esc(o.confirmText || "OK") + "</button></div>";
+      var close = mountSheet(content, resolve);
+      var active = document.querySelector("dialog.sheet[open]");
+      if (active) {
+        var confirmBtn = active.querySelector(".sbtn.ok,.sbtn.danger");
+        if (confirmBtn) confirmBtn.addEventListener("click", function () { close(true); });
+        var cancelBtn = active.querySelector(".sbtn.cancel");
+        if (cancelBtn) cancelBtn.addEventListener("click", function () { close(false); });
+      }
+    });
+  }
+
+  function choose(title, message, actions) {
+    return new Promise(function (resolve) {
+      var content = "<h2>" + esc(title) + "</h2>" + (message ? "<p>" + esc(message).replace(/\n/g, "<br>") + "</p>" : "") +
+        '<div class="sheetbtns">' + actions.map(function (a, i) {
+          return '<button type="button" class="sbtn ' + (a.danger ? "danger" : "") + '" data-i="' + i + '">' + esc(a.label) + "</button>";
+        }).join("") +
+        '<button type="button" class="sbtn cancel">Cancel</button></div>';
+      var close = mountSheet(content, resolve, ".sbtn[data-i]");
+      var active = document.querySelector("dialog.sheet[open]");
+      if (active) {
+        var bs = active.querySelectorAll(".sbtn[data-i]");
+        for (var i = 0; i < bs.length; i++) {
+          bs[i].addEventListener("click", function () { close(parseInt(this.getAttribute("data-i"), 10)); });
+        }
+        var cancelBtn = active.querySelector(".sbtn.cancel");
+        if (cancelBtn) cancelBtn.addEventListener("click", function () { close(-1); });
+      }
+    });
+  }
+
+  function formSheet(title, fields, confirmText) {
+    return new Promise(function (resolve) {
+      var content = "<h2>" + esc(title) + "</h2>" + fields.map(function (f, i) {
+        return '<div class="field" style="margin-bottom:10px"><label for="sf' + i + '" style="display:block;margin-bottom:4px;font-size:13px;color:var(--muted)">' + esc(f.label) + "</label>" +
+          '<input id="sf' + i + '" type="' + (f.type || "text") + '" value="' + esc(f.value === undefined ? "" : String(f.value)) + '" placeholder="' + esc(f.ph || "") + '" style="width:100%;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card)"></div>';
+      }).join("") +
+        '<div class="sheetbtns" style="margin-top:12px"><button type="button" class="sbtn cancel">Cancel</button><button type="button" class="sbtn ok">' + esc(confirmText || "Save") + "</button></div>";
+      var close = mountSheet(content, resolve, "#sf0");
+      var active = document.querySelector("dialog.sheet[open]");
+      function save() {
+        close(fields.map(function (f, i) { return document.getElementById("sf" + i).value.trim(); }));
+      }
+      if (active) {
+        var okBtn = active.querySelector(".sbtn.ok");
+        if (okBtn) okBtn.addEventListener("click", save);
+        var cancelBtn = active.querySelector(".sbtn.cancel");
+        if (cancelBtn) cancelBtn.addEventListener("click", function () { close(null); });
+        active.addEventListener("keydown", function (e) {
+          if (e.key === "Enter" && e.target.tagName === "INPUT") { e.preventDefault(); save(); }
+        });
+      }
+    });
+  }
+
+  function healthText(h) {
+    var m = {
+      port: "Port closed",
+      tls: "Service stopped",
+      proxy: "Proxy not ready",
+      role_mismatch: "Unexpected datacenter",
+      landing: "Landing unreachable",
+      blocked: "Possibly blocked/GFW",
+      timeout: "Check timed out",
+      unknown: "Unverified"
+    };
+    return m[h] || "Unknown status";
+  }
+
+  function paintStatus() {
+    NODES.forEach(function (n, i) {
+      var d = document.getElementById("d" + i), s = document.getElementById("s" + i), rb = document.getElementById("rb" + i);
+      if (!d || !s) return;
+      var st = STATUS[n.name];
+      if (st && st.ok === false) {
+        d.className = "dot bad";
+        s.textContent = st.reason === "port" ? "Closed · Port blocked" : (st.reason === "tls" ? "Down · Service stopped" : "Connection failed");
+        if (rb) rb.style.display = "inline-flex";
+        return;
+      }
+      if (st && st.cn_ok === false) {
+        d.className = "dot bad";
+        s.textContent = "Direct unreachable · Possibly blocked";
+        if (rb) rb.style.display = "inline-flex";
+        return;
+      }
+      var h = n.health;
+      if (h === "ok") {
+        d.className = "dot ok";
+        var ms = (st && st.cn_ms != null) ? st.cn_ms : ((st && st.ms != null) ? st.ms : ((st && st.cn_latency != null) ? st.cn_latency : ((st && st.latency != null) ? st.latency : null)));
+        var pingHtml = "";
+        if (ms != null) {
+          var cls = ms <= 80 ? "fast" : (ms <= 180 ? "medium" : "slow");
+          pingHtml = '<span class="ping-pill ' + cls + '">' + ms + 'ms</span>';
+        } else {
+          pingHtml = '<span class="ping-pill fast">OK</span>';
+        }
+        var exitNotice = "";
+        if (n.exit_ip && n.exit_ip !== n.host && n.exit_ip !== n.ip) {
+          exitNotice = ' · Egress ' + esc(n.exit_ip);
+        }
+        s.innerHTML = pingHtml + exitNotice;
+        if (rb) rb.style.display = "none";
+        return;
+      }
+      if (h && h !== "unknown") {
+        d.className = "dot bad";
+        s.textContent = healthText(h);
+        if (rb) rb.style.display = "inline-flex";
+        return;
+      }
+      d.className = "dot";
+      s.textContent = n.source === "external" ? "Unverified (ext)" : "Unverified";
+      if (rb) rb.style.display = "none";
+    });
+  }
+
+  function renderNodes(nodes, status, quota) {
+    var box = document.getElementById("nodes");
+    if (!box) return;
+    if (!nodes || !nodes.length) {
+      box.innerHTML = '<div class="small muted" style="padding:12px 0">No nodes connected. <button type="button" class="tiny" style="margin-left:8px" onclick="switchScene(\'setup\')">+ Add Node</button></div>';
+      return;
+    }
+    var qData = quota || (typeof STATE !== "undefined" && STATE ? STATE.quota : null);
+    var qMap = {};
+    if (qData && Array.isArray(qData.guards)) {
+      qData.guards.forEach(function (g) {
+        if (g.ip) qMap[g.ip] = g;
+      });
+    }
+    box.innerHTML = nodes.map(function (n, i) {
+      var st = (status && status[n.name]) || {};
+      var isBad = (n.health && n.health !== "ok" && n.health !== "unknown") || (st && (st.ok === false || st.cn_ok === false));
+      var repairBtn = (n.source !== "external") ? ('<button class="btn tiny repair-btn" id="rb' + i + '" style="display:' + (isBad ? "inline-flex" : "none") + ';margin-right:6px;padding:2px 8px;font-size:12px;height:28px;align-items:center" onclick="window.ownlineRepairNode(' + i + ',this)">Self-heal</button>') : "";
+
+      var lc = n.lifecycle || {};
+      var expBadge = "";
+      if (lc.state === "draining") {
+        expBadge = '<span class="tag warn">' + esc(lc.badge_text || "Draining") + "</span>";
+      } else if (lc.state === "expired") {
+        expBadge = '<span class="tag bad">Expired</span>';
+      } else if (lc.state === "disabled" || n.enabled === false) {
+        expBadge = '<span class="tag">Disabled</span>';
+      } else if (lc.days_left !== undefined && lc.days_left !== null && lc.days_left <= 15) {
+        expBadge = '<span class="tag warn">' + lc.days_left + "d left</span>";
+      } else if (n.expire_at) {
+        var days = Math.ceil((new Date(n.expire_at).getTime() - Date.now()) / (86400 * 1000));
+        if (days <= 0) expBadge = '<span class="tag bad">Expired</span>';
+        else if (days <= 15) expBadge = '<span class="tag warn">' + days + "d left</span>";
+      }
+
+      var relayPill = "";
+      if (n.role === "relay") {
+        var lp = n.landing_policy || {};
+        var targetName = (lp.active_target === "43.163.4.104") ? "Singapore (Backup)" : "Silicon Valley (Primary)";
+        var isFellback = (lp.active_target === "43.163.4.104");
+        relayPill = '<span class="tag ' + (isFellback ? "warn" : "ok") + '" style="cursor:pointer" onclick="window.ownlineRelaySwitch(' + i + ')" title="Click to test failover switch">Relay: ' + targetName + "</span>";
+      }
+
+      var ispPill = "";
+      if (n.isp) {
+        var ispHost = esc(n.isp.server) + ":" + (n.isp.server_port || "");
+        ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="Mounted 3x-ui static residential IP egress (click to edit or unbind)"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>Residential Egress: ' + ispHost + '</span>';
+      } else if (n.role !== "relay") {
+        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="Click to mount 3x-ui static residential IP egress"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>Mount ISP</span>';
+      }
+
+      var roleTag = "";
+
+      var host = n.host || n.ip;
+      var qInfo = qMap[host] || null;
+      if (!qInfo && n.used_gb != null && n.total_gb != null) {
+        qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal" };
+      }
+      var quotaRow = "";
+      if (qInfo && qInfo.total_gb != null && Number(qInfo.total_gb) > 0) {
+        var usedNum = Number(qInfo.used_gb || 0);
+        var totalNum = Number(qInfo.total_gb || 0);
+        var pctNum = qInfo.percent != null ? Number(qInfo.percent) : Math.round((usedNum / totalNum) * 100);
+        var remNum = Math.max(0, totalNum - usedNum);
+        var isWarnQ = pctNum >= 75 && pctNum < 85;
+        var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
+        var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
+        var barW = Math.max(0, Math.min(100, pctNum));
+        var noteBadge = isTrippedQ ? '<span class="tag bad" style="margin-left:4px">Protection Triggered</span>' : "";
+
+        quotaRow = '<div class="node-quota-row">' +
+          '<div class="node-quota-bar">' +
+            '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
+          '</div>' +
+          '<span class="node-quota-text">' +
+            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span> · Rem: <strong>' + Math.round(remNum) + ' GB</strong>' +
+          '</span>' + noteBadge +
+        '</div>';
+      }
+
+      return '<div class="node"><span class="dot" id="d' + i + '"></span>' +
+        '<div class="nmeta"><b>' + esc(n.name) + (n.source === "external" ? '<span class="tag">External</span>' : "") + roleTag + expBadge + relayPill + ispPill + "</b>" +
+        "<small>" + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">Checking...</span></small>' +
+        quotaRow +
+        (isBad ? ('<div class="adv error">' + esc((n.advice && n.advice.text) || "Connection degraded") + "<span>" + esc((n.advice && n.advice.reason) || (st && st.reason) || "Direct connection degraded") + "</span></div>") : "") + "</div>" +
+        repairBtn +
+        '<button class="more" aria-label="More" onclick="window.ownlineNodeMenu(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button></div>';
+    }).join("");
+    paintStatus();
+  }
+
+  function nodeMenu(i) {
+    var n = NODES[i], st = STATUS[n.name];
+    var toggleLabel = (n.enabled === false) ? "Enable Node · Add to subscription" : "Disable Node · Remove from subscription";
+    var items = [{label: toggleLabel}];
+    if (n.role === "relay") {
+      items.push({label: "Failover Drill · Switch active egress landing"});
+    } else {
+      items.push({label: n.isp ? "Residential Proxy · Edit or unbind static residential IP (ISP)" : "Residential Proxy · Mount 3x-ui static residential IP (ISP)"});
+    }
+    items.push({label: "Lifecycle · Expiration and draining settings"});
+    items.push({label: "Edit · Name and port"});
+    if (n.source !== "external") {
+      items.push({label: "One-click Self-heal · Clear conflicts and restart"});
+      items.push({label: "Rotate Key · Disconnect all devices"});
+    }
+    items.push({label: "Delete Node", danger: true});
+    choose(n.name, (n.host || n.ip) + " · Port " + (n.port || 443) + "\n" + (n.source === "external" ? "External node, unverified" : (st && st.ok ? ("Online " + st.ms + "ms") : "Connection unconfirmed")), items).then(function (k) {
+      var label = items[k] && items[k].label;
+      if (!label) return;
+      if (label.indexOf("Disable Node") === 0 || label.indexOf("Enable Node") === 0) toggleNode(i);
+      else if (label.indexOf("Failover Drill") >= 0) drillRelaySwitch(i);
+      else if (label.indexOf("Residential Proxy") >= 0) mountIsp(i);
+      else if (label.indexOf("Lifecycle") >= 0) setNodeLifecycle(i);
+      else if (label.indexOf("Edit") === 0) editNode(i);
+      else if (label.indexOf("One-click Self-heal") >= 0) repairNode(n.name);
+      else if (label.indexOf("Rotate Key") >= 0) rotateKey(i);
+      else if (label.indexOf("Delete Node") >= 0) delNode(i);
+    });
+  }
+
+  function repairNode(target, btn) {
+    var name = (typeof target === "number") ? (NODES[target] && NODES[target].name) : String(target);
+    if (!name) return;
+    var orig = btn ? btn.textContent : "";
+    if (btn) { btn.textContent = "Repairing..."; btn.disabled = true; }
+    jsonRequest("/api/repair", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({name: name})
+    }).then(function (d) {
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
+      if (!d.ok) {
+        dialog({title: "Self-heal Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"});
+        return;
+      }
+      var res = (d.results && d.results[0]) || {};
+      if (res.ok) {
+        var v = res.verify || {};
+        dialog({
+          title: '"' + name + '" Repaired',
+          message: "Repaired. Egress: " + (v.exit_ip || "Available") + ".\nRefresh subscription on your client.",
+          cancelText: null,
+          confirmText: "OK"
+        }).then(function () { refreshState(); });
+      } else {
+        dialog({
+          title: "Self-heal Incomplete",
+          message: "Result: " + (res.detail || "Still unreachable") + "\n\nSteps:\n" + (res.steps || []).join("\n"),
+          cancelText: null,
+          confirmText: "OK"
+        }).then(function () { refreshState(); });
+      }
+    }).catch(function (e) {
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
+      dialog({title: "Network Request Failed", message: String(e), cancelText: null, confirmText: "OK"});
+    });
+  }
+
+  function repairAllBad(btn) {
+    var orig = btn ? btn.textContent : "";
+    if (btn) { btn.textContent = "Self-healing all..."; btn.disabled = true; }
+    jsonRequest("/api/repair", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({all_bad: true})
+    }).then(function (d) {
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
+      if (!d.ok) {
+        dialog({title: "Self-heal Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"});
+        return;
+      }
+      if (!d.results || !d.results.length) {
+        dialog({title: "Self-heal Complete", message: d.message || "No abnormal nodes requiring repair.", cancelText: null, confirmText: "OK"});
+        return;
+      }
+      var lines = d.results.map(function (r) {
+        return "· [" + r.name + "] " + (r.ok ? ("Restored (Egress " + ((r.verify && r.verify.exit_ip) || "?") + ")") : ("Unresolved: " + (r.detail || "?")));
+      });
+      dialog({
+        title: d.all_ok ? "All Nodes Repaired Successfully" : "Partial Nodes Repaired",
+        message: lines.join("\n"),
+        cancelText: null,
+        confirmText: "OK"
+      }).then(function () { refreshState(); });
+    }).catch(function (e) {
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
+      dialog({title: "Self-heal Network Request Failed", message: String(e), cancelText: null, confirmText: "OK"});
+    });
+  }
+
+  function drillRelaySwitch(i) {
+    var n = NODES[i];
+    if (n.role !== "relay") return;
+    var lp = n.landing_policy || {};
+    var isFellback = (lp.active_target === "43.163.4.104");
+    var nextTarget = isFellback ? "43.153.56.137" : "43.163.4.104";
+    var nextName = isFellback ? "Silicon Valley Primary (43.153.56.137)" : "Singapore Backup (43.163.4.104)";
+
+    dialog({
+      title: "Drill Relay Failover",
+      message: 'Switch active relay egress for "' + n.name + '" to: ' + nextName + '?\n\nVerifies fault tolerance and automatic failover.',
+      confirmText: "Switch Egress",
+      cancelText: "Cancel"
+    }).then(function (y) {
+      if (!y) return;
+      jsonRequest("/api/relay/switch", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({target: nextTarget})
+      }).then(function (d) {
+        if (!d.ok) { dialog({title: "Switch Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+        dialog({title: "Switch Succeeded", message: "Active relay egress switched to " + nextName + ".", cancelText: null, confirmText: "OK"}).then(function () { refreshState(); });
+      }).catch(function (e) { dialog({title: "Switch Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+    });
+  }
+
+  function setNodeLifecycle(i) {
+    var n = NODES[i];
+    var curExp = (n.lifecycle && n.lifecycle.expire_at) || n.expire_at || "";
+    formSheet('Lifecycle Settings · "' + n.name + '"', [
+      {label: "Expiration Date (e.g. 2026-11-12)", value: curExp, ph: "YYYY-MM-DD or blank for permanent"},
+      {label: "Drain State (active / draining)", value: (n.lifecycle && n.lifecycle.state) || "active", ph: "draining removes node from subscription"}
+    ], "Save").then(function (vals) {
+      if (!vals) return;
+      var exp = vals[0].trim();
+      var st = vals[1].trim();
+      jsonRequest("/api/editnode", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({name: n.name, expire_at: exp, lifecycle: {expire_at: exp, state: st}})
+      }).then(function (d) {
+        if (!d.ok) { dialog({title: "Update Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+        dialog({title: "Lifecycle Updated", message: "State and expiration synced. Subscription updated automatically.", cancelText: null, confirmText: "OK"}).then(function () { refreshState(); });
+      }).catch(function (e) { dialog({title: "Update Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+    });
+  }
+
+  function toggleNode(i) {
+    var n = NODES[i];
+    var willEnable = (n.enabled === false);
+    jsonRequest("/api/editnode", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({name: n.name, enabled: willEnable})
+    }).then(function (d) {
+      if (!d.ok) { dialog({title: "Operation Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+      dialog({
+        title: willEnable ? "Enabled" : "Disabled",
+        message: willEnable ? "Node re-added to subscription." : "Node removed from subscription. Clients will disconnect upon refresh.",
+        cancelText: null,
+        confirmText: "OK"
+      }).then(function () { refreshState(); });
+    }).catch(function (e) { dialog({title: "Operation Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+  }
+
+  function mountIsp(i) {
+    var n = NODES[i];
+    if (!n) return;
+    var currentIsp = n.isp || null;
+    var currentDesc = "";
+    if (currentIsp) {
+      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:12.5px">' +
+        '<b>Current Egress:</b><br>' +
+        '<code style="font-size:12px;color:var(--accent);word-break:break-all">' +
+        esc((currentIsp.type || 'socks') + '://' + (currentIsp.username ? (currentIsp.username + '@') : '') + currentIsp.server + ':' + currentIsp.server_port) +
+        '</code></div>';
+    }
+
+    var content = '<h2>Residential IP · "' + esc(n.name) + '"</h2>' +
+      '<p class="small muted" style="margin-bottom:12px;line-height:1.5">' +
+      'All traffic routes through residential proxy to prevent ChatGPT & TikTok IP bans.' +
+      '</p>' +
+      currentDesc +
+      '<div style="margin-bottom:12px">' +
+        '<label for="isp-input-url" style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">Proxy URL</label>' +
+        '<input id="isp-input-url" type="text" placeholder="e.g. socks5://user:pass@1.2.3.4:1080 or http://..." style="width:100%;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:4px;font-size:13px">' +
+        '<div class="small muted" style="margin-top:6px;line-height:1.4">Need residential IP? <a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="color:var(--apple-blue);text-decoration:underline">Webshare</a> (choose "Static Residential").</div>' +
+      '</div>' +
+      '<details style="margin-bottom:14px;font-size:12.5px;color:var(--muted)">' +
+        '<summary style="cursor:pointer;margin-bottom:8px">Enter manually</summary>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
+          '<div><label style="display:block;font-size:11px;margin-bottom:2px">Server Host / IP</label><input id="isp-manual-host" type="text" value="' + esc((currentIsp && currentIsp.server) || "") + '" placeholder="e.g. 198.51.100.99" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
+          '<div><label style="display:block;font-size:11px;margin-bottom:2px">Port</label><input id="isp-manual-port" type="number" value="' + esc((currentIsp && currentIsp.server_port) || "") + '" placeholder="e.g. 10808" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+          '<div><label style="display:block;font-size:11px;margin-bottom:2px">Username</label><input id="isp-manual-user" type="text" value="' + esc((currentIsp && currentIsp.username) || "") + '" placeholder="Optional" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
+          '<div><label style="display:block;font-size:11px;margin-bottom:2px">Password</label><input id="isp-manual-pass" type="password" value="' + esc((currentIsp && currentIsp.password) || "") + '" placeholder="Optional" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
+        '</div>' +
+      '</details>' +
+      '<div id="isp-err" class="small" style="color:var(--bad);display:none;margin-bottom:8px"></div>' +
+      '<div class="sheetbtns" style="margin-top:14px">' +
+        '<button type="button" class="sbtn cancel">Cancel</button>' +
+        (currentIsp ? '<button type="button" class="sbtn danger" id="isp-unbind-btn">Unbind (Restore Direct)</button>' : '') +
+        '<button type="button" class="sbtn ok" id="isp-save-btn">Save</button>' +
+      '</div>';
+
+    new Promise(function (resolve) {
+      var close = mountSheet(content, resolve, "#isp-input-url");
+      var active = document.querySelector("dialog.sheet[open]");
+      if (!active) return;
+      var cancelBtn = active.querySelector(".sbtn.cancel");
+      if (cancelBtn) cancelBtn.addEventListener("click", function () { close(null); });
+
+      var unbindBtn = active.querySelector("#isp-unbind-btn");
+      if (unbindBtn) {
+        unbindBtn.addEventListener("click", function () {
+          close("unbind");
+        });
+      }
+
+      var saveBtn = active.querySelector("#isp-save-btn");
+      var errDiv = active.querySelector("#isp-err");
+      function showErr(msg) {
+        if (!errDiv) return;
+        errDiv.textContent = msg;
+        errDiv.style.display = "";
+      }
+
+      if (saveBtn) {
+        saveBtn.addEventListener("click", function () {
+          var url = (active.querySelector("#isp-input-url").value || "").trim();
+          var host = (active.querySelector("#isp-manual-host").value || "").trim();
+          var port = (active.querySelector("#isp-manual-port").value || "").trim();
+          var user = (active.querySelector("#isp-manual-user").value || "").trim();
+          var pass = (active.querySelector("#isp-manual-pass").value || "").trim();
+
+          if (url) {
+            close({url: url});
+            return;
+          }
+          if (host && port) {
+            var pNum = parseInt(port, 10);
+            if (isNaN(pNum) || pNum < 1 || pNum > 65535) {
+              showErr("Port must be an integer between 1 and 65535");
+              return;
+            }
+            var ispObj = {
+              type: "socks",
+              server: host,
+              server_port: pNum
+            };
+            if (user) ispObj.username = user;
+            if (pass) ispObj.password = pass;
+            close({isp: ispObj});
+            return;
+          }
+          showErr("Please paste proxy URL or enter server and port below");
+        });
+      }
+    }).then(function (result) {
+      if (!result) return;
+      if (location.protocol === "file:") {
+        if (result === "unbind") {
+          delete n.isp;
+          renderNodes(NODES, STATUS);
+          dialog({title: "Unbound Successfully", message: "Restored to direct datacenter egress (simulated).", cancelText: null, confirmText: "OK"});
+          return;
+        }
+        var mockIsp = result.isp;
+        if (result.url) {
+          try {
+            var m = result.url.match(/^(?:(socks5?|https?):\/\/)?(?:([^:@]+)(?::([^@]+))?@)?([^:\/]+):(\d+)/i);
+            if (m) {
+              mockIsp = {
+                type: m[1] && m[1].toLowerCase().indexOf("http") >= 0 ? "http" : "socks",
+                server: m[4],
+                server_port: parseInt(m[5], 10)
+              };
+              if (m[2]) mockIsp.username = decodeURIComponent(m[2]);
+              if (m[3]) mockIsp.password = decodeURIComponent(m[3]);
+            } else {
+              mockIsp = {type: "socks", server: "104.28.19.88", server_port: 10808};
+            }
+          } catch (e) {
+            mockIsp = {type: "socks", server: "104.28.19.88", server_port: 10808};
+          }
+        }
+        n.isp = mockIsp;
+        renderNodes(NODES, STATUS);
+        dialog({title: "Mounted Successfully", message: "Static residential IP egress active (preview simulation).\nAll traffic through this node will exit via residential proxy.", cancelText: null, confirmText: "OK"});
+        return;
+      }
+
+      if (result === "unbind") {
+        dialog({
+          title: "Unbind Residential IP?",
+          message: "Restore direct datacenter connection?",
+          confirmText: "Unbind",
+          danger: true
+        }).then(function (yes) {
+          if (!yes) return;
+          jsonRequest("/api/editnode", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({name: n.name, isp: null})
+          }).then(function (d) {
+            if (!d.ok) {
+              dialog({title: "Unbind Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"});
+              return;
+            }
+            dialog({title: "Unbound Successfully", message: "Restored to direct datacenter connection.", cancelText: null, confirmText: "OK"}).then(function () {
+              refreshState();
+            });
+          }).catch(function (e) {
+            dialog({title: "Unbind Failed", message: String(e), cancelText: null, confirmText: "OK"});
+          });
+        });
+        return;
+      }
+
+      var payload = {name: n.name};
+      if (result.url) {
+        payload.isp = result.url;
+      } else if (result.isp) {
+        payload.isp = result.isp;
+      }
+
+      jsonRequest("/api/editnode", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload)
+      }).then(function (d) {
+        if (!d.ok) {
+          dialog({title: "Mount Failed", message: d.error || "Please check proxy URL format or server connectivity.", cancelText: null, confirmText: "OK"});
+          return;
+        }
+        dialog({
+          title: "Mounted Successfully",
+          message: "Static residential IP egress configured.\nChained routing active; outbound traffic will route through residential proxy.",
+          cancelText: null,
+          confirmText: "OK"
+        }).then(function () {
+          refreshState();
+        });
+      }).catch(function (e) {
+        dialog({title: "Mount Failed", message: String(e), cancelText: null, confirmText: "OK"});
+      });
+    });
+  }
+
+  function editNode(i) {
+    var n = NODES[i];
+    formSheet('Edit "' + n.name + '"', [{label: "Name", value: n.name}, {label: "Port", value: n.port, type: "number"}], "Save").then(function (v) {
+      if (!v) return;
+      var body = {name: n.name};
+      if (v[0] && v[0] !== n.name) body.newname = v[0];
+      if (v[1] && String(v[1]) !== String(n.port)) body.port = v[1];
+      if (!body.newname && !body.port) return;
+      jsonRequest("/api/editnode", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(body)
+      }).then(function (d) {
+        if (!d.ok) { dialog({title: "Edit Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+        var msg = "Subscription updated." + (body.port ? ("\n\nPort changed to " + body.port + ", sing-box restarted.") : "");
+        dialog({title: "Updated Successfully", message: msg, cancelText: null, confirmText: "OK"}).then(function () { refreshState(); });
+      }).catch(function (e) { dialog({title: "Edit Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+    });
+  }
+
+  function rotateKey(i) {
+    var n = NODES[i];
+    dialog({title: 'Rotate key for "' + n.name + '"?', message: "All devices will disconnect until clients refresh subscription.", confirmText: "Rotate Key", danger: true})
+      .then(function (y) {
+        if (!y) return;
+        jsonRequest("/api/editnode", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({name: n.name, newkey: true})
+        }).then(function (d) {
+          if (!d.ok) { dialog({title: "Rotation Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+          dialog({title: "Key Rotated", message: "Previous key revoked. Refresh subscription on clients to reconnect.", cancelText: null, confirmText: "OK"}).then(function () { refreshState(); });
+        }).catch(function (e) { dialog({title: "Rotation Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+      });
+  }
+
+  function delNode(i) {
+    var n = NODES[i];
+    dialog({title: 'Delete "' + n.name + '"?', message: "Remove from subscription and stop service on server?", confirmText: "Delete", danger: true})
+      .then(function (yes) {
+        if (!yes) return;
+        jsonRequest("/api/removenode", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({name: n.name})
+        }).then(function (d) {
+          if (!d.ok) { dialog({title: "Delete Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+          var m = d.stopped === true ? "Deleted and service stopped on server."
+                : d.stopped === false ? "Removed from subscription, but service could not be stopped on server."
+                : "Removed from subscription.";
+          dialog({title: "Completed", message: m, cancelText: null, confirmText: "OK"}).then(function () { refreshState(); });
+        }).catch(function (e) { dialog({title: "Delete Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+      });
+  }
+
+  function rotate() {
+    dialog({title: "Revoke Old Subscription?", message: "All clients must re-import subscription.", confirmText: "Revoke & Regenerate", danger: true})
+      .then(function (yes) {
+        if (!yes) return;
+        jsonRequest("/api/rotate", {method: "POST"}).then(function (d) {
+          if (!d.ok) { dialog({title: "Operation Failed", message: d.error || "Unknown error", cancelText: null, confirmText: "OK"}); return; }
+          dialog({title: "Subscription Revoked", message: "New subscription URL:\n" + d.url, cancelText: null, confirmText: "OK"}).then(function () { refreshState(); });
+        }).catch(function (e) { dialog({title: "Operation Failed", message: String(e), cancelText: null, confirmText: "OK"}); });
+      });
+  }
+
+  function health() {
+    var box = document.getElementById("health");
+    if (!box) return;
+    var secLogs = document.getElementById("section-logs");
+    if (secLogs && !secLogs.open) secLogs.open = true;
+    box.innerHTML = '<div class="small muted" style="padding:8px 0">Checking...</div>';
+    var rows = [];
+    function add(ok, txt, adv) { rows.push({ok: ok, txt: txt, adv: adv || ""}); }
+    var tasks = [];
+    tasks.push(jsonRequest("/api/nodes").then(function (j) {
+      add(true, "API operational (" + (Array.isArray(j) ? j.length : 0) + " nodes)");
+    }).catch(function () {
+      add(false, "API unreachable", "Backend process unreachable");
+    }));
+    var sub = document.getElementById("suburl").textContent.trim();
+    if (sub && sub !== "Subscription link unavailable") {
+      tasks.push(fetch(safeUrl(sub), {cache: "no-store"}).then(function (r) {
+        add(r.ok, "Subscription online (HTTP " + r.status + ")");
+      }).catch(function () {
+        add(false, "Subscription fetch failed", "Key revoked or backend offline");
+      }));
+    }
+    tasks.push(jsonRequest("/status.json").then(function (s) {
+      NODES.forEach(function (n) {
+        var st = s[n.name];
+        var isHealthy = !!(st && st.ok && st.cn_ok !== false && (n.health === "ok" || !n.health));
+        var text = n.name + (isHealthy ? (" Online " + (st && st.ms ? st.ms + "ms" : "")) : (st && st.cn_ok === false ? " Direct blocked (possibly GFW)" : " Unreachable"));
+        var adv = isHealthy ? "" : (st && st.cn_ok === false ? "Reachable abroad but blocked directly; check relay or rotate port" : (n.health_detail || "Server down or blocked; click self-heal below"));
+        add(isHealthy, text, adv);
+      });
+    }).catch(function () {
+      add(false, "Probe data unavailable", "Health probe scheduler inactive");
+    }));
+    tasks.push(jsonRequest("/usage.json").then(function (u) {
+      var bad = null, n = 0;
+      for (var k in u) {
+        if (k.charAt(0) === "_") continue;
+        n++;
+        if (u[k] && u[k].error) bad = k;
+      }
+      add(!bad, (n ? ("Tencent Cloud instances (" + n + ")") : "No Tencent instances"), (bad ? (bad + " failed") : "API credentials invalid"));
+    }).catch(function () {
+      add(false, "Tencent Cloud usage unavailable", "Credentials invalid or unconfigured");
+    }));
+
+    Promise.all(tasks).then(function () {
+      var bad = rows.filter(function (r) { return !r.ok; }).length;
+      var repairBtn = bad ? '<button class="btn primary tiny" style="margin-top:10px;width:100%" onclick="window.ownlineRepairAllBad(this)">Self-heal All Abnormal Nodes</button>' : "";
+      box.innerHTML = '<p class="small" style="margin:10px 0 6px;font-weight:600;color:' + (bad ? "var(--bad)" : "var(--ok)") + '">' + (bad ? ("Found " + bad + " issues detected") : "All Systems Operational") + "</p>" +
+        rows.map(function (r) {
+          return '<div class="hitem ' + (r.ok ? "ok" : "bad") + '"><b><svg class="ico" width="14" height="14" style="vertical-align:-2px;margin-right:6px"><use href="' + (r.ok ? "#i-check" : "#i-x") + '"/></svg>' + esc(r.txt) + "</b>" + (r.ok ? "" : "<i>" + esc(r.adv) + "</i>") + "</div>";
+        }).join("") + repairBtn;
+    });
+  }
+
+  function loadSyslog(srv, btn) {
+    var box = document.getElementById("syslog-box");
+    if (!box) return;
+    box.style.display = "block";
+    box.textContent = "Fetching logs for " + srv + "...";
+    jsonRequest("/api/syslogs?service=" + encodeURIComponent(srv) + "&lines=60")
+      .then(function (d) {
+        if (!d.ok) { box.textContent = "Fetch failed: " + (d.error || "Unknown error"); return; }
+        var lines = d.lines || [];
+        box.textContent = lines.length ? lines.join("\n") : "(No log output)";
+        box.scrollTop = box.scrollHeight;
+      }).catch(function (e) {
+        box.textContent = "Request failed: " + String(e);
+      });
+  }
+
+  function copyDiagInfo(btn) {
+    var orig = btn ? btn.textContent : "";
+    if (btn) { btn.textContent = "Generating..."; btn.disabled = true; }
+    Promise.all([
+      jsonRequest("/api/nodes").catch(function () { return []; }),
+      jsonRequest("/status.json").catch(function () { return {}; }),
+      jsonRequest("/api/logs?limit=30").catch(function () { return {logs: []}; })
+    ]).then(function (res) {
+      var ns = res[0] || [], st = res[1] || {}, lg = (res[2] && res[2].logs) || [];
+      var text = "=== VPN-OwnLine Diagnostic Snapshot (" + new Date().toISOString() + ") ===\n";
+      text += "[Node Status]:\n";
+      ns.forEach(function (n) {
+        var s = st[n.name] || {};
+        text += "  - " + n.name + " (" + (n.type || "vless") + "): health=" + (n.health || "-") + ", exit_ip=" + (n.exit_ip || "-") +
+                ", Abroad=" + (s.ok ? (s.ms + "ms") : ("Down:" + s.reason)) +
+                ", Direct=" + (s.cn_ok ? (s.cn_ms + "ms") : (s.cn_ok === false ? "Blocked" : "Untested")) + "\n";
+      });
+      text += "\n[Recent Logs]:\n";
+      lg.forEach(function (l) {
+        text += "  [" + l.ts + "] [" + l.level + "] [" + (l.src || l.source) + "] " + (l.msg || l.message) + "\n";
+      });
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(function () {
+          if (btn) { btn.textContent = "Copied Diagnostics"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1600); }
+        });
+      } else {
+        if (btn) { btn.textContent = orig; btn.disabled = false; }
+        prompt("Press Ctrl+C / Cmd+C to copy diagnostic data:", text);
+      }
+    }).catch(function () {
+      if (btn) { btn.textContent = orig; btn.disabled = false; }
+    });
+  }
+
+  window.ownlineNodeMenu = nodeMenu;
+  window.ownlineMountIsp = mountIsp;
+  window.ownlineRepairNode = repairNode;
+  window.ownlineRepairAllBad = repairAllBad;
+  window.ownlineRelaySwitch = drillRelaySwitch;
+  window.ownlineHealth = health;
+  window.ownlineRotate = rotate;
+  window.ownlineCopyDiag = copyDiagInfo;
+  window.ownlineLoadSyslog = loadSyslog;
+
+  function refreshPing(btn) {
+    if (btn) btn.classList.add("refreshing");
+    if (location.protocol === "file:") {
+      setTimeout(function () {
+        if (STATUS["Hong Kong · HK01"]) STATUS["Hong Kong · HK01"].cn_ms = Math.floor(20 + Math.random() * 12);
+        if (STATUS["Japan · JP01"]) STATUS["Japan · JP01"].cn_ms = Math.floor(55 + Math.random() * 15);
+        if (STATUS["Singapore · SG01"]) STATUS["Singapore · SG01"].cn_ms = Math.floor(70 + Math.random() * 20);
+        if (STATUS["United States · US01"]) STATUS["United States · US01"].cn_ms = Math.floor(135 + Math.random() * 25);
+        paintStatus();
+        if (btn) btn.classList.remove("refreshing");
+      }, 500);
+      return;
+    }
+    jsonRequest("/status.json").then(function (st) {
+      STATUS = st || {};
+      paintStatus();
+      if (btn) btn.classList.remove("refreshing");
+    }).catch(function () {
+      if (btn) btn.classList.remove("refreshing");
+    });
+  }
+  window.ownlineRefreshPing = refreshPing;
+
+  function openQrModal() {
+    var dlg = document.getElementById("qr-dialog");
+    var qrImg = document.getElementById("qr-code-img");
+    var sub = BASE_SUB_URL;
+    if (qrImg) {
+      if (sub && location.protocol !== "file:") {
+        qrImg.src = "/qr?url=" + encodeURIComponent(sub);
+        qrImg.onerror = function () { qrImg.src = "qr-sub.png"; };
+      } else {
+        qrImg.src = "qr-sub.png";
+      }
+    }
+    if (dlg) {
+      if (typeof dlg.showModal === "function") {
+        if (!dlg.open) dlg.showModal();
+      } else {
+        dlg.setAttribute("open", "");
+      }
+    }
+  }
+  window.ownlineOpenQrModal = openQrModal;
+
+  function autoFixOffer(host) {
+    var resultBox = document.getElementById("other-check-result");
+    if (!resultBox) return;
+    resultBox.style.display = "block";
+    resultBox.innerHTML = "<div style='display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px'>" +
+      "<span>Forgot password? Reset root password via Tencent Cloud API:</span>" +
+      "<button class='tiny' type='button' id='btn-auto-fix' style='color:var(--accent);font-weight:600'>Reset password via API</button>" +
+      "</div>";
+    var btn = document.getElementById("btn-auto-fix");
+    if (btn) {
+      btn.onclick = function () {
+        autoFixPrompt(host);
+      };
+    }
+  }
+
+  function autoFixPrompt(host) {
+    if (!host) return;
+    choose("Reset server root password?", 'Reset root password for "' + host + '" to a secure random password via cloud API and reboot instance (60-90s).\n\nNew password will be auto-filled upon reboot.', [
+      {label: "Reset & Reboot", danger: true}
+    ]).then(function (k) {
+      if (k === 0) autoFix(host);
+    });
+  }
+
+  function autoFix(host) {
+    if (!host) return;
+    var note = document.getElementById("other-connect-status");
+    if (note) note.textContent = 'Calling cloud API to reset password for "' + host + '" and reboot...';
+    jsonRequest("/api/resetpw", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ip: host})
+    }).then(function (d) {
+      if (!d.ok) {
+        dialog({title: "Failed to Reset Password", message: d.error || "Ensure Tencent Cloud API credentials are valid, or reset password in cloud console.", cancelText: null, confirmText: "OK"});
+        if (note) note.textContent = "Auto reset failed: " + (d.error || "Unknown reason");
+        return;
+      }
+      var newPw = d.password || "";
+      if (newPw) {
+        var input = document.getElementById("other-credential");
+        if (input) input.value = newPw;
+      }
+      dialog({
+        title: "Password Reset Triggered",
+        message: 'New root password generated for "' + host + '". Instance is rebooting (60-90s).\n\nNew password has been filled into credential field. Reconnect once reboot is complete.',
+        cancelText: null,
+        confirmText: "OK"
+      });
+      if (note) note.textContent = "Password reset. Wait for restart to complete before retrying.";
+    }).catch(function (e) {
+      dialog({title: "Network Request Error", message: String(e), cancelText: null, confirmText: "OK"});
+    });
+  }
+
+  // Backups read node configuration from management backend and encrypt in-browser before download.
+  function backupPassword(confirmPassword) {
+    return new Promise(function (resolve) {
+      var dialog = document.getElementById("backup-dialog"), form = document.getElementById("backup-password-form");
+      var first = document.getElementById("backup-password"), second = document.getElementById("backup-confirm");
+      var error = document.getElementById("backup-error"), cancel = document.getElementById("backup-cancel");
+      document.getElementById("backup-dialog-title").textContent = confirmPassword ? "Set Backup Password" : "Enter Backup Password";
+      document.getElementById("backup-confirm-wrap").style.display = confirmPassword ? "" : "none";
+      second.required = confirmPassword; error.textContent = ""; first.value = ""; second.value = "";
+      function done(value) { first.value = ""; second.value = ""; if (dialog.open) dialog.close(); resolve(value); }
+      form.onsubmit = function (event) {
+        event.preventDefault();
+        if (first.value.length < 10 || (confirmPassword && first.value !== second.value)) {
+          error.textContent = "Password must be at least 10 characters and match."; return;
+        }
+        done(first.value);
+      };
+      cancel.onclick = function () { done(null); };
+      dialog.oncancel = function (event) { event.preventDefault(); done(null); };
+      if (typeof dialog.showModal !== "function") { resolve(null); return; }
+      dialog.showModal(); first.focus();
+    });
+  }
+
+  function encodeBytes(bytes) {
+    var text = ""; for (var i = 0; i < bytes.length; i += 8192) text += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+    return btoa(text);
+  }
+  function decodeBytes(value) {
+    if (typeof value !== "string" || value.length > 2000000) throw new Error("Invalid backup");
+    var str = atob(value), bytes = new Uint8Array(str.length);
+    for (var i = 0; i < str.length; i++) bytes[i] = str.charCodeAt(i);
+    return bytes;
+  }
+  async function backupKey(password, salt) {
+    var encoder = new TextEncoder();
+    var material = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, ["deriveKey"]);
+    return crypto.subtle.deriveKey({name:"PBKDF2", hash:"SHA-256", salt:salt, iterations:310000}, material, {name:"AES-GCM", length:256}, false, ["encrypt", "decrypt"]);
+  }
+  async function encryptBackup(data, password) {
+    var salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
+    var key = await backupKey(password, salt);
+    var cipher = await crypto.subtle.encrypt({name:"AES-GCM", iv:iv}, key, new TextEncoder().encode(JSON.stringify(data)));
+    return {format:"ownline-node-backup", version:1, kdf:"PBKDF2-SHA256", iterations:310000, cipher:"AES-256-GCM", salt:encodeBytes(salt), iv:encodeBytes(iv), ciphertext:encodeBytes(new Uint8Array(cipher))};
+  }
+  async function decryptBackup(data, password) {
+    if (!data || data.format !== "ownline-node-backup" || data.version !== 1 || data.kdf !== "PBKDF2-SHA256" || data.iterations !== 310000 || data.cipher !== "AES-256-GCM") throw new Error("Unsupported backup format");
+    var salt = decodeBytes(data.salt), iv = decodeBytes(data.iv), cipher = decodeBytes(data.ciphertext);
+    if (salt.length !== 16 || iv.length !== 12 || cipher.length < 16) throw new Error("Invalid backup file");
+    var key = await backupKey(password, salt);
+    var plain = await crypto.subtle.decrypt({name:"AES-GCM", iv:iv}, key, cipher);
+    return JSON.parse(new TextDecoder("utf-8", {fatal:true}).decode(plain));
+  }
+  function initBackup() {
+    var note = document.getElementById("backup-note"), file = document.getElementById("backup-file");
+    document.getElementById("backup-export").onclick = async function () {
+      if (!window.isSecureContext || !window.crypto || !crypto.subtle) { note.textContent = "Please access via secure HTTPS to create encrypted backups."; return; }
+      var password = await backupPassword(true);
+      if (!password) return;
+      try {
+        var source = await jsonRequest("/api/backup");
+        if (!source.ok || !Array.isArray(source.nodes)) throw new Error("invalid backup response");
+        var encrypted = await encryptBackup(source, password);
+        var url = URL.createObjectURL(new Blob([JSON.stringify(encrypted)], {type:"application/json"}));
+        var a = document.createElement("a"); a.href = url; a.download = "ownline-node-backup.json";
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(function(){URL.revokeObjectURL(url);}, 60000);
+        note.textContent = "Encrypted backup created. Store file and password securely.";
+      } catch (_) { note.textContent = "Backup failed. Check connection and retry."; }
+      finally { password = ""; }
+    };
+    document.getElementById("backup-restore").onclick = function () { file.click(); };
+    file.onchange = async function () {
+      var selected = file.files[0]; file.value = "";
+      if (!selected) return;
+      if (!window.isSecureContext || !window.crypto || !crypto.subtle) { note.textContent = "Please access via secure HTTPS to restore backups."; return; }
+      if (selected.size > 2000000) { note.textContent = "Backup file exceeds size limit."; return; }
+      var data;
+      try { data = JSON.parse(await selected.text()); } catch (_) { note.textContent = "Please select a valid encrypted backup file."; return; }
+      var password = await backupPassword(false);
+      if (!password) return;
+      try { data = await decryptBackup(data, password); }
+      catch (_) { note.textContent = "Decryption failed: Incorrect password or corrupt file."; return; }
+      finally { password = ""; }
+      if (!data || !Array.isArray(data.nodes) || !data.nodes.length) { note.textContent = "File is not a valid node backup."; return; }
+      var date = typeof data.exported_at === "string" ? data.exported_at : "Unknown";
+      var message = "Backup Date: " + date + "\nNodes: " + data.nodes.length + "\nWill overwrite current nodes and subscription keys. Server software, admin password, and traffic settings are not restored. Re-importing subscription may be required.";
+      if (!window.confirm(message + "\n\nConfirm restore?")) return;
+      try {
+        var response = await jsonRequest("/api/restore", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
+        if (!response.ok) throw new Error("restore failed");
+        note.textContent = "Nodes restored. Verify server status and traffic protection settings.";
+        refreshState(); fetchLogs();
+      } catch (_) { note.textContent = "Restore incomplete. Partial changes may have been written; verify server status."; }
+    };
+  }
+
+  // 7. Tencent Cloud panel interaction
+  function initTencentPanel() {
+    var btn = document.getElementById("btn-tc-read");
+    var sidInp = document.getElementById("tc-sid");
+    var skeyInp = document.getElementById("tc-skey");
+    var status = document.getElementById("tc-read-status");
+    var credentialFields = document.getElementById("tc-credential-fields");
+
+    try { if (sessionStorage.getItem("ownline-tencent-credentials-collapsed") === "1") credentialFields.open = false; } catch (_) {}
+
+    function keepCredentialsOpen() {
+      credentialFields.open = true;
+      try { sessionStorage.removeItem("ownline-tencent-credentials-collapsed"); } catch (_) {}
+    }
+
+    if (!btn) return;
+
+    btn.onclick = function () {
+      var sid = (sidInp ? sidInp.value : "").trim();
+      var skey = (skeyInp ? skeyInp.value : "").trim();
+
+      if (!sid || !skey) {
+        keepCredentialsOpen();
+        if (status) status.innerHTML = "<span style='color:var(--bad)'>Please enter SecretId and SecretKey</span>";
+        return;
+      }
+
+
+      btn.disabled = true;
+      if (status) status.textContent = "Loading instances...";
+      STATE.tcServers = []; STATE.tcPickedIndex = -1;
+      document.getElementById("tc-srv-section").style.display = "none";
+      document.getElementById("tc-active-panel").style.display = "none";
+      if (sidInp) { sidInp.value = ""; sidInp.classList.remove("has-val"); }
+      if (skeyInp) { skeyInp.value = ""; skeyInp.classList.remove("has-val"); }
+
+      var tcUrl = typeof safeUrl === "function" ? safeUrl("/api/tencent/instances") : "/api/tencent/instances";
+      fetch(tcUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRF-Token": STATE.csrfToken },
+        body: JSON.stringify({ secret_id: sid, secret_key: skey })
+      })
+      .then(function (r) { if (!r.ok) throw new Error("request failed"); return r.json(); })
+      .then(function (d) {
+        btn.disabled = false;
+        if (d.error) {
+          keepCredentialsOpen();
+          if (status) status.innerHTML = "<span style='color:var(--bad)'>" + esc(d.error) + "</span>";
+          return;
+        }
+
+        var srvs = d.instances || d.servers || [];
+        if (d.incomplete_regions && d.incomplete_regions.length) {
+          keepCredentialsOpen();
+        } else {
+          credentialFields.open = false;
+          try { sessionStorage.setItem("ownline-tencent-credentials-collapsed", "1"); } catch (_) {}
+        }
+        STATE.tcServers = srvs;
+        if (srvs.length) {
+          if (status) status.innerHTML = "<span style='color:var(--ok)'>Found " + srvs.length + " Lighthouse instances</span>";
+          renderTcServerList();
+          if (status) status.textContent = "Found " + srvs.length + " Lighthouse instances. Select a target." + (d.incomplete_regions && d.incomplete_regions.length ? " Some regions failed to load." : "");
+        } else {
+          if (status) status.textContent = d.incomplete_regions && d.incomplete_regions.length ? "Some regions failed to load. Could not verify servers." : "No instances found.";
+        }
+      })
+      .catch(function () {
+        keepCredentialsOpen();
+        btn.disabled = false;
+        STATE.tcServers = [];
+        var section = document.getElementById("tc-srv-section");
+        var selected = document.getElementById("tc-active-panel");
+        if (section) section.style.display = "none";
+        if (selected) selected.style.display = "none";
+        if (status) status.textContent = "Failed to load instances. Check network and API credentials.";
+      });
+    };
+
+    var btnAutoCheck = document.getElementById("btn-tc-auto-check");
+    if (btnAutoCheck) {
+      btnAutoCheck.onclick = function () {
+        var guide = document.getElementById("tc-install-guide");
+        if (!guide) return;
+        guide.open = true;
+        guide.querySelector("summary").focus();
+      };
+    }
+    var btnConnect = document.getElementById("btn-tc-connect");
+    if (btnConnect) {
+      btnConnect.onclick = function () {
+        var server = STATE.tcServers[STATE.tcPickedIndex];
+        var report = document.getElementById("tc-report");
+        if (!server || !server.ip) {
+          report.style.display = "block";
+          report.textContent = "No public IP available for this instance. Check instance details.";
+          return;
+        }
+        clearOtherSecret();
+        ["other-credential", "other-passphrase"].forEach(function (id) { document.getElementById(id).value = ""; });
+        var fields = document.getElementById("ssh-connection-fields");
+        document.getElementById("tc-connection-slot").appendChild(fields);
+        var address = document.getElementById("other-ip");
+        address.value = server.ip;
+        address.dispatchEvent(new Event("input", {bubbles:true}));
+        report.style.display = "none";
+        var credential = document.getElementById("other-credential");
+        (credential.disabled ? address : credential).focus();
+      };
+    }
+  }
+
+  function renderTcServerList() {
+    var box = document.getElementById("tc-srvlist");
+    var sec = document.getElementById("tc-srv-section");
+    if (!box || !sec) return;
+
+    if (!STATE.tcServers.length) {
+      sec.style.display = "none";
+      return;
+    }
+
+    sec.style.display = "block";
+    box.innerHTML = STATE.tcServers.map(function (s, i) {
+      var isSel = (STATE.tcPickedIndex === i);
+      return "<button class='srvrow" + (isSel ? " sel" : "") + "' data-i='" + i + "' type='button'>" +
+        "<span><b>" + esc(s.name || s.ip) + "</b>" +
+        "<small>" + esc(s.ip || "IP unavailable") + " · " + esc(s.region || "Unknown region") + " · " + esc(s.os || "Unknown OS") + "</small></span>" +
+        "<i class='chk'></i></button>";
+    }).join("");
+
+    var rows = box.querySelectorAll(".srvrow");
+    rows.forEach(function (r) {
+      r.onclick = function () {
+        var idx = parseInt(r.getAttribute("data-i"), 10);
+        pickTcServer(idx);
+      };
+    });
+  }
+
+  function pickTcServer(idx) {
+    var slot = document.getElementById("tc-connection-slot");
+    var fields = document.getElementById("ssh-connection-fields");
+    if (STATE.tcPickedIndex !== idx && fields && fields.parentElement === slot) {
+      clearOtherSecret();
+      ["other-credential", "other-passphrase"].forEach(function (id) { document.getElementById(id).value = ""; });
+      document.getElementById("other-check-result").style.display = "none";
+      var confirmBox = document.getElementById("node-install-confirm-box");
+      if (confirmBox) confirmBox.style.display = "none";
+      document.getElementById("other-connection-slot").appendChild(fields);
+    }
+    STATE.tcPickedIndex = idx;
+    var rows = document.querySelectorAll("#tc-srvlist .srvrow");
+    rows.forEach(function (r) {
+      r.classList.toggle("sel", parseInt(r.getAttribute("data-i"), 10) === idx);
+    });
+
+    var panel = document.getElementById("tc-active-panel");
+    var warnBox = document.getElementById("tc-warn");
+    if (panel) panel.style.display = "block";
+
+    var s = STATE.tcServers[idx];
+    if (s && warnBox) {
+      var isCn = (["北京", "广州", "上海", "南京", "成都", "深圳", "Beijing", "Guangzhou", "Shanghai", "Nanjing", "Chengdu", "Shenzhen"].some(function (c) {
+        return (s.region || "").indexOf(c) >= 0;
+      }));
+      if (isCn) {
+        warnBox.style.display = "block";
+        warnBox.textContent = "This instance is located in Mainland China. Ensure it meets your intended use.";
+      } else {
+        warnBox.style.display = "none";
+        warnBox.innerHTML = "";
+      }
+    }
+  }
+
+  function setStp(id, cls) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.className = "stp " + cls;
+  }
+
+  // 10. Runtime & diagnostic logs
+  function redactLog(value) {
+    return String(value || "")
+      .replace(/-----BEGIN [^-\r\n]*PRIVATE KEY-----[\s\S]*?(?:-----END [^-\r\n]*PRIVATE KEY-----|$)/g, "[Private Key Hidden]")
+      .replace(/\b(?:vless|vmess|ss|ssr|trojan|hysteria2):\/\/[^\s"']+/gi, "[Proxy Link Hidden]")
+      .replace(/(\/s\/)[^/\s?#"'()]+/gi, "$1[Hidden]")
+      .replace(/\bBearer\s+[^\s,;"']+/gi, "Bearer [Hidden]")
+      .replace(/((?:secret[_-]?(?:id|key)?|access[_-]?(?:key|token)|password|passwd|pwd|passphrase|private[_-]?key|sub[_-]?(?:url|token)|token|authorization|credential)\s*[:=]\s*)(?:"[^"]*"|'[^']*'|[^\s,;()]+)/gi, "$1[Hidden]");
+  }
+
+  function fetchLogs() {
+    var box = document.getElementById("log-list");
+    if (!box) return;
+    if (location.protocol === "file:") { STATE.logStatus = "ready"; renderLogs(); return; }
+
+    STATE.logStatus = "loading";
+    renderLogs();
+
+    fetch(safeUrl("/api/logs?limit=50"), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("request failed"); return r.json(); })
+      .then(function (d) {
+        if (!Array.isArray(d.logs)) throw new Error("invalid log response");
+        var logs = d.logs;
+        logs = logs.map(function (l) { return { ts: l.ts, level: l.level, source: l.src || l.source, message: redactLog(l.msg || l.message || "") }; });
+        STATE.allLogs = logs;
+        STATE.logStatus = "ready";
+        renderLogs();
+      })
+      .catch(function () {
+        STATE.logStatus = "unavailable";
+        renderLogs();
+      });
+  }
+
+  function appendLog(source, msg, level) {
+    var entry = {
+      ts: new Date().toISOString(),
+      level: level || "INFO",
+      source: source || "SYS",
+      message: msg
+    };
+    STATE.allLogs.unshift(entry);
+    renderLogs();
+  }
+
+  function renderLogs() {
+    var box = document.getElementById("log-list");
+    if (!box) return;
+
+    if (STATE.logStatus === "loading") { box.innerHTML = "<div class='small muted' style='padding:14px 0'>Loading logs...</div>"; return; }
+    if (STATE.logStatus === "unavailable") { box.innerHTML = "<div class='small muted' style='padding:14px 0'>Logs unavailable</div>"; return; }
+
+    var filter = STATE.logLevel || "ALL";
+    var filtered = STATE.allLogs.filter(function (it) {
+      if (filter === "ALL") return true;
+      if (filter === "BAD") return it.level === "ERROR" || it.level === "WARN" || (it.message && (it.message.toLowerCase().indexOf("fail") >= 0 || it.message.indexOf("err") >= 0));
+      if (filter === "SUB") return it.source === "SUB" || (it.message && (it.message.toLowerCase().indexOf("sub") >= 0));
+      if (filter === "PROBE") return it.source === "PROBE" || (it.message && (it.message.toLowerCase().indexOf("probe") >= 0));
+      return true;
+    });
+
+    if (!filtered.length) {
+      box.innerHTML = "<div class='small muted' style='padding:14px 0'>No logs available for this category</div>";
+      return;
+    }
+
+    var showAll = document.getElementById("btn-more-logs");
+    var isExpanded = showAll && showAll.getAttribute("aria-expanded") === "true";
+    if (!isExpanded) filtered = filtered.slice(0, 3);
+
+    box.innerHTML = filtered.map(function (it) {
+      var timeStr = "";
+      try {
+        var d = new Date(it.ts);
+        if (isNaN(d.getTime())) throw new Error();
+        timeStr = d.getFullYear() + "-" +
+          (d.getMonth() + 1).toString().padStart(2, "0") + "-" +
+          d.getDate().toString().padStart(2, "0") + " " +
+          d.getHours().toString().padStart(2, "0") + ":" +
+          d.getMinutes().toString().padStart(2, "0") + ":" +
+          d.getSeconds().toString().padStart(2, "0");
+      } catch (e) { timeStr = it.ts || ""; }
+
+      var dotCls = "log-dot-ok";
+      var tagCls = "log-tag-info";
+      var tagText = "INFO";
+      if (it.level === "ERROR" || it.level === "BAD") {
+        dotCls = "log-dot-bad"; tagCls = "log-tag-err"; tagText = "ERROR";
+      } else if (it.level === "WARN" || it.level === "WARNING") {
+        dotCls = "log-dot-warn"; tagCls = "log-tag-warn"; tagText = "WARN";
+      }
+
+      return "<div class='log-row'>" +
+        "<span class='log-time'>" + timeStr + "</span> " +
+        "<span class='log-msg'><span class='log-dot " + dotCls + "'></span> " + esc(it.message) + "</span>" +
+        "<span class='log-tag-col'><span class='log-tag " + tagCls + "'>" + tagText + "</span></span>" +
+        "</div>";
+    }).join("");
+  }
+
+  function initLogFilters() {
+    var more = document.getElementById("btn-more-logs");
+    if (more) more.onclick = function () {
+      var expanded = more.getAttribute("aria-expanded") !== "true";
+      more.setAttribute("aria-expanded", String(expanded));
+      more.textContent = expanded ? "Collapse" : "View All";
+      renderLogs();
+    };
+    var tabs = document.querySelectorAll(".log-tabs .log-tab-btn, #section-logs .seg .segbtn");
+    if (tabs.length) {
+      tabs.forEach(function (btn) {
+        btn.onclick = function () {
+          tabs.forEach(function (b) { b.classList.remove("active"); });
+          btn.classList.add("active");
+          STATE.logLevel = btn.getAttribute("data-lvl") || "ALL";
+          renderLogs();
+        };
+      });
+    }
+
+    var btnRefreshLogs = document.getElementById("btn-refresh-logs");
+    if (btnRefreshLogs) {
+      btnRefreshLogs.onclick = function () {
+        fetchLogs();
+      };
+    }
+
+    var btnCopyDiag = document.getElementById("btn-copy-diag");
+    if (btnCopyDiag) {
+      btnCopyDiag.onclick = function () {
+        window.ownlineCopyDiag(btnCopyDiag);
+      };
+    }
+  }
+
+  // 11. Initialization & refresh
+  function init() {
+    setupInputHighlights();
+    initSceneRouter();
+    initCloudParallelSwitch();
+    setupAiPrompt();
+    initInstallCopy();
+    initOtherConnection();
+    initInstallProgress();
+    detectClient();
+    initTencentPanel();
+    initLogFilters();
+    initQuotaSettings();
+    initBackup();
+
+    refreshState();
+    fetchLogs();
+
+    var btnRefreshAll = document.getElementById("btn-refresh-all");
+    if (btnRefreshAll) {
+      btnRefreshAll.onclick = function () {
+        refreshState();
+        fetchLogs();
+      };
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
+</body>
+</html>

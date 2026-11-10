@@ -1,0 +1,21 @@
+[Unit]
+Description=OwnLine controlled first-installation worker
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ownline-setup
+Group=ownline-setup
+WorkingDirectory=/opt/ownline
+ExecStart=/opt/ownline/.venv/bin/python -m server.installer worker --config /var/lib/ownline-setup/config.json
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/ownline-setup
+
+[Install]
+WantedBy=multi-user.target

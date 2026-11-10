@@ -1,0 +1,782 @@
+/* Ordinary responsive Web presentation. */
+.evergreen-screen {
+  background: #f5f4ed;
+  color: #1f1d18;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+.evergreen-content {
+  --paper: #f5f4ed;
+  --ink: #1f1d18;
+  --navy: #1b365d;
+  --muted: #6b665b;
+  --line: #d4d1c5;
+  padding: 48px 0 32px;
+  min-height: 852px;
+}
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  margin-bottom: 34px;
+}
+.wordmark {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.85px;
+  line-height: 1.15;
+  color: #10141c;
+}
+.text-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 5px;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #1b365d;
+  text-decoration: underline;
+  text-decoration-thickness: 0.65px;
+  text-underline-offset: 4px;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+.help-button,
+.hide-button {
+  color: #6b665b;
+  font-size: 14px;
+}
+.help-button {
+  margin: -7px 0;
+}
+.section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 12px;
+  min-height: 39px;
+}
+.section-heading h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.85px;
+  color: #10141c;
+}
+.hide-button {
+  min-width: 34px;
+  justify-content: flex-end;
+}
+.task-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.task {
+  border-bottom: 1px solid #d4d1c5;
+}
+.task-heading {
+  width: 100%;
+  min-height: 60px;
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  padding: 14px 0;
+  border: 0;
+  background: transparent;
+  color: #11141b;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.task-heading:disabled {
+  opacity: 1;
+  cursor: default;
+}
+.task-marker {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  color: #d9d7d0;
+}
+.task-marker > span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  line-height: 1;
+  color: #655f54;
+}
+.task-marker.active-marker {
+  color: #1b365d;
+}
+.task-marker.active-marker > span {
+  color: #fff;
+}
+.task-marker.checked {
+  color: #2e9d48;
+}
+.task-name {
+  font-size: 15.6px;
+  line-height: 1.25;
+  letter-spacing: -0.28px;
+  font-weight: 450;
+}
+.expanded .task-name {
+  font-weight: 500;
+}
+.task-content {
+  padding: 0 0 19px;
+}
+.details-link {
+  margin: -1px 0 9px 41px;
+  font-size: 14px;
+}
+.login-group {
+  border: 1px solid #d4d1c5;
+  border-radius: 10px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.16);
+}
+.login-row {
+  display: flex;
+  align-items: center;
+  position: relative;
+  min-height: 54px;
+  padding: 0 13px;
+  gap: 7px;
+}
+.login-row + .login-row {
+  border-top: 1px solid #d4d1c5;
+}
+.login-row > span,
+.login-row > label {
+  flex: 0 0 90px;
+  color: #6b665b;
+  font-size: 15px;
+}
+.login-row input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 53px;
+  text-align: right;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  color: #10141b;
+  background: transparent;
+  border-radius: 0;
+  font: inherit;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+}
+.login-row:focus-within {
+  background: rgba(27, 54, 93, 0.035);
+  box-shadow: inset 3px 0 0 #1b365d;
+}
+.login-row input::placeholder {
+  color: #827b70;
+}
+.eye-button {
+  width: 32px;
+  min-width: 32px;
+  height: 44px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  color: #777166;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.password-row {
+  padding-right: 10px;
+}
+.password-row input {
+  letter-spacing: 1.2px;
+}
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 44px;
+  margin: 3px 0 5px;
+}
+.primary {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 11px 16px;
+  border: 1px solid #1b365d;
+  border-radius: 5px;
+  background: #1b365d;
+  color: #fff;
+  font: inherit;
+  font-weight: 500;
+  font-size: 16px;
+  line-height: 1.3;
+  letter-spacing: -0.12px;
+  cursor: pointer;
+  transition:
+    background 100ms ease,
+    transform 100ms ease;
+}
+.primary:hover {
+  background: #142c4d;
+}
+.primary:active {
+  transform: scale(0.985);
+}
+.primary:disabled {
+  opacity: 0.65;
+  cursor: progress;
+}
+.reassurance {
+  color: #797267;
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 10px 0 5px;
+  letter-spacing: -0.1px;
+}
+.cloud-link {
+  font-size: 13px;
+  min-height: 38px;
+}
+.cloud-link span {
+  color: #6b665b;
+}
+.page-footer {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.page-footer .text-button {
+  font-size: 14px;
+}
+.prototype-button {
+  min-height: 44px;
+  padding: 5px 0 5px 10px;
+  color: #837d71;
+  border: 0;
+  background: transparent;
+  font-size: 11px;
+  cursor: pointer;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.text-button:hover,
+.prototype-button:hover {
+  color: #102746;
+}
+button:focus-visible,
+a:focus-visible,
+.private-key textarea:focus-visible {
+  outline: 2px solid #1b365d;
+  outline-offset: 4px;
+}
+.inline-error {
+  display: flex;
+  gap: 8px;
+  color: #8e3b2e;
+  padding: 8px 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.inline-error svg {
+  flex: none;
+  margin-top: 1px;
+}
+.muted {
+  color: #6b665b;
+}
+.small {
+  font-size: 12px;
+  line-height: 1.55;
+}
+.private-key {
+  padding-top: 12px;
+}
+.private-key > label {
+  color: #6b665b;
+  font-size: 13px;
+}
+.private-key textarea,
+.manual-copy textarea,
+.manual-copy input {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 11px;
+  border: 1px solid #d4d1c5;
+  border-radius: 8px;
+  background: #faf9f5;
+  color: #1f1d18;
+  font:
+    13px/1.5 ui-monospace,
+    monospace;
+  resize: vertical;
+}
+.file-input {
+  display: none;
+}
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #426c47;
+  font-size: 13px;
+  margin: 4px 0 15px;
+}
+.facts {
+  margin: 0 0 17px;
+  font-size: 13px;
+}
+.facts > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #e1ded5;
+}
+.facts dt {
+  color: #6b665b;
+  flex: none;
+}
+.facts dd {
+  margin: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+.install-content > p,
+.delivery-content > p,
+.purchase-content > p {
+  margin: 5px 0 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.install-content {
+  padding-top: 6px;
+}
+.install-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #1b365d;
+  margin-bottom: 14px;
+}
+.phase-list {
+  display: grid;
+  gap: 12px;
+  margin: 23px 0;
+}
+.phase {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13px;
+  color: #827b70;
+}
+.phase svg {
+  flex: none;
+}
+.current-phase {
+  color: #1b365d;
+  font-weight: 500;
+}
+.secret-result {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+}
+.delivery-facts {
+  font-size: 12px;
+}
+.micro-label {
+  color: #6b665b;
+  margin: 0 0 11px;
+  font-size: 13px;
+}
+.import-controls {
+  padding-top: 8px;
+}
+.app-buttons {
+  display: flex;
+  gap: 9px;
+}
+.app-button {
+  flex: 1;
+}
+.copy-link {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-top: 8px;
+}
+.app-note {
+  margin: 5px 0 9px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.done-button {
+  min-width: 44px;
+}
+.client-content > .small {
+  margin: 18px 0 3px;
+}
+.daily-view > .status-line {
+  margin-top: 10px;
+}
+.daily-view > .text-button {
+  display: flex;
+  margin-top: 6px;
+}
+.daily-view .import-controls {
+  margin-top: 28px;
+  margin-bottom: 24px;
+}
+.evergreen-sheet {
+  position: relative;
+  color: #1f1d18;
+  font:
+    15px/1.6 -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  padding: 0 0 30px;
+}
+.evergreen-sheet h3 {
+  font-size: 21px;
+  letter-spacing: -0.5px;
+  line-height: 1.3;
+  margin: 16px 0 5px;
+}
+.evergreen-sheet p {
+  margin: 0 0 17px;
+}
+.evergreen-sheet .primary {
+  margin-top: 20px;
+}
+.evergreen-sheet .text-button {
+  min-height: 44px;
+}
+.sheet-close {
+  position: absolute;
+  top: -57px;
+  right: 0;
+  border: 0;
+  background: #f1efe9;
+  color: #655f54;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.sheet-intro {
+  font-size: 14px;
+  line-height: 1.7;
+}
+.provider-row,
+.help-menu > button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  border-bottom: 1px solid #e1ded5;
+  background: transparent;
+  color: #1f1d18;
+  min-height: 60px;
+  padding: 11px 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.provider-row strong,
+.discovered-server strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 500;
+}
+.provider-row small,
+.discovered-server small {
+  display: block;
+  color: #6b665b;
+  font-size: 12px;
+}
+.help-steps {
+  padding-left: 21px;
+  margin: 23px 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.help-steps li {
+  margin-bottom: 16px;
+  padding-left: 4px;
+}
+.external-link {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #1b365d;
+  text-underline-offset: 4px;
+  font-size: 14px;
+  min-height: 44px;
+  width: fit-content;
+}
+.back-link {
+  margin-top: -5px;
+}
+.demo-notice {
+  color: #6b665b;
+  font-size: 13px;
+  padding: 12px 0;
+  border-top: 1px solid #e1ded5;
+  border-bottom: 1px solid #e1ded5;
+}
+.discovered-server {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 0;
+  border: 0;
+  border-bottom: 1px solid #d4d1c5;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  color: #1f1d18;
+  font: inherit;
+}
+.command-code {
+  padding: 14px;
+  border: 1px solid #d4d1c5;
+  background: #f7f6f1;
+  border-radius: 8px;
+  font:
+    12px/1.7 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+.help-menu {
+  margin: 8px 0 24px;
+}
+.help-menu > button {
+  min-height: 53px;
+  font-size: 14px;
+  color: #1b365d;
+}
+.spin {
+  animation: evergreen-spin 1s linear infinite;
+}
+@keyframes evergreen-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spin {
+    animation: none;
+  }
+  .primary {
+    transition: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .muted,
+  .small,
+  .reassurance,
+  .prototype-button,
+  .login-row > span,
+  .login-row > label {
+    color: #514b40;
+  }
+}
+/* QA refinement: retain the entire checklist and fallback within the first screen. */
+.brand-header {
+  margin-bottom: 22px;
+}
+.section-heading {
+  margin-bottom: 6px;
+}
+.task-heading {
+  min-height: 54px;
+  padding-top: 11px;
+  padding-bottom: 11px;
+}
+.details-link {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.task-content {
+  padding-bottom: 12px;
+}
+.page-footer {
+  margin-top: 4px;
+}
+/* App-owned close control remains inside the scrollable sheet, not clipped above it. */
+.sheet-close {
+  position: relative;
+  top: auto;
+  right: auto;
+  float: right;
+  width: 44px;
+  height: 44px;
+  margin: -6px -6px 2px 10px;
+  border-radius: 22px;
+  z-index: 1;
+}
+
+/* Readable supporting text. */
+.reassurance,
+.prototype-button,
+.small,
+.app-note,
+.provider-row small,
+.discovered-server small,
+.delivery-facts,
+.command-code {
+  font-size: 13px;
+}
+.reassurance,
+.prototype-button {
+  color: #6b665b;
+}
+
+/* The user requested an ordinary Web page, without device or keyboard simulation. */
+body {
+  overflow: auto;
+  background: #f5f4ed;
+}
+#root {
+  height: auto;
+  min-height: 100%;
+}
+.evergreen-screen {
+  min-height: 100dvh;
+}
+.evergreen-content {
+  width: min(100% - 48px, 600px);
+  margin: 0 auto;
+  padding: 48px 0 32px;
+  min-height: 0;
+}
+.brand-header {
+  margin-bottom: 32px;
+}
+.section-heading {
+  margin-bottom: 16px;
+}
+.section-heading h1 {
+  font-size: 28px;
+}
+.task-heading {
+  min-height: 60px;
+}
+.task-content {
+  padding-bottom: 18px;
+}
+.login-row > span,
+.login-row > label {
+  flex-basis: 110px;
+}
+.details-link {
+  margin-bottom: 4px;
+}
+.page-footer {
+  margin-top: 12px;
+}
+.web-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: #171c2866;
+  z-index: 100;
+}
+.web-dialog {
+  position: fixed;
+  z-index: 101;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  padding: 28px;
+  border: 1px solid #d4d1c5;
+  border-radius: 16px;
+  background: #faf9f5;
+  color: #1f1d18;
+  box-shadow: 0 16px 64px #171c2826;
+  outline: none;
+}
+.web-dialog-title {
+  margin: 0 52px 22px 0;
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.evergreen-sheet {
+  padding-bottom: 0;
+  position: static;
+}
+.sheet-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  float: none;
+  margin: 0;
+}
+.evergreen-sheet h3 {
+  margin-top: 12px;
+}
+@media (max-width: 600px) {
+  .evergreen-content {
+    width: calc(100% - 40px);
+    padding-top: 24px;
+  }
+  .brand-header {
+    margin-bottom: 24px;
+  }
+  .web-dialog {
+    padding: 24px;
+  }
+  .section-heading h1 {
+    font-size: 25px;
+  }
+  .login-row > span,
+  .login-row > label {
+    flex-basis: 84px;
+  }
+}

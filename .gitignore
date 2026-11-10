@@ -5,6 +5,8 @@ config/*.json
 *.bak.*
 *.log
 .DS_Store
+node_modules/
+dist/
 __pycache__/
 *.pyc
 
@@ -16,6 +18,11 @@ packages/
 # CodeGraph 本地索引
 .codegraph/
 
-# Antigravity/Editor 内部软链接
+# Antigravity/Editor 内部软链接与元数据
 .agents
+skills-lock.json
+
+# 本地私密运维与历史快照（绝对不进 Git）
+.ops-private/
+.backups-private/
 

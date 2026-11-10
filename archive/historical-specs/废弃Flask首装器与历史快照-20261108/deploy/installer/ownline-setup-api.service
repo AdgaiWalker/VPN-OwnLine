@@ -1,0 +1,21 @@
+[Unit]
+Description=OwnLine controlled first-installation API
+After=network.target ownline-setup-worker.service
+Wants=ownline-setup-worker.service
+
+[Service]
+User=ownline-setup
+Group=ownline-setup
+WorkingDirectory=/opt/ownline
+ExecStart=/opt/ownline/.venv/bin/python -m server.installer api --config /var/lib/ownline-setup/config.json --port 4180
+Restart=on-failure
+RestartSec=3
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/ownline-setup
+
+[Install]
+WantedBy=multi-user.target

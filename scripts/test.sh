@@ -106,7 +106,7 @@ fi
 echo
 echo "--- [4/4] 运行 Shell 脚本语法与 Bash 3.2 兼容性校验 ---"
 sh_failed=0
-for sh in deploy/*.sh server/*.sh scripts/*.sh; do
+for sh in deploy/*.sh server/*.sh scripts/*.sh scripts/ops/*.sh; do
   if [ -f "$sh" ]; then
     if /bin/bash -n "$sh" 2>/dev/null; then
       printf '  ✅ 语法正确: %s\n' "$sh"
