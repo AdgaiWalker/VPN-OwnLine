@@ -8,10 +8,13 @@
 - State whether you agree or disagree with user feedback before explaining changes.
 - Explain non-trivial designs as: problem, concrete trace, then solution.
 - **Value-First Decision**: Always explain user and business value in plain, non-technical terms before proposing actions or asking for decisions. Do not dump raw protocol terms without stating what problem it solves and what the user actually gets.
+- **Outcome-First Delivery**: On task completion, report only user/business value, test/deployment status, and next actionable steps. Never dump raw execution logs or procedural noise.
 
 ## Code Quality & Architecture
 
 - **CodeGraph-First**: Call `codegraph_explore` before modifying architectural components to inspect callers and blast radius.
+- **Modular Web Pipeline**: Edit frontend code exclusively in `web/src/{css,html,js}` and synthesize via `scripts/build_web.py`. Never edit `web/index.html` directly.
+- **Inspection & Deletion Guard**: Read files in full before wide-ranging edits; never rely on partial search snippets. Always confirm before removing code or functionality that appears intentional.
 - **Node Control Plane**: All node mutations (add, remove, relay, hy2) must pass through `NodeManager` (`server/nodekit/node_manager.py`) with `flock`. Never mutate `nodes.json` directly.
 - **Safety Provenance**: Always verify HMAC signature via `provenance.verify_provenance` before restarting or killing remote services. Abort on invalid or missing signature.
 - **Ephemeral Credentials**: Never write cloud credentials (`SecretId`/`SecretKey`) or SSH passwords to disk or logs; consume in memory only.
@@ -30,7 +33,8 @@
 - Stage explicit files (`git add <file1> <file2>`); never use `git add .` or `git add -A`.
 - Conventional commit message format: `{feat,fix,docs,refactor}[(scope)]: <concise description>`.
 - Never run destructive git commands: `git reset --hard`, `git clean -fd`, `git commit --no-verify`.
-- Before marking any task complete, verify that `./scripts/test.sh` passes 100% (538+ checks green), auto-update matching docs above, then commit and push.
+- **Offline Tests & Regression Guards**: Tests must run 100% offline with zero paid token or external network dependencies (use mocks). Every bug fix must include a regression test.
+- **Autonomous Turnkey DoD**: On receiving a user intent, execute the full lifecycle autonomously (code, build, test, deploy, doc sync, commit, push). Never pause for micro-confirmations on standard engineering steps. Ensure `./scripts/test.sh` passes 100% (538+ checks green) before delivery.
 
 ## User Override
 
