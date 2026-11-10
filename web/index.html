@@ -1727,23 +1727,23 @@ footer.site-footer {
         <div class="field-group" style="margin-bottom:12px">
           <pre id="ai-prompt-text" style="display:none">请协助我在腾讯云控制台为本项目创建一个最小权限的 CAM 子账号（仅限轻量应用服务器只读/防火墙必要权限）。创建 API 密钥时请由我本人操作并自行保存，切勿在对话中输出 SecretId、SecretKey、密码或私钥。</pre>
 
-          <p class="small muted" id="tc-read-status" data-i18n="tc_status_unconnected">未连接授权后端。请在腾讯云控制台配置。</p>
-          <details class="inner" id="tc-credential-fields" open>
-          <summary data-i18n="tc_cred_title">腾讯云 API 凭据</summary>
-          <p class="small muted" data-i18n="tc_cred_note">凭据仅保存在当前服务器本机。</p>
+          <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:10px 0">
+            <button class="btn primary" id="btn-tc-read" type="button" disabled data-i18n="tc_btn_read">读取轻量实例列表</button>
+            <span class="small muted" id="tc-read-status" data-i18n="tc_status_unconnected">未连接授权后端。请在腾讯云控制台配置。</span>
+          </div>
+          <details class="inner" id="tc-credential-fields">
+          <summary id="tc-cred-summary" data-i18n="tc_cred_title">腾讯云 API 凭据（可选：覆盖或更换子账号）</summary>
+          <p class="small muted" data-i18n="tc_cred_note">如未输入，将自动使用服务器本地已保存的凭据。</p>
           <p class="small muted"><span data-i18n="tc_need_assist">需要辅助创建？</span> <button class="btn tiny" type="button" id="btn-copy-ai-prompt" data-i18n="tc_copy_ai_prompt">复制 AI 提示词</button></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div class="field" style="flex:1;min-width:180px">
               <label for="tc-sid">SecretId</label>
-              <input id="tc-sid" type="text" placeholder="子账号 SecretId" autocomplete="off" spellcheck="false" disabled />
+              <input id="tc-sid" type="text" placeholder="子账号 SecretId（留空使用服务器默认）" autocomplete="off" spellcheck="false" disabled />
             </div>
             <div class="field" style="flex:1;min-width:180px">
               <label for="tc-skey">SecretKey</label>
-              <input id="tc-skey" type="password" placeholder="子账号 SecretKey" autocomplete="off" spellcheck="false" disabled />
+              <input id="tc-skey" type="password" placeholder="子账号 SecretKey（留空使用服务器默认）" autocomplete="off" spellcheck="false" disabled />
             </div>
-          </div>
-          <div style="display:flex;gap:10px;align-items:center;margin-top:6px">
-            <button class="btn" id="btn-tc-read" type="button" disabled data-i18n="tc_btn_read">读取实例列表</button>
           </div>
           </details>
           <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">AI 配置指引</a></p>
@@ -3523,7 +3523,8 @@ footer.site-footer {
         paintStatus();
       }).catch(function () {});
       STATE.csrfToken = setup && typeof setup.csrf_token === "string" ? setup.csrf_token : "";
-      var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true);
+      STATE.tencentConfigured = !!(settings && settings.tencent_configured === true);
+      var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true) || STATE.tencentConfigured;
       STATE.nodeCheckAvailable = location.protocol === "https:" && !!(settings && settings.node_check_supported === true);
       setOtherCheckBusy(!!otherCheckController);
       document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
@@ -3531,7 +3532,12 @@ footer.site-footer {
         : (zh ? "网页连接检测不可用。" : "Web connection check unavailable.");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
-      document.getElementById("tc-read-status").textContent = canDiscover ? "" : (zh ? "当前后端未开启腾讯云 API 自动发现。" : "Tencent Cloud API auto-discovery is disabled.");
+      if (STATE.tencentConfigured) {
+        document.getElementById("tc-credential-fields").open = false;
+        document.getElementById("tc-read-status").innerHTML = zh ? "<span style='color:var(--ok)'>✓ 已绑定服务器默认腾讯云账号</span>" : "<span style='color:var(--ok)'>✓ Server default credentials linked</span>";
+      } else {
+        document.getElementById("tc-read-status").textContent = canDiscover ? "" : (zh ? "当前后端未开启腾讯云 API 自动发现。" : "Tencent Cloud API auto-discovery is disabled.");
+      }
       NODES = nodes || [];
       if (nodes) {
         document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
@@ -5021,9 +5027,11 @@ footer.site-footer {
       var skey = (skeyInp ? skeyInp.value : "").trim();
 
       if (!sid || !skey) {
-        keepCredentialsOpen();
-        if (status) status.innerHTML = "<span style='color:var(--bad)'>请填写 SecretId 与 SecretKey</span>";
-        return;
+        if (!STATE.tencentConfigured) {
+          keepCredentialsOpen();
+          if (status) status.innerHTML = "<span style='color:var(--bad)'>请填写 SecretId 与 SecretKey</span>";
+          return;
+        }
       }
 
 
@@ -5108,6 +5116,14 @@ footer.site-footer {
         var credential = document.getElementById("other-credential");
         (credential.disabled ? address : credential).focus();
       };
+    }
+
+    if (STATE.tencentConfigured && (!STATE.tcServers || !STATE.tcServers.length)) {
+      setTimeout(function () {
+        if (btn && !btn.disabled && typeof btn.click === "function") {
+          btn.click();
+        }
+      }, 300);
     }
   }
 

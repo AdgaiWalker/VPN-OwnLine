@@ -142,6 +142,42 @@ class DeliveryContractTests(unittest.TestCase):
             self.assertEqual(inst["public_ip"], "43.153.56.137")
             self.assertTrue(inst["firewall_ready"])
 
+    def test_tencent_instances_fallback_to_server_tc_json(self):
+        import tempfile
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            tc_path = os.path.join(tmpdir, "tc.json")
+            with open(tc_path, "w", encoding="utf-8") as f:
+                json.dump({"secret_id": "SAVED_ID", "secret_key": "SAVED_KEY"}, f)
+
+            orig_data = admin.DATA
+            admin.DATA = tmpdir
+            try:
+                handler = MagicMock()
+                captured = {}
+                handler._json = lambda status, data: captured.update({"status": status, "data": data})
+                handler.headers = {"Content-Type": "application/json"}
+                handler._origin_ok.return_value = True
+
+                from unittest.mock import patch
+                with patch.object(admin.tencent_discovery_mod, "discover", return_value={"ok": True, "instances": []}) as mock_disc:
+                    handler.path = "/api/tencent/instances"
+                    admin.http_utils.parse_json_body = lambda h, limit: ({}, None)
+                    admin.H.do_POST(handler)
+
+                    self.assertEqual(captured["status"], 200)
+                    mock_disc.assert_called_once_with("SAVED_ID", "SAVED_KEY")
+
+                # Also verify /api/settings reports tencent_configured: True
+                handler.path = "/api/settings"
+                admin.H.do_GET(handler)
+                self.assertEqual(captured["status"], 200)
+                self.assertTrue(captured["data"]["tencent_configured"])
+            finally:
+                admin.DATA = orig_data
+
+
 
 
 if __name__ == "__main__":

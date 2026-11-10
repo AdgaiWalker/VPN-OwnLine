@@ -10,8 +10,8 @@
 
 ### 接口定义：`POST /api/tencent/instances` 或 `POST /tencent/instances`
 * **适用场景**：通过用户创建的最小权限 CAM 子账号，跨新加坡、香港、硅谷、东京等轻量地域并发扫描云主机资产。
-* **安全约束**：`secret_id` 与 `secret_key` 仅在单次请求上下文内存中消费，严禁写入磁盘文件、SQLite 或系统日志。
-* **物理符号实现**：`server/tencent_discovery.py:discover` ｜ 测试：`tests/test_provider_daemon_architecture.py`
+* **安全约束**：`secret_id` 与 `secret_key` 仅在单次请求上下文内存中消费，严禁写入磁盘文件、SQLite 或系统日志。若请求体未提供密钥，接口自动回退至服务器本地预置的 `tc.json` 内存读取，前端无需输入即可一键扫描。
+* **物理符号实现**：`server/admin.py:H.do_POST` ｜ `server/tencent_discovery.py:discover` ｜ 测试：`tests/test_delivery_contract.py`
 
 #### 1.1 请求体契约 (Request Payload)
 ```json

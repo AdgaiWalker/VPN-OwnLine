@@ -614,6 +614,7 @@ class H(BaseHTTPRequestHandler):
         if path in ("/settings", "/api/settings"):
             settings = _load_json("settings.json", {})
             domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
+            tc_ready = os.path.exists(os.path.join(DATA, "tc.json"))
             return self._json(200, {
                 "ok": True,
                 "domain": domain,
@@ -622,6 +623,7 @@ class H(BaseHTTPRequestHandler):
                 "probe_vantage": settings.get("probe_vantage"),
                 "quota_threshold": quota_mod.quota_threshold(),
                 "tencent_discovery": True,
+                "tencent_configured": tc_ready,
                 "backup_restore_supported": True,
                 "node_check_supported": node_check_bridge.available(),
             })
@@ -835,8 +837,20 @@ class H(BaseHTTPRequestHandler):
             return self._json(status, result)
 
         if path in ("/tencent/instances", "/api/tencent/instances"):
+            sid = (body.get("secret_id") or "").strip()
+            skey = (body.get("secret_key") or "").strip()
+            if not sid or not skey:
+                tc_file = os.path.join(DATA, "tc.json")
+                if os.path.exists(tc_file):
+                    try:
+                        with open(tc_file, "r", encoding="utf-8") as f:
+                            c = json.load(f)
+                            sid = sid or (c.get("secret_id") or "").strip()
+                            skey = skey or (c.get("secret_key") or "").strip()
+                    except Exception:
+                        pass
             try:
-                return self._json(200, tencent_discovery_mod.discover(body.get("secret_id"), body.get("secret_key")))
+                return self._json(200, tencent_discovery_mod.discover(sid, skey))
             except tencent_discovery_mod.Problem as e:
                 return self._json(e.status, {"ok": False, "error": e.message})
 
