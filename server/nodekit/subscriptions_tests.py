@@ -175,6 +175,7 @@ check("空或无效用量返回 None", S.subscription_userinfo(None) is None and
 # AI 分流组测试（按 01-PRD 客户端仅支持 Shadowrocket / Clash / FL Clash，不输出 sing-box JSON）
 check("Clash 中包含 🤖 AI 业务 分组", "🤖 AI 业务" in yaml_str)
 check("Clash 中包含 openai 规则路由至 AI 分组", "DOMAIN-KEYWORD,openai,🤖 AI 业务" in yaml_str)
+check("Clash 顶部包含受控节点 IP 直连豁免规则", "IP-CIDR,1.2.3.4/32,DIRECT,no-resolve" in yaml_str)
 check("已移除废弃的 Sing-box 客户端配置导出函数", not hasattr(S, "render_singbox_json"))
 
 # 7. 人话专线命名与出海真实流量过滤测试

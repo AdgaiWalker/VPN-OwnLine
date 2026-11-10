@@ -4730,8 +4730,16 @@ footer.site-footer {
     });
   }
 
+  var isTogglingHy2 = false;
   function toggleHy2(name, host, enable) {
-    var actText = enable ? "开启" : "关闭";
+    if (isTogglingHy2) {
+      return;
+    }
+    isTogglingHy2 = true;
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var actText = enable ? (zh ? "开启" : "Enable") : (zh ? "关闭" : "Disable");
+    if (document.body) document.body.style.cursor = "wait";
+
     jsonRequest("/api/hy2/toggle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -4740,10 +4748,13 @@ footer.site-footer {
       if (res && res.ok) {
         refreshState();
       } else {
-        alert(actText + " HY2 失败：" + ((res && res.error) || "未知错误"));
+        alert(actText + (zh ? " HY2 失败：" : " HY2 failed: ") + ((res && res.error) || "未知错误"));
       }
     }).catch(function (err) {
-      alert("请求失败：" + err.message);
+      alert((zh ? "请求失败：" : "Request failed: ") + err.message);
+    }).finally(function () {
+      isTogglingHy2 = false;
+      if (document.body) document.body.style.cursor = "default";
     });
   }
 

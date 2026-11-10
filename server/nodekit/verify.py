@@ -35,13 +35,19 @@ def ssh_cmd(user, host, timeout=10, port=22):
     return cmd
 
 
-def tcp_ok(host, port, timeout=6):
-    try:
-        s = socket.create_connection((str(host), int(port)), timeout=timeout)
-        s.close()
-        return True
-    except Exception:
-        return False
+def tcp_ok(host, port, timeout=6, retries=4, retry_interval=0.25):
+    """统一的 TCP 端口探测，支持服务重启中的快速重试（避免进程刚启动时误判失败）。"""
+    start_time = time.time()
+    for attempt in range(max(1, retries)):
+        try:
+            rem = max(0.5, timeout - (time.time() - start_time))
+            s = socket.create_connection((str(host), int(port)), timeout=min(rem, 2.0))
+            s.close()
+            return True
+        except Exception:
+            if attempt < retries - 1:
+                time.sleep(retry_interval)
+    return False
 
 
 def tls_ok(host, port, sni, timeout=8):

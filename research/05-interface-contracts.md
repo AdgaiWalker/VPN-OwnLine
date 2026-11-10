@@ -181,3 +181,11 @@ Subscription-Userinfo: upload=10485760; download=21474836480; total=107374182400
   `shadowrocket://add/sub://<BASE64_URL>?title=<URL_ENCODED_TITLE>`
 * **全平台 Clash 一键导入**：
   `clash://install-config?url=<URL_ENCODED_SUB_URL>&name=<URL_ENCODED_NAME>`
+
+### 4.3 受控节点与管理中枢直连豁免契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/nodekit/subscriptions.py:render_clash_yaml` ｜ 测试：`server/nodekit/subscriptions_tests.py`
+为防止客户端分流规则将海外受控节点/管理面板的访问流量打入代理隧道自身（避免协议切换时隧道自我掐断），Clash 订阅生成器必须在 `rules:` 首部自动注入所有受控节点 IP 及其出口 IP 的 32 位直连规则：
+```yaml
+rules:
+  - IP-CIDR,<node_host_or_ip>/32,DIRECT,no-resolve
+```

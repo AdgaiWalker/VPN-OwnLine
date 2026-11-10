@@ -42,13 +42,19 @@ def probe_one(t):
             pass
     if tcp_ms is None:
         return t["name"], {"cn_ok": False, "cn_ms": 0, "cn_reason": "port", "self_probe": bool(host == vantage_host), "vantage": vantage_name}
-    try:
-        p = subprocess.run(["openssl", "s_client", "-connect", "%s:%d" % (host, port), "-servername", sni],
-                           input="", capture_output=True, text=True, timeout=5)
-        so = p.stdout or ""
-        ok = ("Cipher is" in so) and ("Cipher is (NONE)" not in so)
-    except Exception:
-        ok = False
+    ok = False
+    for attempt in range(2):
+        try:
+            p = subprocess.run(["openssl", "s_client", "-connect", "%s:%d" % (host, port), "-servername", sni],
+                               input="", capture_output=True, text=True, timeout=5)
+            so = p.stdout or ""
+            if ("Cipher is" in so) and ("Cipher is (NONE)" not in so):
+                ok = True
+                break
+        except Exception:
+            pass
+        if attempt == 0:
+            time.sleep(0.5)
     if not ok:
         return t["name"], {"cn_ok": False, "cn_ms": 0, "cn_reason": "tls", "self_probe": bool(host == vantage_host), "vantage": vantage_name}
     return t["name"], {

@@ -138,6 +138,7 @@ class NodeManager:
         self.logger = logger
         self.open_firewall = open_firewall_fn
         self.on_change = on_change
+        self._mutation_lock = threading.Lock()
 
     def _log(self, level: str, tag: str, msg: str) -> None:
         if self.logger and hasattr(self.logger, "log"):
@@ -572,103 +573,104 @@ class NodeManager:
 
     def toggle_hy2(self, name: str = "", host: str = "", enabled: bool = True) -> Dict[str, Any]:
         """切换海外出口节点的 HY2 极速通道状态。"""
-        name = (name or "").strip()
-        host = (host or "").strip()
-        if not host and not name:
-            raise NodeValidationError("缺少 host 或 name")
+        with self._mutation_lock:
+            name = (name or "").strip()
+            host = (host or "").strip()
+            if not host and not name:
+                raise NodeValidationError("缺少 host 或 name")
 
-        nodes = self.store.load()
-        base_name = name[:-4] if name.endswith("-HY2") else name
-        vless_node = next(
-            (
-                n
-                for n in nodes
-                if n.get("type") != "hysteria2"
-                and (
-                    (host and (n.get("host") == host or n.get("ip") == host))
-                    or (base_name and n.get("name") == base_name)
-                )
-            ),
-            None,
-        )
-        if not vless_node:
-            raise NodeNotFoundError("未找到对应的海外出口主节点")
-
-        target_host = vless_node.get("host")
-        existing_hy2 = next(
-            (
-                n
-                for n in nodes
-                if n.get("type") == "hysteria2"
-                and (n.get("host") == target_host or n.get("name") == vless_node.get("name", "") + "-HY2")
-            ),
-            None,
-        )
-
-        if not self.remote_cfg:
-            raise NodeValidationError("缺少 remote_config 模块支持")
-
-        sync_res = self.remote_cfg.toggle_hy2(
-            vless_node,
-            existing_hy2_node=existing_hy2,
-            enabled=enabled,
-            open_firewall_fn=self.open_firewall,
-        )
-        if not sync_res.get("ok"):
-            self._log(
-                "WARN",
-                "NODE",
-                f"切换 HY2 失败 [{vless_node.get('name')} -> {'开启' if enabled else '关闭'}]: {sync_res.get('error')}",
+            nodes = self.store.load()
+            base_name = name[:-4] if name.endswith("-HY2") else name
+            vless_node = next(
+                (
+                    n
+                    for n in nodes
+                    if n.get("type") != "hysteria2"
+                    and (
+                        (host and (n.get("host") == host or n.get("ip") == host))
+                        or (base_name and n.get("name") == base_name)
+                    )
+                ),
+                None,
             )
-            raise RemoteSyncError(
-                sync_res.get("error") or "远端切换 HY2 失败",
-                rolled_back=sync_res.get("rolled_back", False),
-                verify=sync_res.get("verify"),
+            if not vless_node:
+                raise NodeNotFoundError("未找到对应的海外出口主节点")
+
+            target_host = vless_node.get("host")
+            existing_hy2 = next(
+                (
+                    n
+                    for n in nodes
+                    if n.get("type") == "hysteria2"
+                    and (n.get("host") == target_host or n.get("name") == vless_node.get("name", "") + "-HY2")
+                ),
+                None,
             )
 
-        hy2_record = sync_res.get("hy2_node")
+            if not self.remote_cfg:
+                raise NodeValidationError("缺少 remote_config 模块支持")
 
-        def _apply_hy2(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-            out_list = []
-            placed_hy2 = False
-            for n in ns:
-                is_same_host = n.get("host") == target_host
-                is_hy2_item = n.get("type") == "hysteria2" and (
-                    is_same_host or n.get("name") == vless_node.get("name", "") + "-HY2"
+            sync_res = self.remote_cfg.toggle_hy2(
+                vless_node,
+                existing_hy2_node=existing_hy2,
+                enabled=enabled,
+                open_firewall_fn=self.open_firewall,
+            )
+            if not sync_res.get("ok"):
+                self._log(
+                    "WARN",
+                    "NODE",
+                    f"切换 HY2 失败 [{vless_node.get('name')} -> {'开启' if enabled else '关闭'}]: {sync_res.get('error')}",
                 )
-                if is_hy2_item:
-                    if enabled and hy2_record:
-                        out_list.append(hy2_record)
-                        placed_hy2 = True
+                raise RemoteSyncError(
+                    sync_res.get("error") or "远端切换 HY2 失败",
+                    rolled_back=sync_res.get("rolled_back", False),
+                    verify=sync_res.get("verify"),
+                )
+
+            hy2_record = sync_res.get("hy2_node")
+
+            def _apply_hy2(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                out_list = []
+                placed_hy2 = False
+                for n in ns:
+                    is_same_host = n.get("host") == target_host
+                    is_hy2_item = n.get("type") == "hysteria2" and (
+                        is_same_host or n.get("name") == vless_node.get("name", "") + "-HY2"
+                    )
+                    if is_hy2_item:
+                        if enabled and hy2_record:
+                            out_list.append(hy2_record)
+                            placed_hy2 = True
+                        else:
+                            updated_hy2 = dict(n)
+                            updated_hy2["enabled"] = False
+                            out_list.append(updated_hy2)
+                            placed_hy2 = True
+                    elif n.get("name") == vless_node.get("name"):
+                        updated_vless = dict(n)
+                        updated_vless["hy2_enabled"] = enabled
+                        out_list.append(updated_vless)
                     else:
-                        updated_hy2 = dict(n)
-                        updated_hy2["enabled"] = False
-                        out_list.append(updated_hy2)
-                        placed_hy2 = True
-                elif n.get("name") == vless_node.get("name"):
-                    updated_vless = dict(n)
-                    updated_vless["hy2_enabled"] = enabled
-                    out_list.append(updated_vless)
-                else:
-                    out_list.append(n)
-            if enabled and hy2_record and not placed_hy2:
-                out_list.append(hy2_record)
-            return out_list
+                        out_list.append(n)
+                if enabled and hy2_record and not placed_hy2:
+                    out_list.append(hy2_record)
+                return out_list
 
-        self.store.update(_apply_hy2)
-        self._trigger_on_change()
-        state_str = "开启" if enabled else "关闭"
-        self._log(
-            "INFO",
-            "NODE",
-            f"切换 HY2 极速通道并完成远端同步: {vless_node.get('name') or target_host} ➔ {state_str}",
-        )
-        return {
-            "ok": True,
-            "enabled": enabled,
-            "message": f"HY2 极速通道已{state_str}并通过远端校验",
-            "verify": sync_res.get("verify"),
-        }
+            self.store.update(_apply_hy2)
+            self._trigger_on_change()
+            state_str = "开启" if enabled else "关闭"
+            self._log(
+                "INFO",
+                "NODE",
+                f"切换 HY2 极速通道并完成远端同步: {vless_node.get('name') or target_host} ➔ {state_str}",
+            )
+            return {
+                "ok": True,
+                "enabled": enabled,
+                "message": f"HY2 极速通道已{state_str}并通过远端校验",
+                "verify": sync_res.get("verify"),
+            }
 
     # -----------------------------------------------------------------
     # 通用事务写能力 (任意 Mutation 原子保护)

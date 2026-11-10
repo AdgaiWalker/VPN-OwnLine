@@ -7,6 +7,7 @@ admin.py、verify.py、UI 各写一套规则。
 
 import base64
 import datetime
+import ipaddress
 import json
 import time
 import urllib.parse
@@ -22,6 +23,14 @@ except ImportError:
 # 这些状态表示节点有问题，不能进订阅。
 # unknown 不在此列：外部节点永远未验证，但仍可被用户手动选择。
 BAD_HEALTH = frozenset({"port", "tls", "proxy", "role_mismatch", "landing", "blocked", "timeout"})
+
+
+def _is_ip(val: Any) -> bool:
+    try:
+        ipaddress.ip_address(str(val).strip())
+        return True
+    except Exception:
+        return False
 
 
 class SubscriptionUserInfo:
@@ -363,6 +372,17 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
 
     escaped_names = ", ".join('"%s"' % x for x in names)
 
+    # 提取所有受控节点 IP，直接写入 rules 顶层 DIRECT 豁免规则
+    # 防止客户端将管理面板访问流量打入被它所管理的代理隧道（消除“用户在隧道里拔自己网线”自锁故障）
+    node_ip_rules = []
+    seen_ips = set()
+    for n in valid:
+        for k in ("host", "ip", "exit_ip"):
+            val = str(n.get(k) or "").strip()
+            if val and val != "-" and _is_ip(val) and val not in seen_ips and not val.startswith("127."):
+                seen_ips.add(val)
+                node_ip_rules.append("  - IP-CIDR,%s/32,DIRECT,no-resolve" % val)
+
     if profile == "office":
         lines.extend([
             "",
@@ -374,6 +394,10 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "    interval: 180",
             "",
             "rules:",
+        ])
+        if node_ip_rules:
+            lines.extend(node_ip_rules)
+        lines.extend([
             "  - DOMAIN-KEYWORD,wechat,DIRECT",
             "  - DOMAIN-KEYWORD,weixin,DIRECT",
             "  - DOMAIN-KEYWORD,tencent,DIRECT",
@@ -398,6 +422,10 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "    interval: 300",
             "",
             "rules:",
+        ])
+        if node_ip_rules:
+            lines.extend(node_ip_rules)
+        lines.extend([
             "  - DOMAIN-KEYWORD,wechat,DIRECT",
             "  - DOMAIN-KEYWORD,weixin,DIRECT",
             "  - DOMAIN-KEYWORD,tencent,DIRECT",
@@ -457,6 +485,10 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "    proxies: [" + escaped_node_select + "]",
             "",
             "rules:",
+        ])
+        if node_ip_rules:
+            lines.extend(node_ip_rules)
+        lines.extend([
             "  - DOMAIN-KEYWORD,openai,🤖 AI 业务",
             "  - DOMAIN-KEYWORD,anthropic,🤖 AI 业务",
             "  - DOMAIN-KEYWORD,claude,🤖 AI 业务",

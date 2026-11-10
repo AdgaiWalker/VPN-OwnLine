@@ -16,6 +16,7 @@ import secrets
 import shlex
 import subprocess
 import tempfile
+import time
 
 from . import provenance as prov_mod
 from . import templates
@@ -697,7 +698,11 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
         if vless_node.get("expire_at") and not hy2_record.get("expire_at"):
             hy2_record["expire_at"] = vless_node["expire_at"]
 
+        time.sleep(0.3)
         vr = verifier(hy2_record) or {"health": "proxy", "detail": "HY2 探测无响应"}
+        if vr.get("health") != "ok":
+            time.sleep(0.8)
+            vr = verifier(hy2_record) or {"health": "proxy", "detail": "HY2 探测无响应"}
         if vr.get("health") != "ok":
             rolled_back = rollback_config(vless_node, runner=runner, cfg_path=actual_cfg_path)
             rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功，请检查服务器"
@@ -743,7 +748,11 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
     if not applied:
         return {"ok": False, "error": apply_err}
 
+    time.sleep(0.3)
     vr = verifier(vless_node) or {"health": "proxy", "detail": "主节点探测无响应"}
+    if vr.get("health") != "ok":
+        time.sleep(0.8)
+        vr = verifier(vless_node) or {"health": "proxy", "detail": "主节点探测无响应"}
     if vr.get("health") != "ok":
         rolled_back = rollback_config(vless_node, runner=runner, cfg_path=actual_cfg_path)
         rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功"
