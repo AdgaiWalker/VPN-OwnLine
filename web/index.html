@@ -1443,7 +1443,6 @@ footer.site-footer {
   <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
 </svg>
 
-
 <div class="page">
   <header class="topbar">
     <a class="brand" href="#" aria-label="Evergreen">
@@ -1900,7 +1899,6 @@ footer.site-footer {
       </details>
     </div>
   </details>
-
   <footer class="site-footer">
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-weight:600">Evergreen</span>
@@ -2074,7 +2072,6 @@ footer.site-footer {
     <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
   </form>
 </dialog>
-
 <script>
 (function () {
   "use strict";
@@ -3198,6 +3195,7 @@ footer.site-footer {
   }
 
   // 5. Client adaptation and links
+
   function detectClient() {
     var ua = navigator.userAgent || "", os = "other";
     var isWx = /MicroMessenger|QQ\//i.test(ua);
@@ -3485,7 +3483,14 @@ footer.site-footer {
     document.getElementById("unready-note").textContent = detail;
   }
 
+  var refreshStateAbortController = null;
   function refreshState() {
+    if (refreshStateAbortController) {
+      try { refreshStateAbortController.abort(); } catch (_) {}
+    }
+    refreshStateAbortController = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var signal = refreshStateAbortController ? refreshStateAbortController.signal : undefined;
+
     var pill = document.getElementById("status-pill"), pillText = document.getElementById("status-text");
     var readyBox = document.getElementById("client-ready-box"), unready = document.getElementById("client-unready-box");
     var quotaSettings = document.getElementById("quota-settings"), quotaBox = document.getElementById("quota-list-container");
@@ -3536,8 +3541,12 @@ footer.site-footer {
       return;
     }
     Promise.allSettled([
-      jsonRequest("/api/settings"), jsonRequest("/api/nodes"), jsonRequest("/api/quota/guard"), jsonRequest("/api/setup")
+      jsonRequest("/api/settings", { signal: signal }),
+      jsonRequest("/api/nodes", { signal: signal }),
+      jsonRequest("/api/quota/guard", { signal: signal }),
+      jsonRequest("/api/setup", { signal: signal })
     ]).then(function (res) {
+      if (signal && signal.aborted) return;
       var settings = res[0].status === "fulfilled" ? res[0].value : null;
       var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
       var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
@@ -3659,7 +3668,6 @@ footer.site-footer {
         .catch(function(){note.textContent = "保存失败，请稍后重试";});
     };
   }
-
 
   function mountSheet(content, resolve, initialSelector) {
     var previous = document.activeElement;
@@ -3855,26 +3863,8 @@ footer.site-footer {
       });
     }
 
-    var hostCount = {};
-    nodes.forEach(function (n) {
-      var h = n.host || n.ip;
-      if (h) hostCount[h] = (hostCount[h] || 0) + 1;
-    });
-
-    var renderedHosts = {};
-    var htmlParts = [];
-
-    nodes.forEach(function (n, i) {
+    function deriveNodeState(n) {
       var host = n.host || n.ip;
-      // 同一物理主机（如双协议出口），只占一张物理服务器卡片，避免重复计算流量和重复卡片
-      if (host && hostCount[host] > 1 && renderedHosts[host]) {
-        htmlParts.push('<span id="d' + i + '" style="display:none"></span><span id="s' + i + '" style="display:none"></span>');
-        return;
-      }
-      if (host && hostCount[host] > 1) {
-        renderedHosts[host] = true;
-      }
-
       var st = (status && status[n.name]) || {};
       var isBad = (n.health && n.health !== "ok" && n.health !== "unknown") || (st && (st.ok === false || st.cn_ok === false));
 
@@ -3894,16 +3884,74 @@ footer.site-footer {
         else if (days <= 15) expBadge = '<span class="tag warn">' + days + (zh ? "天到期" : "d left") + "</span>";
       }
 
-      var protoBadges = "";
-      var isMultiProtoHost = (host && hostCount[host] > 1);
       var hy2Node = (nodes || []).find(function(x) {
         return (x.host === host || x.ip === host) && (x.type === "hysteria2" || (x.name && x.name.indexOf("HY2") >= 0));
       });
       var isDomestic = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
       var isOverseasExit = !isDomestic && n.source !== "external";
+      var isMultiProtoHost = (host && (nodes || []).filter(function(x){ return (x.host || x.ip) === host; }).length > 1);
       var hasHy2 = isOverseasExit || isMultiProtoHost || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean";
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
 
+      var isBondedRelay = isDomestic && (n.role === "relay" && n.landing && n.landing.host);
+      var targetText = "";
+      if (isBondedRelay) {
+        var targetHost = n.landing.host;
+        var targetNode = (nodes || []).find(function (x) {
+          return (x.host === targetHost || x.ip === targetHost) && x.type !== "hysteria2";
+        });
+        targetText = (targetNode && targetNode.name) || targetHost;
+      }
+
+      var qInfo = qMap[host] || null;
+      if (!qInfo && (n.used_gb != null || n.total_gb != null)) {
+        qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true };
+      }
+
+      return {
+        host: host,
+        st: st,
+        isBad: isBad,
+        expBadge: expBadge,
+        hasHy2: hasHy2,
+        isHy2Active: isHy2Active,
+        isDomestic: isDomestic,
+        isBondedRelay: isBondedRelay,
+        targetText: targetText,
+        qInfo: qInfo
+      };
+    }
+
+    var hostCount = {};
+    nodes.forEach(function (n) {
+      var h = n.host || n.ip;
+      if (h) hostCount[h] = (hostCount[h] || 0) + 1;
+    });
+
+    var renderedHosts = {};
+    var htmlParts = [];
+
+    nodes.forEach(function (n, i) {
+      var m = deriveNodeState(n);
+      var host = m.host;
+      if (host && hostCount[host] > 1 && renderedHosts[host]) {
+        htmlParts.push('<span id="d' + i + '" style="display:none"></span><span id="s' + i + '" style="display:none"></span>');
+        return;
+      }
+      if (host && hostCount[host] > 1) {
+        renderedHosts[host] = true;
+      }
+
+      var st = m.st;
+      var isBad = m.isBad;
+      var expBadge = m.expBadge;
+      var hasHy2 = m.hasHy2;
+      var isHy2Active = m.isHy2Active;
+      var isDomestic = m.isDomestic;
+      var isBondedRelay = m.isBondedRelay;
+      var targetText = m.targetText;
+
+      var protoBadges = "";
       if (hasHy2) {
         protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       } else if (!isDomestic && n.source !== "external") {
@@ -3914,14 +3962,7 @@ footer.site-footer {
       var displayName = n.name;
       var detailLine = "";
 
-      var isBondedRelay = isDomestic && (n.role === "relay" && n.landing && n.landing.host);
-
       if (isBondedRelay) {
-        var targetHost = n.landing.host;
-        var targetNode = (nodes || []).find(function (x) {
-          return (x.host === targetHost || x.ip === targetHost) && x.type !== "hysteria2";
-        });
-        var targetText = (targetNode && targetNode.name) || targetHost;
         displayName = (zh ? n.name + "专线 ➔ " : n.name + " Relay ➔ ") + targetText;
         relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
           '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
@@ -3952,9 +3993,32 @@ footer.site-footer {
         ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
       }
 
-      var qInfo = qMap[host] || null;
-      if (!qInfo && (n.used_gb != null || n.total_gb != null)) {
-        qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true };
+      var qInfo = m.qInfo;
+      var quotaRow = "";
+      if (qInfo && qInfo.total_gb != null && Number(qInfo.total_gb) > 0) {
+        var usedNum = Number(qInfo.used_gb || 0);
+        var totalNum = Number(qInfo.total_gb || 0);
+        var pctNum = qInfo.percent != null ? Number(qInfo.percent) : Math.round((usedNum / totalNum) * 100);
+        var remNum = Math.max(0, totalNum - usedNum);
+        var isWarnQ = pctNum >= 75 && pctNum < 85;
+        var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
+        var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
+        var barW = Math.max(0, Math.min(100, pctNum));
+        var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
+        var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
+
+        quotaRow = '<div class="node-quota-row">' +
+          '<div class="node-quota-bar">' +
+            '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
+          '</div>' +
+          '<span class="node-quota-text">' +
+            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span> · ' + (zh ? '剩余 <strong>' : 'Remaining <strong>') + Math.round(remNum) + ' GB</strong>' +
+          '</span>' + noteBadge + quotaRoleTip +
+        '</div>';
+      } else if (qInfo && qInfo.used_gb != null) {
+        quotaRow = '<div class="node-quota-row">' +
+          '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong> <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
+        '</div>';
       }
       var quotaRow = "";
       if (qInfo && qInfo.total_gb != null && Number(qInfo.total_gb) > 0) {

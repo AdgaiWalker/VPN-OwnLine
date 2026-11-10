@@ -1,0 +1,174 @@
+  <footer class="site-footer">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span style="font-weight:600">Evergreen</span>
+      <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
+      <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
+    </div>
+  </footer>
+</div>
+
+<!-- Preferences Modal Dialog -->
+<dialog id="settings-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(400px, calc(100vw - 32px))">
+    <div class="apple-sheet-header">
+      <h2 class="apple-sheet-title" id="settings-title" data-i18n="settings_title">Preferences</h2>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('settings-dialog').close()" aria-label="Close">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div style="margin-bottom:18px">
+      <label style="display:block;font-size:13px;font-weight:600;margin-bottom:10px" id="settings-lbl-lang" data-i18n="settings_lang_lbl">Interface Language</label>
+      <div style="display:flex;gap:10px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-en-wrap">
+          <input type="radio" name="ui_lang" value="en" id="opt-lang-en" onchange="window.setLanguage('en')">
+          <span style="font-size:13.5px;font-weight:500">English</span>
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:8px;cursor:pointer;background:var(--paper-card-subtle)" id="opt-lang-zh-wrap">
+          <input type="radio" name="ui_lang" value="zh" id="opt-lang-zh" onchange="window.setLanguage('zh')">
+          <span style="font-size:13.5px;font-weight:500">简体中文</span>
+        </label>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end">
+      <button class="btn tiny primary" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-done" data-i18n="settings_btn_done">Done</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Account & Security Modal Dialog (macOS Sequoia Style) -->
+<dialog id="account-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
+    <div class="apple-sheet-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg class="ico" width="18" height="18" style="color:var(--navy)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        <h2 class="apple-sheet-title" id="account-dialog-title" data-i18n="account_dialog_title">Account & Security</h2>
+      </div>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('account-dialog').close()" aria-label="Close">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
+
+    <!-- Account Overview Card -->
+    <div class="account-card-header">
+      <div class="account-avatar-large" id="account-modal-avatar">D</div>
+      <div class="account-info-group">
+        <div class="account-name-row">
+          <strong class="account-username-text" id="settings-display-username">dora</strong>
+          <span class="account-role-badge" id="account-role-badge" data-i18n="account_role_admin">System Admin</span>
+        </div>
+        <p class="account-auth-desc" id="account-auth-desc" data-i18n="account_auth_desc">Protected by Basic Auth & Rate Limiting</p>
+      </div>
+    </div>
+
+    <!-- Credentials Edit Form -->
+    <form id="settings-cred-form" onsubmit="window.ownlineSaveCredentials(event)" autocomplete="off">
+      <input type="text" style="display:none" tabindex="-1" aria-hidden="true">
+      <input type="password" style="display:none" tabindex="-1" aria-hidden="true">
+
+      <div class="field" style="margin-top:12px">
+        <label for="settings-curr-pass" style="display:flex;justify-content:space-between">
+          <span id="account-lbl-curr-pass" data-i18n="account_curr_pass">Current Password</span>
+          <span class="small muted" id="account-hint-curr-pass" data-i18n="account_hint_curr_pass">(Identity Verification)</span>
+        </label>
+        <div class="password-input-wrap">
+          <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••" data-lpignore="true" data-1p-ignore="true">
+          <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-curr-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Collapsible Change Username Section -->
+      <details class="account-collapse" id="account-user-details" style="margin:12px 0">
+        <summary style="font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;user-select:none">
+          <svg class="ico details-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          <span id="account-lbl-opt-user" data-i18n="account_opt_user">Change Login Username</span>
+          <span class="muted small" style="font-weight:normal" id="account-hint-opt-user" data-i18n="account_hint_opt_user">(leave empty to keep current)</span>
+        </summary>
+        <div class="field" style="margin-top:8px;padding-left:12px;border-left:2px solid var(--line-light)">
+          <label for="settings-username" id="account-lbl-new-user" data-i18n="account_new_user">New Username</label>
+          <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly')" placeholder="Leave empty to keep current">
+          <p class="small muted" style="margin:4px 0 0;font-size:11.5px" id="account-tip-username" data-i18n="account_tip_username">Supports 1-64 letters, numbers, _, ., or -</p>
+        </div>
+      </details>
+
+      <!-- New Password Field -->
+      <div class="field" style="margin-top:10px">
+        <label for="settings-new-pass" style="display:flex;justify-content:space-between">
+          <span id="account-lbl-new-pass" data-i18n="account_new_pass">New Password</span>
+          <span class="small muted" id="account-hint-new-pass" data-i18n="account_hint_new_pass">(at least 12 characters)</span>
+        </label>
+        <div class="password-input-wrap">
+          <input id="settings-new-pass" type="password" autocomplete="new-password" minlength="12" placeholder="Leave empty to keep current" data-lpignore="true" data-1p-ignore="true" oninput="window.updatePasswordStrength(this.value)">
+          <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-new-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+        <!-- Dynamic Password Strength Meter -->
+        <div id="pwd-strength-wrap" style="display:none;margin-top:6px">
+          <div class="pwd-strength-bar">
+            <div class="pwd-strength-seg" id="pwd-seg-1"></div>
+            <div class="pwd-strength-seg" id="pwd-seg-2"></div>
+            <div class="pwd-strength-seg" id="pwd-seg-3"></div>
+            <div class="pwd-strength-seg" id="pwd-seg-4"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+            <span class="small muted" id="pwd-strength-text" style="font-size:11.5px">Password Strength</span>
+            <span class="small muted" id="pwd-strength-hint" style="font-size:11.5px">Mix letters, numbers & symbols</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Confirm Password Field -->
+      <div class="field" style="margin-top:10px">
+        <label for="settings-confirm-pass" id="account-lbl-confirm-pass" data-i18n="account_confirm_pass">Confirm New Password</label>
+        <div class="password-input-wrap">
+          <input id="settings-confirm-pass" type="password" autocomplete="new-password" minlength="12" placeholder="Re-enter new password" data-lpignore="true" data-1p-ignore="true" oninput="window.checkPasswordMatch()">
+          <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-confirm-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+          </button>
+        </div>
+        <div id="pwd-match-text" class="small" style="display:none;margin-top:4px;font-size:11.5px"></div>
+      </div>
+
+      <p id="settings-status" role="status" style="margin:14px 0 0;font-size:13px;min-height:1.4em;text-align:center"></p>
+
+      <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:18px">
+        <button class="btn sub tiny" type="button" onclick="document.getElementById('account-dialog').close()" id="settings-btn-cancel" data-i18n="account_btn_cancel">Cancel</button>
+        <button class="btn tiny primary" type="submit" id="settings-btn-save" data-i18n="account_btn_save">Save Changes</button>
+      </div>
+    </form>
+
+    <!-- Post-Save Success Card -->
+    <div id="account-success-card" style="display:none;text-align:center;padding:20px 8px 10px">
+      <div class="success-icon-circle">
+        <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="account-success-title" data-i18n="account_success_title">Credentials Updated</h3>
+      <p class="muted small" style="margin:0 0 18px;line-height:1.5" id="account-success-desc">
+        新账号：<strong id="account-success-user" style="font-family:var(--mono);color:var(--ink)">dora</strong><br>
+        <span id="account-success-subdesc" data-i18n="account_success_subdesc">新凭据已生效，请重新登录。</span>
+      </p>
+      <button class="btn primary" type="button" onclick="window.location.reload()" id="account-btn-relogin" style="width:100%;padding:10px;font-size:14px;font-weight:600" data-i18n="account_btn_relogin">立即使用新凭据登录</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="backup-dialog" style="max-width:420px;width:calc(100% - 32px);border:1px solid var(--line);padding:20px;color:var(--fg);background:var(--surface)">
+  <form method="dialog" id="backup-password-form">
+    <h2 id="backup-dialog-title" data-i18n="backup_dialog_title">备份加密口令</h2>
+    <p class="small muted" data-i18n="backup_dialog_desc">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
+    <label for="backup-password" data-i18n="backup_pwd_lbl">备份口令</label>
+    <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
+    <div id="backup-confirm-wrap"><label for="backup-confirm" style="margin-top:10px" data-i18n="backup_confirm_lbl">确认备份口令</label><input id="backup-confirm" type="password" autocomplete="new-password"></div>
+    <p id="backup-error" class="small" role="status" style="color:var(--bad)"></p>
+    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
+  </form>
+</dialog>
+

@@ -79,6 +79,15 @@ fi
 
 echo
 echo "--- [3/4] 运行 tests/ 前端与加密单元测试 (Node.js) ---"
+if [ -f "scripts/build_web.py" ]; then
+  if "$PYTHON_BIN" scripts/build_web.py --check >/dev/null 2>&1; then
+    printf '  ✅ %-40s 同步一致\n' "web/src -> web/index.html"
+    total=$((total + 1))
+  else
+    printf '  ❌ %-40s 未同步，请运行 scripts/build_web.py 重建\n' "web/src -> web/index.html"
+    failed=$((failed + 1))
+  fi
+fi
 if command -v node >/dev/null 2>&1; then
   if out="$(node --test tests/*.test.js 2>&1)"; then
     n="$(printf '%s\n' "$out" | sed -n 's/^ℹ pass \([0-9][0-9]*\)$/\1/p' | tail -1)"

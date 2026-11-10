@@ -1,0 +1,70 @@
+  <section class="panel-card" id="card-serving">
+    <div id="install-task" class="check-result-box" style="display:none;margin:0 0 18px" role="status">
+      <strong id="install-task-title">安装任务</strong>
+      <p class="small muted" id="install-task-message" style="margin:4px 0 8px"></p>
+      <button class="btn tiny" id="install-task-refresh" type="button">刷新进度</button>
+      <button class="btn tiny" id="install-task-dismiss" type="button" disabled>关闭</button>
+    </div>
+
+    <!-- State A: Main Dashboard -->
+    <div id="view-dashboard">
+      <div class="sub-header">
+        <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
+        <div class="quota-glance" id="quota-glance" style="display:none" title="总流量使用">
+          <span class="quota-glance-bar"><i id="quota-glance-fill" style="width: 0%;"></i></span>
+          <span id="quota-glance-text">0 / 0 GB</span>
+        </div>
+        <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
+        <div style="margin-left:auto;display:flex;gap:8px">
+          <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点">
+            <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quota Hero Summary Banner -->
+      <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:14px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line);cursor:pointer" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:13px;font-weight:600;color:var(--apple-fg)" data-i18n="quota_hero_title">本月出海总流量</span>
+            <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 6px" data-i18n="quota_status_ok">充足</span>
+          </div>
+          <div style="font-size:13px;font-family:var(--mono)">
+            <b id="quota-hero-used" style="font-size:14px;color:var(--apple-fg)">0</b> / <span id="quota-hero-total" style="color:var(--apple-muted)">0 GB</span>
+            <span id="quota-hero-percent" class="small muted" style="margin-left:4px">(0%)</span>
+          </div>
+        </div>
+        <div class="bar" style="height:6px;background:rgba(0,0,0,0.06);border-radius:999px;overflow:hidden">
+          <i id="quota-hero-fill" style="display:block;height:100%;width:0%;background:var(--apple-blue);border-radius:999px;transition:width .3s ease"></i>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--apple-muted)">
+          <span><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
+          <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
+        </div>
+      </div>
+
+      <!-- Unready State Box -->
+      <div id="client-unready-box" style="margin-top:14px;padding:18px 16px;background:var(--surface-soft);border:1px dashed var(--line);text-align:center">
+        <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:4px" data-i18n="connecting_svc">正在连接服务...</div>
+        <div class="small muted" id="unready-note"></div>
+      </div>
+
+      <!-- Client Actions -->
+      <div id="client-ready-box" style="display:none;margin-top:14px">
+        <div class="apple-hero-bar">
+          <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
+            <span class="apple-hero-title" data-i18n="connect_device">连接本机</span>
+            <span id="client-device-badge" class="apple-device-pill">检测中...</span>
+          </button>
+          <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="复制链接" aria-label="复制链接">
+            <svg class="ico" width="16" height="16"><use href="#i-copy"/></svg>
+          </button>
+          <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="扫码连接" aria-label="扫码连接">
+            <svg class="ico" width="16" height="16"><use href="#i-qr"/></svg>
+          </button>
+        </div>
+        <div id="copy-note" class="small" role="status" style="display:none;margin-top:6px;color:var(--ok)"></div>
+        <p id="import-note" class="small muted" role="status" style="margin:6px 0 0"></p>
+      </div>
+
+      <!-- Apple Client Hub Dialog (Action Sheet) -->

@@ -1,0 +1,170 @@
+.page {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Header & Brand */
+header.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 24px;
+}
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.evergreen-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #11141b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+.brand:hover .evergreen-icon {
+  transform: translateY(-1px);
+}
+.evergreen-icon::before {
+  content: "";
+  position: absolute;
+  top: -40%; left: -40%;
+  width: 180%; height: 180%;
+  background: radial-gradient(circle, rgba(52, 211, 153, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+.brand-text-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-title {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.85px;
+  color: var(--ink);
+  line-height: 1.15;
+}
+.brand-pill {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--navy);
+  background: var(--paper-card-secondary);
+  border: 1px solid var(--line);
+  padding: 2px 7px;
+  border-radius: 4px;
+  line-height: 1.2;
+}
+.pill-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--paper-card);
+  color: var(--ink-muted);
+  border: 1px solid var(--line);
+  transition: all .15s ease;
+}
+.pill-preview.ok {
+  background: rgba(46, 125, 50, 0.08);
+  color: var(--green);
+  border-color: rgba(46, 125, 50, 0.28);
+}
+.pill-preview.warn {
+  background: rgba(180, 83, 9, 0.08);
+  color: var(--amber);
+  border-color: rgba(180, 83, 9, 0.28);
+}
+.pill-preview.bad {
+  background: rgba(194, 65, 12, 0.08);
+  color: var(--red);
+  border-color: rgba(194, 65, 12, 0.28);
+}
+.pill-preview #status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  background: currentColor;
+}
+
+/* Typography & Layout */
+.panel-card {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin-bottom: 24px;
+}
+h1, h2, h3 { margin: 0; font-weight: 600; color: var(--ink); }
+h1 { font-size: 24px; letter-spacing: -0.85px; line-height: 1.25; }
+h2 { font-size: 18px; letter-spacing: -0.4px; color: var(--ink); }
+.small { font-size: 13px; }
+.muted { color: var(--ink-muted); }
+
+.sub-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.main-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.85px;
+  margin: 0;
+}
+.sub-status {
+  font-size: 13.5px;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Form Controls & Inputs */
+.field { margin-bottom: 14px; }
+.field:last-child { margin-bottom: 0; }
+.field-label, label { display: block; font-size: 13px; font-weight: 500; color: var(--ink); margin-bottom: 6px; }
+
+input[type="text"], input[type="password"], input[type="number"], textarea, select {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  outline: none;
+  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px var(--navy-soft);
+}
+input::placeholder, textarea::placeholder {
+  color: var(--ink-subtle);
+}
+
+#ssh-connection-fields { font-family: var(--font); }
+#ssh-connection-fields .field { margin-bottom: 14px; }
+#ssh-connection-fields .field label { font-weight: 500; }
+#other-ip, #other-credential { min-height: 44px; font-size: 15px; }
+#other-credential { resize: vertical; }
+#ssh-connection-fields .other-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; }

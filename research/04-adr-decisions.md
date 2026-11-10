@@ -83,3 +83,21 @@
 **确立【按需双向唤醒】设计范式：**
 1. **系统主动提醒唤醒**：当网络体检测出晚高峰丢包严重时，界面主动弹出优化胶囊（“检测到丢包，一键唤醒 HY2 极速抢跑”）；
 2. **用户意图驱动唤醒**：通过 Agent 或场景提示词输入（如“我要做外贸防封”），系统自动为用户调配并激活对应的高级模块。
+
+---
+
+### <a id="adr-006"></a>ADR-006：前端源码模块化拆分与零外部依赖确定性合成管线 (Zero-Dependency Modular Build)
+
+#### 1. 背景与上下文 (Context)
+此前 `web/index.html` 采用 5,400+ 行的单文件巨石架构（Monolith），所有 CSS、HTML 模态框与 JS 脚本交织在一起，存在状态竞争风险（如定时轮询覆盖用户操作）及代码可维护性瓶颈。但生产服务器采用 Caddy 直接托管单文件 HTML，且部署环境无 Node.js/Webpack/Vite 等构建工具链。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（全量引入 Webpack/Vite + NPM 工具链）：增加数百兆依赖与编译黑盒，破坏服务器端免构建自包含极简部署特性；
+* 方案 B（维持 5,400 行单文件手工编辑）：无法进行模块化维护，状态流重构易产生代码膨胀与回归死角；
+* 方案 C（采用标准库 Python 3 确定性合成管线）：源码拆分为 `web/src/{css,html,js}` 模块，通过 `scripts/build_web.py` 在毫秒级内确定性拼接为生产级 `web/index.html`，门禁脚本强制校验 `--check` 同步性。
+
+#### 3. 裁决结论 (Decision)
+**采纳方案 C。**
+1. 源码按关注点分离为 `web/src/css/`、`web/src/html/`、`web/src/js/`；
+2. 保持生产产物 `web/index.html` 为自包含单文件，对运行时环境保持零外部依赖；
+3. 将 `python3 scripts/build_web.py --check` 纳入 `./scripts/test.sh` 核心门禁，确保源码与产物强一致。

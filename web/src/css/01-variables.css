@@ -1,0 +1,90 @@
+:root {
+  /* OpenDesign Paper & Ink Aesthetic Palette */
+  --paper: #f5f4ed;
+  --paper-card: #fdfcf9;
+  --paper-card-subtle: #f7f6f0;
+  --paper-card-secondary: #eeebe1;
+  --ink: #1f1d18;
+  --ink-muted: #6b665b;
+  --ink-subtle: #8a8477;
+  --navy: #1b365d;
+  --navy-hover: #142c4d;
+  --navy-soft: rgba(27, 54, 93, 0.08);
+  --line: #d4d1c5;
+  --line-light: #e6e3da;
+  --green: #2e7d32;
+  --amber: #b45309;
+  --red: #c2410c;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  /* Backward Compatibility Aliases for Scripts & Components */
+  --apple-bg: var(--paper);
+  --apple-card: var(--paper-card);
+  --apple-card-subtle: var(--paper-card-subtle);
+  --apple-card-secondary: var(--paper-card-secondary);
+  --apple-fg: var(--ink);
+  --apple-muted: var(--ink-muted);
+  --apple-line: var(--line);
+  --apple-line-light: var(--line-light);
+  --apple-blue: var(--navy);
+  --apple-blue-hover: var(--navy-hover);
+  --apple-blue-soft: var(--navy-soft);
+  --apple-green: var(--green);
+  --apple-amber: var(--amber);
+  --apple-red: var(--red);
+  --apple-font: var(--font);
+
+  --bg: var(--paper);
+  --surface: var(--paper-card);
+  --surface-soft: var(--paper-card-secondary);
+  --surface-card: var(--paper-card);
+  --fg: var(--ink);
+  --muted: var(--ink-muted);
+  --line-focus: var(--navy);
+  --accent: var(--navy);
+  --accent-fg: #ffffff;
+  --accent-soft: var(--navy-soft);
+  --warn: var(--amber);
+  --bad: var(--red);
+  --ok: var(--green);
+  --serif: var(--font);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #141517;
+    --paper-card: #1c1d22;
+    --paper-card-subtle: #24252b;
+    --paper-card-secondary: #2b2d35;
+    --ink: #ede9e0;
+    --ink-muted: #9c978c;
+    --ink-subtle: #736f66;
+    --navy: #5d93d2;
+    --navy-hover: #75a7e3;
+    --navy-soft: rgba(93, 147, 210, 0.16);
+    --line: #2e313b;
+    --line-light: #242630;
+    --green: #4ade80;
+    --amber: #fbbf24;
+    --red: #f87171;
+  }
+}
+
+* { box-sizing: border-box; }
+html {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  margin: 0;
+  padding: 32px 18px 64px;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}

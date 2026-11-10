@@ -1,0 +1,586 @@
+#ssh-connection-fields .other-actions .btn { min-height: 40px; min-width: 96px; }
+#ssh-connection-fields details.other-advanced { border: 0; background: transparent; padding: 0; margin: 0; }
+#ssh-connection-fields details.other-advanced > summary { display: flex; align-items: center; min-height: 40px; cursor: pointer; color: var(--ink-muted); }
+#panel-other details.other-install { border: 0; background: transparent; padding: 0; margin: 12px 0 0; }
+#panel-other details.other-install > summary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 8px 16px;
+  background: var(--navy);
+  color: #fff;
+  font-size: 13.5px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+#panel-other details.other-install > summary::before { content: none; }
+#panel-other details.other-install > summary:hover { background: var(--navy-hover); }
+
+/* Buttons & Segmented Controls */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 38px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-family: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: 6px;
+  background: var(--paper-card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.04);
+  transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
+}
+.btn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); color: var(--ink); }
+.btn:active { transform: scale(0.985); }
+.btn.primary {
+  background: var(--navy);
+  color: #ffffff;
+  border-color: var(--navy);
+  box-shadow: 0 1px 3px rgba(27, 54, 93, 0.25);
+}
+.btn.primary:hover { background: var(--navy-hover); border-color: var(--navy-hover); color: #ffffff; }
+.btn.tiny { min-height: 28px; padding: 3px 10px; font-size: 12px; border-radius: 5px; }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
+
+.btn-outline {
+  border: 1px solid var(--navy);
+  color: var(--navy);
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.btn-outline:hover { background: var(--navy-soft); color: var(--navy-hover); }
+.btn-outline:active { transform: scale(0.985); }
+
+.seg {
+  display: flex;
+  background: var(--paper-card-secondary);
+  border-radius: 6px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  margin: 8px 0 16px;
+}
+.segbtn {
+  flex: 1;
+  padding: 7px 12px;
+  border: none;
+  background: transparent;
+  color: var(--ink-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all .12s ease;
+}
+.segbtn.active, .segbtn[aria-pressed="true"] {
+  background: var(--paper-card);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.08);
+}
+
+/* Quota Hero Summary Banner */
+.quota-hero-card {
+  background: var(--paper-card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px !important;
+  padding: 14px 16px;
+  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
+}
+.quota-hero-card .bar {
+  height: 6px;
+  background: var(--paper-card-secondary);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.quota-hero-card .bar i {
+  display: block;
+  height: 100%;
+  background: var(--navy);
+  border-radius: 999px;
+  transition: width .3s ease;
+}
+
+/* Hero Connect Bar */
+.apple-hero-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 14px;
+}
+.apple-hero-connect {
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 6px;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: -0.15px;
+  gap: 9px;
+  cursor: pointer;
+}
+.apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; }
+.apple-device-pill {
+  font-size: 11.5px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  margin-left: 2px;
+}
+.apple-hero-copy, .apple-hero-qr {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 8px;
+  background: var(--paper-card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+.apple-hero-copy:hover, .apple-hero-qr:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--ink-muted);
+  color: var(--navy);
+  transform: translateY(-1px);
+}
+.apple-hero-copy:active, .apple-hero-qr:active { transform: scale(0.96); }
+
+.icon-btn-round {
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper-card);
+  color: var(--ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all .15s ease;
+  flex: none;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.icon-btn-round:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--ink-muted);
+  color: var(--navy);
+  transform: scale(1.05);
+}
+.icon-btn-round:active {
+  transform: scale(0.95);
+}
+
+/* User Pill Button (Top Nav) */
+.user-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 5px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 9999px;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.user-pill-btn:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--navy);
+  transform: translateY(-0.5px);
+}
+.user-avatar-badge {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  line-height: 1;
+}
+.user-pill-name {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  color: var(--ink);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Account Overview Card */
+.account-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  margin-bottom: 14px;
+}
+.account-avatar-large {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+  color: #fff;
+  font-size: 19px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.account-info-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.account-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.account-username-text {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.account-role-badge {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--green);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.account-auth-desc {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--ink-muted);
+}
+
+/* Password Input & Eye Toggle */
+.password-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.password-input-wrap input {
+  width: 100%;
+  padding-right: 36px;
+}
+.pwd-eye-btn {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-muted);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color .15s ease;
+}
+.pwd-eye-btn:hover {
+  color: var(--ink);
+}
+
+/* Password Strength Meter */
+.pwd-strength-bar {
+  display: flex;
+  gap: 4px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.pwd-strength-seg {
+  flex: 1;
+  height: 100%;
+  background: var(--line);
+  border-radius: 2px;
+  transition: background-color .2s ease;
+}
+.account-collapse summary {
+  list-style: none;
+}
+.account-collapse summary::-webkit-details-marker {
+  display: none;
+}
+.account-collapse[open] .details-arrow {
+  transform: rotate(180deg);
+}
+
+/* Success Icon Circle */
+.success-icon-circle {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: rgba(16, 185, 129, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  border: 2px solid rgba(16, 185, 129, 0.25);
+}
+
+/* Dialogs & Modal Sheets (Modern Web Guidance & OpenDesign) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background: rgba(31, 29, 24, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.sheet, .apple-action-sheet {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: 100vw;
+  max-height: 100vh;
+}
+.sheet-inner, .apple-sheet-box {
+  width: min(440px, calc(100vw - 32px));
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 22px 24px;
+  border-radius: 12px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  box-shadow: 0 16px 36px rgba(31, 29, 24, 0.16);
+  color: var(--ink);
+}
+.sheet-inner h2 { margin: 0 0 10px; font-size: 18px; font-weight: 600; color: var(--ink); }
+.sheet-inner p { margin: 0 0 16px; color: var(--ink-muted); font-size: 13.5px; line-height: 1.5; }
+.apple-sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-light);
+}
+.apple-sheet-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 0;
+}
+.apple-sheet-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--paper-card-secondary);
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all .15s ease;
+}
+.apple-sheet-close:hover {
+  background: var(--line);
+  color: var(--ink);
+}
+.apple-client-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.apple-client-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  text-decoration: none;
+  color: var(--ink);
+  transition: all .15s ease;
+  cursor: pointer;
+}
+.apple-client-row:hover {
+  background: var(--paper-card-secondary);
+  border-color: var(--navy);
+  transform: translateY(-1px);
+}
+.apple-client-row:active { transform: scale(0.985); }
+.apple-client-row.primary {
+  border-color: var(--navy);
+  background: var(--navy-soft);
+}
+.apple-client-icon-wrap {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  overflow: hidden;
+  background: #ffffff;
+  border: 1px solid var(--line);
+}
+.apple-client-icon-wrap img { width: 26px; height: 26px; object-fit: contain; }
+.apple-client-meta { flex: 1; min-width: 0; }
+.apple-client-name { display: block; font-size: 15px; font-weight: 600; color: var(--ink); }
+.apple-client-desc { display: block; font-size: 12px; color: var(--ink-muted); margin-top: 1px; }
+.apple-client-action-pill {
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: var(--paper-card-secondary);
+  color: var(--navy);
+  border: 1px solid var(--line);
+  flex: none;
+  transition: all .15s ease;
+}
+.apple-client-action-pill.primary {
+  background: var(--navy);
+  color: #ffffff;
+  border-color: var(--navy);
+}
+
+.apple-client-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.client-assist-card {
+  background: var(--paper-card-secondary);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: -2px;
+}
+.assist-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--navy);
+  margin-bottom: 6px;
+}
+.assist-guidance {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.assist-prompt { display: block; margin-bottom: 6px; }
+.assist-btn-group {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.assist-action-btn {
+  font-size: 11.5px !important;
+  padding: 3px 8px !important;
+  border-radius: 5px !important;
+  background: var(--paper-card) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--ink) !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+}
+.assist-action-btn:hover {
+  border-color: var(--navy) !important;
+  color: var(--navy) !important;
+}
+.apple-id-callout {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--ink);
+}
+.apple-id-callout a {
+  color: var(--navy);
+  text-decoration: underline;
+}
+
+/* Nodes List Section */
+#nodes-section {
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin-top: 26px;
+}
+#nodes-section > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  letter-spacing: -0.2px;
+}
+#nodes-section > summary::-webkit-details-marker { display: none; }
+#nodes-section > summary::before { content: none !important; }
+
+#nodes {
+  background: var(--paper-card);
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
+  padding: 0 18px;
+}
