@@ -3807,6 +3807,7 @@ footer.site-footer {
         document.getElementById("tc-read-status").textContent = canDiscover ? "" : (zh ? "当前后端未开启腾讯云 API 自动发现。" : "Tencent Cloud API auto-discovery is disabled.");
       }
       NODES = nodes || [];
+      if (typeof window !== "undefined") window.NODES = NODES;
       if (nodes) {
         document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
         document.getElementById("serving-node-ip").textContent = nodes.length ? (zh ? nodes.length + " 个节点已加载" : nodes.length + " nodes loaded") : (zh ? "暂无节点连接" : "No nodes connected");
@@ -3864,6 +3865,13 @@ footer.site-footer {
         if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "暂无流量统计");
       }
       renderNodes(NODES, STATUS, quota);
+      if (NODES && NODES.length) {
+        if (typeof ownlineProbeLocalPing === "function") {
+          setTimeout(function () { ownlineProbeLocalPing(); }, 150);
+        } else if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
+          setTimeout(function () { window.ownlineProbeLocalPing(); }, 150);
+        }
+      }
       var distinctHosts = {};
       (nodes || []).forEach(function (n) {
         var h = n.host || n.ip;
@@ -4022,7 +4030,9 @@ footer.site-footer {
         var backboneCls = msNum != null ? (msNum <= 200 ? "fast" : (msNum <= 350 ? "medium" : "slow")) : "fast";
 
         // Local client ping state
-        var localPingState = (typeof window !== "undefined" && window.LOCAL_PING_STATE) ? window.LOCAL_PING_STATE : null;
+        var localPingState = (typeof LOCAL_PING_STATE !== "undefined")
+          ? LOCAL_PING_STATE
+          : ((typeof window !== "undefined" && window.LOCAL_PING_STATE) ? window.LOCAL_PING_STATE : null);
         var localSt = (localPingState && localPingState.results)
           ? (localPingState.results[n.host] || (n.ip && localPingState.results[n.ip]))
           : null;
@@ -5381,7 +5391,9 @@ footer.site-footer {
         if (existing) existing.textContent = "测速中...";
       }
     });
-    if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
+    if (typeof ownlineProbeLocalPing === "function") {
+      ownlineProbeLocalPing(true);
+    } else if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
       window.ownlineProbeLocalPing(true);
     }
     jsonRequest("/api/ping", {
@@ -5541,15 +5553,19 @@ footer.site-footer {
     });
   }
 
-(function () {
-  "use strict";
+  if (typeof window !== "undefined") {
+    window.paintStatus = paintStatus;
+  }
 
+  // 07b-local-ping.js - Client-Side Real-Time Latency Probing
   var LOCAL_PING_STATE = {
     results: {},
     isProbing: false,
     lastProbeTime: 0
   };
-  window.LOCAL_PING_STATE = LOCAL_PING_STATE;
+  if (typeof window !== "undefined") {
+    window.LOCAL_PING_STATE = LOCAL_PING_STATE;
+  }
 
   function probeTargetSingleAttempt(host, port, timeoutMs) {
     port = port || 443;
@@ -5581,7 +5597,7 @@ footer.site-footer {
         if (timer) clearTimeout(timer);
         var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
         var elapsed = Math.round(now - startTime);
-        resolve({ ok: true, ms: elapsed, timeout: false });
+        resolve({ ok: true, ms: Math.max(1, elapsed), timeout: false });
       }).catch(function (err) {
         if (timer) clearTimeout(timer);
         var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
@@ -5592,7 +5608,7 @@ footer.site-footer {
           resolve({ ok: false, ms: null, timeout: true });
         } else {
           // Network error after TCP SYN/ACK or TLS alert: elapsed reflects physical RTT
-          resolve({ ok: true, ms: elapsed, timeout: false });
+          resolve({ ok: true, ms: Math.max(1, elapsed), timeout: false });
         }
       });
     });
@@ -5625,8 +5641,10 @@ footer.site-footer {
     if (LOCAL_PING_STATE.isProbing && !force) {
       return Promise.resolve(LOCAL_PING_STATE.results);
     }
-    var nodes = window.NODES || [];
-    if (!nodes.length) {
+    var nodeList = (typeof NODES !== "undefined" && Array.isArray(NODES) && NODES.length)
+      ? NODES
+      : ((typeof window !== "undefined" && Array.isArray(window.NODES)) ? window.NODES : []);
+    if (!nodeList.length) {
       return Promise.resolve(LOCAL_PING_STATE.results);
     }
 
@@ -5634,7 +5652,7 @@ footer.site-footer {
 
     // Collect unique hosts to probe
     var targets = {};
-    nodes.forEach(function (n) {
+    nodeList.forEach(function (n) {
       if (!n || !n.host) return;
       var host = n.host;
       var port = n.port || 443;
@@ -5652,7 +5670,9 @@ footer.site-footer {
       };
     });
 
-    if (typeof window.paintStatus === "function") {
+    if (typeof paintStatus === "function") {
+      paintStatus();
+    } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
       window.paintStatus();
     }
 
@@ -5666,7 +5686,9 @@ footer.site-footer {
           timeout: res.timeout || false,
           ts: Date.now()
         };
-        if (typeof window.paintStatus === "function") {
+        if (typeof paintStatus === "function") {
+          paintStatus();
+        } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
           window.paintStatus();
         }
       });
@@ -5675,13 +5697,17 @@ footer.site-footer {
     return Promise.all(promises).then(function () {
       LOCAL_PING_STATE.isProbing = false;
       LOCAL_PING_STATE.lastProbeTime = Date.now();
-      if (typeof window.paintStatus === "function") {
+      if (typeof paintStatus === "function") {
+        paintStatus();
+      } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
         window.paintStatus();
       }
       return LOCAL_PING_STATE.results;
     }).catch(function () {
       LOCAL_PING_STATE.isProbing = false;
-      if (typeof window.paintStatus === "function") {
+      if (typeof paintStatus === "function") {
+        paintStatus();
+      } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
         window.paintStatus();
       }
       return LOCAL_PING_STATE.results;
@@ -5692,14 +5718,15 @@ footer.site-footer {
     // Quiet background pre-probing after initial UI sync
     setTimeout(function () {
       ownlineProbeLocalPing();
-    }, 2000);
+    }, 1500);
   }
 
-  window.ownlineProbeLocalPing = ownlineProbeLocalPing;
-  window.initLocalPing = initLocalPing;
-  window.probeHostLatency = probeHostLatency;
-  window.probeTargetSingleAttempt = probeTargetSingleAttempt;
-})();
+  if (typeof window !== "undefined") {
+    window.ownlineProbeLocalPing = ownlineProbeLocalPing;
+    window.initLocalPing = initLocalPing;
+    window.probeHostLatency = probeHostLatency;
+    window.probeTargetSingleAttempt = probeTargetSingleAttempt;
+  }
 
   // Backups read node configuration from management backend and encrypt in-browser before download.
   function backupPassword(confirmPassword) {

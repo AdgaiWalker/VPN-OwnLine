@@ -267,6 +267,7 @@
         document.getElementById("tc-read-status").textContent = canDiscover ? "" : (zh ? "当前后端未开启腾讯云 API 自动发现。" : "Tencent Cloud API auto-discovery is disabled.");
       }
       NODES = nodes || [];
+      if (typeof window !== "undefined") window.NODES = NODES;
       if (nodes) {
         document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
         document.getElementById("serving-node-ip").textContent = nodes.length ? (zh ? nodes.length + " 个节点已加载" : nodes.length + " nodes loaded") : (zh ? "暂无节点连接" : "No nodes connected");
@@ -324,6 +325,13 @@
         if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "暂无流量统计");
       }
       renderNodes(NODES, STATUS, quota);
+      if (NODES && NODES.length) {
+        if (typeof ownlineProbeLocalPing === "function") {
+          setTimeout(function () { ownlineProbeLocalPing(); }, 150);
+        } else if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
+          setTimeout(function () { window.ownlineProbeLocalPing(); }, 150);
+        }
+      }
       var distinctHosts = {};
       (nodes || []).forEach(function (n) {
         var h = n.host || n.ip;

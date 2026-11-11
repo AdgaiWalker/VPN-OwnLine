@@ -42,7 +42,9 @@
         var backboneCls = msNum != null ? (msNum <= 200 ? "fast" : (msNum <= 350 ? "medium" : "slow")) : "fast";
 
         // Local client ping state
-        var localPingState = (typeof window !== "undefined" && window.LOCAL_PING_STATE) ? window.LOCAL_PING_STATE : null;
+        var localPingState = (typeof LOCAL_PING_STATE !== "undefined")
+          ? LOCAL_PING_STATE
+          : ((typeof window !== "undefined" && window.LOCAL_PING_STATE) ? window.LOCAL_PING_STATE : null);
         var localSt = (localPingState && localPingState.results)
           ? (localPingState.results[n.host] || (n.ip && localPingState.results[n.ip]))
           : null;
@@ -1401,7 +1403,9 @@
         if (existing) existing.textContent = "测速中...";
       }
     });
-    if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
+    if (typeof ownlineProbeLocalPing === "function") {
+      ownlineProbeLocalPing(true);
+    } else if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
       window.ownlineProbeLocalPing(true);
     }
     jsonRequest("/api/ping", {
@@ -1559,5 +1563,9 @@
     }).catch(function (e) {
       dialog({title: "网络请求失败", message: String(e), cancelText: null, confirmText: "确定"});
     });
+  }
+
+  if (typeof window !== "undefined") {
+    window.paintStatus = paintStatus;
   }
 

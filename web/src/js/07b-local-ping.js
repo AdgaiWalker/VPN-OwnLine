@@ -1,12 +1,12 @@
-(function () {
-  "use strict";
-
+  // 07b-local-ping.js - Client-Side Real-Time Latency Probing
   var LOCAL_PING_STATE = {
     results: {},
     isProbing: false,
     lastProbeTime: 0
   };
-  window.LOCAL_PING_STATE = LOCAL_PING_STATE;
+  if (typeof window !== "undefined") {
+    window.LOCAL_PING_STATE = LOCAL_PING_STATE;
+  }
 
   function probeTargetSingleAttempt(host, port, timeoutMs) {
     port = port || 443;
@@ -38,7 +38,7 @@
         if (timer) clearTimeout(timer);
         var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
         var elapsed = Math.round(now - startTime);
-        resolve({ ok: true, ms: elapsed, timeout: false });
+        resolve({ ok: true, ms: Math.max(1, elapsed), timeout: false });
       }).catch(function (err) {
         if (timer) clearTimeout(timer);
         var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
@@ -49,7 +49,7 @@
           resolve({ ok: false, ms: null, timeout: true });
         } else {
           // Network error after TCP SYN/ACK or TLS alert: elapsed reflects physical RTT
-          resolve({ ok: true, ms: elapsed, timeout: false });
+          resolve({ ok: true, ms: Math.max(1, elapsed), timeout: false });
         }
       });
     });
@@ -82,8 +82,10 @@
     if (LOCAL_PING_STATE.isProbing && !force) {
       return Promise.resolve(LOCAL_PING_STATE.results);
     }
-    var nodes = window.NODES || [];
-    if (!nodes.length) {
+    var nodeList = (typeof NODES !== "undefined" && Array.isArray(NODES) && NODES.length)
+      ? NODES
+      : ((typeof window !== "undefined" && Array.isArray(window.NODES)) ? window.NODES : []);
+    if (!nodeList.length) {
       return Promise.resolve(LOCAL_PING_STATE.results);
     }
 
@@ -91,7 +93,7 @@
 
     // Collect unique hosts to probe
     var targets = {};
-    nodes.forEach(function (n) {
+    nodeList.forEach(function (n) {
       if (!n || !n.host) return;
       var host = n.host;
       var port = n.port || 443;
@@ -109,7 +111,9 @@
       };
     });
 
-    if (typeof window.paintStatus === "function") {
+    if (typeof paintStatus === "function") {
+      paintStatus();
+    } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
       window.paintStatus();
     }
 
@@ -123,7 +127,9 @@
           timeout: res.timeout || false,
           ts: Date.now()
         };
-        if (typeof window.paintStatus === "function") {
+        if (typeof paintStatus === "function") {
+          paintStatus();
+        } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
           window.paintStatus();
         }
       });
@@ -132,13 +138,17 @@
     return Promise.all(promises).then(function () {
       LOCAL_PING_STATE.isProbing = false;
       LOCAL_PING_STATE.lastProbeTime = Date.now();
-      if (typeof window.paintStatus === "function") {
+      if (typeof paintStatus === "function") {
+        paintStatus();
+      } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
         window.paintStatus();
       }
       return LOCAL_PING_STATE.results;
     }).catch(function () {
       LOCAL_PING_STATE.isProbing = false;
-      if (typeof window.paintStatus === "function") {
+      if (typeof paintStatus === "function") {
+        paintStatus();
+      } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
         window.paintStatus();
       }
       return LOCAL_PING_STATE.results;
@@ -149,11 +159,12 @@
     // Quiet background pre-probing after initial UI sync
     setTimeout(function () {
       ownlineProbeLocalPing();
-    }, 2000);
+    }, 1500);
   }
 
-  window.ownlineProbeLocalPing = ownlineProbeLocalPing;
-  window.initLocalPing = initLocalPing;
-  window.probeHostLatency = probeHostLatency;
-  window.probeTargetSingleAttempt = probeTargetSingleAttempt;
-})();
+  if (typeof window !== "undefined") {
+    window.ownlineProbeLocalPing = ownlineProbeLocalPing;
+    window.initLocalPing = initLocalPing;
+    window.probeHostLatency = probeHostLatency;
+    window.probeTargetSingleAttempt = probeTargetSingleAttempt;
+  }
