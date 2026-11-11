@@ -12,24 +12,34 @@ function source(name) {
   return match[0];
 }
 
-function setup(fetchResult) {
+function setup(fetchResult, nodesResult) {
   const state = { refreshingWhileLocked: null, refreshCount: 0, alerts: [] };
   const context = vm.createContext({
     window: {},
     document: { body: { style: {} } },
     isZh: () => true,
-    jsonRequest: () => fetchResult(),
+    jsonRequest: (path, opts) => {
+      if (path === '/api/nodes') {
+        if (nodesResult !== undefined) {
+          return typeof nodesResult === 'function' ? nodesResult() : Promise.resolve(nodesResult);
+        }
+        return Promise.resolve([]);
+      }
+      return fetchResult(path, opts);
+    },
     refreshState: () => {
       state.refreshCount += 1;
       state.refreshingWhileLocked = context.window.isTogglingHy2;
     },
-    alert: (message) => state.alerts.push(message)
+    alert: (message) => state.alerts.push(message),
+    setTimeout: (fn) => setImmediate(fn)
   });
   vm.runInContext('var isTogglingHy2 = false;' + String.fromCharCode(10) + source('toggleHy2'), context);
   return { context, state };
 }
 
 async function settle() {
+  await new Promise((resolve) => setImmediate(resolve));
   await new Promise((resolve) => setImmediate(resolve));
 }
 
@@ -48,9 +58,37 @@ test('HY2 success clears mutation lock before refreshing visible state', async (
   assert.equal(context.window.isTogglingHy2, false);
 });
 
-test('HY2 fetch failure refreshes actual state after releasing mutation lock', async () => {
+test('HY2 network break succeeds cleanly when backend state confirmed', async () => {
   let fail;
-  const { context, state } = setup(() => new Promise((_resolve, reject) => { fail = reject; }));
+  const nodes = [
+    { name: '硅谷', host: '43.153.56.137', hy2_enabled: true },
+    { name: '硅谷-HY2', host: '43.153.56.137', type: 'hysteria2', enabled: true }
+  ];
+  const { context, state } = setup(
+    () => new Promise((_resolve, reject) => { fail = reject; }),
+    nodes
+  );
+
+  context.toggleHy2('硅谷', '43.153.56.137', true);
+  fail(new Error('Failed to fetch'));
+  await settle();
+
+  assert.equal(state.refreshCount, 1);
+  assert.equal(state.refreshingWhileLocked, false);
+  assert.equal(context.window.isTogglingHy2, false);
+  // Confirmed success suppresses confusing error alert
+  assert.equal(state.alerts.length, 0);
+});
+
+test('HY2 network break reports unconfirmed state when backend state does not match', async () => {
+  let fail;
+  const nodes = [
+    { name: '硅谷', host: '43.153.56.137', hy2_enabled: false }
+  ];
+  const { context, state } = setup(
+    () => new Promise((_resolve, reject) => { fail = reject; }),
+    nodes
+  );
 
   context.toggleHy2('硅谷', '43.153.56.137', true);
   fail(new Error('Failed to fetch'));
@@ -60,6 +98,7 @@ test('HY2 fetch failure refreshes actual state after releasing mutation lock', a
   assert.equal(state.refreshingWhileLocked, false);
   assert.equal(context.window.isTogglingHy2, false);
   assert.equal(state.alerts.length, 1);
+  assert.match(state.alerts[0], /网络连接瞬断且未确认生效/);
 });
 
 test('HY2 server rejection refreshes state after reporting the rejection', async () => {

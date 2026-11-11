@@ -1047,8 +1047,48 @@
         shouldRefreshState = true;
       }
     }).catch(function (err) {
-      alert((zh ? "请求失败：" : "Request failed: ") + err.message);
-      shouldRefreshState = true;
+      var errMsg = (err && err.message) ? String(err.message) : String(err || "");
+      var isNetworkBreak = !err || err.name === "TypeError" ||
+        errMsg.indexOf("Failed to fetch") !== -1 ||
+        errMsg.indexOf("NetworkError") !== -1 ||
+        errMsg.indexOf("network") !== -1 ||
+        errMsg.indexOf("abort") !== -1;
+
+      if (isNetworkBreak) {
+        return new Promise(function (resolve) {
+          setTimeout(function () {
+            jsonRequest("/api/nodes").then(function (nodes) {
+              var target = (nodes || []).find(function (n) {
+                return (host && (n.host === host || n.ip === host)) || (name && (n.name === name || n.name === name + "-HY2"));
+              });
+              var hy2Target = (nodes || []).find(function (n) {
+                return n.type === "hysteria2" && ((host && (n.host === host || n.ip === host)) || (name && (n.name === name || n.name === name + "-HY2")));
+              });
+              var actualEnabled = false;
+              if (hy2Target) {
+                actualEnabled = (hy2Target.enabled !== false);
+              } else if (target) {
+                actualEnabled = (target.hy2_enabled === true);
+              }
+              if (actualEnabled === enable) {
+                shouldRefreshState = true;
+                resolve();
+              } else {
+                alert(actText + (zh ? " HY2 失败：网络连接瞬断且未确认生效" : " HY2 failed: Network interrupted and unconfirmed"));
+                shouldRefreshState = true;
+                resolve();
+              }
+            }).catch(function () {
+              alert(actText + (zh ? " HY2 失败：网络连接中断，请刷新页面查看" : " HY2 failed: Network interrupted, please refresh"));
+              shouldRefreshState = true;
+              resolve();
+            });
+          }, 1200);
+        });
+      } else {
+        alert((zh ? "请求失败：" : "Request failed: ") + errMsg);
+        shouldRefreshState = true;
+      }
     }).finally(function () {
       isTogglingHy2 = false;
       if (typeof window !== "undefined") window.isTogglingHy2 = false;

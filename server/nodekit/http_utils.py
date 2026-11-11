@@ -13,13 +13,16 @@ MAX_BODY = 1_000_000  # 1MB 限制，防超大 Payload
 
 def send_json(handler: Any, code: int, obj: Any) -> None:
     """统一序列化 JSON 响应并发送标准安全标头。"""
-    body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
-    handler.send_response(code)
-    handler.send_header("Content-Type", "application/json; charset=utf-8")
-    handler.send_header("Cache-Control", "no-store")
-    handler.send_header("Content-Length", str(len(body)))
-    handler.end_headers()
-    handler.wfile.write(body)
+    try:
+        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        handler.send_response(code)
+        handler.send_header("Content-Type", "application/json; charset=utf-8")
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("Content-Length", str(len(body)))
+        handler.end_headers()
+        handler.wfile.write(body)
+    except (BrokenPipeError, ConnectionResetError):
+        pass
 
 
 def parse_json_body(handler: Any, max_length: int = MAX_BODY) -> Tuple[int, Optional[dict]]:
