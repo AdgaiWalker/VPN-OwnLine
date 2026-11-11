@@ -4934,22 +4934,26 @@ footer.site-footer {
     var actText = enable ? (zh ? "开启" : "Enable") : (zh ? "关闭" : "Disable");
     if (document.body) document.body.style.cursor = "wait";
 
+    var shouldRefreshState = false;
     jsonRequest("/api/hy2/toggle", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name, host: host, enabled: enable })
     }).then(function (res) {
       if (res && res.ok) {
-        refreshState();
+        shouldRefreshState = true;
       } else {
         alert(actText + (zh ? " HY2 失败：" : " HY2 failed: ") + ((res && res.error) || "未知错误"));
+        shouldRefreshState = true;
       }
     }).catch(function (err) {
       alert((zh ? "请求失败：" : "Request failed: ") + err.message);
+      shouldRefreshState = true;
     }).finally(function () {
       isTogglingHy2 = false;
       if (typeof window !== "undefined") window.isTogglingHy2 = false;
       if (document.body) document.body.style.cursor = "default";
+      if (shouldRefreshState) refreshState();
     });
   }
 
