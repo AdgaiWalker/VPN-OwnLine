@@ -1386,6 +1386,19 @@ footer.site-footer {
   padding: 1px 6px;
   border-radius: 4px;
 }
+.ping-pill.local-ping {
+  margin-right: 4px;
+}
+.ping-pill.probing {
+  color: var(--blue, #2563eb);
+  background: rgba(37, 99, 235, 0.08);
+  border: 1px dashed rgba(37, 99, 235, 0.35);
+  animation: pulse-probing 1.2s ease-in-out infinite alternate;
+}
+@keyframes pulse-probing {
+  0% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
 .ping-pill.fast { color: var(--green); background: rgba(46, 125, 50, 0.08); border: 1px solid rgba(46, 125, 50, 0.2); }
 .ping-pill.medium { color: var(--amber); background: rgba(180, 83, 9, 0.08); border: 1px solid rgba(180, 83, 9, 0.2); }
 .ping-pill.slow { color: var(--red); background: rgba(194, 65, 12, 0.08); border: 1px solid rgba(194, 65, 12, 0.2); }
@@ -4005,17 +4018,58 @@ footer.site-footer {
         okCount++;
         if (d) d.className = "dot ok";
         var ms = (st && st.cn_ms != null) ? st.cn_ms : ((st && st.ms != null) ? st.ms : ((st && st.cn_latency != null) ? st.cn_latency : ((st && st.latency != null) ? st.latency : null)));
+        var msNum = ms != null ? (Math.round(Number(ms)) || 0) : null;
+        var backboneCls = msNum != null ? (msNum <= 200 ? "fast" : (msNum <= 350 ? "medium" : "slow")) : "fast";
+
+        // Local client ping state
+        var localPingState = (typeof window !== "undefined" && window.LOCAL_PING_STATE) ? window.LOCAL_PING_STATE : null;
+        var localSt = (localPingState && localPingState.results)
+          ? (localPingState.results[n.host] || (n.ip && localPingState.results[n.ip]))
+          : null;
+        var localPillHtml = "";
+
+        if (localSt && localSt.probing) {
+          localPillHtml = '<span class="ping-pill local-ping probing" title="' + esc(zh ? '正在从当前设备探测真实物理往返延迟...' : 'Probing real RTT from this client...') + '">' + (zh ? '📱 测速中...' : '📱 Probing...') + '</span>';
+        } else if (localSt && localSt.ms != null) {
+          var lms = Math.round(localSt.ms);
+          var lcls = lms <= 80 ? "fast" : (lms <= 220 ? "medium" : "slow");
+          var tip = "";
+          if (n.role === "relay" || n.landing) {
+            tip = zh
+              ? ('本机到国内入口延迟 ' + lms + 'ms · 骨干到国际出口 ' + (msNum != null ? msNum + 'ms' : '正常'))
+              : ('Client to relay entrance ' + lms + 'ms · Backbone to exit ' + (msNum != null ? msNum + 'ms' : 'OK'));
+          } else {
+            tip = zh ? ('本机到节点入口物理 RTT: ' + lms + 'ms') : ('Client RTT to entrance: ' + lms + 'ms');
+            if (msNum != null && Math.abs(lms - msNum) > 60) {
+              tip += zh ? (' (骨干基准 ' + msNum + 'ms，差异反映当前网络环境)') : (' (Backbone ' + msNum + 'ms)');
+            }
+          }
+          localPillHtml = '<span class="ping-pill local-ping ' + lcls + '" title="' + esc(tip) + '">📱 ' + (zh ? '本机 ' : '') + lms + 'ms</span>';
+        } else if (localSt && localSt.ok === false && localSt.timeout) {
+          localPillHtml = '<span class="ping-pill local-ping slow" title="' + esc(zh ? '本机直连入口超时或被防火墙拦截' : 'Direct probe timed out or blocked') + '">📱 ' + (zh ? '本机超时' : 'Timeout') + '</span>';
+        }
+
         var pingHtml = "";
-        if (ms != null) {
-          var cls = ms <= 200 ? "fast" : (ms <= 350 ? "medium" : "slow");
-          var msNum = Math.round(Number(ms)) || 0;
+        if (localPillHtml) {
+          if (msNum != null) {
+            var backboneLabel = (n.role === "relay" || n.landing)
+              ? ((zh ? '骨干 ' : 'Backbone ') + msNum + 'ms')
+              : ((zh ? '骨干 ' : 'Backbone ') + msNum + 'ms');
+            var backboneTip = st && st.vantage
+              ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得骨干延迟") : ("Probed via [" + st.vantage + "]"))
+              : (zh ? "服务器骨干探针延迟" : "Server vantage latency");
+            pingHtml = localPillHtml + '<span class="ping-pill ' + backboneCls + '" title="' + esc(backboneTip) + '">🌐 ' + backboneLabel + '</span>';
+          } else {
+            pingHtml = localPillHtml;
+          }
+        } else if (msNum != null) {
           var isSelf = (st && st.self_probe) || false;
           var pingLabel = isSelf ? (msNum + (zh ? "ms (探针本机)" : "ms (local probe)")) : (msNum + "ms");
           var tip = isSelf
             ? (zh ? "当前节点为系统国内探测基准锚点（点击右侧 ⋯ 或卡片可更换）" : "Active domestic vantage anchor for latency measurement")
             : (st && st.vantage ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得") : ("Probed via [" + st.vantage + "]")) : "");
           var tipAttr = tip ? (' title="' + esc(tip) + '"') : '';
-          pingHtml = '<span class="ping-pill ' + cls + '"' + tipAttr + '>' + pingLabel + '</span>';
+          pingHtml = '<span class="ping-pill ' + backboneCls + '"' + tipAttr + '>' + pingLabel + '</span>';
         } else {
           pingHtml = '<span class="ping-pill fast">' + (zh ? "正常" : "OK") + '</span>';
         }
@@ -5327,6 +5381,9 @@ footer.site-footer {
         if (existing) existing.textContent = "测速中...";
       }
     });
+    if (typeof window !== "undefined" && typeof window.ownlineProbeLocalPing === "function") {
+      window.ownlineProbeLocalPing(true);
+    }
     jsonRequest("/api/ping", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -5483,6 +5540,166 @@ footer.site-footer {
       dialog({title: "网络请求失败", message: String(e), cancelText: null, confirmText: "确定"});
     });
   }
+
+(function () {
+  "use strict";
+
+  var LOCAL_PING_STATE = {
+    results: {},
+    isProbing: false,
+    lastProbeTime: 0
+  };
+  window.LOCAL_PING_STATE = LOCAL_PING_STATE;
+
+  function probeTargetSingleAttempt(host, port, timeoutMs) {
+    port = port || 443;
+    timeoutMs = timeoutMs || 2500;
+    var url = "https://" + host + ":" + port + "/__probe_ping?_t=" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+    var startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+
+    var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+    var signal = controller ? controller.signal : undefined;
+    var timer = null;
+
+    var probePromise = new Promise(function (resolve) {
+      if (controller) {
+        timer = setTimeout(function () {
+          try { controller.abort(); } catch (e) {}
+          resolve({ ok: false, ms: null, timeout: true });
+        }, timeoutMs);
+      } else {
+        timer = setTimeout(function () {
+          resolve({ ok: false, ms: null, timeout: true });
+        }, timeoutMs);
+      }
+
+      fetch(url, {
+        mode: "no-cors",
+        cache: "no-store",
+        signal: signal
+      }).then(function () {
+        if (timer) clearTimeout(timer);
+        var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+        var elapsed = Math.round(now - startTime);
+        resolve({ ok: true, ms: elapsed, timeout: false });
+      }).catch(function (err) {
+        if (timer) clearTimeout(timer);
+        var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+        var elapsed = Math.round(now - startTime);
+        if (err && err.name === "AbortError") {
+          resolve({ ok: false, ms: null, timeout: true });
+        } else if (elapsed >= timeoutMs) {
+          resolve({ ok: false, ms: null, timeout: true });
+        } else {
+          // Network error after TCP SYN/ACK or TLS alert: elapsed reflects physical RTT
+          resolve({ ok: true, ms: elapsed, timeout: false });
+        }
+      });
+    });
+
+    return probePromise;
+  }
+
+  function probeHostLatency(host, port) {
+    // 2-round sampling: warm-up + measurement to eliminate DNS/handshake cold-start jitter
+    return probeTargetSingleAttempt(host, port, 2500).then(function (r1) {
+      if (!r1.ok) {
+        return r1;
+      }
+      return new Promise(function (resolve) {
+        setTimeout(function () {
+          probeTargetSingleAttempt(host, port, 2500).then(function (r2) {
+            if (!r2.ok) {
+              resolve(r1);
+            } else {
+              var bestMs = Math.min(r1.ms, r2.ms);
+              resolve({ ok: true, ms: bestMs, timeout: false });
+            }
+          });
+        }, 80);
+      });
+    });
+  }
+
+  function ownlineProbeLocalPing(force) {
+    if (LOCAL_PING_STATE.isProbing && !force) {
+      return Promise.resolve(LOCAL_PING_STATE.results);
+    }
+    var nodes = window.NODES || [];
+    if (!nodes.length) {
+      return Promise.resolve(LOCAL_PING_STATE.results);
+    }
+
+    LOCAL_PING_STATE.isProbing = true;
+
+    // Collect unique hosts to probe
+    var targets = {};
+    nodes.forEach(function (n) {
+      if (!n || !n.host) return;
+      var host = n.host;
+      var port = n.port || 443;
+      var key = host;
+      if (!targets[key]) {
+        targets[key] = { host: host, port: port };
+      }
+      LOCAL_PING_STATE.results[key] = {
+        probing: true,
+        ms: (LOCAL_PING_STATE.results[key] && LOCAL_PING_STATE.results[key].ms != null)
+          ? LOCAL_PING_STATE.results[key].ms
+          : null,
+        ok: true,
+        ts: Date.now()
+      };
+    });
+
+    if (typeof window.paintStatus === "function") {
+      window.paintStatus();
+    }
+
+    var promises = Object.keys(targets).map(function (key) {
+      var t = targets[key];
+      return probeHostLatency(t.host, t.port).then(function (res) {
+        LOCAL_PING_STATE.results[key] = {
+          probing: false,
+          ms: res.ok ? res.ms : null,
+          ok: res.ok,
+          timeout: res.timeout || false,
+          ts: Date.now()
+        };
+        if (typeof window.paintStatus === "function") {
+          window.paintStatus();
+        }
+      });
+    });
+
+    return Promise.all(promises).then(function () {
+      LOCAL_PING_STATE.isProbing = false;
+      LOCAL_PING_STATE.lastProbeTime = Date.now();
+      if (typeof window.paintStatus === "function") {
+        window.paintStatus();
+      }
+      return LOCAL_PING_STATE.results;
+    }).catch(function () {
+      LOCAL_PING_STATE.isProbing = false;
+      if (typeof window.paintStatus === "function") {
+        window.paintStatus();
+      }
+      return LOCAL_PING_STATE.results;
+    });
+  }
+
+  function initLocalPing() {
+    // Quiet background pre-probing after initial UI sync
+    setTimeout(function () {
+      ownlineProbeLocalPing();
+    }, 2000);
+  }
+
+  window.ownlineProbeLocalPing = ownlineProbeLocalPing;
+  window.initLocalPing = initLocalPing;
+  window.probeHostLatency = probeHostLatency;
+  window.probeTargetSingleAttempt = probeTargetSingleAttempt;
+})();
 
   // Backups read node configuration from management backend and encrypt in-browser before download.
   function backupPassword(confirmPassword) {
@@ -6110,6 +6327,7 @@ footer.site-footer {
     initQuotaSettings();
     initBackup();
     if (typeof window.initUpdater === "function") window.initUpdater();
+    if (typeof window.initLocalPing === "function") window.initLocalPing();
 
     refreshState();
     fetchLogs();

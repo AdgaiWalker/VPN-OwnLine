@@ -15,6 +15,7 @@
     initQuotaSettings();
     initBackup();
     if (typeof window.initUpdater === "function") window.initUpdater();
+    if (typeof window.initLocalPing === "function") window.initLocalPing();
 
     refreshState();
     fetchLogs();

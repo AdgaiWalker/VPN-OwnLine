@@ -3,11 +3,11 @@
 > **Own your private line. 一键装配属于你自己的独立高速出海专线。**  
 > 告别公共合租与封号风险。自备任意云服务器，2 分钟全自动装配出海内核与专属管理控制台。
 
-[![Release: v0.4.0](https://img.shields.io/badge/Release-v0.4.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.4.0)
+[![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.5.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 574 Passed](https://img.shields.io/badge/Tests-574%20Passed%20(100%25)-success.svg)]()
+[![Tests: 578 Passed](https://img.shields.io/badge/Tests-578%20Passed%20(100%25)-success.svg)]()
 
 ---
 
