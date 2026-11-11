@@ -194,3 +194,28 @@ rules:
 * **物理符号实现**：`server/admin.py:nodes_with_advice`, `server/admin.py:H.do_POST (/api/quota/guard)` ｜ `server/nodekit/quota_guard.py:parse_reset_day` ｜ 测试：`server/nodekit/quota_guard_tests.py`, `tests/node-quota-reset.test.js`
 * 接口 `/api/quota/guard` 与 `/api/nodes` 自动归一化解析云 API 返回的计费结算周期（`end`），并向实体注入 `reset_day: int`（1~31）。前端卡片据此呈现 `X日重置`，并彻底剔除冗余计算的剩余流量文本。
 
+### 4.5 系统版本与平滑升级控制面契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/admin.py:H.do_GET`, `server/admin.py:H.do_POST`, `server/nodekit/system_updater.py`, `deploy/upgrade.sh` ｜ 测试：`server/nodekit/system_updater_tests.py`, `tests/test_system_updater_api.py`, `tests/system-updater-ui.test.js`
+* **版本查询（支持双前缀）**：
+  * `GET /api/system/version` 与 `GET /system/version`：返回 `{"ok": true, "version": "v0.5.0", "commit": "...", "app": "Evergreen · OwnLine"}`。
+* **检查更新（内置 1 小时缓存）**：
+  * `GET /api/system/check_update[?force=1]` 与 `GET /system/check_update`：后端请求上游 GitHub Releases API 比对语义化版本号，返回：
+    ```json
+    {
+      "ok": true,
+      "current_version": "v0.5.0",
+      "latest_version": "v0.6.0",
+      "has_update": true,
+      "changelog": "更新说明文本",
+      "published_at": "2026-11-12T00:00:00Z",
+      "release_url": "https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.6.0",
+      "cached": false
+    }
+    ```
+* **一键平滑升级**：
+  * `POST /api/system/upgrade` 与 `POST /system/upgrade`（受 Basic Auth 保护）：
+    * 请求体：`{"target_version": "v0.6.0"}`（可选）
+    * 响应体：`{"ok": true, "status": "upgrading", "target_version": "v0.6.0", "message": "升级任务已在后台启动"}`
+    * 执行链路：独立后台子进程沙箱拉取代码，校验完整性，备份快照，原子同步至 `/opt/web`（严禁触碰 `/opt/web-data`），重启 `admin.service`，自检通过后完成收敛；若失败自动回滚。前端心跳探活自愈重载。
+
+

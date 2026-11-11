@@ -236,6 +236,9 @@
       var zh = (typeof isZh === 'function') ? isZh() : true;
       if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = zh ? "当前服务器后端不支持备份恢复。" : "Backup restore is not supported by current server backend.";
       if (settings && settings.ok === true) {
+        if (settings.version && typeof window.ownlineUpdateVersionBadges === "function") {
+          window.ownlineUpdateVersionBadges(settings.version);
+        }
         jsonRequest("/api/password/state", { signal: signal }).then(function (result) {
           if (signal && signal.aborted) return;
           document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";

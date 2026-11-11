@@ -21,6 +21,7 @@ from nodekit import links as links_mod  # noqa: E402
 from nodekit import templates as templates_mod  # noqa: E402
 from nodekit import remote_config as remote_cfg_mod  # noqa: E402
 from nodekit import http_utils  # noqa: E402
+from nodekit import system_updater as updater_mod  # noqa: E402
 from nodekit.relay_service import RelayService  # noqa: E402
 from nodekit.hy2_service import Hy2Service  # noqa: E402
 from nodekit.node_service import NodeService  # noqa: E402
@@ -616,6 +617,12 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
+        if path in ("/system/version", "/api/system/version"):
+            return self._json(200, updater_mod.get_version_info())
+        if path in ("/system/check_update", "/api/system/check_update"):
+            q = urllib.parse.parse_qs(qs)
+            force = (q.get("force") or ["0"])[0].lower() in ("1", "true", "yes")
+            return self._json(200, updater_mod.check_update(force=force))
         if path in ("/probe/vantage", "/api/probe/vantage"):
             settings = _load_json("settings.json", {})
             return self._json(200, {"ok": True, "vantage": settings.get("probe_vantage")})
@@ -625,6 +632,7 @@ class H(BaseHTTPRequestHandler):
             tc_ready = os.path.exists(os.path.join(DATA, "tc.json"))
             return self._json(200, {
                 "ok": True,
+                "version": updater_mod.CURRENT_VERSION,
                 "domain": domain,
                 "sub_token": token,
                 "sub_url": sub_url,
@@ -835,6 +843,12 @@ class H(BaseHTTPRequestHandler):
                 return self._json(500, {'ok': False, 'error': '暂时无法确认结果，请先尝试新密码；仍无法登录时在服务器终端检查'})
             finally:
                 _PASSWORD_LOCK.release()
+
+        if path in ("/system/upgrade", "/api/system/upgrade"):
+            target_version = (body.get("target_version") or "").strip() or None
+            res = updater_mod.trigger_upgrade(target_version=target_version)
+            code = 200 if res.get("ok") else (409 if "进行中" in res.get("error", "") else 500)
+            return self._json(code, res)
 
         if path in ("/node/check", "/api/node/check"):
             # Credentials stay in the request/worker memory and never enter a job file.

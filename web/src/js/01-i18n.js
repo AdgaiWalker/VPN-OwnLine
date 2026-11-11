@@ -139,7 +139,20 @@
       settings_hint_new_pass: "(at least 12 characters)",
       settings_confirm_pass: "Confirm New Password",
       settings_btn_cancel: "Cancel",
-      settings_btn_save: "Save Changes"
+      settings_btn_save: "Save Changes",
+      settings_version_lbl: "System Version",
+      update_status_latest: "Up to Date",
+      update_desc_latest: "Running the latest release",
+      btn_check_update: "Check for Updates",
+      btn_checking: "Checking…",
+      update_found_title: "Update Available",
+      update_found_desc: "New version is ready to install",
+      btn_upgrade_now: "Upgrade Now",
+      update_progress_title: "Upgrading System…",
+      update_progress_desc: "Downloading core files & restarting service. All data preserved.",
+      update_success_msg: "Successfully upgraded to latest version!",
+      confirm_upgrade_title: "Confirm System Upgrade",
+      confirm_upgrade_desc: "Upgrade to {version}? Service will reload smoothly with zero data loss."
     },
     zh: {
       brand_sub: "OwnLine",
@@ -281,7 +294,20 @@
       settings_hint_new_pass: "（至少 12 个字符）",
       settings_confirm_pass: "确认新密码",
       settings_btn_cancel: "取消",
-      settings_btn_save: "保存更改"
+      settings_btn_save: "保存更改",
+      settings_version_lbl: "系统版本",
+      update_status_latest: "已是最新版本",
+      update_desc_latest: "当前正在运行最新稳定版本",
+      btn_check_update: "检查更新",
+      btn_checking: "正在检查...",
+      update_found_title: "发现新版本",
+      update_found_desc: "有可用的系统更新",
+      btn_upgrade_now: "立即更新",
+      update_progress_title: "正在平滑更新...",
+      update_progress_desc: "正在下载核心代码并热重启服务，数据完全保留，请稍候...",
+      update_success_msg: "系统已成功升级至最新版本！",
+      confirm_upgrade_title: "确认系统升级",
+      confirm_upgrade_desc: "确认平滑升级至 {version} 吗？服务将自动热重启，已有配置与节点数据 100% 保留。"
     }
   };
 

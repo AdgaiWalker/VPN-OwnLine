@@ -14,6 +14,7 @@
     initLogFilters();
     initQuotaSettings();
     initBackup();
+    if (typeof window.initUpdater === "function") window.initUpdater();
 
     refreshState();
     fetchLogs();
