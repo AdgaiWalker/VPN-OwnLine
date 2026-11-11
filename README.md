@@ -7,7 +7,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 579 Passed](https://img.shields.io/badge/Tests-579%20Passed%20(100%25)-success.svg)]()
+[![Tests: 582 Passed](https://img.shields.io/badge/Tests-582%20Passed%20(100%25)-success.svg)]()
 
 ---
 
@@ -72,17 +72,36 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
 
 ### 轨道 B：AI 协助全自动配置（智能体托管模式）
 
-如果你希望通过腾讯云 API 让 Agent 自动发现你的主机并协助开机配置：
+#### 路径 1：自备任意云服务器（本地 AI Agent 全自动自举 · 零手动）
 
-直接复制下方提示词，发送给你的 AI 助手（Claude / ChatGPT / Cursor 等）：
+适用于你在搬瓦工、AWS、RackNerd、甲骨文、DigitalOcean 等任意云厂商购买了 VPS。在你的本地编程智能体（如 **Cursor / Claude Code / Antigravity / Windsurf** 等）中，直接粘贴下方提示词并附上服务器信息，Agent 将全自动完成 Git 克隆、环境加固与母舰自举：
 
-> **📋 点击复制 AI 辅助提示词：**
+> **📋 点击复制：自备服务器本地 Agent 全自动装配提示词**
+> ```text
+> 你是一个具备本地终端执行权限的自主运维智能体。我的目标是部署「Evergreen · OwnLine」专属私有专线系统（GitHub: https://github.com/AdgaiWalker/VPN-OwnLine）。
+> 我是完全不懂服务器运维的小白，服务器信息如下：
+> [请在此处填入你的服务器 IP、root 密码或云厂商开通邮件/截图文本]
+> 
+> 请你自主调用本地终端工具，全自动闭环完成以下操作，不要向我抛出手动运行指令：
+> 1. 本地克隆代码：在当前目录执行 git clone https://github.com/AdgaiWalker/VPN-OwnLine.git 并进入项目目录；
+> 2. 自动化前置排障：自主测试目标服务器的 22 端口与连通性。若目标机默认未放行端口或禁用 root 密码，请通过 SSH 自动执行加固命令予以修复；
+> 3. 一键触发部署：
+>    - 若当前处于 macOS 环境，直接在终端执行 ./deploy/setup-mac.sh <目标IP> 完成全自动自举；
+>    - 若处于 Linux 环境，直接通过 SSH 远程执行官方 bootstrap 部署流水线；
+> 4. 交付最终结果：部署完成后，从终端输出中提炼出我的专属管理控制台 URL（https://...:8443/）和初始管理员强密码，清晰端给我。
+> ```
+
+#### 路径 2：腾讯云 API 自动发现（轻量应用服务器专属）
+
+如果你使用的是腾讯云轻量服务器，可直接让 Agent 协助创建只读 CAM 子账号并由控制台自动扫描发现：
+
+> **📋 点击复制：腾讯云 CAM 子账号辅助提示词**
 > ```text
 > 请协助我在腾讯云控制台为本项目创建一个最小权限的 CAM 子账号（仅限轻量应用服务器只读/防火墙必要权限）。创建 API 密钥时请由我本人操作并自行保存，切勿在对话中输出 SecretId、SecretKey、密码或私钥。
 > 官方项目地址：https://github.com/AdgaiWalker/VPN-OwnLine
 > ```
 
-获取专属子账号凭据后，直接在 OwnLine 面板点击 **【读取实例列表】**，即可全自动同步并管理你的主机资产。
+获取子账号凭据后，在 OwnLine 面板点击 **【读取实例列表】**，即可全自动同步并纳管你的主机资产。
 
 ---
 

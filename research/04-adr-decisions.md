@@ -16,6 +16,7 @@
 - [ADR-008：控制面通信与代理数据面彻底解耦及高可用切换防抖机制 (Control Plane Decoupling & Anti-Flapping)](#adr-008)
 - [ADR-009：用户端版本更新感知与一键平滑升级架构 (Client-Side Version Update & Atomic In-Place Upgrade)](#adr-009)
 - [ADR-010：双轨分层真实延迟架构与浏览器网关 RTT 测速机制 (Dual-Track Layered Latency & Gateway RTT Probing)](#adr-010)
+- [ADR-011：本地自主智能体 (Local Agent) 全生命周期装配与任务书协议 (Autonomous Agentic Onboarding & Task Brief Protocol)](#adr-011)
 
 ---
 
@@ -192,4 +193,26 @@
 **坚决采纳方案 B。**
 1. 确立“双轨分层延迟呈现规范”：浏览器只测量纯净的网关管理通路 RTT，绝不向带有防探测特性的 Reality 代理端口发送明文探测；
 2. 保持卡片信息密度克制：节点卡片恢复单一可信骨干延迟，通过顶部总览与智能气泡完成本地与骨干状态的分层闭环。
+
+---
+
+### <a id="adr-011"></a>ADR-011：本地自主智能体 (Local Agent) 全生命周期装配与任务书协议 (Autonomous Agentic Onboarding & Task Brief Protocol) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+自备服务器接入在传统模式下面临双重卡点：
+1. **冷启动门槛（尚未克隆项目）**：小白用户在 GitHub 浏览 `README.md` 时尚未克隆代码，面对繁杂的终端命令容易心生畏惧；
+2. **多节点扩容门槛（已在控制台中）**：在 Web 控制台通过「SSH 直连」接入第三方 VPS（如搬瓦工、AWS、甲骨文、RackNerd）时，容易卡在云厂商安全组未放行 22/443、系统默认禁用 root 密码、权限配置不当等底层运维细节；
+3. **AI 辅助范式漂移**：传统的“教程化/问答式 AI 提示词”依旧要求用户充当中间人手动执行命令，违背了现代本地 AI 智能体（如 Cursor、Claude Code、Antigravity）原生具备终端 Shell 执行能力的工程现实。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（教程型分步提示词）：AI 指导用户一步步点开控制台、敲命令，用户心智负担高，容易因输入错误导致链路中断；
+* 方案 B（双生命周期 Agent 任务书闭环协议）：
+  1. **冷启动阶段 (`README.md`)**：提供携带 GitHub 官方仓库地址的开箱提示词，明确将本地 Agent 定义为自主执行工兵，由 Agent 自动完成 `git clone`、前置检测、执行自举脚本（`setup-mac.sh` 或 `bootstrap.sh`），端到端交付控制台 URL 与初始密码；
+  2. **扩容阶段 (Web 控制台 `#panel-other`)**：在 SSH 直连面板中固化「Agent 任务书」复制入口，利用本地代码库已具备的现有资产（`sshcheck`、`addnode.sh`、`verify.py`），由 Agent 自主完成 VPS 扫雷（开端口、修 root 权限、配置公钥）与节点纳管。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“默认对方为本地自主 Agent”的设计基准，彻底摒弃交互式说教，将所有操作收敛为端到端自动化执行；
+2. 固化 `prompt/ssh_setup.md` 为受控资产，并在 Web 控制台与 `README.md` 完成双轨对齐；
+3. 严格遵循安全红线：严禁将服务器明文密码或私钥持久化记录进代码仓库。
 

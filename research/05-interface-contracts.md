@@ -231,4 +231,18 @@ rules:
     * `Content-Length: 0`
   * 空响应体，网络传输载荷 0 字节，消除编解码开销与跨域限制。
 
+### 4.7 本地 Agent 节点纳管任务书与提示词契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`prompt/ssh_setup.md` ｜ `web/src/html/04-modals.html:#ai-ssh-prompt-text` ｜ `web/src/js/03-connection.js:setupAiPrompt` ｜ `README.md` ｜ 测试：`tests/ssh-ai-prompt.test.js`
+* **适用场景**：面向具备本地终端执行权限的 AI 编程助手（Cursor / Claude Code / Antigravity 等），提供标准化的任务书输入格式与自治执行边界，实现零人工跑腿的端到端服务器扫雷与节点纳管。
+* **输入契约 (Agent Input Payload)**：
+  * 用户向 Agent 提供的服务器信息（支持自然语言文本、控制台截图 OCR 文本、邮件原文）：
+    * 必填项：目标服务器公网 IP 或域名
+    * 认证凭据：初始 root 密码、或者非 root 账户名（如 `ubuntu`/`ec2-user`）与私钥文件路径（如 `~/.ssh/my-key.pem`）
+* **执行约束与不变式 (Agent Invariants)**：
+  1. **零人工指令**：严禁向用户抛出分步操作要求，必须由 Agent 自主在后台通过 SSH / Shell 运行命令完成；
+  2. **系统镜像门禁**：仅支持原版 Ubuntu 22.04 LTS+ 或 Debian 12+，遇到不支持系统应主动报告拦截；
+  3. **端口防火墙基准**：必须确保放行 `22/tcp`（管理）、`443/tcp` 与 `443/udp`（Reality/HY2 代理）、`8443/udp`（HY2 备用）；
+  4. **权限归一化**：自动确保目标主机开启 `PermitRootLogin yes`，或建立基于 SSH 公钥的免密登录互信，目录权限严格保持 `~/.ssh` 700 与 `authorized_keys` 600；
+  5. **终态验真**：接入后必须调用 `server/nodekit/verify.py` 验证端到端出网通畅性。
+
 

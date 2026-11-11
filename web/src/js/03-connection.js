@@ -159,32 +159,44 @@
 
   // 4. Copy AI agent prompt
   function setupAiPrompt() {
-    var btn = document.getElementById("btn-copy-ai-prompt");
-    var pre = document.getElementById("ai-prompt-text");
-    if (!btn || !pre) return;
+    function bindPromptCopy(btnId, preId) {
+      var btn = document.getElementById(btnId);
+      var pre = document.getElementById(preId);
+      if (!btn || !pre) return;
 
-    btn.onclick = function () {
-      var text = pre.textContent || "";
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(text).then(function () {
-          var orig = btn.textContent;
-          btn.textContent = "已复制";
-          setTimeout(function () { btn.textContent = orig; }, 2500);
-        });
-      } else {
-        var ta = document.createElement("textarea");
-        ta.value = text;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
-        document.body.appendChild(ta);
-        ta.select();
-        try { document.execCommand("copy"); } catch (e) {}
-        document.body.removeChild(ta);
+      btn.onclick = function () {
+        var text = pre.textContent || "";
+        var zh = (typeof isZh === "function") ? isZh() : true;
+        var copiedText = zh ? "已复制" : "Copied";
         var orig = btn.textContent;
-        btn.textContent = "已复制";
-        setTimeout(function () { btn.textContent = orig; }, 2500);
-      }
-    };
+        var onCopied = function () {
+          btn.textContent = copiedText;
+          setTimeout(function () { btn.textContent = orig; }, 2500);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(onCopied).catch(function () {
+            copyFallback(text, onCopied);
+          });
+        } else {
+          copyFallback(text, onCopied);
+        }
+      };
+    }
+
+    function copyFallback(text, cb) {
+      var ta = document.createElement("textarea");
+      ta.value = text;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(ta);
+      if (cb) cb();
+    }
+
+    bindPromptCopy("btn-copy-ai-prompt", "ai-prompt-text");
+    bindPromptCopy("btn-copy-ssh-ai-prompt", "ai-ssh-prompt-text");
   }
 
   function initInstallCopy() {
