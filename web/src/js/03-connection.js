@@ -215,6 +215,19 @@
     var confirmBox = document.getElementById("node-install-confirm-box");
     var btnSubmit = document.getElementById("btn-submit-addnode");
     var submitStatus = document.getElementById("addnode-submit-status");
+    var advanced = document.getElementById("ssh-advanced-settings");
+
+    function fieldError(id, message) {
+      var field = document.getElementById(id);
+      if (advanced && (id === "other-user" || id === "other-ssh-port")) advanced.open = true;
+      field.setAttribute("aria-invalid", "true");
+      note.textContent = message;
+      field.focus();
+    }
+    ["other-ip", "other-user", "other-ssh-port", "other-credential"].forEach(function (id) {
+      var field = document.getElementById(id);
+      field.addEventListener("input", function () { field.removeAttribute("aria-invalid"); });
+    });
 
     function invalidateCheck() {
       resultBox.style.display = "none";
@@ -231,6 +244,7 @@
         event.preventDefault();
         otherPrivateKey = pasted;
         input.value = "";
+        input.removeAttribute("aria-invalid");
         keyStatus.textContent = "已粘贴 SSH 私钥";
         invalidateCheck();
       }
@@ -241,17 +255,34 @@
       invalidateCheck();
     });
     button.onclick = async function () {
+      if (otherCheckController || !STATE.nodeCheckAvailable) return;
+      var zh = typeof isZh === "function" ? isZh() : true;
+      ["other-ip", "other-user", "other-ssh-port", "other-credential"].forEach(function (id) {
+        document.getElementById(id).removeAttribute("aria-invalid");
+      });
       var host = document.getElementById("other-ip").value.trim();
       var username = document.getElementById("other-user").value.trim();
       var port = document.getElementById("other-ssh-port").value.trim();
       var passphrase = document.getElementById("other-passphrase").value;
       var password = input.value;
-      if (!otherPrivateKey && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(password)) {
-        note.textContent = "请粘贴完整的 SSH 私钥。";
+      if (!host) {
+        fieldError("other-ip", zh ? "请填写服务器公网 IP。" : "Enter the server public IP.");
         return;
       }
-      if (!host || !username || !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535 || (!password && !otherPrivateKey)) {
-        note.textContent = "请填写公网 IP 与登录凭据，并核对高级设置。";
+      if (!password && !otherPrivateKey) {
+        fieldError("other-credential", zh ? "请输入服务器密码，或粘贴完整的 SSH 私钥。" : "Enter the server password or paste the complete SSH private key.");
+        return;
+      }
+      if (!otherPrivateKey && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(password)) {
+        fieldError("other-credential", zh ? "请粘贴完整的 SSH 私钥。" : "Paste the complete SSH private key.");
+        return;
+      }
+      if (!username) {
+        fieldError("other-user", zh ? "请填写登录账号；默认账号为 root。" : "Enter the login account; the default is root.");
+        return;
+      }
+      if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
+        fieldError("other-ssh-port", zh ? "SSH 端口须为 1–65535 的整数，默认是 22。" : "SSH port must be an integer from 1 to 65535; the default is 22.");
         return;
       }
       var body = {host:host, username:username, ssh_port:Number(port), password:password, private_key:otherPrivateKey, passphrase:otherPrivateKey ? passphrase : ""};
@@ -309,6 +340,9 @@
           pendingNodeInstall = pendingAuth;
           var nameInput = document.getElementById("node-name-input");
           if (nameInput) nameInput.value = "节点-" + host;
+          var installOptions = document.getElementById("node-install-options");
+          var roleSelect = document.getElementById("node-role-select");
+          if (installOptions && roleSelect && roleSelect.value !== "auto") installOptions.open = true;
           confirmBox.style.display = "block";
         }
       } catch (error) {

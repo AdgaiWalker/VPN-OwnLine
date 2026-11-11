@@ -1907,17 +1907,26 @@ footer.site-footer {
 
       <!-- Panel Other: Direct SSH Connection -->
       <div id="panel-other">
-        <p class="small muted" style="margin-bottom:12px" data-i18n="ssh_input_guide">输入服务器公网 IP 与 root 密码。</p>
+        <p class="small muted" style="margin-bottom:12px" data-i18n="ssh_input_guide">填写两项信息，先检测连接，再确认安装。</p>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
-        <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="例如 203.0.113.10" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
-        <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">Root 密码</label><input id="other-credential" type="password" placeholder="Root 密码或私钥" autocomplete="off" spellcheck="false" aria-describedby="other-key-status other-connect-status" disabled><span class="small muted" id="other-key-status" role="status"></span></div>
-        <details class="inner other-advanced"><summary data-i18n="ssh_advanced_summary">高级设置（SSH 端口 / 私钥密码）</summary><div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocapitalize="off" spellcheck="false"></div><div class="field"><label for="other-ssh-port" data-i18n="lbl_ssh_port">SSH 端口</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px"></div><div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off" disabled></div></details>
+        <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
+        <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status" disabled><span class="small muted" id="other-key-status" role="status"></span></div>
+        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；其他账号或加密私钥请展开连接设置。</p>
+        <details class="inner other-advanced" id="ssh-advanced-settings">
+          <summary data-i18n="ssh_advanced_summary">连接设置（账号、端口、私钥密码）</summary>
+          <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
+          <div class="field"><label for="other-ssh-port" data-i18n="lbl_ssh_port">SSH 端口</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px" aria-describedby="other-connect-status"></div>
+          <div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off" disabled></div>
+        </details>
         <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" disabled data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status" data-i18n="status_web_test_unavail">网页测试不可用。</span></div>
         <div class="check-result-box" id="other-check-result" role="status" style="display:none"></div>
         <div id="node-install-confirm-box" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px">
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span data-i18n="install_ready_title">就绪，可开始安装</span>
           </div>
+          <p class="small muted" data-i18n="install_defaults_note">名称已自动填写，用途默认自动判定。可直接开始安装，或展开下方选项修改。</p>
+          <details class="inner" id="node-install-options">
+            <summary data-i18n="install_options_summary">自定义安装（可选）</summary>
           <div class="field" style="margin-bottom:8px">
             <label for="node-name-input" data-i18n="lbl_node_name">节点名称</label>
             <input id="node-name-input" type="text" placeholder="例如 美西 01" style="width:100%" />
@@ -1930,6 +1939,7 @@ footer.site-footer {
               <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
             </select>
           </div>
+          </details>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
             <button class="btn primary" id="btn-submit-addnode" type="button" style="font-weight:600">
               <span data-i18n="btn_start_install">开始安装节点</span>
@@ -2229,16 +2239,19 @@ footer.site-footer {
       tc_cloud_install: "Install via Cloud Terminal",
       tc_run_as_root: "Run as root on Ubuntu 22.04 or Debian 12:",
       btn_copy_install_cmd: "Copy Install Command",
-      ssh_input_guide: "Enter server public IP and root password.",
+      ssh_input_guide: "Enter two details, test the connection, then confirm installation.",
       lbl_pub_ip: "Public IP",
-      lbl_root_pwd: "Root Password",
-      ssh_advanced_summary: "Advanced Settings (SSH Port / Key Passphrase)",
+      lbl_root_pwd: "Server Password or SSH Private Key",
+      ssh_defaults_note: "Defaults: root account, port 22. Open connection settings for another account or an encrypted key.",
+      ssh_advanced_summary: "Connection Settings (Account, Port, Key Passphrase)",
       lbl_ssh_user: "Username",
       lbl_ssh_port: "SSH Port",
       lbl_ssh_passphrase: "Key Passphrase",
       btn_test_conn: "Test Connection",
       status_web_test_unavail: "Web check unavailable.",
       install_ready_title: "Ready to Install",
+      install_defaults_note: "A name is filled in and the role defaults to automatic detection. Start installation or expand the options below to customize.",
+      install_options_summary: "Customize Installation (Optional)",
       lbl_node_name: "Node Name",
       lbl_role: "Role",
       opt_role_auto: "Auto-detect (Recommended)",
@@ -2368,16 +2381,19 @@ footer.site-footer {
       tc_cloud_install: "通过云终端安装",
       tc_run_as_root: "以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：",
       btn_copy_install_cmd: "复制安装命令",
-      ssh_input_guide: "输入服务器公网 IP 与 root 密码。",
+      ssh_input_guide: "填写两项信息，先检测连接，再确认安装。",
       lbl_pub_ip: "公网 IP",
-      lbl_root_pwd: "Root 密码",
-      ssh_advanced_summary: "高级设置（SSH 端口 / 私钥密码）",
+      lbl_root_pwd: "服务器密码或 SSH 私钥",
+      ssh_defaults_note: "默认使用 root 账号、22 端口；其他账号或加密私钥请展开连接设置。",
+      ssh_advanced_summary: "连接设置（账号、端口、私钥密码）",
       lbl_ssh_user: "用户名",
       lbl_ssh_port: "SSH 端口",
       lbl_ssh_passphrase: "私钥密码",
       btn_test_conn: "测试连接",
       status_web_test_unavail: "网页测试不可用。",
       install_ready_title: "就绪，可开始安装",
+      install_defaults_note: "名称已自动填写，用途默认自动判定。可直接开始安装，或展开下方选项修改。",
+      install_options_summary: "自定义安装（可选）",
       lbl_node_name: "节点名称",
       lbl_role: "角色",
       opt_role_auto: "自动判定（推荐）",
@@ -3040,6 +3056,19 @@ footer.site-footer {
     var confirmBox = document.getElementById("node-install-confirm-box");
     var btnSubmit = document.getElementById("btn-submit-addnode");
     var submitStatus = document.getElementById("addnode-submit-status");
+    var advanced = document.getElementById("ssh-advanced-settings");
+
+    function fieldError(id, message) {
+      var field = document.getElementById(id);
+      if (advanced && (id === "other-user" || id === "other-ssh-port")) advanced.open = true;
+      field.setAttribute("aria-invalid", "true");
+      note.textContent = message;
+      field.focus();
+    }
+    ["other-ip", "other-user", "other-ssh-port", "other-credential"].forEach(function (id) {
+      var field = document.getElementById(id);
+      field.addEventListener("input", function () { field.removeAttribute("aria-invalid"); });
+    });
 
     function invalidateCheck() {
       resultBox.style.display = "none";
@@ -3056,6 +3085,7 @@ footer.site-footer {
         event.preventDefault();
         otherPrivateKey = pasted;
         input.value = "";
+        input.removeAttribute("aria-invalid");
         keyStatus.textContent = "已粘贴 SSH 私钥";
         invalidateCheck();
       }
@@ -3066,17 +3096,34 @@ footer.site-footer {
       invalidateCheck();
     });
     button.onclick = async function () {
+      if (otherCheckController || !STATE.nodeCheckAvailable) return;
+      var zh = typeof isZh === "function" ? isZh() : true;
+      ["other-ip", "other-user", "other-ssh-port", "other-credential"].forEach(function (id) {
+        document.getElementById(id).removeAttribute("aria-invalid");
+      });
       var host = document.getElementById("other-ip").value.trim();
       var username = document.getElementById("other-user").value.trim();
       var port = document.getElementById("other-ssh-port").value.trim();
       var passphrase = document.getElementById("other-passphrase").value;
       var password = input.value;
-      if (!otherPrivateKey && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(password)) {
-        note.textContent = "请粘贴完整的 SSH 私钥。";
+      if (!host) {
+        fieldError("other-ip", zh ? "请填写服务器公网 IP。" : "Enter the server public IP.");
         return;
       }
-      if (!host || !username || !/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535 || (!password && !otherPrivateKey)) {
-        note.textContent = "请填写公网 IP 与登录凭据，并核对高级设置。";
+      if (!password && !otherPrivateKey) {
+        fieldError("other-credential", zh ? "请输入服务器密码，或粘贴完整的 SSH 私钥。" : "Enter the server password or paste the complete SSH private key.");
+        return;
+      }
+      if (!otherPrivateKey && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(password)) {
+        fieldError("other-credential", zh ? "请粘贴完整的 SSH 私钥。" : "Paste the complete SSH private key.");
+        return;
+      }
+      if (!username) {
+        fieldError("other-user", zh ? "请填写登录账号；默认账号为 root。" : "Enter the login account; the default is root.");
+        return;
+      }
+      if (!/^\d+$/.test(port) || Number(port) < 1 || Number(port) > 65535) {
+        fieldError("other-ssh-port", zh ? "SSH 端口须为 1–65535 的整数，默认是 22。" : "SSH port must be an integer from 1 to 65535; the default is 22.");
         return;
       }
       var body = {host:host, username:username, ssh_port:Number(port), password:password, private_key:otherPrivateKey, passphrase:otherPrivateKey ? passphrase : ""};
@@ -3134,6 +3181,9 @@ footer.site-footer {
           pendingNodeInstall = pendingAuth;
           var nameInput = document.getElementById("node-name-input");
           if (nameInput) nameInput.value = "节点-" + host;
+          var installOptions = document.getElementById("node-install-options");
+          var roleSelect = document.getElementById("node-role-select");
+          if (installOptions && roleSelect && roleSelect.value !== "auto") installOptions.open = true;
           confirmBox.style.display = "block";
         }
       } catch (error) {
