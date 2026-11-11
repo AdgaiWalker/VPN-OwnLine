@@ -36,7 +36,11 @@ if command -v git >/dev/null 2>&1 && [ -d "$WEB_DIR/.git" ]; then
   fi
 else
   echo "==> 正在下载最新发布包..."
-  ARCHIVE_URL="$REPO_URL/archive/refs/heads/$BRANCH.tar.gz"
+  if [ -n "$TARGET_VERSION" ] && [ "$TARGET_VERSION" != "latest" ]; then
+    ARCHIVE_URL="$REPO_URL/archive/refs/tags/$TARGET_VERSION.tar.gz"
+  else
+    ARCHIVE_URL="$REPO_URL/archive/refs/heads/$BRANCH.tar.gz"
+  fi
 
   found=0
   for prefix in '' 'https://ghproxy.net/' 'https://ghfast.top/'; do
@@ -45,6 +49,17 @@ else
       break
     fi
   done
+
+  if [ "$found" -ne 1 ] && [ -n "$TARGET_VERSION" ] && [ "$TARGET_VERSION" != "latest" ]; then
+    echo "==> 标签下载未命中，回退按主分支拉取..."
+    ARCHIVE_URL="$REPO_URL/archive/refs/heads/$BRANCH.tar.gz"
+    for prefix in '' 'https://ghproxy.net/' 'https://ghfast.top/'; do
+      if curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 8 --max-time 120 "${prefix}${ARCHIVE_URL}" | tar xz -C "$TMP_DIR" --strip-components=1; then
+        found=1
+        break
+      fi
+    done
+  fi
 
   if [ "$found" -ne 1 ]; then
     echo "错误: 无法下载目标版本，终止升级！" >&2
