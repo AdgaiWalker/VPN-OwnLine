@@ -189,3 +189,8 @@ Subscription-Userinfo: upload=10485760; download=21474836480; total=107374182400
 rules:
   - IP-CIDR,<node_host_or_ip>/32,DIRECT,no-resolve
 ```
+
+### 4.4 节点配额与月度重置日数据契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/admin.py:nodes_with_advice`, `server/admin.py:H.do_POST (/api/quota/guard)` ｜ `server/nodekit/quota_guard.py:parse_reset_day` ｜ 测试：`server/nodekit/quota_guard_tests.py`, `tests/node-quota-reset.test.js`
+* 接口 `/api/quota/guard` 与 `/api/nodes` 自动归一化解析云 API 返回的计费结算周期（`end`），并向实体注入 `reset_day: int`（1~31）。前端卡片据此呈现 `X日重置`，并彻底剔除冗余计算的剩余流量文本。
+

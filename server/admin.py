@@ -400,7 +400,12 @@ def nodes_with_advice():
     out = []
     for n in load_nodes():
         n = dict(n)
-        n["advice"] = advise_mod.advise(n, status.get(n.get("name")), usage.get(n.get("host")))
+        host = n.get("host")
+        u_data = usage.get(host) if isinstance(usage.get(host), dict) else {}
+        reset_day = quota_mod.parse_reset_day(n.get("reset_day") or u_data.get("reset_day") or u_data.get("end"))
+        if reset_day is not None:
+            n["reset_day"] = reset_day
+        n["advice"] = advise_mod.advise(n, status.get(n.get("name")), u_data)
         n["lifecycle"] = lifecycle_mod.get_lifecycle_state(n)
         out.append(n)
     return out
@@ -689,6 +694,7 @@ class H(BaseHTTPRequestHandler):
                 u = eval_res.get(ip) or quota_mod.evaluate_instance_quota(None)
                 raw_u = usage.get(ip) if isinstance(usage.get(ip), dict) else {}
                 used_val = u.get("used_gb") if u.get("used_gb") is not None else raw_u.get("used")
+                r_day = u.get("reset_day") or quota_mod.parse_reset_day(node.get("reset_day") or raw_u.get("reset_day") or raw_u.get("end"))
                 guards.append({
                     "ip": ip,
                     "name": node.get("name", ip),
@@ -699,6 +705,7 @@ class H(BaseHTTPRequestHandler):
                     "source": raw_u.get("source", "cloud_api"),
                     "control_supported": all(quota_mod.supports_quota_control(n) for n in host_nodes),
                     "paused": ip in stopped,
+                    "reset_day": r_day,
                 })
             return self._json(200, {
                 "ok": True,

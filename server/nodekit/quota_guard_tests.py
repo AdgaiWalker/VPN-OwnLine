@@ -308,7 +308,21 @@ def test_addnode_existing_service_preflight():
         check("已有服务文件时安全失败且不覆盖", inspect().returncode != 0 and service.read_text() == "existing")
 
 
+def test_parse_reset_day():
+    check("解析 YYYY-MM-DD 重置日", quota_guard.parse_reset_day("2026-11-23") == 23)
+    check("解析 ISO 时间戳重置日", quota_guard.parse_reset_day("2026-11-30T00:00:00Z") == 30)
+    check("解析纯数字字符串重置日", quota_guard.parse_reset_day("12") == 12)
+    check("解析整型重置日", quota_guard.parse_reset_day(24) == 24)
+    check("超出范围天数返回 None", quota_guard.parse_reset_day(32) is None and quota_guard.parse_reset_day(0) is None)
+    check("空值返回 None", quota_guard.parse_reset_day("") is None and quota_guard.parse_reset_day(None) is None)
+    
+    inst = {"used": 180.2, "total": 512.0, "end": "2026-11-23"}
+    res = quota_guard.evaluate_instance_quota(inst)
+    check("evaluate_instance_quota 包含 reset_day=23", res.get("reset_day") == 23)
+
+
 def run_all():
+    test_parse_reset_day()
     test_evaluate_instance_real_format()
     test_evaluate_instance_legacy_bytes()
     test_evaluate_all_summary()

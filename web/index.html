@@ -3491,7 +3491,8 @@ footer.site-footer {
           total_gb: n.total_gb != null ? n.total_gb : null,
           percent: n.percent != null ? n.percent : null,
           status: n.quota_status || "unknown",
-          control_supported: n.quota_control_managed === true
+          control_supported: n.quota_control_managed === true,
+          reset_day: n.reset_day != null ? n.reset_day : null
         };
       });
     }
@@ -4033,7 +4034,9 @@ footer.site-footer {
 
     var qInfo = (qMap && qMap[host]) || null;
     if (!qInfo && (n.used_gb != null || n.total_gb != null)) {
-      qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true };
+      qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true, reset_day: n.reset_day || null };
+    } else if (qInfo && !qInfo.reset_day && n.reset_day) {
+      qInfo.reset_day = n.reset_day;
     }
 
     var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
@@ -4114,7 +4117,9 @@ footer.site-footer {
       }
       var qInfo = (qMap && qMap[host]) || null;
       if (!qInfo && (n.used_gb != null || n.total_gb != null)) {
-        qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true };
+        qInfo = { used_gb: n.used_gb, total_gb: n.total_gb, percent: n.percent, status: n.quota_status || "normal", control_supported: n.quota_control_managed === true, reset_day: n.reset_day || null };
+      } else if (qInfo && !qInfo.reset_day && n.reset_day) {
+        qInfo.reset_day = n.reset_day;
       }
       var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
       var isCongested = isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
@@ -4211,25 +4216,28 @@ footer.site-footer {
         var usedNum = Number(qInfo.used_gb || 0);
         var totalNum = Number(qInfo.total_gb || 0);
         var pctNum = qInfo.percent != null ? Number(qInfo.percent) : Math.round((usedNum / totalNum) * 100);
-        var remNum = Math.max(0, totalNum - usedNum);
         var isWarnQ = pctNum >= 75 && pctNum < 85;
         var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
         var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
         var barW = Math.max(0, Math.min(100, pctNum));
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
         var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
+        var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
+        var resetTip = resetDay ? (' · ' + (zh ? (resetDay + '日重置') : ('Resets on ' + resetDay))) : '';
 
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
             '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
           '</div>' +
           '<span class="node-quota-text">' +
-            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span> · ' + (zh ? '剩余 <strong>' : 'Remaining <strong>') + Math.round(remNum) + ' GB</strong>' +
+            '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span>' + resetTip +
           '</span>' + noteBadge + quotaRoleTip +
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
+        var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
+        var resetTip = resetDay ? (' · ' + (zh ? (resetDay + '日重置') : ('Resets on ' + resetDay))) : '';
         quotaRow = '<div class="node-quota-row">' +
-          '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong> <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
+          '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong>' + resetTip + ' <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
         '</div>';
       }
 

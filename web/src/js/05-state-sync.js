@@ -27,7 +27,8 @@
           total_gb: n.total_gb != null ? n.total_gb : null,
           percent: n.percent != null ? n.percent : null,
           status: n.quota_status || "unknown",
-          control_supported: n.quota_control_managed === true
+          control_supported: n.quota_control_managed === true,
+          reset_day: n.reset_day != null ? n.reset_day : null
         };
       });
     }

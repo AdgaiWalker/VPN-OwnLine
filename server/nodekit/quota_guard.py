@@ -86,6 +86,35 @@ def stopped_hosts(state_file=None):
         return set()
 
 
+def parse_reset_day(val):
+    """安全解析每月流量包重置日 (1~31)。支持 YYYY-MM-DD、ISO 时间戳或纯数字/整型。"""
+    if val is None or val == "":
+        return None
+    if isinstance(val, int):
+        return val if 1 <= val <= 31 else None
+    if isinstance(val, float):
+        ival = int(val)
+        return ival if 1 <= ival <= 31 and ival == val else None
+    if isinstance(val, str):
+        val = val.strip()
+        parts = val.split("T")[0].split(" ")[0].split("-")
+        if len(parts) >= 3 and parts[2].isdigit():
+            try:
+                day = int(parts[2])
+                if 1 <= day <= 31:
+                    return day
+            except ValueError:
+                pass
+        if val.isdigit():
+            try:
+                day = int(val)
+                if 1 <= day <= 31:
+                    return day
+            except ValueError:
+                pass
+    return None
+
+
 def supports_quota_control(node):
     # Windows 当前使用按进程名停止，可能影响其他软件，不能视为可安全控制。
     return (node.get("quota_control_managed") is True and node.get("source") != "external"
@@ -117,6 +146,7 @@ def evaluate_instance_quota(instance_data, warning_pct=DEFAULT_WARNING_PCT,
             "is_tripped": False,
             "is_warning": False,
             "reason": "无用量数据",
+            "reset_day": None,
         }
 
     # 缺失、错误或非有限数值均为未知；不能据此解除已有熔断。
@@ -165,6 +195,7 @@ def evaluate_instance_quota(instance_data, warning_pct=DEFAULT_WARNING_PCT,
         "is_tripped": is_tripped,
         "is_warning": is_warning,
         "reason": reason,
+        "reset_day": parse_reset_day(instance_data.get("reset_day") or instance_data.get("end")),
     }
 
 
@@ -182,6 +213,8 @@ def evaluate_all(usage_json_data, warning_pct=None, tripped_pct=None):
         if ip.startswith("_") or not isinstance(data, dict):
             continue
         eval_res = evaluate_instance_quota(data if usage_is_fresh(usage_json_data) else None, warning_pct=warning_pct, tripped_pct=tripped_pct)
+        if eval_res.get("reset_day") is None and isinstance(data, dict):
+            eval_res["reset_day"] = parse_reset_day(data.get("reset_day") or data.get("end"))
         eval_res["name"] = data.get("name") or ip
         results[ip] = eval_res
         if eval_res["is_tripped"]:
