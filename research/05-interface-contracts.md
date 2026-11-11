@@ -218,4 +218,17 @@ rules:
     * 响应体：`{"ok": true, "status": "upgrading", "target_version": "v0.6.0", "message": "升级任务已在后台启动"}`
     * 执行链路：独立后台子进程沙箱拉取代码，校验完整性，备份快照，原子同步至 `/opt/web`（严禁触碰 `/opt/web-data`），重启 `admin.service`，自检通过后完成收敛；若失败自动回滚。前端心跳探活自愈重载。
 
+### 4.6 客户端本地网关 RTT 探活契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/admin.py:H.do_GET (/api/ping, /ping)`, `server/admin.py:H.do_HEAD` ｜ `web/src/js/07b-local-ping.js:probeDeviceLocalLatency` ｜ 测试：`tests/test_ping_api.py`, `tests/local-ping.test.js`
+* **适用场景**：供浏览器前端使用原生 `fetch` + `AbortController` 测量当前设备直连管理网关的纯净单跳往返延迟（RTT），消除本地 WiFi/蜂窝抖动的测量盲区，且绝不触发 sing-box Reality 伪装端口跨境重定向兜底。
+* **接口规范**：
+  * 方法：`GET` / `HEAD`
+  * 路径（支持双前缀）：`/api/ping` 与 `/ping`
+  * 响应标头：
+    * `HTTP/1.1 204 No Content`
+    * `Cache-Control: no-store, no-cache, must-revalidate`
+    * `Access-Control-Allow-Origin: *`
+    * `Content-Length: 0`
+  * 空响应体，网络传输载荷 0 字节，消除编解码开销与跨域限制。
+
 

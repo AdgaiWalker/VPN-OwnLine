@@ -151,7 +151,11 @@
 
       <details class="inner" id="nodes-section" open style="margin-top:20px">
         <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
-          <span><span data-i18n="nodes_title">节点列表</span> <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span></span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span data-i18n="nodes_title">节点列表</span>
+            <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span>
+            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟">📱 本机: --</span>
+          </span>
           <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
             <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
           </button>

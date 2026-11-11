@@ -1,170 +1,110 @@
-  // 07b-local-ping.js - Client-Side Real-Time Latency Probing
-  var LOCAL_PING_STATE = {
-    results: {},
-    isProbing: false,
-    lastProbeTime: 0
+  // 07b-local-ping.js - Client-Side Real-Time Network Probing
+  var LOCAL_DEVICE_PING = {
+    ms: null,
+    probing: false,
+    lastProbeTime: 0,
+    status: "ok"
   };
   if (typeof window !== "undefined") {
-    window.LOCAL_PING_STATE = LOCAL_PING_STATE;
+    window.LOCAL_DEVICE_PING = LOCAL_DEVICE_PING;
   }
 
-  function probeTargetSingleAttempt(host, port, timeoutMs) {
-    port = port || 443;
-    timeoutMs = timeoutMs || 2500;
-    var url = "https://" + host + ":" + port + "/__probe_ping?_t=" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
-    var startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+  function probeDeviceLocalLatency() {
+    LOCAL_DEVICE_PING.probing = true;
+    updateHeaderLocalPingUI();
 
-    var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
-    var signal = controller ? controller.signal : undefined;
-    var timer = null;
+    var attempt = function () {
+      var startTime = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
+      var controller = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var timer = controller ? setTimeout(function () { try { controller.abort(); } catch (e) {} }, 3000) : null;
+      var url = "/api/ping?_t=" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
 
-    var probePromise = new Promise(function (resolve) {
-      if (controller) {
-        timer = setTimeout(function () {
-          try { controller.abort(); } catch (e) {}
-          resolve({ ok: false, ms: null, timeout: true });
-        }, timeoutMs);
-      } else {
-        timer = setTimeout(function () {
-          resolve({ ok: false, ms: null, timeout: true });
-        }, timeoutMs);
-      }
-
-      fetch(url, {
-        mode: "no-cors",
+      return fetch(url, {
+        method: "GET",
         cache: "no-store",
-        signal: signal
+        signal: controller ? controller.signal : undefined
       }).then(function () {
         if (timer) clearTimeout(timer);
         var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-        var elapsed = Math.round(now - startTime);
-        resolve({ ok: true, ms: Math.max(1, elapsed), timeout: false });
-      }).catch(function (err) {
+        return Math.max(1, Math.round(now - startTime));
+      }).catch(function () {
         if (timer) clearTimeout(timer);
-        var now = (typeof performance !== "undefined" && performance.now) ? performance.now() : Date.now();
-        var elapsed = Math.round(now - startTime);
-        if (err && err.name === "AbortError") {
-          resolve({ ok: false, ms: null, timeout: true });
-        } else if (elapsed >= timeoutMs) {
-          resolve({ ok: false, ms: null, timeout: true });
-        } else {
-          // Network error after TCP SYN/ACK or TLS alert: elapsed reflects physical RTT
-          resolve({ ok: true, ms: Math.max(1, elapsed), timeout: false });
-        }
+        return null;
       });
-    });
+    };
 
-    return probePromise;
-  }
-
-  function probeHostLatency(host, port) {
-    // 2-round sampling: warm-up + measurement to eliminate DNS/handshake cold-start jitter
-    return probeTargetSingleAttempt(host, port, 2500).then(function (r1) {
-      if (!r1.ok) {
-        return r1;
+    // 2-round sampling: warm-up + measurement to eliminate first-packet/TLS renegotiation jitter
+    return attempt().then(function (r1) {
+      if (r1 === null) {
+        LOCAL_DEVICE_PING.ms = null;
+        LOCAL_DEVICE_PING.probing = false;
+        LOCAL_DEVICE_PING.status = "bad";
+        LOCAL_DEVICE_PING.lastProbeTime = Date.now();
+        updateHeaderLocalPingUI();
+        if (typeof paintStatus === "function") paintStatus();
+        return null;
       }
       return new Promise(function (resolve) {
         setTimeout(function () {
-          probeTargetSingleAttempt(host, port, 2500).then(function (r2) {
-            if (!r2.ok) {
-              resolve(r1);
-            } else {
-              var bestMs = Math.min(r1.ms, r2.ms);
-              resolve({ ok: true, ms: bestMs, timeout: false });
-            }
+          attempt().then(function (r2) {
+            var best = (r2 !== null) ? Math.min(r1, r2) : r1;
+            LOCAL_DEVICE_PING.ms = best;
+            LOCAL_DEVICE_PING.probing = false;
+            LOCAL_DEVICE_PING.status = best <= 80 ? "fast" : (best <= 220 ? "medium" : "slow");
+            LOCAL_DEVICE_PING.lastProbeTime = Date.now();
+            updateHeaderLocalPingUI();
+            if (typeof paintStatus === "function") paintStatus();
+            resolve(best);
           });
-        }, 80);
+        }, 60);
       });
     });
   }
 
-  function ownlineProbeLocalPing(force) {
-    if (LOCAL_PING_STATE.isProbing && !force) {
-      return Promise.resolve(LOCAL_PING_STATE.results);
-    }
-    var nodeList = (typeof NODES !== "undefined" && Array.isArray(NODES) && NODES.length)
-      ? NODES
-      : ((typeof window !== "undefined" && Array.isArray(window.NODES)) ? window.NODES : []);
-    if (!nodeList.length) {
-      return Promise.resolve(LOCAL_PING_STATE.results);
-    }
+  function updateHeaderLocalPingUI() {
+    var pill = document.getElementById("header-local-ping");
+    if (!pill) return;
+    var zh = (typeof isZh === "function") ? isZh() : true;
 
-    LOCAL_PING_STATE.isProbing = true;
-
-    // Collect unique hosts to probe
-    var targets = {};
-    nodeList.forEach(function (n) {
-      if (!n || !n.host) return;
-      var host = n.host;
-      var port = n.port || 443;
-      var key = host;
-      if (!targets[key]) {
-        targets[key] = { host: host, port: port };
-      }
-      LOCAL_PING_STATE.results[key] = {
-        probing: true,
-        ms: (LOCAL_PING_STATE.results[key] && LOCAL_PING_STATE.results[key].ms != null)
-          ? LOCAL_PING_STATE.results[key].ms
-          : null,
-        ok: true,
-        ts: Date.now()
-      };
-    });
-
-    if (typeof paintStatus === "function") {
-      paintStatus();
-    } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
-      window.paintStatus();
+    if (LOCAL_DEVICE_PING.probing) {
+      pill.style.display = "inline-flex";
+      pill.className = "ping-pill local-ping probing";
+      pill.textContent = zh ? "📱 本机: 测速中..." : "📱 Local: Probing...";
+      pill.title = zh ? "正在测量当前设备到控制台网关的往返物理延迟..." : "Measuring RTT from this device to gateway...";
+      return;
     }
 
-    var promises = Object.keys(targets).map(function (key) {
-      var t = targets[key];
-      return probeHostLatency(t.host, t.port).then(function (res) {
-        LOCAL_PING_STATE.results[key] = {
-          probing: false,
-          ms: res.ok ? res.ms : null,
-          ok: res.ok,
-          timeout: res.timeout || false,
-          ts: Date.now()
-        };
-        if (typeof paintStatus === "function") {
-          paintStatus();
-        } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
-          window.paintStatus();
-        }
-      });
-    });
+    if (LOCAL_DEVICE_PING.ms != null) {
+      pill.style.display = "inline-flex";
+      var ms = LOCAL_DEVICE_PING.ms;
+      var cls = ms <= 80 ? "fast" : (ms <= 220 ? "medium" : "slow");
+      pill.className = "ping-pill local-ping " + cls;
+      pill.textContent = "📱 " + (zh ? "本机 " : "Local ") + ms + "ms";
+      var qualityText = ms <= 80 ? (zh ? "局域网及接入网络质量优秀" : "Local network quality is excellent")
+        : (ms <= 220 ? (zh ? "当前网络存在轻微波动或中等延迟" : "Moderate network latency detected")
+        : (zh ? "当前本地网络/WiFi延迟偏高，可能影响连接流畅度" : "High local network latency detected"));
+      pill.title = (zh ? ("当前设备直连管理网关真实往返延迟: " + ms + "ms\n" + qualityText)
+                       : ("Real device RTT to gateway: " + ms + "ms\n" + qualityText));
+      return;
+    }
 
-    return Promise.all(promises).then(function () {
-      LOCAL_PING_STATE.isProbing = false;
-      LOCAL_PING_STATE.lastProbeTime = Date.now();
-      if (typeof paintStatus === "function") {
-        paintStatus();
-      } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
-        window.paintStatus();
-      }
-      return LOCAL_PING_STATE.results;
-    }).catch(function () {
-      LOCAL_PING_STATE.isProbing = false;
-      if (typeof paintStatus === "function") {
-        paintStatus();
-      } else if (typeof window !== "undefined" && typeof window.paintStatus === "function") {
-        window.paintStatus();
-      }
-      return LOCAL_PING_STATE.results;
-    });
+    if (LOCAL_DEVICE_PING.status === "bad") {
+      pill.style.display = "inline-flex";
+      pill.className = "ping-pill local-ping slow";
+      pill.textContent = zh ? "📱 本机网络异常" : "📱 Local Network Error";
+      pill.title = zh ? "无法连接到网关，请检查当前网络状态" : "Unable to reach gateway, please check network connection";
+    }
   }
 
   function initLocalPing() {
-    // Quiet background pre-probing after initial UI sync
     setTimeout(function () {
-      ownlineProbeLocalPing();
-    }, 1500);
+      probeDeviceLocalLatency();
+    }, 800);
   }
 
   if (typeof window !== "undefined") {
-    window.ownlineProbeLocalPing = ownlineProbeLocalPing;
+    window.LOCAL_DEVICE_PING = LOCAL_DEVICE_PING;
+    window.ownlineProbeLocalPing = probeDeviceLocalLatency;
+    window.updateHeaderLocalPingUI = updateHeaderLocalPingUI;
     window.initLocalPing = initLocalPing;
-    window.probeHostLatency = probeHostLatency;
-    window.probeTargetSingleAttempt = probeTargetSingleAttempt;
   }

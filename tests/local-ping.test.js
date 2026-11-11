@@ -6,114 +6,77 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
-test('local ping ui: script definitions and css styling exist', () => {
-  assert(html.includes('var LOCAL_PING_STATE'), 'LOCAL_PING_STATE must exist in client script');
-  assert(html.includes('function ownlineProbeLocalPing'), 'ownlineProbeLocalPing must exist');
-  assert(html.includes('function probeHostLatency'), 'probeHostLatency must exist');
-  assert(html.includes('function initLocalPing'), 'initLocalPing must exist');
+test('local ping ui: script definitions, header pill, and css styling exist', () => {
+  assert(html.includes('var LOCAL_DEVICE_PING'), 'LOCAL_DEVICE_PING must exist in client script');
+  assert(html.includes('function probeDeviceLocalLatency'), 'probeDeviceLocalLatency must exist');
+  assert(html.includes('function updateHeaderLocalPingUI'), 'updateHeaderLocalPingUI must exist');
+  assert(html.includes('id="header-local-ping"'), '#header-local-ping element must exist in HTML');
   assert(html.includes('.ping-pill.local-ping'), '.ping-pill.local-ping css class must exist');
   assert(html.includes('.ping-pill.probing'), '.ping-pill.probing css class must exist');
 });
 
-test('local ping logic: single probe resolves fast RTT on network response or reject', async () => {
-  // Create sandbox
-  let fetchCallCount = 0;
+test('local ping logic: device probe measures RTT against gateway /api/ping', async () => {
   const mockFetch = (url, opts) => {
-    fetchCallCount++;
-    return new Promise((resolve, reject) => {
-      // Simulate fast network response (e.g. 25ms)
-      setTimeout(() => {
-        reject(new TypeError('Failed to fetch')); // Common in no-cors TLS reject
-      }, 25);
-    });
-  };
-
-  const sandbox = {
-    window: {},
-    fetch: mockFetch,
-    performance: { now: () => Date.now() },
-    setTimeout,
-    clearTimeout,
-    AbortController,
-    Promise
-  };
-  vm.createContext(sandbox);
-
-  const localPingSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/07b-local-ping.js'), 'utf8');
-  vm.runInContext(localPingSrc, sandbox);
-
-  assert.equal(typeof sandbox.window.probeTargetSingleAttempt, 'function');
-  const res = await sandbox.window.probeTargetSingleAttempt('1.2.3.4', 443, 1000);
-  assert.equal(res.ok, true, 'network response should register as reachable');
-  assert(res.ms >= 20, 'ms should reflect elapsed time');
-  assert.equal(res.timeout, false);
-});
-
-test('local ping logic: probe times out when connection hangs', async () => {
-  const hangingFetch = (url, opts) => {
-    return new Promise((resolve, reject) => {
-      if (opts && opts.signal) {
-        opts.signal.addEventListener('abort', () => {
-          const err = new Error('The operation was aborted');
-          err.name = 'AbortError';
-          reject(err);
-        });
-      }
-    });
-  };
-
-  const sandbox = {
-    window: {},
-    fetch: hangingFetch,
-    performance: { now: () => Date.now() },
-    setTimeout,
-    clearTimeout,
-    AbortController,
-    Promise
-  };
-  vm.createContext(sandbox);
-
-  const localPingSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/07b-local-ping.js'), 'utf8');
-  vm.runInContext(localPingSrc, sandbox);
-
-  const res = await sandbox.window.probeTargetSingleAttempt('1.2.3.4', 443, 100);
-  assert.equal(res.ok, false);
-  assert.equal(res.ms, null);
-  assert.equal(res.timeout, true);
-});
-
-test('local ping logic: ownlineProbeLocalPing aggregates all unique nodes and populates LOCAL_PING_STATE', async () => {
-  const mockFetch = (url) => {
+    assert(url.includes('/api/ping'), 'must query gateway /api/ping');
     return new Promise((resolve) => {
-      setTimeout(resolve, 15);
+      setTimeout(resolve, 25);
     });
   };
 
+  const headerPill = { style: { display: 'none' }, className: '', textContent: '', title: '' };
   const sandbox = {
-    window: {
-      NODES: [
-        { name: 'Node-1', host: '10.0.0.1', port: 443 },
-        { name: 'Node-2', host: '10.0.0.2', port: 8443 },
-        { name: 'Node-1-Alt', host: '10.0.0.1', port: 443 } // Duplicate host
-      ],
-      paintStatus: () => {}
+    window: {},
+    document: {
+      getElementById: (id) => (id === 'header-local-ping' ? headerPill : null)
     },
     fetch: mockFetch,
     performance: { now: () => Date.now() },
     setTimeout,
     clearTimeout,
     AbortController,
-    Promise
+    Promise,
+    isZh: () => true
   };
   vm.createContext(sandbox);
 
   const localPingSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/07b-local-ping.js'), 'utf8');
   vm.runInContext(localPingSrc, sandbox);
 
-  const results = await sandbox.window.ownlineProbeLocalPing(true);
-  assert(results['10.0.0.1'], '10.0.0.1 must have probe result');
-  assert(results['10.0.0.2'], '10.0.0.2 must have probe result');
-  assert.equal(results['10.0.0.1'].ok, true);
-  assert.equal(results['10.0.0.1'].probing, false);
-  assert(typeof results['10.0.0.1'].ms === 'number');
+  assert.equal(typeof sandbox.window.ownlineProbeLocalPing, 'function');
+  const ms = await sandbox.window.ownlineProbeLocalPing();
+  assert(typeof ms === 'number', 'ms should be numeric RTT');
+  assert(ms >= 20, 'ms should reflect elapsed fetch time');
+  assert.equal(sandbox.window.LOCAL_DEVICE_PING.status, 'fast');
+  assert.equal(headerPill.style.display, 'inline-flex');
+  assert.match(headerPill.textContent, /📱 本机 \d+ms/);
+});
+
+test('local ping logic: gateway unreachable marks status as bad and updates pill', async () => {
+  const failingFetch = () => {
+    return Promise.reject(new Error('Network offline'));
+  };
+
+  const headerPill = { style: { display: 'none' }, className: '', textContent: '', title: '' };
+  const sandbox = {
+    window: {},
+    document: {
+      getElementById: (id) => (id === 'header-local-ping' ? headerPill : null)
+    },
+    fetch: failingFetch,
+    performance: { now: () => Date.now() },
+    setTimeout,
+    clearTimeout,
+    AbortController,
+    Promise,
+    isZh: () => true
+  };
+  vm.createContext(sandbox);
+
+  const localPingSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/07b-local-ping.js'), 'utf8');
+  vm.runInContext(localPingSrc, sandbox);
+
+  const res = await sandbox.window.ownlineProbeLocalPing();
+  assert.equal(res, null);
+  assert.equal(sandbox.window.LOCAL_DEVICE_PING.status, 'bad');
+  assert.match(headerPill.textContent, /📱 本机网络异常/);
 });

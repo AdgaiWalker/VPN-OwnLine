@@ -41,55 +41,16 @@
         var msNum = ms != null ? (Math.round(Number(ms)) || 0) : null;
         var backboneCls = msNum != null ? (msNum <= 200 ? "fast" : (msNum <= 350 ? "medium" : "slow")) : "fast";
 
-        // Local client ping state
-        var localPingState = (typeof LOCAL_PING_STATE !== "undefined")
-          ? LOCAL_PING_STATE
-          : ((typeof window !== "undefined" && window.LOCAL_PING_STATE) ? window.LOCAL_PING_STATE : null);
-        var localSt = (localPingState && localPingState.results)
-          ? (localPingState.results[n.host] || (n.ip && localPingState.results[n.ip]))
-          : null;
-        var localPillHtml = "";
-
-        if (localSt && localSt.probing) {
-          localPillHtml = '<span class="ping-pill local-ping probing" title="' + esc(zh ? '正在从当前设备探测真实物理往返延迟...' : 'Probing real RTT from this client...') + '">' + (zh ? '📱 测速中...' : '📱 Probing...') + '</span>';
-        } else if (localSt && localSt.ms != null) {
-          var lms = Math.round(localSt.ms);
-          var lcls = lms <= 80 ? "fast" : (lms <= 220 ? "medium" : "slow");
-          var tip = "";
-          if (n.role === "relay" || n.landing) {
-            tip = zh
-              ? ('本机到国内入口延迟 ' + lms + 'ms · 骨干到国际出口 ' + (msNum != null ? msNum + 'ms' : '正常'))
-              : ('Client to relay entrance ' + lms + 'ms · Backbone to exit ' + (msNum != null ? msNum + 'ms' : 'OK'));
-          } else {
-            tip = zh ? ('本机到节点入口物理 RTT: ' + lms + 'ms') : ('Client RTT to entrance: ' + lms + 'ms');
-            if (msNum != null && Math.abs(lms - msNum) > 60) {
-              tip += zh ? (' (骨干基准 ' + msNum + 'ms，差异反映当前网络环境)') : (' (Backbone ' + msNum + 'ms)');
-            }
-          }
-          localPillHtml = '<span class="ping-pill local-ping ' + lcls + '" title="' + esc(tip) + '">📱 ' + (zh ? '本机 ' : '') + lms + 'ms</span>';
-        } else if (localSt && localSt.ok === false && localSt.timeout) {
-          localPillHtml = '<span class="ping-pill local-ping slow" title="' + esc(zh ? '本机直连入口超时或被防火墙拦截' : 'Direct probe timed out or blocked') + '">📱 ' + (zh ? '本机超时' : 'Timeout') + '</span>';
-        }
-
         var pingHtml = "";
-        if (localPillHtml) {
-          if (msNum != null) {
-            var backboneLabel = (n.role === "relay" || n.landing)
-              ? ((zh ? '骨干 ' : 'Backbone ') + msNum + 'ms')
-              : ((zh ? '骨干 ' : 'Backbone ') + msNum + 'ms');
-            var backboneTip = st && st.vantage
-              ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得骨干延迟") : ("Probed via [" + st.vantage + "]"))
-              : (zh ? "服务器骨干探针延迟" : "Server vantage latency");
-            pingHtml = localPillHtml + '<span class="ping-pill ' + backboneCls + '" title="' + esc(backboneTip) + '">🌐 ' + backboneLabel + '</span>';
-          } else {
-            pingHtml = localPillHtml;
-          }
-        } else if (msNum != null) {
+        if (msNum != null) {
           var isSelf = (st && st.self_probe) || false;
           var pingLabel = isSelf ? (msNum + (zh ? "ms (探针本机)" : "ms (local probe)")) : (msNum + "ms");
           var tip = isSelf
             ? (zh ? "当前节点为系统国内探测基准锚点（点击右侧 ⋯ 或卡片可更换）" : "Active domestic vantage anchor for latency measurement")
-            : (st && st.vantage ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得") : ("Probed via [" + st.vantage + "]")) : "");
+            : (st && st.vantage ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得骨干物理延迟") : ("Probed via [" + st.vantage + "] backbone")) : "");
+          if (typeof LOCAL_DEVICE_PING !== "undefined" && LOCAL_DEVICE_PING && LOCAL_DEVICE_PING.ms && LOCAL_DEVICE_PING.ms > 220) {
+            tip += (tip ? "\n" : "") + (zh ? ("⚠️ 当前本机网络/WiFi延迟偏高 (" + LOCAL_DEVICE_PING.ms + "ms)，节点骨干正常。") : ("⚠️ Local network latency high (" + LOCAL_DEVICE_PING.ms + "ms), node backbone normal."));
+          }
           var tipAttr = tip ? (' title="' + esc(tip) + '"') : '';
           pingHtml = '<span class="ping-pill ' + backboneCls + '"' + tipAttr + '>' + pingLabel + '</span>';
         } else {

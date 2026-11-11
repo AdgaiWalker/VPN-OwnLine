@@ -426,9 +426,21 @@ class H(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def do_HEAD(self):
+        self.do_GET()
+
     def do_GET(self):
         path, _, qs = self.path.partition("?")
         path = path.rstrip("/")
+
+        # Ultra-lightweight RTT probe endpoint for client latency measurement
+        if path in ("/api/ping", "/ping"):
+            self.send_response(204)
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Content-Length", "0")
+            self.end_headers()
+            return
 
         # This gate is also invoked by Caddy before every management route.
         if path == '/password-gate':

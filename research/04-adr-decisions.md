@@ -14,6 +14,8 @@
 - [ADR-006：前端源码模块化拆分与零外部依赖确定性合成管线 (Zero-Dependency Modular Build)](#adr-006)
 - [ADR-007：工作区全景按生命周期状态分层与 Git 扁平化架构 (Workspace Lifecycle State Stratification)](#adr-007)
 - [ADR-008：控制面通信与代理数据面彻底解耦及高可用切换防抖机制 (Control Plane Decoupling & Anti-Flapping)](#adr-008)
+- [ADR-009：用户端版本更新感知与一键平滑升级架构 (Client-Side Version Update & Atomic In-Place Upgrade)](#adr-009)
+- [ADR-010：双轨分层真实延迟架构与浏览器网关 RTT 测速机制 (Dual-Track Layered Latency & Gateway RTT Probing)](#adr-010)
 
 ---
 
@@ -169,4 +171,25 @@
 
 #### 3. 裁决结论 (Decision)
 **坚决采纳方案 C。** 确立自建系统版本更新全链路规范：通过 `/api/system/version`、`/api/system/check_update`（带 1 小时缓存防限流）、`/api/system/upgrade` 与 `deploy/upgrade.sh` 实现“点一下升级，数据零丢失，平滑热重载”。
+
+---
+
+### <a id="adr-010"></a>ADR-010：双轨分层真实延迟架构与浏览器网关 RTT 测速机制 (Dual-Track Layered Latency & Gateway RTT Probing) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在代理管理面板中，用户普遍关注节点延迟表现：
+1. **服务端骨干视角局限**：此前节点面板仅展示国内探针（如广州主机）到目标节点的骨干延迟（如 159ms），当用户自身家庭 WiFi、移动蜂窝网络卡顿或本地宽带波动时，面板依然显示“极速绿色”，造成用户“明明很卡面板却显示正常”的认知断层；
+2. **浏览器沙箱伪装兜底陷阱**：直接在浏览器前端利用 `fetch` 直连节点 443/8443 端口测速时，由于 sing-box Reality 协议特性，未携带私钥握手的浏览器 HTTP 请求会被自动重定向至上游伪装域名（如 `www.apple.com`），这一跨境转发过程耗时高达 700ms~1000ms+，导致节点卡片全部呈现刺眼的千毫秒红字假延迟；且浏览器 W3C 沙箱天然禁止原生 TCP SYN 探测，无法直接测量节点原始端口。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（全量节点卡片双重测速）：在每个节点卡片上同时展示浏览器直连延迟与骨干延迟。该方案在 Reality 节点上必然触发伪装回落，给用户展示 1000ms 虚假数据；若强行要求在每个节点开放探测 HTTP 端口，会破坏 Reality 隐蔽性并增加端口暴露面；
+* 方案 B（双轨分层架构：网关纯净视窗 + 骨干真实视窗 + 上下文智能归因）：
+  1. **本地接入层（网关 RTT）**：在 Caddy 管理控制台暴露极轻量 `/api/ping`（返回 HTTP 204 No Content，零反代/零 Reality 拦截），浏览器通过原生 fetch 双轮滤波测量当前设备到控制台网关的纯净物理 RTT，并呈现在节点列表顶部总览（`📱 本机: 24ms`）；
+  2. **跨网骨干层（真实锚点）**：节点卡片保留经由服务端探针测量的物理 TCP 往返延迟（1ms、39ms、78ms、159ms），保持卡片视觉极简纯净；
+  3. **上下文智能归因**：仅当本地网络出现高延迟或拥堵（>220ms）时，节点悬停浮窗主动给出智能归因提示，明确告知是本地网络波动而非节点骨干问题。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“双轨分层延迟呈现规范”：浏览器只测量纯净的网关管理通路 RTT，绝不向带有防探测特性的 Reality 代理端口发送明文探测；
+2. 保持卡片信息密度克制：节点卡片恢复单一可信骨干延迟，通过顶部总览与智能气泡完成本地与骨干状态的分层闭环。
 
