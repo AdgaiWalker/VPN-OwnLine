@@ -36,11 +36,7 @@ if command -v git >/dev/null 2>&1 && [ -d "$WEB_DIR/.git" ]; then
   fi
 else
   echo "==> 正在下载最新发布包..."
-  if [ -n "$TARGET_VERSION" ]; then
-    ARCHIVE_URL="$REPO_URL/archive/refs/tags/$TARGET_VERSION.tar.gz"
-  else
-    ARCHIVE_URL="$REPO_URL/archive/refs/heads/$BRANCH.tar.gz"
-  fi
+  ARCHIVE_URL="$REPO_URL/archive/refs/heads/$BRANCH.tar.gz"
 
   found=0
   for prefix in '' 'https://ghproxy.net/' 'https://ghfast.top/'; do
