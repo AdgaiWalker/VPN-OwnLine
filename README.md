@@ -1,6 +1,6 @@
 # 🚀 Evergreen · OwnLine (长青 · 个人专线)
 
-> **帮你搭建安全、可控、便宜的专属出海节点。**  
+> **帮小白轻松搭建安全、可控、便宜的专属 VPN 节点。**  
 > 不用自己找教程，自备服务器 2 分钟全自动装好，一个私有网页多端同步。资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，可选挂载美国家宽。
 
 [![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.5.0)
