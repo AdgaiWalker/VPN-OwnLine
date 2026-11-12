@@ -14,15 +14,13 @@
 ## ⚡ 实现原理与拓扑
 
 ```mermaid
-flowchart TD
-    A["自备云服务器 (Ubuntu / Debian)"] -->|"一行命令全自动装配"| B["专属独立控制台 URL (8443)"]
-    B -->|"扫码 / 0.1 秒深链接唤起"| C["手机 / 电脑客户端 (小火箭 / FlClash)"]
-    C -->|"原生独立 IP / 美国家宽"| D["目标外网 (Google / Claude / OpenAI)"]
+flowchart LR
+    Client["客户端 (小火箭/FlClash)"] -->|"VLESS Reality / HY2"| Server["自备云服务器 (sing-box + Caddy)"] -->|"原生独立 IP / 美国家宽"| Out["目标外网"]
 ```
 
-* **纯净开源底座**：直接校验拉取 [sing-box](https://github.com/SagerNet/sing-box) 与 [Caddy](https://github.com/caddyserver/caddy) 官方 Release 原生二进制，默认 VLESS Reality 伪装（抗 DPI），支持 Hysteria 2。
-* **单机完全自治**：零遥测、零数据回传。哪怕本 GitHub 仓库被删除，你的独立服务器依然不受任何影响，永远独立运转。
-* **凭据物理不出机**：管理密码 bcrypt 哈希存储，所有节点配置与私钥仅保存在你自己服务器的 `/opt/web-data`，物理上杜绝泄露。
+* **纯净底座**：直接校验拉取 [sing-box](https://github.com/SagerNet/sing-box) 与 [Caddy](https://github.com/caddyserver/caddy) 官方 Release 原生二进制，默认 Reality 伪装（抗 DPI），支持 Hysteria 2。
+* **单机自治**：零遥测、零数据回传。哪怕本 GitHub 仓库被删除，你的独立服务器依然不受任何影响，永远独立运转。
+* **凭据不出机**：管理密码 bcrypt 哈希存储，所有节点配置与私钥仅保存在你自己服务器的 `/opt/web-data`。
 
 ---
 
@@ -43,18 +41,36 @@ flowchart TD
 
 ---
 
-## 🚀 极速起步
+## 🚀 极速起步与交付 URL 样例
 
-材料就绪后，选择以下任意一种方式完成部署：
+装配全程约 2 分钟，按以下节点获取对应 URL：
 
-### 方式 1：自备服务器终端直接运行
+### 节点 1：在服务器终端运行装配
 登录你的服务器（Ubuntu 22.04 / Debian 12），粘贴并回车：
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash
 ```
-> 终端将直接输出专属管理地址（`https://服务器IP:8443/`）与初始管理员强密码。浏览器打开，按提示扫码或点击一键导入。
+* **此节点获得（终端回显）**：**专属管理控制台 URL** 与随机强密码。
+  ```text
+  专属管理地址: https://43.153.56.137:8443/
+  面板账号:   admin
+  初始密码:   xxxxxxxxxxxxxxxxxxxx
+  ```
+  > **正确标志**：用浏览器打开此 URL，能成功看到 OwnLine 黑色系管理控制台登录页。
 
-### 方式 2：交给本地 AI Agent 全自动执行
+### 节点 2：在浏览器后台获取客户端配置
+在浏览器中输入上述密码登录管理控制台：
+* **此节点获得（网页顶部）**：**专属订阅 URL** 与一键深链接。
+  ```text
+  订阅链接示例: https://43.153.56.137:8443/s/c2763f350db2d011
+  ```
+  > **正确标志**：
+  > * **iOS（小火箭）**：点击控制台【一键连接本机】或扫码，App 自动唤醒并写入节点，轻按开关即通。
+  > * **Mac / Win / 安卓（FlClash）**：点击【复制订阅链接】，在客户端内粘贴此 URL 保存，节点列表亮起绿色延迟。
+
+---
+
+### 备选：交给本地 AI Agent 全自动执行
 在 **Cursor / Claude Code / Antigravity / Windsurf** 中，将此指令连同服务器信息发给 Agent：
 ```text
 克隆 https://github.com/AdgaiWalker/VPN-OwnLine.git，通过 SSH 连接我的服务器 [IP:端口:密码/私钥]，完成全自动装配并返回管理地址与初始凭据。
