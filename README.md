@@ -1,7 +1,7 @@
 # 🚀 Evergreen · OwnLine (长青 · 个人专线)
 
-> **“不用自己找教程，一台服务器 2 分钟全自动装配，一个私有地址多端同步。”**  
-> 个人专属出海专线中枢。100% 资产自有，不卖流量，非商业机场，可选挂载美国家宽。
+> **“不用自己找教程，一台服务器 2 分钟全自动装好，一个私有网页多端同步。”**  
+> 个人专属出海网络装配工具。资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，可选挂载美国家宽。
 
 [![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.5.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -11,72 +11,72 @@
 
 ---
 
-## ⚡ 实现原理与拓扑
+## ⚡ 它是如何工作的？
 
 ```mermaid
 flowchart LR
-    Client["客户端 (小火箭/FlClash)"] -->|"VLESS Reality / HY2"| Server["自备云服务器 (sing-box + Caddy)"] -->|"原生独立 IP / 美国家宽"| Out["目标外网"]
+    Client["你的手机 / 电脑\n(小火箭 / FlClash)"] -->|"防封锁加密连接"| Server["你的独立云服务器\n(独享纯净 IP)"] -->|"安全直达"| Out["Google / ChatGPT / GitHub"]
 ```
 
-* **纯净底座**：直接校验拉取 [sing-box](https://github.com/SagerNet/sing-box) 与 [Caddy](https://github.com/caddyserver/caddy) 官方 Release 原生二进制，默认 Reality 伪装（抗 DPI），支持 Hysteria 2。
-* **单机自治**：零遥测、零数据回传。哪怕本 GitHub 仓库被删除，你的独立服务器依然不受任何影响，永远独立运转。
-* **凭据不出机**：管理密码 bcrypt 哈希存储，所有节点配置与私钥仅保存在你自己服务器的 `/opt/web-data`。
+* **官方原版，绝无后门**：只安装国际主流知名开源安全底座（[sing-box](https://github.com/SagerNet/sing-box) 与 [Caddy](https://github.com/caddyserver/caddy) 原版），无任何第三方修改或私货。
+* **资产独享，绝不跑路**：服务器是你自己在正规云厂商买的，不卖流量、不收月费。哪怕本 GitHub 仓库关闭，你的专线依然永远独立运转。
+* **隐私安全，零数据收集**：绝不记录你的上网历史。管理账号密码只保存在你自己的服务器里，任何人包括作者都无法查看。
 
 ---
 
-## 📋 准备清单与预估成本
+## 📋 准备清单与花费预估
 
-在开始前，你只需准备以下原材料（费用由云厂商直接收取，丰俭由人）：
+在开始前，你只需准备以下两样东西（费用由云厂商直接收取，丰俭由人）：
 
-1. **一台海外云服务器 (必选)**：
-   * 必须选择 **海外/境外地域**（如中国香港、新加坡、东京、硅谷等）：
-   * **0 元 / 月** ➔ [甲骨文云 Oracle](https://www.oracle.com/cloud/free/)（Always Free 永久免费）
-   * **约 7 元 / 月** ➔ [RackNerd](https://www.racknerd.com/)（年付促销 VPS）
-   * **约 24 元 / 月** ➔ [腾讯云轻量](https://cloud.tencent.com/product/lighthouse)（微信 / 支付宝直付，省心推荐）
-2. **一个客户端工具 (必选)**：
-   * **iOS / iPadOS (推荐)**：[Shadowrocket (小火箭)](https://apps.apple.com/app/shadowrocket/id932747118)（控制台内嵌免外币美区账号通道，一键深链接写入）
-   * **Mac / Windows / Android (推荐)**：[FlClash](https://github.com/chen08209/FlClash)（控制台提供免翻直链，一键导入）
-   * **桌面进阶**：[Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev)（规则分流与策略组）
-3. **真实美国家宽 (可选 · 进阶防拒访)**：
-   * **+7 元 / 月** ➔ [Webshare](https://www.webshare.io/)（$12/年静态 ISP 原生住宅 IP，解锁 ChatGPT 与海外流媒体，消除数据中心 IP 标记）
+1. **一台海外云服务器 (必选 · 几块钱起步)**：
+   * 购买时请务必选择 **海外机房**（如中国香港、新加坡、东京、硅谷等，国内机房无法出海）：
+   * **0 元 / 月** ➔ [甲骨文云 Oracle](https://www.oracle.com/cloud/free/)（官方永久免费额度）
+   * **约 7 元 / 月** ➔ [RackNerd](https://www.racknerd.com/)（便宜实惠的年付小机器）
+   * **约 24 元 / 月** ➔ [腾讯云轻量海外](https://cloud.tencent.com/product/lighthouse)（微信 / 支付宝直付，省心推荐）
+2. **一个手机或电脑上网软件 (必选 · 免费开源为主)**：
+   * **苹果手机 / iPad (最推荐)**：[Shadowrocket (小火箭)](https://apps.apple.com/app/shadowrocket/id932747118)（网页后台内提供免费获取通道，点一下自动配好）
+   * **安卓 / Windows / Mac (最推荐)**：[FlClash](https://github.com/chen08209/FlClash)（免费开源，后台提供免翻下载直链）
+   * **电脑专业版**：[Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev)（适合喜欢规则分流的进阶用户）
+3. **真实美国家庭宽带 (可选 · 进阶防封号)**：
+   * **+7 元 / 月** ➔ [Webshare](https://www.webshare.io/)（每年 12 美元，挂载真实美国家宽 IP，就像在美国拉了宽带，ChatGPT 绝不拒访）
 
 ---
 
-## 🚀 极速起步与交付 URL 样例
+## 🚀 2 分钟极速装配
 
-装配全程约 2 分钟，按以下节点获取对应 URL：
+只需要两步，零基础也能搞定：
 
-### 节点 1：在服务器终端运行装配
-登录你的服务器（Ubuntu 22.04 / Debian 12），粘贴并回车：
+### 第 1 步：在服务器上运行装配命令
+买好服务器后，打开云控制台的网页命令行终端，复制这行命令粘贴进去并回车：
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash
 ```
-* **此节点获得（终端回显）**：**专属管理控制台 URL** 与随机强密码。
+* **运行完毕后，屏幕上会直接输出你的专属管理后台网址与密码**：
   ```text
   专属管理地址: https://43.153.56.137:8443/
   面板账号:   admin
   初始密码:   xxxxxxxxxxxxxxxxxxxx
   ```
-  > **正确标志**：用浏览器打开此 URL，能成功看到 OwnLine 黑色系管理控制台登录页。  
-  > 💡 *提示 1：初次 IP 直连访问，浏览器提示“证书不安全”属正常现象，点击「高级 ➔ 继续前往」即可。*  
-  > 💡 *提示 2：若网页打不开，请前往云厂商控制台的【防火墙 / 安全组】放行 **8443** 与 **443** 端口。*
+  > **如何确认成功**：用电脑或手机浏览器打开这个网址，能看到自己的黑色管理后台登录界面。  
+  > 💡 *新手提示 1：第一次用 IP 网址打开时，浏览器提示“证书不安全”属于正常现象，点击「高级 ➔ 继续访问」即可。*  
+  > 💡 *新手提示 2：如果网页一直转圈打不开，是因为云厂商默认关了端口，去云控制台把防火墙（安全组）的 **8443** 和 **443** 端口放行即可。*
 
-### 节点 2：在浏览器后台获取客户端配置
-在浏览器中输入上述密码登录管理控制台：
-* **此节点获得（网页顶部）**：**专属订阅 URL** 与一键深链接。
+### 第 2 步：登录后台，一键连接
+在浏览器输入上述密码登录你的专属管理后台：
+* **页面正上方会提供你的专属订阅链接和二维码**：
   ```text
-  订阅链接示例: https://43.153.56.137:8443/s/c2763f350db2d011
+  专属订阅链接: https://43.153.56.137:8443/s/c2763f350db2d011
   ```
-  > **正确标志**：
-  > * **iOS（小火箭）**：点击控制台【一键连接本机】或扫码，App 自动唤醒并写入节点，轻按开关即通。
-  > * **Mac / Win / 安卓（FlClash）**：点击【复制订阅链接】，在客户端内粘贴此 URL 保存，节点列表亮起绿色延迟。
+  > **如何连通**：
+  > * **手机（小火箭）**：点网页上的【一键连接本机】或者用手机扫码，App 会自动唤醒并把线路加进去，轻按开关即可上网。
+  > * **电脑（FlClash）**：点【复制订阅链接】，在软件里粘贴保存，就会自动刷出绿色可用线路，点连接即通。
 
 ---
 
-### 备选：交给本地 AI Agent 全自动执行
-在 **Cursor / Claude Code / Antigravity / Windsurf** 中，将此指令连同服务器信息发给 Agent：
+### 懒人专属：直接发给本地 AI 帮你装
+如果你使用 **Cursor / Claude Code / Antigravity / Windsurf** 等 AI 编程工具，直接把这句话连同服务器信息发给它：
 ```text
-克隆 https://github.com/AdgaiWalker/VPN-OwnLine.git，通过 SSH 连接我的服务器 [IP:端口:密码/私钥]，完成全自动装配并返回管理地址与初始凭据。
+克隆 https://github.com/AdgaiWalker/VPN-OwnLine.git，通过 SSH 连接我的服务器 [IP:端口:密码]，帮我全自动装配好，并把管理网址和账号密码发给我。
 ```
 
 ---
