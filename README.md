@@ -26,19 +26,18 @@ flowchart LR
 
 ## 📋 准备清单与花费预估
 
-在开始前，你只需准备以下两样东西（费用由云厂商直接收取，丰俭由人）：
+在开始前，你只需准备以下原材料（费用由云厂商直接收取，丰俭由人）：
 
-1. **一台海外云服务器 (必选 · 几块钱起步)**：
-   * 购买时请务必选择 **海外机房**（如中国香港、新加坡、东京、硅谷等，国内机房无法出海）：
-   * **0 元 / 月** ➔ [甲骨文云 Oracle](https://www.oracle.com/cloud/free/)（官方永久免费额度）
-   * **约 7 元 / 月** ➔ [RackNerd](https://www.racknerd.com/)（便宜实惠的年付小机器）
-   * **约 24 元 / 月** ➔ [腾讯云轻量海外](https://cloud.tencent.com/product/lighthouse)（微信 / 支付宝直付，省心推荐）
-2. **一个手机或电脑上网软件 (必选 · 免费开源为主)**：
-   * **苹果手机 / iPad (最推荐)**：[Shadowrocket (小火箭)](https://apps.apple.com/app/shadowrocket/id932747118)（网页后台内提供免费获取通道，点一下自动配好）
-   * **安卓 / Windows / Mac (最推荐)**：[FlClash](https://github.com/chen08209/FlClash)（免费开源，后台提供免翻下载直链）
-   * **电脑专业版**：[Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev)（适合喜欢规则分流的进阶用户）
-3. **真实美国家庭宽带 (可选 · 进阶防封号)**：
-   * **+7 元 / 月** ➔ [Webshare](https://www.webshare.io/)（每年 12 美元，挂载真实美国家宽 IP，就像在美国拉了宽带，ChatGPT 绝不拒访）
+| 原材料类别 | 推荐方案 | 预估花费 | 说明与官方链接 |
+| :--- | :--- | :--- | :--- |
+| **1. 海外云服务器**<br>*(必选 · 购买时务必选香港/新加坡/硅谷等海外机房)* | **阿里云高校学生计划** | **0 元 或 9.9 元/月** | [阿里云「云工开物」](https://university.aliyun.com/)（高校学生与青年开发者专享算力补贴） |
+| | **甲骨文云 Oracle** | **0 元 / 月** | [Oracle Always Free](https://www.oracle.com/cloud/free/)（官方永久免费额度，需外币信用卡） |
+| | **RackNerd** | **约 7 元 / 月** | [RackNerd](https://www.racknerd.com/)（便宜实惠的海外年付促销小机器） |
+| | **腾讯云轻量海外** | **约 24 元 / 月** | [腾讯云轻量应用服务器](https://cloud.tencent.com/product/lighthouse)（微信/支付宝直付，省心稳定推荐） |
+| **2. 客户端上网软件**<br>*(必选 · 免费开源为主)* | **iPhone / iPad** | 免费通道 | [Shadowrocket (小火箭)](https://apps.apple.com/app/shadowrocket/id932747118)（控制台内提供免费美区通道，一键自动配好） |
+| | **安卓 / Windows / Mac** | **完全免费** | [FlClash](https://github.com/chen08209/FlClash)（纯净开源，控制台提供免翻墙下载直链） |
+| | **电脑专业版** | **完全免费** | [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev)（适合喜欢规则分流的进阶用户） |
+| **3. 真实美国家庭宽带**<br>*(可选 · 进阶防封号)* | **Webshare 静态住宅** | **+7 元 / 月** ($12/年) | [Webshare](https://www.webshare.io/)（挂载真实美国家宽，解决 ChatGPT 机房 IP 拒访） |
 
 ---
 
