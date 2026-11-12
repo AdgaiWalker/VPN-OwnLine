@@ -1,7 +1,7 @@
 # 🚀 Evergreen · OwnLine (长青 · 个人专线)
 
-> **“不用自己找教程，一台服务器 2 分钟全自动装好，一个私有网页多端同步。”**  
-> 个人专属出海网络装配工具。资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，可选挂载美国家宽。
+> **帮你搭建安全、可控、便宜的专属出海节点。**  
+> 不用自己找教程，自备服务器 2 分钟全自动装好，一个私有网页多端同步。资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，可选挂载美国家宽。
 
 [![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.5.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -18,9 +18,9 @@ flowchart LR
     Client["你的手机 / 电脑\n(小火箭 / FlClash)"] -->|"防封锁加密连接"| Server["你的独立云服务器\n(独享纯净 IP)"] -->|"安全直达"| Out["Google / ChatGPT / GitHub"]
 ```
 
-* **官方原版，绝无后门**：只安装国际主流知名开源安全底座（[sing-box](https://github.com/SagerNet/sing-box) 与 [Caddy](https://github.com/caddyserver/caddy) 原版），无任何第三方修改或私货。
-* **资产独享，绝不跑路**：服务器是你自己在正规云厂商买的，不卖流量、不收月费。哪怕本 GitHub 仓库关闭，你的专线依然永远独立运转。
-* **隐私安全，零数据收集**：绝不记录你的上网历史。管理账号密码只保存在你自己的服务器里，任何人包括作者都无法查看。
+* **安全（官方原版，零数据收集）**：只安装知名开源安全底座（[sing-box](https://github.com/SagerNet/sing-box) 与 [Caddy](https://github.com/caddyserver/caddy) 原版），绝无后门；不记录上网历史，密码与密钥物理不出机。
+* **可控（资产自有，一个网页多端同步）**：服务器是你自己的，独享纯净 IP，哪怕本仓库关闭也永久可用；手机电脑扫码一键连通。
+* **便宜（几块钱起步，不卖流量）**：自备海外云服务器（0 元至几块钱/月），不收月租、不卖流量，彻底告别商业机场按月按量割韭菜。
 
 ---
 
