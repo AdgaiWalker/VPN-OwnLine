@@ -1,7 +1,7 @@
 # 🚀 Evergreen · OwnLine (常青·自连)
 
-> **“不用到处找东西，12 刀配美国家宽，一个私有地址多端同步。”**  
-> 个人专属私有出海专线自动化装配中枢。资产 100% 自有，不卖流量，非商业机场。
+> **“不用自己找教程，一台服务器 2 分钟全自动装配，一个私有地址多端同步。”**  
+> 个人专属出海专线中枢。100% 资产自有，不卖流量，非商业机场，可选挂载美国家宽。
 
 [![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.5.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -28,7 +28,8 @@ flowchart LR
 
 在开始前，你只需准备以下原材料（费用由云厂商直接收取，丰俭由人）：
 
-1. **一台云服务器 (必选)**：
+1. **一台海外云服务器 (必选)**：
+   * 必须选择 **海外/境外地域**（如中国香港、新加坡、东京、硅谷等）：
    * **0 元 / 月** ➔ [甲骨文云 Oracle](https://www.oracle.com/cloud/free/)（Always Free 永久免费）
    * **约 7 元 / 月** ➔ [RackNerd](https://www.racknerd.com/)（年付促销 VPS）
    * **约 24 元 / 月** ➔ [腾讯云轻量](https://cloud.tencent.com/product/lighthouse)（微信 / 支付宝直付，省心推荐）
@@ -36,8 +37,8 @@ flowchart LR
    * **iOS / iPadOS (推荐)**：[Shadowrocket (小火箭)](https://apps.apple.com/app/shadowrocket/id932747118)（控制台内嵌免外币美区账号通道，一键深链接写入）
    * **Mac / Windows / Android (推荐)**：[FlClash](https://github.com/chen08209/FlClash)（控制台提供免翻直链，一键导入）
    * **桌面进阶**：[Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev)（规则分流与策略组）
-3. **真实美国家宽 (可选 · 防封号顶配)**：
-   * **+7 元 / 月** ➔ [Webshare](https://www.webshare.io/)（$12/年静态 ISP 原生住宅 IP，彻底规避 OpenAI / Claude 封号）
+3. **真实美国家宽 (可选 · 进阶防拒访)**：
+   * **+7 元 / 月** ➔ [Webshare](https://www.webshare.io/)（$12/年静态 ISP 原生住宅 IP，解锁 ChatGPT 与海外流媒体，消除数据中心 IP 标记）
 
 ---
 
@@ -56,7 +57,9 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
   面板账号:   admin
   初始密码:   xxxxxxxxxxxxxxxxxxxx
   ```
-  > **正确标志**：用浏览器打开此 URL，能成功看到 OwnLine 黑色系管理控制台登录页。
+  > **正确标志**：用浏览器打开此 URL，能成功看到 OwnLine 黑色系管理控制台登录页。  
+  > 💡 *提示 1：初次 IP 直连访问，浏览器提示“证书不安全”属正常现象，点击「高级 ➔ 继续前往」即可。*  
+  > 💡 *提示 2：若网页打不开，请前往云厂商控制台的【防火墙 / 安全组】放行 **8443** 与 **443** 端口。*
 
 ### 节点 2：在浏览器后台获取客户端配置
 在浏览器中输入上述密码登录管理控制台：
