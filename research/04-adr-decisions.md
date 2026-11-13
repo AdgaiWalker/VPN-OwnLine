@@ -18,6 +18,7 @@
 - [ADR-010：双轨分层真实延迟架构与浏览器网关 RTT 测速机制 (Dual-Track Layered Latency & Gateway RTT Probing)](#adr-010)
 - [ADR-011：本地自主智能体 (Local Agent) 全生命周期装配与任务书协议 (Autonomous Agentic Onboarding & Task Brief Protocol)](#adr-011)
 - [ADR-012：单双机分级拓扑自适应装配与晚高峰抗丢包自愈架构 (Tiered Single/Dual-Host Adaptive Topology & Peak-Congestion Self-Healing Architecture)](#adr-012)
+- [ADR-013：AI 业务 IP 粘滞防护不变式与客户端分流边界解耦 (AI IP-Stickiness Anti-Ban Invariant & Client Routing Decoupling)](#adr-013)
 
 ---
 
@@ -240,4 +241,27 @@
 1. 确立“资产自适应拓扑”设计基准：系统根据用户录入的节点地域（`CN` vs `OVERSEAS`）自动推导最佳网络拓扑与订阅分组；
 2. 固化单机双通道（Reality + HY2）与双机中转（Domestic BGP Relay）为标准实现，订阅命名严格遵循人话标准；
 3. 严格遵循向后兼容与配置原子性：中转切流与自愈过程必须保证状态机原子流转，并在异常时自动安全回滚。
+
+---
+
+### <a id="adr-013"></a>ADR-013：AI 业务 IP 粘滞防护不变式与客户端分流边界解耦 (AI IP-Stickiness Anti-Ban Invariant & Client Routing Decoupling) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在代理拓扑与分流演进中，存在一项可能对用户核心资产造成不可逆破坏的风险：
+1. **跨国自动测速与切流的封号陷阱**：若将不同国家/地区的节点混入带有自动测速（`url-test`）或故障转移（`fallback`）的策略组，当客户端在几秒内因毫秒级延迟波动而将请求在不同跨洋出口间切换时，OpenAI、Claude、Stripe 等海外严格风控平台会判定为 Session 地理跳跃（Geo-Hopping）或账号共享，导致用户账号被瞬间永封；
+2. **职责边界泛化与重复造轮子**：系统曾探讨是否应在服务端统筹管理“国内 AI 走直连、美国 AI 走美西、区域服务走新加坡”等复杂业务分流。然而，市面上成熟的客户端生态（Clash Verge、Mihomo、Shadowrocket）与社区规则集（Loyalsoldier / ACL4SSR）早已成熟解决了基于域名的细粒度分流问题；服务端过度介入不仅增加系统脆弱性，且违背了长青“专属节点供应链”的极简定位。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（服务端强行介入复杂多出口编排与跨国自动负载均衡）：试图通过复杂的策略把所有流量在云端细分。该方案不仅极其脆弱且容易引入跨国 IP 漂移，直接危害用户的 AI 账号资产；
+* 方案 B（系统边界清晰收敛 + IP 粘滞防护不变式 + 同宿主双协议降级）：
+  1. **职责分离边界**：长青服务端坚决回归根本——专心交付“独享、纯净、安全、不卡顿”的单机或专线节点；而“如何分流、走哪个节点”的自由度完全依托客户端成熟的原生规则生态；
+  2. **AI 业务 IP 粘滞不变式（Anti-Ban Invariant）**：订阅生成的 `🤖 AI 业务` 策略组严格锁定为静态单选（`type: select`），首选安全的单节点，**绝对不包含 `自动选择`（url-test）或跨国 `故障转移`（fallback）**，杜绝后台自动跨国切流；
+  3. **同 IP 协议级平替（安全与抗丢包兼得）**：单台海外主机上 Reality 与 HY2 共享同一个物理公网出口 IP；晚高峰用户切换到 HY2 仅是传输层 UDP 替换 TCP，出口 IP 纹丝不动，OpenAI 看到的是同一会话，封号风险为零；
+  4. **国内 AI 规则直连**：在订阅规则层将 DeepSeek、Kimi、智谱、豆包等国内核心 AI 域名与微信/局域网一同直出 `DIRECT`，零代理开销。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“AI 业务出口 IP 绝对静止”为系统安全红线；
+2. 保持长青定位纯粹：做最省心、最硬核的自备节点供应链，不越界侵入客户端分流领域；
+3. 现网已对齐订阅生成器与单元测试，彻底消灭 AI 策略组的跨国自动漂移漏洞。
 

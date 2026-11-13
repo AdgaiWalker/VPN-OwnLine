@@ -175,6 +175,11 @@ check("空或无效用量返回 None", S.subscription_userinfo(None) is None and
 # AI 分流组测试（按 01-PRD 客户端仅支持 Shadowrocket / Clash / FL Clash，不输出 sing-box JSON）
 check("Clash 中包含 🤖 AI 业务 分组", "🤖 AI 业务" in yaml_str)
 check("Clash 中包含 openai 规则路由至 AI 分组", "DOMAIN-KEYWORD,openai,🤖 AI 业务" in yaml_str)
+ai_idx = yaml_str.find('name: "🤖 AI 业务"')
+ai_block = yaml_str[ai_idx:yaml_str.find('name: "节点选择"', ai_idx)] if ai_idx != -1 else ""
+check("AI 分组排除自动选择 (防跨国漂移封号)", "自动选择" not in ai_block)
+check("AI 分组排除故障转移 (防跨国切流封号)", "故障转移" not in ai_block)
+check("Clash 中包含 deepseek 国内直连规则", "DOMAIN-KEYWORD,deepseek,DIRECT" in yaml_str)
 check("Clash 顶部包含受控节点 IP 直连豁免规则", "IP-CIDR,1.2.3.4/32,DIRECT,no-resolve" in yaml_str)
 check("已移除废弃的 Sing-box 客户端配置导出函数", not hasattr(S, "render_singbox_json"))
 

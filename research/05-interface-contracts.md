@@ -270,5 +270,22 @@ rules:
   * 双机中转模式：`🇨🇳 北京专线 ➔ 🇺🇸 硅谷 (极速防卡顿)` 与 `🇨🇳 北京专线 ➔ 🇸🇬 新加坡 (备用专线)`；
   * 客户端策略组注入带有 `tolerance: 50` 容差的 `url-test` 测速与 `fallback` 故障转移。
 
+### 4.9 AI 业务 IP 粘滞防护与国内 AI 直连规则契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/nodekit/subscriptions.py:render_clash_yaml` ｜ 测试：`server/nodekit/subscriptions_tests.py`
+* **适用场景**：面向 OpenAI、Claude、Anthropic、Google AI 等海外严格风控平台，提供 100% 防封号的静态出口保护；面向国内大模型提供 0 代理消耗的快速直连。
+* **规则与策略组契约 (Clash YAML Specification)**：
+  1. **AI 业务组纯净单选（IP 粘滞不变式）**：
+     * `🤖 AI 业务` 策略组必须声明为 `type: select`；
+     * 代理列表优先收敛并注入美区/住宅/海外单一稳定节点；
+     * **禁止项**：严禁在 `🤖 AI 业务` 中混入 `自动选择`（url-test）或 `🛡️ 故障转移`（fallback），彻底根除跨国 IP 随机漂移与 Session 瞬移；
+  2. **国内 AI 服务强制直连**：
+     * `DOMAIN-KEYWORD,deepseek,DIRECT`
+     * `DOMAIN-KEYWORD,moonshot,DIRECT`
+     * `DOMAIN-KEYWORD,kimi,DIRECT`
+     * `DOMAIN-KEYWORD,zhipu,DIRECT`
+     * `DOMAIN-KEYWORD,doubao,DIRECT`
+     * 与现有微信（wechat/weixin）及国内白名单共同构成直连防线，不走海外节点，避免触发国产 AI 区域限制。
+
+
 
 

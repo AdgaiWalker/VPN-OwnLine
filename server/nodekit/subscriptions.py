@@ -398,6 +398,11 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         if node_ip_rules:
             lines.extend(node_ip_rules)
         lines.extend([
+            "  - DOMAIN-KEYWORD,deepseek,DIRECT",
+            "  - DOMAIN-KEYWORD,moonshot,DIRECT",
+            "  - DOMAIN-KEYWORD,kimi,DIRECT",
+            "  - DOMAIN-KEYWORD,zhipu,DIRECT",
+            "  - DOMAIN-KEYWORD,doubao,DIRECT",
             "  - DOMAIN-KEYWORD,wechat,DIRECT",
             "  - DOMAIN-KEYWORD,weixin,DIRECT",
             "  - DOMAIN-KEYWORD,tencent,DIRECT",
@@ -427,6 +432,11 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         if node_ip_rules:
             lines.extend(node_ip_rules)
         lines.extend([
+            "  - DOMAIN-KEYWORD,deepseek,DIRECT",
+            "  - DOMAIN-KEYWORD,moonshot,DIRECT",
+            "  - DOMAIN-KEYWORD,kimi,DIRECT",
+            "  - DOMAIN-KEYWORD,zhipu,DIRECT",
+            "  - DOMAIN-KEYWORD,doubao,DIRECT",
             "  - DOMAIN-KEYWORD,wechat,DIRECT",
             "  - DOMAIN-KEYWORD,weixin,DIRECT",
             "  - DOMAIN-KEYWORD,tencent,DIRECT",
@@ -453,15 +463,11 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         if not ai_candidates:
             ai_candidates = list(names)
 
-        # 构造不重复的代理列表
+        # 严格遵循 IP 粘滞不变式：AI 业务绝不挂载自动测速组 (url-test) 或跨国故障转移，杜绝 Session 跨国跳跃导致封号
         ai_proxies = []
         for x in ai_candidates:
             if x not in ai_proxies:
                 ai_proxies.append(x)
-        if "自动选择" not in ai_proxies:
-            ai_proxies.append("自动选择")
-        if "🛡️ 故障转移" not in ai_proxies:
-            ai_proxies.append("🛡️ 故障转移")
         for x in names:
             if x not in ai_proxies:
                 ai_proxies.append(x)
@@ -506,6 +512,11 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             "  - DOMAIN-SUFFIX,oaiusercontent.com,🤖 AI 业务",
             "  - DOMAIN-SUFFIX,ai.google.dev,🤖 AI 业务",
             "  - DOMAIN-SUFFIX,bard.google.com,🤖 AI 业务",
+            "  - DOMAIN-KEYWORD,deepseek,DIRECT",
+            "  - DOMAIN-KEYWORD,moonshot,DIRECT",
+            "  - DOMAIN-KEYWORD,kimi,DIRECT",
+            "  - DOMAIN-KEYWORD,zhipu,DIRECT",
+            "  - DOMAIN-KEYWORD,doubao,DIRECT",
             "  - DOMAIN-KEYWORD,wechat,DIRECT",
             "  - DOMAIN-KEYWORD,weixin,DIRECT",
             "  - GEOIP,CN,DIRECT",
