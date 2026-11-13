@@ -245,4 +245,30 @@ rules:
   4. **权限归一化**：自动确保目标主机开启 `PermitRootLogin yes`，或建立基于 SSH 公钥的免密登录互信，目录权限严格保持 `~/.ssh` 700 与 `authorized_keys` 600；
   5. **终态验真**：接入后必须调用 `server/nodekit/verify.py` 验证端到端出网通畅性。
 
+### 4.8 单双机分级拓扑与专线自愈数据契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/nodekit/node_manager.py`, `server/nodekit/relay_service.py`, `server/nodekit/subscriptions.py` ｜ 测试：`server/nodekit/relay_service_tests.py`, `server/nodekit/node_manager_tests.py`
+* **适用场景**：统一纳管单机直连（Reality + HY2 并联降级）与双机中转（Domestic BGP Relay + 故障自愈）的领域模型与订阅生成。
+* **数据契约（Node 实体扩展字段）**：
+  * `role`: 节点角色枚举，取值 `exit`（海外出口落地）、`relay`（国内中转专线入口）、`standalone`（未绑定的国内独立机）；
+  * `landing`: 当 `role == 'relay'` 时的目标海外落地机字典：
+    ```json
+    {
+      "host": "43.153.56.137",
+      "port": 443,
+      "uuid": "62c6f3ad-d5ef-4458-9073-f7d4a912d7b8",
+      "pbk": "3mLI_hMVHkltukgxfvSvMB7DrT2SwAu8J_dsm6GCNwE",
+      "sid": "87370495",
+      "sni": "www.apple.com"
+    }
+    ```
+  * `landing_primary` / `landing_standby`: 中转自愈的主用与备用海外落地目标主机名；
+  * `landing_active`: 当前承载流量的活跃落地目标；
+  * `last_failover_ts`: 最近一次故障转移发生的时间戳（Unix 秒数）；
+  * `failover_policy`: 包含 `cooldown_seconds: 300`，定义自愈切回主落地的冷却观察期。
+* **订阅分发人话命名契约**：
+  * 单机模式：`🇺🇸 硅谷直连 (Reality 稳定)` 与 `🇺🇸 硅谷-HY2 (HY2 极速)`；
+  * 双机中转模式：`🇨🇳 北京专线 ➔ 🇺🇸 硅谷 (极速防卡顿)` 与 `🇨🇳 北京专线 ➔ 🇸🇬 新加坡 (备用专线)`；
+  * 客户端策略组注入带有 `tolerance: 50` 容差的 `url-test` 测速与 `fallback` 故障转移。
+
+
 
