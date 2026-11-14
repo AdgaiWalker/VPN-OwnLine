@@ -1,7 +1,8 @@
 # 🚀 Evergreen · OwnLine (长青 · 个人专线)
 
 > **帮小白轻松搭建安全、可控、便宜的专属 VPN 节点。**  
-> 不用自己找教程，自备服务器 2 分钟全自动装好，一个私有网页多端同步。资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，可选挂载美国家宽。
+> 💡 **核心成本**：搭建普通节点每年仅需 **0 ~ 99 元**（服务器可完全白嫖），在此基础上只需再加 **85 元/年**（12 美元）挂载美国家宽 IP，即可升级为彻底防封的家庭住宅节点。  
+> 资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，2 分钟全自动装配，一个私有网页多端同步。
 
 [![Release: v0.6.0](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.6.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
