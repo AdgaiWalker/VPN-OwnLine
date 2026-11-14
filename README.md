@@ -3,11 +3,11 @@
 > **帮小白轻松搭建安全、可控、便宜的专属 VPN 节点。**  
 > 不用自己找教程，自备服务器 2 分钟全自动装好，一个私有网页多端同步。资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，可选挂载美国家宽。
 
-[![Release: v0.5.0](https://img.shields.io/badge/Release-v0.5.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.5.0)
+[![Release: v0.6.0](https://img.shields.io/badge/Release-v0.6.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.6.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 582 Passed](https://img.shields.io/badge/Tests-582%20Passed%20(100%25)-success.svg)]()
+[![Tests: 585 Passed](https://img.shields.io/badge/Tests-585%20Passed%20(100%25)-success.svg)]()
 
 ---
 

@@ -1,6 +1,6 @@
 """Evergreen · OwnLine 系统版本与平滑升级控制器
 负责：
-1. 本地版本与 Commit 查询 (SSOT: v0.5.0)
+1. 本地版本与 Commit 查询 (SSOT: v0.6.0)
 2. 远端版本探测 (带内存缓存，防 GitHub API 频控)
 3. 触发安全升级进程 (原子沙箱、独立子进程、防并发重入)
 """
@@ -14,7 +14,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-CURRENT_VERSION = "v0.5.0"
+CURRENT_VERSION = "v0.6.0"
 REPO_NAME = "AdgaiWalker/VPN-OwnLine"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/releases/latest"
 CACHE_TTL = 3600  # 1小时缓存，防止 GitHub API 限流
