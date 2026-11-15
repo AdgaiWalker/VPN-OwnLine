@@ -1,5 +1,6 @@
 (function () {
-  var _selectedFeedbackType = "connection";
+  var _selectedFeedbackIntent = "bug";
+  var _selectedFeedbackType = "bug";
   var _cachedSystemInfo = null;
 
   function setElementDisplay(id, display) {
@@ -12,24 +13,56 @@
     if (el) el.textContent = text;
   }
 
-  function selectFeedbackType(type) {
-    _selectedFeedbackType = type || "connection";
-    var pills = ["conn", "client", "suggest", "bug"];
-    var typeMap = { connection: "conn", client: "client", suggestion: "suggest", bug: "bug" };
-    var activeSuffix = typeMap[_selectedFeedbackType] || "conn";
+  function selectFeedbackIntent(intent) {
+    _selectedFeedbackIntent = intent || "bug";
+    _selectedFeedbackType = (_selectedFeedbackIntent === "idea") ? "suggestion" : "bug";
 
-    pills.forEach(function (p) {
-      var wrap = document.getElementById("fb-type-" + p + "-wrap");
-      if (wrap) {
-        if (p === activeSuffix) {
-          wrap.classList.add("active");
-          var radio = wrap.querySelector('input[type="radio"]');
-          if (radio) radio.checked = true;
-        } else {
-          wrap.classList.remove("active");
-        }
+    var bugBtn = document.getElementById("seg-btn-bug");
+    var ideaBtn = document.getElementById("seg-btn-idea");
+    if (bugBtn && ideaBtn) {
+      if (_selectedFeedbackIntent === "bug") {
+        bugBtn.classList.add("active");
+        ideaBtn.classList.remove("active");
+      } else {
+        bugBtn.classList.remove("active");
+        ideaBtn.classList.add("active");
       }
-    });
+    }
+
+    var msgEl = document.getElementById("feedback-message");
+    if (msgEl) {
+      var zh = (typeof isZh === "function") ? isZh() : true;
+      if (_selectedFeedbackIntent === "idea") {
+        msgEl.placeholder = (typeof t === "function") ? t("feedback_msg_ph_idea") : (zh ? "希望支持什么新平台、新协议或新场景？" : "What new platform, protocol, or scenario would you like to see?");
+      } else {
+        msgEl.placeholder = (typeof t === "function") ? t("feedback_msg_ph_bug") : (zh ? "在什么时间、哪个节点卡顿或报错？发生了什么？" : "When and on which node did it lag or error? What happened?");
+      }
+    }
+  }
+
+  function selectFeedbackType(type) {
+    _selectedFeedbackType = type || "bug";
+    if (type === "suggestion") {
+      selectFeedbackIntent("idea");
+    } else {
+      selectFeedbackIntent("bug");
+    }
+  }
+
+  function toggleFeedbackDiagDetails() {
+    var details = document.getElementById("feedback-diag-details");
+    var arrow = document.getElementById("feedback-diag-arrow");
+    if (!details) return;
+    var isExpanded = details.style.display === "block";
+    if (isExpanded) {
+      details.style.display = "none";
+      if (arrow) arrow.style.transform = "rotate(0deg)";
+    } else {
+      details.style.display = "block";
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+      var diag = buildDiagnosticSnapshot();
+      details.textContent = JSON.stringify(diag, null, 2);
+    }
   }
 
   function updateFeedbackCharCount(val) {
@@ -105,8 +138,12 @@
           _cachedSystemInfo = d;
           var diag = buildDiagnosticSnapshot();
           var zh = (typeof isZh === "function") ? isZh() : true;
-          var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+          var glanceText = (zh ? "现场指纹已就绪 · " : "Diagnostics Ready · ") + diag.version + " (" + (diag.commit || "release") + ")";
           setElementText("feedback-diag-glance", glanceText);
+          var details = document.getElementById("feedback-diag-details");
+          if (details && details.style.display === "block") {
+            details.textContent = JSON.stringify(diag, null, 2);
+          }
         }
       })
       .catch(function () {});
@@ -119,21 +156,26 @@
     // Reset Form
     var form = document.getElementById("feedback-form");
     if (form) form.reset();
-    selectFeedbackType("connection");
+    selectFeedbackIntent("bug");
     updateFeedbackCharCount("");
     setElementDisplay("feedback-status", "none");
     setElementDisplay("feedback-form", "block");
     setElementDisplay("feedback-success-card", "none");
 
+    var details = document.getElementById("feedback-diag-details");
+    if (details) details.style.display = "none";
+    var arrow = document.getElementById("feedback-diag-arrow");
+    if (arrow) arrow.style.transform = "rotate(0deg)";
+
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
     if (submitBtn) submitBtn.disabled = false;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "Submit";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
 
     // Populate Diagnostic Glance
     var diag = buildDiagnosticSnapshot();
     var zh = (typeof isZh === "function") ? isZh() : true;
-    var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+    var glanceText = (zh ? "现场指纹已就绪 · " : "Diagnostics Ready · ") + diag.version + " (" + (diag.commit || "release") + ")";
     setElementText("feedback-diag-glance", glanceText);
 
     fetchSystemInfoAsync();
@@ -150,7 +192,6 @@
 
     var msgEl = document.getElementById("feedback-message");
     var contactEl = document.getElementById("feedback-contact");
-    var attachDiagEl = document.getElementById("feedback-attach-diag");
     var statusEl = document.getElementById("feedback-status");
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
@@ -158,7 +199,6 @@
 
     var message = (msgEl ? msgEl.value : "").trim();
     var contact = (contactEl ? contactEl.value : "").trim();
-    var attachDiag = attachDiagEl ? attachDiagEl.checked : true;
 
     if (!message) {
       if (statusEl) {
@@ -171,14 +211,15 @@
     }
 
     if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "Submitting...";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "正在保存...";
     if (statusEl) statusEl.style.display = "none";
 
     var payload = {
       type: _selectedFeedbackType,
+      intent: _selectedFeedbackIntent,
       message: message,
       contact: contact,
-      diagnostics: attachDiag ? buildDiagnosticSnapshot() : null
+      diagnostics: buildDiagnosticSnapshot()
     };
 
     fetch("/api/feedback", {
@@ -198,9 +239,9 @@
       })
       .catch(function (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "Submit";
+        if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
         if (statusEl) {
-          statusEl.textContent = (zh ? "提交失败：" : "Submit failed: ") + err.message;
+          statusEl.textContent = (zh ? "保存失败：" : "Save failed: ") + err.message;
           statusEl.style.color = "var(--bad)";
           statusEl.style.display = "block";
         }
@@ -216,18 +257,18 @@
     var contact = (contactEl ? contactEl.value : "").trim() || (zh ? "(未填写联系方式)" : "(No contact info)");
     var diag = buildDiagnosticSnapshot();
 
-    var typeNamesZh = { connection: "⚡️ 连接与测速异常", client: "📱 客户端与导入配置", suggestion: "💡 功能建议与场景需求", bug: "🐞 系统缺陷或报错" };
-    var typeNamesEn = { connection: "⚡️ Speed & Connect Issue", client: "📱 Client & Import Issue", suggestion: "💡 Feature Request", bug: "🐞 Bug & Error" };
-    var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || _selectedFeedbackType) : (typeNamesEn[_selectedFeedbackType] || _selectedFeedbackType);
+    var intentTitleZh = (_selectedFeedbackIntent === "idea") ? "💡 想要新功能 / 场景建议" : "🐞 遇到问题 / 排障求助";
+    var intentTitleEn = (_selectedFeedbackIntent === "idea") ? "💡 Feature Request / Scenario Idea" : "🐞 Bug & Issue Report";
+    var intentTitle = zh ? intentTitleZh : intentTitleEn;
 
     var report = "";
     if (isMarkdown) {
-      report += "### 反馈类型 / Category\n" + typeTitle + "\n\n";
+      report += "### 反馈意图 / Intent\n" + intentTitle + "\n\n";
       report += "### 详细描述 / Description\n" + message + "\n\n";
-      if (contact && contact !== "(未填写联系方式)") {
+      if (contact && contact !== "(未填写联系方式)" && contact !== "(No contact info)") {
         report += "### 联系方式 / Contact\n" + contact + "\n\n";
       }
-      report += "### 运行环境与指纹 / Environment Fingerprint\n";
+      report += "### 运行环境与版本指纹 / Environment Fingerprint\n";
       report += "- **Evergreen Version**: `" + diag.version + " (" + (diag.commit || "release") + ")`\n";
       report += "- **Host System**: `" + diag.os + " (" + diag.arch + ", sing-box " + diag.singbox + ")`\n";
       report += "- **Client Platform**: `" + diag.platform + " (" + diag.screen + ")`\n";
@@ -243,10 +284,10 @@
       } else {
         report += "(当前无节点)\n";
       }
-      report += "```\n\n<!-- Generated by Evergreen OwnLine Quick Feedback -->\n";
+      report += "```\n\n<!-- Generated by Evergreen OwnLine Dogfooding Loop -->\n";
     } else {
       report = "=== Evergreen · OwnLine " + (zh ? "排障反馈报告" : "Feedback Report") + " ===\n";
-      report += (zh ? "【类型】: " : "[Category]: ") + typeTitle + "\n";
+      report += (zh ? "【意图】: " : "[Intent]: ") + intentTitle + "\n";
       report += (zh ? "【描述】: " : "[Description]: ") + message + "\n";
       report += (zh ? "【联系方式】: " : "[Contact]: ") + contact + "\n";
       report += (zh ? "【版本指纹】: " : "[Version]: ") + diag.version + " (Commit: " + (diag.commit || "release") + ")\n";
@@ -274,7 +315,7 @@
 
     function onCopied() {
       if (typeof toast === "function") {
-        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "反馈与诊断快照已复制到剪贴板" : "Feedback & diagnostics copied to clipboard"));
+        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "排障报告已复制！直接发给作者（微信/TG）即可" : "Feedback & diagnostics copied to clipboard"));
       } else if (btn) {
         var orig = btn.textContent;
         btn.textContent = zh ? "已复制!" : "Copied!";
@@ -296,12 +337,9 @@
     var zh = (typeof isZh === "function") ? isZh() : true;
     var message = (msgEl ? msgEl.value : "").trim();
 
-    var typeNamesZh = { connection: "连接与测速异常", client: "客户端导入与配置", suggestion: "功能与场景建议", bug: "系统缺陷或报错" };
-    var typeNamesEn = { connection: "Speed & Connectivity", client: "Client & Import", suggestion: "Feature Suggestion", bug: "Bug & Error" };
-    var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || "问题反馈") : (typeNamesEn[_selectedFeedbackType] || "Feedback");
-
-    var summaryTitle = message ? (message.length > 30 ? message.slice(0, 30) + "..." : message) : typeTitle;
-    var issueTitle = "[" + typeTitle + "] " + summaryTitle;
+    var prefix = (_selectedFeedbackIntent === "idea") ? "[Feature]: " : "[Bug]: ";
+    var summaryTitle = message ? (message.length > 30 ? message.slice(0, 30) + "..." : message) : (_selectedFeedbackIntent === "idea" ? "新功能建议" : "问题反馈");
+    var issueTitle = prefix + summaryTitle;
     var body = formatReport(true);
 
     var repo = "AdgaiWalker/VPN-OwnLine";
@@ -331,7 +369,9 @@
   // Export functions to window
   if (typeof window !== "undefined") {
     window.openFeedbackDialog = openFeedbackDialog;
+    window.selectFeedbackIntent = selectFeedbackIntent;
     window.selectFeedbackType = selectFeedbackType;
+    window.toggleFeedbackDiagDetails = toggleFeedbackDiagDetails;
     window.updateFeedbackCharCount = updateFeedbackCharCount;
     window.ownlineSubmitFeedback = ownlineSubmitFeedback;
     window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;

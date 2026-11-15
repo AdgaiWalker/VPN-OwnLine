@@ -17,25 +17,24 @@ test('feedback ui: quick feedback entry points and dialog structure', () => {
   assert(footerMatch, 'missing footer.site-footer');
   assert(footerMatch[1].includes('id="btn-footer-feedback"'), '#btn-footer-feedback must exist in footer');
 
-  // 3. Feedback dialog modal structure
+  // 3. Apple HIG Feedback dialog modal structure
   assert(html.includes('id="feedback-dialog"'), '#feedback-dialog must exist');
   assert(html.includes('id="feedback-form"'), '#feedback-form must exist');
-  assert(html.includes('id="fb-type-conn-wrap"'), '#fb-type-conn-wrap must exist');
-  assert(html.includes('id="fb-type-client-wrap"'), '#fb-type-client-wrap must exist');
-  assert(html.includes('id="fb-type-suggest-wrap"'), '#fb-type-suggest-wrap must exist');
-  assert(html.includes('id="fb-type-bug-wrap"'), '#fb-type-bug-wrap must exist');
+  assert(html.includes('id="seg-btn-bug"'), '#seg-btn-bug must exist');
+  assert(html.includes('id="seg-btn-idea"'), '#seg-btn-idea must exist');
   assert(html.includes('id="feedback-message"'), '#feedback-message textarea must exist');
   assert(html.includes('id="feedback-contact"'), '#feedback-contact input must exist');
-  assert(html.includes('id="feedback-attach-diag"'), '#feedback-attach-diag checkbox must exist');
-  assert(html.includes('id="btn-gh-issue"'), '#btn-gh-issue must exist');
+  assert(html.includes('id="feedback-diag-glance"'), '#feedback-diag-glance must exist');
   assert(html.includes('id="btn-copy-feedback"'), '#btn-copy-feedback must exist');
+  assert(html.includes('id="btn-gh-issue"'), '#btn-gh-issue must exist');
   assert(html.includes('id="btn-submit-feedback"'), '#btn-submit-feedback must exist');
   assert(html.includes('id="feedback-success-card"'), '#feedback-success-card must exist');
 });
 
 test('feedback logic: functions exported and i18n keys present', () => {
   assert(html.includes('window.openFeedbackDialog = openFeedbackDialog;'), 'openFeedbackDialog must be exported to window');
-  assert(html.includes('window.selectFeedbackType = selectFeedbackType;'), 'selectFeedbackType must be exported to window');
+  assert(html.includes('window.selectFeedbackIntent = selectFeedbackIntent;'), 'selectFeedbackIntent must be exported to window');
+  assert(html.includes('window.toggleFeedbackDiagDetails = toggleFeedbackDiagDetails;'), 'toggleFeedbackDiagDetails must be exported to window');
   assert(html.includes('window.updateFeedbackCharCount = updateFeedbackCharCount;'), 'updateFeedbackCharCount must be exported to window');
   assert(html.includes('window.ownlineSubmitFeedback = ownlineSubmitFeedback;'), 'ownlineSubmitFeedback must be exported to window');
   assert(html.includes('window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;'), 'ownlineCopyFeedbackAndDiag must be exported to window');
@@ -44,6 +43,12 @@ test('feedback logic: functions exported and i18n keys present', () => {
   // Bilingual i18n
   assert(html.includes('footer_feedback: "Feedback"'), 'i18n.en footer_feedback must exist');
   assert(html.includes('footer_feedback: "快捷反馈"'), 'i18n.zh footer_feedback must exist');
-  assert(html.includes('feedback_dialog_title: "Quick Feedback"'), 'i18n.en feedback_dialog_title must exist');
-  assert(html.includes('feedback_dialog_title: "快捷反馈与建议"'), 'i18n.zh feedback_dialog_title must exist');
+  assert(html.includes('feedback_dialog_title: "Feedback & Ideas"'), 'i18n.en feedback_dialog_title must exist');
+  assert(html.includes('feedback_dialog_title: "反馈与建议"'), 'i18n.zh feedback_dialog_title must exist');
+  assert(html.includes('feedback_intent_bug: "🐞 Report Issue"'), 'i18n.en feedback_intent_bug must exist');
+  assert(html.includes('feedback_intent_bug: "🐞 遇到问题"'), 'i18n.zh feedback_intent_bug must exist');
+  assert(html.includes('feedback_intent_idea: "💡 New Idea"'), 'i18n.en feedback_intent_idea must exist');
+  assert(html.includes('feedback_intent_idea: "💡 想要新功能"'), 'i18n.zh feedback_intent_idea must exist');
+  assert(html.includes('feedback_success_title: "Thank You for Dogfooding"'), 'i18n.en feedback_success_title must exist');
+  assert(html.includes('feedback_success_title: "感谢你帮大家踩坑"'), 'i18n.zh feedback_success_title must exist');
 });

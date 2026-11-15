@@ -209,102 +209,98 @@
   </form>
 </dialog>
 
-<!-- Quick Feedback Modal Dialog (Apple Action Sheet Style) -->
+<!-- Quick Feedback Modal Dialog (Apple HIG Style) -->
 <dialog id="feedback-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
   <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
     <div class="apple-sheet-header">
       <div style="display:flex;align-items:center;gap:8px">
         <svg class="ico" width="18" height="18" style="color:var(--navy)"><use href="#i-feedback"/></svg>
-        <h2 class="apple-sheet-title" id="feedback-dialog-title" data-i18n="feedback_dialog_title">Quick Feedback</h2>
+        <h2 class="apple-sheet-title" id="feedback-dialog-title" data-i18n="feedback_dialog_title">反馈与建议</h2>
       </div>
       <button class="apple-sheet-close" type="button" onclick="document.getElementById('feedback-dialog').close()" aria-label="Close">
         <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
       </button>
     </div>
 
+    <!-- Apple Subtitle Note -->
+    <p class="small muted" style="margin:-4px 0 14px;font-size:12px;line-height:1.4" id="feedback-dialog-subtitle" data-i18n="feedback_dialog_subtitle">
+      收集的问题将尽快在下个版本修复，并通过面板一键更新推送给你。
+    </p>
+
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
-      <div style="margin-bottom:14px">
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px" id="feedback-lbl-type" data-i18n="feedback_type_lbl">Category</label>
-        <div class="feedback-type-group" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px">
-          <label class="feedback-type-pill active" id="fb-type-conn-wrap">
-            <input type="radio" name="fb_type" value="connection" checked onchange="window.selectFeedbackType('connection')">
-            <span data-i18n="feedback_type_conn">⚡️ Speed & Connect</span>
-          </label>
-          <label class="feedback-type-pill" id="fb-type-client-wrap">
-            <input type="radio" name="fb_type" value="client" onchange="window.selectFeedbackType('client')">
-            <span data-i18n="feedback_type_client">📱 Client & Import</span>
-          </label>
-          <label class="feedback-type-pill" id="fb-type-suggest-wrap">
-            <input type="radio" name="fb_type" value="suggestion" onchange="window.selectFeedbackType('suggestion')">
-            <span data-i18n="feedback_type_suggest">💡 Suggestions</span>
-          </label>
-          <label class="feedback-type-pill" id="fb-type-bug-wrap">
-            <input type="radio" name="fb_type" value="bug" onchange="window.selectFeedbackType('bug')">
-            <span data-i18n="feedback_type_bug">🐞 Bugs & Other</span>
-          </label>
-        </div>
+      <!-- 1. Apple Segmented Control: [ 🐞 遇到问题 | 💡 想要新功能 ] -->
+      <div class="apple-segmented-bar" style="margin-bottom:14px">
+        <button type="button" class="apple-segment-btn active" id="seg-btn-bug" onclick="window.selectFeedbackIntent('bug')">
+          <span data-i18n="feedback_intent_bug">🐞 遇到问题</span>
+        </button>
+        <button type="button" class="apple-segment-btn" id="seg-btn-idea" onclick="window.selectFeedbackIntent('idea')">
+          <span data-i18n="feedback_intent_idea">💡 想要新功能</span>
+        </button>
       </div>
 
+      <!-- 2. Focused Textarea -->
       <div class="field" style="margin-bottom:12px">
-        <label for="feedback-message" id="feedback-lbl-msg" style="display:flex;justify-content:space-between">
-          <span data-i18n="feedback_msg_lbl">Description</span>
-          <span class="small muted" id="feedback-char-count">0/2000</span>
-        </label>
-        <textarea id="feedback-message" rows="4" required maxlength="2000" placeholder="Describe the issue, node name, error message or feature suggestion..." style="width:100%;box-sizing:border-box;resize:vertical;border-radius:8px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述</label>
+          <span class="small muted" id="feedback-char-count" style="font-size:11px">0/2000</span>
+        </div>
+        <textarea id="feedback-message" rows="4" required maxlength="2000" placeholder="在什么时间、哪个节点卡顿或报错？发生了什么？" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
 
-      <div class="field" style="margin-bottom:14px">
-        <label for="feedback-contact" id="feedback-lbl-contact" data-i18n="feedback_contact_lbl">Contact (Optional)</label>
-        <input id="feedback-contact" type="text" maxlength="128" placeholder="Email / WeChat / Telegram (for replies)" style="width:100%;box-sizing:border-box;border-radius:8px;border:1px solid var(--line);padding:8px 12px;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg)">
+      <!-- Contact input -->
+      <div class="field" style="margin-bottom:12px">
+        <label for="feedback-contact" id="feedback-lbl-contact" style="font-size:12.5px;font-weight:600;margin-bottom:4px" data-i18n="feedback_contact_lbl">联系方式（选填）</label>
+        <input id="feedback-contact" type="text" maxlength="128" placeholder="微信 / 邮箱 / Telegram（方便接收处理进展）" style="width:100%;box-sizing:border-box;border-radius:8px;border:1px solid var(--line);padding:8px 12px;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg)">
       </div>
 
-      <div style="margin-bottom:16px;padding:10px 12px;background:var(--surface-soft);border-radius:8px;border:1px solid var(--line-light)">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--apple-fg)">
-          <input type="checkbox" id="feedback-attach-diag" checked>
-          <span data-i18n="feedback_attach_diag">Attach system diagnostic snapshot (safe, zero secrets)</span>
-        </label>
-        <div id="feedback-diag-glance" class="small muted" style="margin-top:6px;font-size:11px;line-height:1.4"></div>
+      <!-- 3. Apple System Diagnostics Capsule Card -->
+      <div class="feedback-capsule-card" style="margin-bottom:16px;background:var(--surface-soft);border-radius:10px;border:1px solid var(--line-light);padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleFeedbackDiagDetails()">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
+            <span id="feedback-diag-glance" style="font-size:12px;font-weight:500;color:var(--apple-fg)">现场指纹已就绪 · v0.6.0 (810cfbb)</span>
+          </div>
+          <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s ease"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div id="feedback-diag-details" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--apple-muted);font-family:var(--mono);line-height:1.5;max-height:110px;overflow-y:auto;white-space:pre-wrap"></div>
       </div>
 
       <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
-        <!-- Main Actions Row -->
+      <!-- 4. Visual Action Hierarchy -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <!-- Primary Action: Big Pill Button for WeChat / TG -->
+        <button class="btn primary" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="width:100%;padding:10px 14px;border-radius:999px;font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg class="ico" width="15" height="15"><use href="#i-copy"/></svg>
+          <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+        </button>
+
+        <!-- Secondary Actions Row -->
         <div style="display:flex;gap:8px">
-          <button class="btn tiny" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px">
+          <button class="btn" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;padding:8px 10px;border-radius:8px">
             <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            <span data-i18n="feedback_btn_github">在 GitHub 提交 Issue</span>
+            <span data-i18n="feedback_btn_github">在 GitHub 提交</span>
           </button>
-          <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">
-            <span data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+          <button class="btn" type="submit" id="btn-submit-feedback" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px">
+            <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">存入服务器底账</span>
           </button>
-        </div>
-        <!-- Submit directly to server / Cancel Row -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line-light)">
-          <span class="small muted" style="font-size:11.5px" data-i18n="feedback_server_note">或直接提交至本服务器留存</span>
-          <div style="display:flex;gap:8px">
-            <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">取消</button>
-            <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
-              <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">提交</span>
-            </button>
-          </div>
         </div>
       </div>
     </form>
 
-    <!-- Success Card -->
-    <div id="feedback-success-card" style="display:none;text-align:center;padding:24px 8px 12px">
-      <div class="success-icon-circle">
+    <!-- 5. Apple Feedback Loop Success Card -->
+    <div id="feedback-success-card" style="display:none;text-align:center;padding:26px 8px 14px">
+      <div class="success-icon-circle" style="width:52px;height:52px;border-radius:50%;background:rgba(16, 185, 129, 0.12);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
         <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">反馈已送达</h3>
-      <p class="muted small" style="margin:0 0 16px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
-        感谢您的反馈！数据已存入本服务器，您也可以直接在 GitHub 查看进展或联系作者。
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:600;color:var(--apple-fg)" id="feedback-success-title" data-i18n="feedback_success_title">感谢你帮大家踩坑</h3>
+      <p class="muted small" style="margin:0 0 18px;font-size:12.5px;line-height:1.55;color:var(--apple-muted)" id="feedback-success-desc" data-i18n="feedback_success_desc">
+        现场指纹已记录。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可无感升级修复。
       </p>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1">在 GitHub 跟踪 Issue</button>
-        <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">复制报告发给作者</button>
+        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1" data-i18n="feedback_btn_track_gh">在 GitHub 跟踪进展</button>
+        <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1" data-i18n="feedback_btn_recopy">再复制一份报告</button>
       </div>
       <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">完成</button>
     </div>

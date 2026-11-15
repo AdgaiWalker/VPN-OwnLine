@@ -585,7 +585,38 @@ dialog::backdrop {
   padding: 0 18px;
 }
 
-/* Quick Feedback Dialog Components */
+/* Quick Feedback Dialog Components (Apple HIG Style) */
+.apple-segmented-bar {
+  display: flex;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+  user-select: none;
+}
+.apple-segment-btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--apple-muted);
+  cursor: pointer;
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+.apple-segment-btn:hover {
+  color: var(--apple-fg);
+}
+.apple-segment-btn.active {
+  background: var(--paper-card);
+  color: var(--apple-fg);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
 .feedback-type-group {
   display: grid;
   grid-template-columns: repeat(2, 1fr);

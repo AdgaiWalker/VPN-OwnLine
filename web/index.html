@@ -854,7 +854,38 @@ dialog::backdrop {
   padding: 0 18px;
 }
 
-/* Quick Feedback Dialog Components */
+/* Quick Feedback Dialog Components (Apple HIG Style) */
+.apple-segmented-bar {
+  display: flex;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 3px;
+  gap: 3px;
+  user-select: none;
+}
+.apple-segment-btn {
+  flex: 1;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--apple-muted);
+  cursor: pointer;
+  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: center;
+}
+.apple-segment-btn:hover {
+  color: var(--apple-fg);
+}
+.apple-segment-btn.active {
+  background: var(--paper-card);
+  color: var(--apple-fg);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
 .feedback-type-group {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -2277,102 +2308,98 @@ footer.site-footer {
   </form>
 </dialog>
 
-<!-- Quick Feedback Modal Dialog (Apple Action Sheet Style) -->
+<!-- Quick Feedback Modal Dialog (Apple HIG Style) -->
 <dialog id="feedback-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
   <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
     <div class="apple-sheet-header">
       <div style="display:flex;align-items:center;gap:8px">
         <svg class="ico" width="18" height="18" style="color:var(--navy)"><use href="#i-feedback"/></svg>
-        <h2 class="apple-sheet-title" id="feedback-dialog-title" data-i18n="feedback_dialog_title">Quick Feedback</h2>
+        <h2 class="apple-sheet-title" id="feedback-dialog-title" data-i18n="feedback_dialog_title">反馈与建议</h2>
       </div>
       <button class="apple-sheet-close" type="button" onclick="document.getElementById('feedback-dialog').close()" aria-label="Close">
         <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
       </button>
     </div>
 
+    <!-- Apple Subtitle Note -->
+    <p class="small muted" style="margin:-4px 0 14px;font-size:12px;line-height:1.4" id="feedback-dialog-subtitle" data-i18n="feedback_dialog_subtitle">
+      收集的问题将尽快在下个版本修复，并通过面板一键更新推送给你。
+    </p>
+
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
-      <div style="margin-bottom:14px">
-        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px" id="feedback-lbl-type" data-i18n="feedback_type_lbl">Category</label>
-        <div class="feedback-type-group" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px">
-          <label class="feedback-type-pill active" id="fb-type-conn-wrap">
-            <input type="radio" name="fb_type" value="connection" checked onchange="window.selectFeedbackType('connection')">
-            <span data-i18n="feedback_type_conn">⚡️ Speed & Connect</span>
-          </label>
-          <label class="feedback-type-pill" id="fb-type-client-wrap">
-            <input type="radio" name="fb_type" value="client" onchange="window.selectFeedbackType('client')">
-            <span data-i18n="feedback_type_client">📱 Client & Import</span>
-          </label>
-          <label class="feedback-type-pill" id="fb-type-suggest-wrap">
-            <input type="radio" name="fb_type" value="suggestion" onchange="window.selectFeedbackType('suggestion')">
-            <span data-i18n="feedback_type_suggest">💡 Suggestions</span>
-          </label>
-          <label class="feedback-type-pill" id="fb-type-bug-wrap">
-            <input type="radio" name="fb_type" value="bug" onchange="window.selectFeedbackType('bug')">
-            <span data-i18n="feedback_type_bug">🐞 Bugs & Other</span>
-          </label>
-        </div>
+      <!-- 1. Apple Segmented Control: [ 🐞 遇到问题 | 💡 想要新功能 ] -->
+      <div class="apple-segmented-bar" style="margin-bottom:14px">
+        <button type="button" class="apple-segment-btn active" id="seg-btn-bug" onclick="window.selectFeedbackIntent('bug')">
+          <span data-i18n="feedback_intent_bug">🐞 遇到问题</span>
+        </button>
+        <button type="button" class="apple-segment-btn" id="seg-btn-idea" onclick="window.selectFeedbackIntent('idea')">
+          <span data-i18n="feedback_intent_idea">💡 想要新功能</span>
+        </button>
       </div>
 
+      <!-- 2. Focused Textarea -->
       <div class="field" style="margin-bottom:12px">
-        <label for="feedback-message" id="feedback-lbl-msg" style="display:flex;justify-content:space-between">
-          <span data-i18n="feedback_msg_lbl">Description</span>
-          <span class="small muted" id="feedback-char-count">0/2000</span>
-        </label>
-        <textarea id="feedback-message" rows="4" required maxlength="2000" placeholder="Describe the issue, node name, error message or feature suggestion..." style="width:100%;box-sizing:border-box;resize:vertical;border-radius:8px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述</label>
+          <span class="small muted" id="feedback-char-count" style="font-size:11px">0/2000</span>
+        </div>
+        <textarea id="feedback-message" rows="4" required maxlength="2000" placeholder="在什么时间、哪个节点卡顿或报错？发生了什么？" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
 
-      <div class="field" style="margin-bottom:14px">
-        <label for="feedback-contact" id="feedback-lbl-contact" data-i18n="feedback_contact_lbl">Contact (Optional)</label>
-        <input id="feedback-contact" type="text" maxlength="128" placeholder="Email / WeChat / Telegram (for replies)" style="width:100%;box-sizing:border-box;border-radius:8px;border:1px solid var(--line);padding:8px 12px;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg)">
+      <!-- Contact input -->
+      <div class="field" style="margin-bottom:12px">
+        <label for="feedback-contact" id="feedback-lbl-contact" style="font-size:12.5px;font-weight:600;margin-bottom:4px" data-i18n="feedback_contact_lbl">联系方式（选填）</label>
+        <input id="feedback-contact" type="text" maxlength="128" placeholder="微信 / 邮箱 / Telegram（方便接收处理进展）" style="width:100%;box-sizing:border-box;border-radius:8px;border:1px solid var(--line);padding:8px 12px;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg)">
       </div>
 
-      <div style="margin-bottom:16px;padding:10px 12px;background:var(--surface-soft);border-radius:8px;border:1px solid var(--line-light)">
-        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--apple-fg)">
-          <input type="checkbox" id="feedback-attach-diag" checked>
-          <span data-i18n="feedback_attach_diag">Attach system diagnostic snapshot (safe, zero secrets)</span>
-        </label>
-        <div id="feedback-diag-glance" class="small muted" style="margin-top:6px;font-size:11px;line-height:1.4"></div>
+      <!-- 3. Apple System Diagnostics Capsule Card -->
+      <div class="feedback-capsule-card" style="margin-bottom:16px;background:var(--surface-soft);border-radius:10px;border:1px solid var(--line-light);padding:10px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleFeedbackDiagDetails()">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
+            <span id="feedback-diag-glance" style="font-size:12px;font-weight:500;color:var(--apple-fg)">现场指纹已就绪 · v0.6.0 (810cfbb)</span>
+          </div>
+          <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s ease"><polyline points="6 9 12 15 18 9"/></svg>
+        </div>
+        <div id="feedback-diag-details" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--apple-muted);font-family:var(--mono);line-height:1.5;max-height:110px;overflow-y:auto;white-space:pre-wrap"></div>
       </div>
 
       <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
 
-      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
-        <!-- Main Actions Row -->
+      <!-- 4. Visual Action Hierarchy -->
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <!-- Primary Action: Big Pill Button for WeChat / TG -->
+        <button class="btn primary" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="width:100%;padding:10px 14px;border-radius:999px;font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg class="ico" width="15" height="15"><use href="#i-copy"/></svg>
+          <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+        </button>
+
+        <!-- Secondary Actions Row -->
         <div style="display:flex;gap:8px">
-          <button class="btn tiny" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px">
+          <button class="btn" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;padding:8px 10px;border-radius:8px">
             <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            <span data-i18n="feedback_btn_github">在 GitHub 提交 Issue</span>
+            <span data-i18n="feedback_btn_github">在 GitHub 提交</span>
           </button>
-          <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">
-            <span data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+          <button class="btn" type="submit" id="btn-submit-feedback" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px">
+            <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">存入服务器底账</span>
           </button>
-        </div>
-        <!-- Submit directly to server / Cancel Row -->
-        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line-light)">
-          <span class="small muted" style="font-size:11.5px" data-i18n="feedback_server_note">或直接提交至本服务器留存</span>
-          <div style="display:flex;gap:8px">
-            <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">取消</button>
-            <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
-              <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">提交</span>
-            </button>
-          </div>
         </div>
       </div>
     </form>
 
-    <!-- Success Card -->
-    <div id="feedback-success-card" style="display:none;text-align:center;padding:24px 8px 12px">
-      <div class="success-icon-circle">
+    <!-- 5. Apple Feedback Loop Success Card -->
+    <div id="feedback-success-card" style="display:none;text-align:center;padding:26px 8px 14px">
+      <div class="success-icon-circle" style="width:52px;height:52px;border-radius:50%;background:rgba(16, 185, 129, 0.12);display:inline-flex;align-items:center;justify-content:center;margin-bottom:12px">
         <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">反馈已送达</h3>
-      <p class="muted small" style="margin:0 0 16px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
-        感谢您的反馈！数据已存入本服务器，您也可以直接在 GitHub 查看进展或联系作者。
+      <h3 style="margin:0 0 8px;font-size:17px;font-weight:600;color:var(--apple-fg)" id="feedback-success-title" data-i18n="feedback_success_title">感谢你帮大家踩坑</h3>
+      <p class="muted small" style="margin:0 0 18px;font-size:12.5px;line-height:1.55;color:var(--apple-muted)" id="feedback-success-desc" data-i18n="feedback_success_desc">
+        现场指纹已记录。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可无感升级修复。
       </p>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1">在 GitHub 跟踪 Issue</button>
-        <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">复制报告发给作者</button>
+        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1" data-i18n="feedback_btn_track_gh">在 GitHub 跟踪进展</button>
+        <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1" data-i18n="feedback_btn_recopy">再复制一份报告</button>
       </div>
       <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">完成</button>
     </div>
@@ -2496,7 +2523,10 @@ footer.site-footer {
       footer_settings: "Preferences",
       footer_account_security: "Account & Security",
       footer_change_pass: "Account & Security",
-      feedback_dialog_title: "Quick Feedback",
+      feedback_dialog_title: "Feedback & Ideas",
+      feedback_dialog_subtitle: "Issues reported will be fixed in upcoming releases and pushed via in-panel updates.",
+      feedback_intent_bug: "🐞 Report Issue",
+      feedback_intent_idea: "💡 New Idea",
       feedback_type_lbl: "Category",
       feedback_type_conn: "⚡️ Speed & Connect",
       feedback_type_client: "📱 Client & Import",
@@ -2504,18 +2534,22 @@ footer.site-footer {
       feedback_type_bug: "🐞 Bugs & Other",
       feedback_msg_lbl: "Description",
       feedback_msg_ph: "Describe the issue, node name, error message or suggestion...",
+      feedback_msg_ph_bug: "When and on which node did it lag or error? What happened?",
+      feedback_msg_ph_idea: "What new platform, protocol, or scenario would you like to see?",
       feedback_contact_lbl: "Contact (Optional)",
       feedback_contact_ph: "Email / WeChat / Telegram (for replies)",
       feedback_attach_diag: "Attach system diagnostic snapshot (safe, zero secrets)",
-      feedback_btn_github: "File Issue on GitHub",
+      feedback_btn_github: "Submit on GitHub",
       feedback_btn_copy: "Copy Report for Author",
       feedback_server_note: "Or save locally on this server",
-      feedback_btn_submit: "Submit",
+      feedback_btn_submit: "Save to Server Log",
       feedback_btn_cancel: "Cancel",
       feedback_btn_close: "Done",
       feedback_submitting: "Submitting...",
-      feedback_success_title: "Feedback Received",
-      feedback_success_desc: "Thank you for helping us improve Evergreen OwnLine!",
+      feedback_success_title: "Thank You for Dogfooding",
+      feedback_success_desc: "Fingerprint captured. The author will push fixes to the cloud repo. Tap 'Check Update' in Preferences anytime to upgrade.",
+      feedback_btn_track_gh: "Track on GitHub",
+      feedback_btn_recopy: "Copy Report Again",
       feedback_copied: "Feedback & diagnostics copied to clipboard",
       settings_title: "Preferences",
       settings_lang_lbl: "Interface Language",
@@ -2675,27 +2709,34 @@ footer.site-footer {
       footer_settings: "偏好设置",
       footer_account_security: "账户与安全",
       footer_change_pass: "账户与安全",
-      feedback_dialog_title: "快捷反馈与建议",
+      feedback_dialog_title: "反馈与建议",
+      feedback_dialog_subtitle: "收集的问题将尽快在下个版本修复，并通过面板一键更新推送给你。",
+      feedback_intent_bug: "🐞 遇到问题",
+      feedback_intent_idea: "💡 想要新功能",
       feedback_type_lbl: "反馈类型",
       feedback_type_conn: "⚡️ 连接与测速",
       feedback_type_client: "📱 客户端与导入",
       feedback_type_suggest: "💡 功能建议",
       feedback_type_bug: "🐞 缺陷与其他",
-      feedback_msg_lbl: "问题或建议描述",
+      feedback_msg_lbl: "描述",
       feedback_msg_ph: "请详细描述遇到的问题或建议，如节点名称、报错提示等...",
+      feedback_msg_ph_bug: "在什么时间、哪个节点卡顿或报错？发生了什么？",
+      feedback_msg_ph_idea: "希望支持什么新平台、新协议或新场景？",
       feedback_contact_lbl: "联系方式（选填）",
-      feedback_contact_ph: "邮箱 / 微信 / Telegram（方便接收处理结果）",
+      feedback_contact_ph: "微信 / 邮箱 / Telegram（方便接收处理进展）",
       feedback_attach_diag: "附带系统诊断快照（已自动过滤密钥等敏感信息）",
-      feedback_btn_github: "在 GitHub 提交 Issue",
+      feedback_btn_github: "在 GitHub 提交",
       feedback_btn_copy: "复制排障报告发给作者",
       feedback_server_note: "或直接提交至本服务器留存",
-      feedback_btn_submit: "提交",
+      feedback_btn_submit: "存入服务器底账",
       feedback_btn_cancel: "取消",
       feedback_btn_close: "完成",
-      feedback_submitting: "正在提交...",
-      feedback_success_title: "反馈已送达",
-      feedback_success_desc: "感谢您帮助我们改进 Evergreen OwnLine！",
-      feedback_copied: "反馈与诊断快照已复制到剪贴板",
+      feedback_submitting: "正在保存...",
+      feedback_success_title: "感谢你帮大家踩坑",
+      feedback_success_desc: "现场指纹已记录。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可无感升级修复。",
+      feedback_btn_track_gh: "在 GitHub 跟踪进展",
+      feedback_btn_recopy: "再复制一份报告",
+      feedback_copied: "排障报告已复制！直接发给作者（微信/TG）即可",
       settings_title: "偏好设置",
       settings_lang_lbl: "界面语言",
       settings_btn_done: "完成",
@@ -6461,7 +6502,8 @@ footer.site-footer {
 })();
 
 (function () {
-  var _selectedFeedbackType = "connection";
+  var _selectedFeedbackIntent = "bug";
+  var _selectedFeedbackType = "bug";
   var _cachedSystemInfo = null;
 
   function setElementDisplay(id, display) {
@@ -6474,24 +6516,56 @@ footer.site-footer {
     if (el) el.textContent = text;
   }
 
-  function selectFeedbackType(type) {
-    _selectedFeedbackType = type || "connection";
-    var pills = ["conn", "client", "suggest", "bug"];
-    var typeMap = { connection: "conn", client: "client", suggestion: "suggest", bug: "bug" };
-    var activeSuffix = typeMap[_selectedFeedbackType] || "conn";
+  function selectFeedbackIntent(intent) {
+    _selectedFeedbackIntent = intent || "bug";
+    _selectedFeedbackType = (_selectedFeedbackIntent === "idea") ? "suggestion" : "bug";
 
-    pills.forEach(function (p) {
-      var wrap = document.getElementById("fb-type-" + p + "-wrap");
-      if (wrap) {
-        if (p === activeSuffix) {
-          wrap.classList.add("active");
-          var radio = wrap.querySelector('input[type="radio"]');
-          if (radio) radio.checked = true;
-        } else {
-          wrap.classList.remove("active");
-        }
+    var bugBtn = document.getElementById("seg-btn-bug");
+    var ideaBtn = document.getElementById("seg-btn-idea");
+    if (bugBtn && ideaBtn) {
+      if (_selectedFeedbackIntent === "bug") {
+        bugBtn.classList.add("active");
+        ideaBtn.classList.remove("active");
+      } else {
+        bugBtn.classList.remove("active");
+        ideaBtn.classList.add("active");
       }
-    });
+    }
+
+    var msgEl = document.getElementById("feedback-message");
+    if (msgEl) {
+      var zh = (typeof isZh === "function") ? isZh() : true;
+      if (_selectedFeedbackIntent === "idea") {
+        msgEl.placeholder = (typeof t === "function") ? t("feedback_msg_ph_idea") : (zh ? "希望支持什么新平台、新协议或新场景？" : "What new platform, protocol, or scenario would you like to see?");
+      } else {
+        msgEl.placeholder = (typeof t === "function") ? t("feedback_msg_ph_bug") : (zh ? "在什么时间、哪个节点卡顿或报错？发生了什么？" : "When and on which node did it lag or error? What happened?");
+      }
+    }
+  }
+
+  function selectFeedbackType(type) {
+    _selectedFeedbackType = type || "bug";
+    if (type === "suggestion") {
+      selectFeedbackIntent("idea");
+    } else {
+      selectFeedbackIntent("bug");
+    }
+  }
+
+  function toggleFeedbackDiagDetails() {
+    var details = document.getElementById("feedback-diag-details");
+    var arrow = document.getElementById("feedback-diag-arrow");
+    if (!details) return;
+    var isExpanded = details.style.display === "block";
+    if (isExpanded) {
+      details.style.display = "none";
+      if (arrow) arrow.style.transform = "rotate(0deg)";
+    } else {
+      details.style.display = "block";
+      if (arrow) arrow.style.transform = "rotate(180deg)";
+      var diag = buildDiagnosticSnapshot();
+      details.textContent = JSON.stringify(diag, null, 2);
+    }
   }
 
   function updateFeedbackCharCount(val) {
@@ -6567,8 +6641,12 @@ footer.site-footer {
           _cachedSystemInfo = d;
           var diag = buildDiagnosticSnapshot();
           var zh = (typeof isZh === "function") ? isZh() : true;
-          var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+          var glanceText = (zh ? "现场指纹已就绪 · " : "Diagnostics Ready · ") + diag.version + " (" + (diag.commit || "release") + ")";
           setElementText("feedback-diag-glance", glanceText);
+          var details = document.getElementById("feedback-diag-details");
+          if (details && details.style.display === "block") {
+            details.textContent = JSON.stringify(diag, null, 2);
+          }
         }
       })
       .catch(function () {});
@@ -6581,21 +6659,26 @@ footer.site-footer {
     // Reset Form
     var form = document.getElementById("feedback-form");
     if (form) form.reset();
-    selectFeedbackType("connection");
+    selectFeedbackIntent("bug");
     updateFeedbackCharCount("");
     setElementDisplay("feedback-status", "none");
     setElementDisplay("feedback-form", "block");
     setElementDisplay("feedback-success-card", "none");
 
+    var details = document.getElementById("feedback-diag-details");
+    if (details) details.style.display = "none";
+    var arrow = document.getElementById("feedback-diag-arrow");
+    if (arrow) arrow.style.transform = "rotate(0deg)";
+
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
     if (submitBtn) submitBtn.disabled = false;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "Submit";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
 
     // Populate Diagnostic Glance
     var diag = buildDiagnosticSnapshot();
     var zh = (typeof isZh === "function") ? isZh() : true;
-    var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+    var glanceText = (zh ? "现场指纹已就绪 · " : "Diagnostics Ready · ") + diag.version + " (" + (diag.commit || "release") + ")";
     setElementText("feedback-diag-glance", glanceText);
 
     fetchSystemInfoAsync();
@@ -6612,7 +6695,6 @@ footer.site-footer {
 
     var msgEl = document.getElementById("feedback-message");
     var contactEl = document.getElementById("feedback-contact");
-    var attachDiagEl = document.getElementById("feedback-attach-diag");
     var statusEl = document.getElementById("feedback-status");
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
@@ -6620,7 +6702,6 @@ footer.site-footer {
 
     var message = (msgEl ? msgEl.value : "").trim();
     var contact = (contactEl ? contactEl.value : "").trim();
-    var attachDiag = attachDiagEl ? attachDiagEl.checked : true;
 
     if (!message) {
       if (statusEl) {
@@ -6633,14 +6714,15 @@ footer.site-footer {
     }
 
     if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "Submitting...";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "正在保存...";
     if (statusEl) statusEl.style.display = "none";
 
     var payload = {
       type: _selectedFeedbackType,
+      intent: _selectedFeedbackIntent,
       message: message,
       contact: contact,
-      diagnostics: attachDiag ? buildDiagnosticSnapshot() : null
+      diagnostics: buildDiagnosticSnapshot()
     };
 
     fetch("/api/feedback", {
@@ -6660,9 +6742,9 @@ footer.site-footer {
       })
       .catch(function (err) {
         if (submitBtn) submitBtn.disabled = false;
-        if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "Submit";
+        if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
         if (statusEl) {
-          statusEl.textContent = (zh ? "提交失败：" : "Submit failed: ") + err.message;
+          statusEl.textContent = (zh ? "保存失败：" : "Save failed: ") + err.message;
           statusEl.style.color = "var(--bad)";
           statusEl.style.display = "block";
         }
@@ -6678,18 +6760,18 @@ footer.site-footer {
     var contact = (contactEl ? contactEl.value : "").trim() || (zh ? "(未填写联系方式)" : "(No contact info)");
     var diag = buildDiagnosticSnapshot();
 
-    var typeNamesZh = { connection: "⚡️ 连接与测速异常", client: "📱 客户端与导入配置", suggestion: "💡 功能建议与场景需求", bug: "🐞 系统缺陷或报错" };
-    var typeNamesEn = { connection: "⚡️ Speed & Connect Issue", client: "📱 Client & Import Issue", suggestion: "💡 Feature Request", bug: "🐞 Bug & Error" };
-    var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || _selectedFeedbackType) : (typeNamesEn[_selectedFeedbackType] || _selectedFeedbackType);
+    var intentTitleZh = (_selectedFeedbackIntent === "idea") ? "💡 想要新功能 / 场景建议" : "🐞 遇到问题 / 排障求助";
+    var intentTitleEn = (_selectedFeedbackIntent === "idea") ? "💡 Feature Request / Scenario Idea" : "🐞 Bug & Issue Report";
+    var intentTitle = zh ? intentTitleZh : intentTitleEn;
 
     var report = "";
     if (isMarkdown) {
-      report += "### 反馈类型 / Category\n" + typeTitle + "\n\n";
+      report += "### 反馈意图 / Intent\n" + intentTitle + "\n\n";
       report += "### 详细描述 / Description\n" + message + "\n\n";
-      if (contact && contact !== "(未填写联系方式)") {
+      if (contact && contact !== "(未填写联系方式)" && contact !== "(No contact info)") {
         report += "### 联系方式 / Contact\n" + contact + "\n\n";
       }
-      report += "### 运行环境与指纹 / Environment Fingerprint\n";
+      report += "### 运行环境与版本指纹 / Environment Fingerprint\n";
       report += "- **Evergreen Version**: `" + diag.version + " (" + (diag.commit || "release") + ")`\n";
       report += "- **Host System**: `" + diag.os + " (" + diag.arch + ", sing-box " + diag.singbox + ")`\n";
       report += "- **Client Platform**: `" + diag.platform + " (" + diag.screen + ")`\n";
@@ -6705,10 +6787,10 @@ footer.site-footer {
       } else {
         report += "(当前无节点)\n";
       }
-      report += "```\n\n<!-- Generated by Evergreen OwnLine Quick Feedback -->\n";
+      report += "```\n\n<!-- Generated by Evergreen OwnLine Dogfooding Loop -->\n";
     } else {
       report = "=== Evergreen · OwnLine " + (zh ? "排障反馈报告" : "Feedback Report") + " ===\n";
-      report += (zh ? "【类型】: " : "[Category]: ") + typeTitle + "\n";
+      report += (zh ? "【意图】: " : "[Intent]: ") + intentTitle + "\n";
       report += (zh ? "【描述】: " : "[Description]: ") + message + "\n";
       report += (zh ? "【联系方式】: " : "[Contact]: ") + contact + "\n";
       report += (zh ? "【版本指纹】: " : "[Version]: ") + diag.version + " (Commit: " + (diag.commit || "release") + ")\n";
@@ -6736,7 +6818,7 @@ footer.site-footer {
 
     function onCopied() {
       if (typeof toast === "function") {
-        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "反馈与诊断快照已复制到剪贴板" : "Feedback & diagnostics copied to clipboard"));
+        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "排障报告已复制！直接发给作者（微信/TG）即可" : "Feedback & diagnostics copied to clipboard"));
       } else if (btn) {
         var orig = btn.textContent;
         btn.textContent = zh ? "已复制!" : "Copied!";
@@ -6758,12 +6840,9 @@ footer.site-footer {
     var zh = (typeof isZh === "function") ? isZh() : true;
     var message = (msgEl ? msgEl.value : "").trim();
 
-    var typeNamesZh = { connection: "连接与测速异常", client: "客户端导入与配置", suggestion: "功能与场景建议", bug: "系统缺陷或报错" };
-    var typeNamesEn = { connection: "Speed & Connectivity", client: "Client & Import", suggestion: "Feature Suggestion", bug: "Bug & Error" };
-    var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || "问题反馈") : (typeNamesEn[_selectedFeedbackType] || "Feedback");
-
-    var summaryTitle = message ? (message.length > 30 ? message.slice(0, 30) + "..." : message) : typeTitle;
-    var issueTitle = "[" + typeTitle + "] " + summaryTitle;
+    var prefix = (_selectedFeedbackIntent === "idea") ? "[Feature]: " : "[Bug]: ";
+    var summaryTitle = message ? (message.length > 30 ? message.slice(0, 30) + "..." : message) : (_selectedFeedbackIntent === "idea" ? "新功能建议" : "问题反馈");
+    var issueTitle = prefix + summaryTitle;
     var body = formatReport(true);
 
     var repo = "AdgaiWalker/VPN-OwnLine";
@@ -6793,7 +6872,9 @@ footer.site-footer {
   // Export functions to window
   if (typeof window !== "undefined") {
     window.openFeedbackDialog = openFeedbackDialog;
+    window.selectFeedbackIntent = selectFeedbackIntent;
     window.selectFeedbackType = selectFeedbackType;
+    window.toggleFeedbackDiagDetails = toggleFeedbackDiagDetails;
     window.updateFeedbackCharCount = updateFeedbackCharCount;
     window.ownlineSubmitFeedback = ownlineSubmitFeedback;
     window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;
