@@ -26,13 +26,14 @@ test('feedback ui: quick feedback entry points and dialog structure', () => {
   assert(html.includes('id="feedback-contact"'), '#feedback-contact input must exist');
   assert(html.includes('id="feedback-diag-glance"'), '#feedback-diag-glance must exist');
   assert(html.includes('id="btn-copy-feedback"'), '#btn-copy-feedback must exist');
-  assert(html.includes('id="btn-gh-issue"'), '#btn-gh-issue must exist');
+  assert(html.includes('id="feedback-quick-tags"'), '#feedback-quick-tags must exist');
   assert(html.includes('id="btn-submit-feedback"'), '#btn-submit-feedback must exist');
   assert(html.includes('id="feedback-success-card"'), '#feedback-success-card must exist');
 });
 
 test('feedback logic: functions exported and i18n keys present', () => {
   assert(html.includes('window.openFeedbackDialog = openFeedbackDialog;'), 'openFeedbackDialog must be exported to window');
+  assert(html.includes('window.insertFeedbackTag = insertFeedbackTag;'), 'insertFeedbackTag must be exported to window');
   assert(html.includes('window.selectFeedbackIntent = selectFeedbackIntent;'), 'selectFeedbackIntent must be exported to window');
   assert(html.includes('window.toggleFeedbackDiagDetails = toggleFeedbackDiagDetails;'), 'toggleFeedbackDiagDetails must be exported to window');
   assert(html.includes('window.updateFeedbackCharCount = updateFeedbackCharCount;'), 'updateFeedbackCharCount must be exported to window');

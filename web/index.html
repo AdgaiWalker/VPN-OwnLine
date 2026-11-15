@@ -2432,13 +2432,13 @@ footer.site-footer {
 
     <!-- Apple Subtitle Note -->
     <p class="small muted" style="margin:-4px 0 14px;font-size:12px;line-height:1.4" id="feedback-dialog-subtitle" data-i18n="feedback_dialog_subtitle">
-      收集的问题将尽快在下个版本修复，并通过面板一键更新推送给你。
+      遇到的异常现场将送达 AI 诊断库，作者排查修复后通过面板一键更新推送给你。
     </p>
 
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
       <!-- 1. Apple Segmented Control: [ 🐞 遇到问题 | 💡 想要新功能 ] -->
-      <div class="apple-segmented-bar" style="margin-bottom:14px">
+      <div class="apple-segmented-bar" style="margin-bottom:12px">
         <button type="button" class="apple-segment-btn active" id="seg-btn-bug" onclick="window.selectFeedbackIntent('bug')">
           <span data-i18n="feedback_intent_bug">🐞 遇到问题</span>
         </button>
@@ -2447,13 +2447,21 @@ footer.site-footer {
         </button>
       </div>
 
+      <!-- Quick Scenario Tags (免输入一键填充) -->
+      <div class="feedback-quick-tags" id="feedback-quick-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('🔴 节点连不上')">🔴 节点连不上</button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('🐢 看视频卡顿慢')">🐢 看视频卡顿</button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('📱 手机无法连接')">📱 手机无法连接</button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('💡 体验优化建议')">💡 体验建议</button>
+      </div>
+
       <!-- 2. Focused Textarea -->
       <div class="field" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-          <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述</label>
+          <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述（选填）</label>
           <span class="small muted" id="feedback-char-count" style="font-size:11px">0/2000</span>
         </div>
-        <textarea id="feedback-message" rows="4" required maxlength="2000" placeholder="在什么时间、哪个节点卡顿或报错？发生了什么？" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
+        <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
 
       <!-- Contact input -->
@@ -2467,7 +2475,7 @@ footer.site-footer {
         <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleFeedbackDiagDetails()">
           <div style="display:flex;align-items:center;gap:8px">
             <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
-            <span id="feedback-diag-glance" style="font-size:12px;font-weight:500;color:var(--apple-fg)">现场指纹已就绪 · v0.6.0 (810cfbb)</span>
+            <span id="feedback-diag-glance" style="font-size:12px;font-weight:500;color:var(--apple-fg)">现场指纹已就绪 · 自动上报客观诊断</span>
           </div>
           <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s ease"><polyline points="6 9 12 15 18 9"/></svg>
         </div>
@@ -2478,22 +2486,17 @@ footer.site-footer {
 
       <!-- 4. Visual Action Hierarchy -->
       <div style="display:flex;flex-direction:column;gap:10px">
-        <!-- Primary Action: Big Pill Button for WeChat / TG -->
-        <button class="btn primary" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="width:100%;padding:10px 14px;border-radius:999px;font-size:13.5px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
-          <svg class="ico" width="15" height="15"><use href="#i-copy"/></svg>
-          <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+        <!-- Primary Action: 1-Click Submit to AI Diagnostics Library -->
+        <button class="btn primary" type="submit" id="btn-submit-feedback" style="width:100%;padding:11px 14px;border-radius:999px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
+          <svg class="ico" width="15" height="15"><use href="#i-refresh"/></svg>
+          <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">一键发送给 AI 诊断库</span>
         </button>
 
-        <!-- Secondary Actions Row -->
-        <div style="display:flex;gap:8px">
-          <button class="btn" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;font-size:12.5px;padding:8px 10px;border-radius:8px">
-            <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-            <span data-i18n="feedback_btn_github">在 GitHub 提交</span>
-          </button>
-          <button class="btn" type="submit" id="btn-submit-feedback" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px">
-            <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">存入服务器底账</span>
-          </button>
-        </div>
+        <!-- Secondary Action: Copy Report to Chat Directly with Author -->
+        <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="width:100%;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+          <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
+          <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+        </button>
       </div>
     </form>
 
@@ -2504,10 +2507,9 @@ footer.site-footer {
       </div>
       <h3 style="margin:0 0 8px;font-size:17px;font-weight:600;color:var(--apple-fg)" id="feedback-success-title" data-i18n="feedback_success_title">感谢你帮大家踩坑</h3>
       <p class="muted small" style="margin:0 0 18px;font-size:12.5px;line-height:1.55;color:var(--apple-muted)" id="feedback-success-desc" data-i18n="feedback_success_desc">
-        现场指纹已记录。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可无感升级修复。
+        现场指纹已送达 AI 诊断库。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可一键升级修复。
       </p>
       <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1" data-i18n="feedback_btn_track_gh">在 GitHub 跟踪进展</button>
         <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1" data-i18n="feedback_btn_recopy">再复制一份报告</button>
       </div>
       <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">完成</button>
@@ -2633,7 +2635,7 @@ footer.site-footer {
       footer_account_security: "Account & Security",
       footer_change_pass: "Account & Security",
       feedback_dialog_title: "Feedback & Ideas",
-      feedback_dialog_subtitle: "Issues reported will be fixed in upcoming releases and pushed via in-panel updates.",
+      feedback_dialog_subtitle: "Diagnostics will be sent to the AI library and resolved in upcoming cloud updates.",
       feedback_intent_bug: "🐞 Report Issue",
       feedback_intent_idea: "💡 New Idea",
       feedback_type_lbl: "Category",
@@ -2641,9 +2643,9 @@ footer.site-footer {
       feedback_type_client: "📱 Client & Import",
       feedback_type_suggest: "💡 Suggestions",
       feedback_type_bug: "🐞 Bugs & Other",
-      feedback_msg_lbl: "Description",
-      feedback_msg_ph: "Describe the issue, node name, error message or suggestion...",
-      feedback_msg_ph_bug: "When and on which node did it lag or error? What happened?",
+      feedback_msg_lbl: "Description (Optional)",
+      feedback_msg_ph: "Describe what happened, or submit diagnostics directly with 1 click...",
+      feedback_msg_ph_bug: "What happened? (e.g. YouTube lag, connect timeout; or leave blank to send diagnostics)",
       feedback_msg_ph_idea: "What new platform, protocol, or scenario would you like to see?",
       feedback_contact_lbl: "Contact (Optional)",
       feedback_contact_ph: "Email / WeChat / Telegram (for replies)",
@@ -2651,12 +2653,12 @@ footer.site-footer {
       feedback_btn_github: "Submit on GitHub",
       feedback_btn_copy: "Copy Report for Author",
       feedback_server_note: "Or save locally on this server",
-      feedback_btn_submit: "Save to Server Log",
+      feedback_btn_submit: "Send to AI Diagnostics",
       feedback_btn_cancel: "Cancel",
       feedback_btn_close: "Done",
-      feedback_submitting: "Submitting...",
+      feedback_submitting: "Sending...",
       feedback_success_title: "Thank You for Dogfooding",
-      feedback_success_desc: "Fingerprint captured. The author will push fixes to the cloud repo. Tap 'Check Update' in Preferences anytime to upgrade.",
+      feedback_success_desc: "Diagnostics sent to the AI library. The author and AI will diagnose and push fixes to the cloud repo. Tap 'Check Update' in Preferences anytime to upgrade.",
       feedback_btn_track_gh: "Track on GitHub",
       feedback_btn_recopy: "Copy Report Again",
       feedback_copied: "Feedback & diagnostics copied to clipboard",
@@ -2819,7 +2821,7 @@ footer.site-footer {
       footer_account_security: "账户与安全",
       footer_change_pass: "账户与安全",
       feedback_dialog_title: "反馈与建议",
-      feedback_dialog_subtitle: "收集的问题将尽快在下个版本修复，并通过面板一键更新推送给你。",
+      feedback_dialog_subtitle: "遇到的异常现场将送达 AI 诊断库，作者排查修复后通过面板一键更新推送给你。",
       feedback_intent_bug: "🐞 遇到问题",
       feedback_intent_idea: "💡 想要新功能",
       feedback_type_lbl: "反馈类型",
@@ -2827,9 +2829,9 @@ footer.site-footer {
       feedback_type_client: "📱 客户端与导入",
       feedback_type_suggest: "💡 功能建议",
       feedback_type_bug: "🐞 缺陷与其他",
-      feedback_msg_lbl: "描述",
-      feedback_msg_ph: "请详细描述遇到的问题或建议，如节点名称、报错提示等...",
-      feedback_msg_ph_bug: "在什么时间、哪个节点卡顿或报错？发生了什么？",
+      feedback_msg_lbl: "描述（选填）",
+      feedback_msg_ph: "写一句大白话即可（不填也可直接一键提交现场诊断）...",
+      feedback_msg_ph_bug: "写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）",
       feedback_msg_ph_idea: "希望支持什么新平台、新协议或新场景？",
       feedback_contact_lbl: "联系方式（选填）",
       feedback_contact_ph: "微信 / 邮箱 / Telegram（方便接收处理进展）",
@@ -2837,12 +2839,12 @@ footer.site-footer {
       feedback_btn_github: "在 GitHub 提交",
       feedback_btn_copy: "复制排障报告发给作者",
       feedback_server_note: "或直接提交至本服务器留存",
-      feedback_btn_submit: "存入服务器底账",
+      feedback_btn_submit: "一键发送给 AI 诊断库",
       feedback_btn_cancel: "取消",
       feedback_btn_close: "完成",
-      feedback_submitting: "正在保存...",
+      feedback_submitting: "正在发送...",
       feedback_success_title: "感谢你帮大家踩坑",
-      feedback_success_desc: "现场指纹已记录。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可无感升级修复。",
+      feedback_success_desc: "现场指纹已送达 AI 诊断库。作者修复后会直接推送到云端仓库，届时你只需在偏好设置中点击「检查更新」即可一键升级修复。",
       feedback_btn_track_gh: "在 GitHub 跟踪进展",
       feedback_btn_recopy: "再复制一份报告",
       feedback_copied: "排障报告已复制！直接发给作者（微信/TG）即可",
@@ -6824,7 +6826,7 @@ footer.site-footer {
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
     if (submitBtn) submitBtn.disabled = false;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "一键发送给 AI 诊断库";
 
     // Populate Diagnostic Glance
     var diag = buildDiagnosticSnapshot();
@@ -6841,6 +6843,19 @@ footer.site-footer {
     }
   }
 
+  function insertFeedbackTag(tag) {
+    var msgEl = document.getElementById("feedback-message");
+    if (!msgEl) return;
+    var cur = (msgEl.value || "").trim();
+    if (!cur) {
+      msgEl.value = tag + "：";
+    } else {
+      msgEl.value = cur + " [" + tag + "]";
+    }
+    updateFeedbackCharCount(msgEl.value);
+    msgEl.focus();
+  }
+
   function ownlineSubmitFeedback(e) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -6855,17 +6870,11 @@ footer.site-footer {
     var contact = (contactEl ? contactEl.value : "").trim();
 
     if (!message) {
-      if (statusEl) {
-        statusEl.textContent = zh ? "请填写反馈描述" : "Please enter a description";
-        statusEl.style.color = "var(--bad)";
-        statusEl.style.display = "block";
-      }
-      if (msgEl) msgEl.focus();
-      return;
+      message = zh ? "一键现场诊断上报（未填写文字描述）" : "One-click diagnostic report (no user description)";
     }
 
     if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "正在保存...";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "正在发送...";
     if (statusEl) statusEl.style.display = "none";
 
     var payload = {
@@ -7023,6 +7032,7 @@ footer.site-footer {
   // Export functions to window
   if (typeof window !== "undefined") {
     window.openFeedbackDialog = openFeedbackDialog;
+    window.insertFeedbackTag = insertFeedbackTag;
     window.selectFeedbackIntent = selectFeedbackIntent;
     window.selectFeedbackType = selectFeedbackType;
     window.toggleFeedbackDiagDetails = toggleFeedbackDiagDetails;

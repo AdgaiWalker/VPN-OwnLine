@@ -170,7 +170,7 @@
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
     if (submitBtn) submitBtn.disabled = false;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "一键发送给 AI 诊断库";
 
     // Populate Diagnostic Glance
     var diag = buildDiagnosticSnapshot();
@@ -187,6 +187,19 @@
     }
   }
 
+  function insertFeedbackTag(tag) {
+    var msgEl = document.getElementById("feedback-message");
+    if (!msgEl) return;
+    var cur = (msgEl.value || "").trim();
+    if (!cur) {
+      msgEl.value = tag + "：";
+    } else {
+      msgEl.value = cur + " [" + tag + "]";
+    }
+    updateFeedbackCharCount(msgEl.value);
+    msgEl.focus();
+  }
+
   function ownlineSubmitFeedback(e) {
     if (e && e.preventDefault) e.preventDefault();
 
@@ -201,17 +214,11 @@
     var contact = (contactEl ? contactEl.value : "").trim();
 
     if (!message) {
-      if (statusEl) {
-        statusEl.textContent = zh ? "请填写反馈描述" : "Please enter a description";
-        statusEl.style.color = "var(--bad)";
-        statusEl.style.display = "block";
-      }
-      if (msgEl) msgEl.focus();
-      return;
+      message = zh ? "一键现场诊断上报（未填写文字描述）" : "One-click diagnostic report (no user description)";
     }
 
     if (submitBtn) submitBtn.disabled = true;
-    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "正在保存...";
+    if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_submitting") : "正在发送...";
     if (statusEl) statusEl.style.display = "none";
 
     var payload = {
@@ -369,6 +376,7 @@
   // Export functions to window
   if (typeof window !== "undefined") {
     window.openFeedbackDialog = openFeedbackDialog;
+    window.insertFeedbackTag = insertFeedbackTag;
     window.selectFeedbackIntent = selectFeedbackIntent;
     window.selectFeedbackType = selectFeedbackType;
     window.toggleFeedbackDiagDetails = toggleFeedbackDiagDetails;

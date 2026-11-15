@@ -22,6 +22,7 @@ from nodekit import templates as templates_mod  # noqa: E402
 from nodekit import remote_config as remote_cfg_mod  # noqa: E402
 from nodekit import http_utils  # noqa: E402
 from nodekit import system_updater as updater_mod  # noqa: E402
+from nodekit import ai_feedback as ai_feedback_mod  # noqa: E402
 from nodekit.relay_service import RelayService  # noqa: E402
 from nodekit.hy2_service import Hy2Service  # noqa: E402
 from nodekit.node_service import NodeService  # noqa: E402
@@ -635,6 +636,21 @@ class H(BaseHTTPRequestHandler):
             q = urllib.parse.parse_qs(qs)
             force = (q.get("force") or ["0"])[0].lower() in ("1", "true", "yes")
             return self._json(200, updater_mod.check_update(force=force))
+        if path in ("/feedback/analysis", "/api/feedback/analysis", "/feedback/summary", "/api/feedback/summary"):
+            fb_file = os.path.join(DATA, "feedback.jsonl")
+            items = []
+            if os.path.exists(fb_file):
+                try:
+                    with open(fb_file, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                items.append(json.loads(line))
+                except Exception:
+                    pass
+            nodes = _load_json("nodes.json", [])
+            analysis = ai_feedback_mod.analyze_feedback_entries(items, active_nodes=nodes)
+            return self._json(200, analysis)
         if path in ("/feedback", "/api/feedback"):
             fb_file = os.path.join(DATA, "feedback.jsonl")
             items = []
@@ -882,7 +898,10 @@ class H(BaseHTTPRequestHandler):
             diagnostics = body.get("diagnostics")
 
             if not message:
-                return self._json(400, {"ok": False, "error": "反馈内容不能为空"})
+                if diagnostics:
+                    message = "一键现场诊断上报（未填写文字描述）"
+                else:
+                    return self._json(400, {"ok": False, "error": "反馈内容不能为空"})
             if len(message) > 4000:
                 return self._json(400, {"ok": False, "error": "反馈内容过长，请控制在 4000 字以内"})
 
