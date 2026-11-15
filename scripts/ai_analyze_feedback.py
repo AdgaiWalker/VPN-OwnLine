@@ -15,7 +15,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if BASE_DIR not in sys.path:
     sys.path.insert(0, BASE_DIR)
 
-from server.nodekit.ai_feedback import analyze_feedback_entries
+try:
+    from server.nodekit.ai_feedback import analyze_feedback_entries
+except ModuleNotFoundError:
+    from nodekit.ai_feedback import analyze_feedback_entries
 
 DATA_DIR = os.environ.get("DATA_DIR") or ("/opt/web-data" if os.path.exists("/opt/web-data") else os.path.join(BASE_DIR, "tests", "data"))
 
