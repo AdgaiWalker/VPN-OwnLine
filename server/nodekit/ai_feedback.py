@@ -24,7 +24,7 @@ CATEGORIES = {
     },
     "client_config": {
         "name": "客户端配置与导入障碍",
-        "keywords": ["小火箭", "shadowrocket", "clash", "导入", "订阅", "更新", "扫码", "二维码", "无法使用", "规则"],
+        "keywords": ["小火箭", "shadowrocket", "clash", "导入", "订阅", "更新", "扫码", "二维码", "无法使用", "规则", "手机", "手机无法连接", "手机连不上"],
         "default_fix": "检查客户端是否开启 UDP 转发与系统代理权限；引导用户重新复制最新 Clash 订阅链接或使用小火箭专用二维码。",
     },
     "feature_idea": {
