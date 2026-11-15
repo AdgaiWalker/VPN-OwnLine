@@ -4,10 +4,12 @@
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
       <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.6.0</span>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn tiny" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
-      <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
-      <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
+    <div class="site-footer-links" style="display:flex;gap:6px;align-items:center">
+      <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
+      <span class="footer-sep">·</span>
+      <button class="btn tiny footer-link-btn" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
+      <span class="footer-sep">·</span>
+      <a class="btn tiny footer-link-btn" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
   </footer>
 </div>

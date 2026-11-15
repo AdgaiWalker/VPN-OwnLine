@@ -396,6 +396,9 @@
 
       var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var drawerActions = protoBadges + relayPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
+      if (n.cleanup_pending) {
+        drawerActions += '<button class="btn tiny danger" type="button" style="color:var(--err,#dc2626);border-color:currentColor;" onclick="event.stopPropagation();window.ownlineDelNode(' + i + ')">' + (zh ? '彻底删除' : 'Delete Permanently') + '</button>';
+      }
 
       htmlParts.push('<div class="node" id="node-row-' + i + '">' +
         '<div class="node-main" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
@@ -451,7 +454,7 @@
       items.push({label: zh ? "重置密钥（断开所有设备）" : "Reset Key (Disconnect All Devices)", id: "rotate"});
     }
 
-    items.push({label: zh ? "删除节点" : "Delete Node", id: "del", danger: true});
+    items.push({label: n.cleanup_pending ? (zh ? "彻底删除节点" : "Delete Permanently") : (zh ? "删除节点" : "Delete Node"), id: "del", danger: true});
 
     var ms = (st && st.cn_ms != null) ? st.cn_ms : ((st && st.ms != null) ? st.ms : null);
     var statusSummary = "";
@@ -790,20 +793,37 @@
 
   function delNode(i) {
     var n = NODES[i];
-    dialog({title: '删除节点 "' + n.name + '"？', message: "该节点将从订阅中彻底移除，并停止服务器上的节点服务。", confirmText: "确认删除", danger: true})
+    var isPending = (n.cleanup_pending === true);
+    var confirmTitle = isPending ? ('彻底删除节点 "' + n.name + '"？') : ('删除节点 "' + n.name + '"？');
+    var confirmMsg = isPending
+      ? "该节点已被移出订阅。确认后将从系统底账中彻底删除该节点记录。"
+      : "该节点将从订阅中彻底移除，并从底账中清除对应记录。";
+
+    return dialog({title: confirmTitle, message: confirmMsg, confirmText: "确认删除", danger: true})
       .then(function (yes) {
         if (!yes) return;
-        jsonRequest("/api/removenode", {
+        var reqBody = { name: n.name };
+        if (isPending) {
+          reqBody.cleanup_confirmed = true;
+        }
+        return jsonRequest("/api/removenode", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({name: n.name})
+          body: JSON.stringify(reqBody)
         }).then(function (d) {
-          if (!d.ok) { dialog({title: "删除失败", message: d.error || "未知错误", cancelText: null, confirmText: "确定"}); return; }
-          var m = d.stopped === true ? "已删除节点并停止对应服务。"
-                : d.stopped === false ? "已从订阅中移除，但远程服务器服务未停止。"
-                : "已从订阅中移除。";
-          dialog({title: "删除完成", message: m, cancelText: null, confirmText: "确定"}).then(function () { refreshState(); });
-        }).catch(function (e) { dialog({title: "删除失败", message: String(e), cancelText: null, confirmText: "确定"}); });
+          if (!d.ok) { return dialog({title: "删除失败", message: d.error || "未知错误", cancelText: null, confirmText: "确定"}); }
+          if (d.cleanup_pending === true && !isPending) {
+            return jsonRequest("/api/removenode", {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({ name: n.name, cleanup_confirmed: true })
+            }).then(function (d2) {
+              if (!d2.ok) { return dialog({title: "删除失败", message: d2.error || "未知错误", cancelText: null, confirmText: "确定"}); }
+              return dialog({title: "删除完成", message: '已彻底删除节点 "' + n.name + '" 记录。', cancelText: null, confirmText: "确定"}).then(function () { refreshState(); });
+            });
+          }
+          return dialog({title: "删除完成", message: '已彻底删除节点 "' + n.name + '" 记录。', cancelText: null, confirmText: "确定"}).then(function () { refreshState(); });
+        }).catch(function (e) { return dialog({title: "删除失败", message: String(e), cancelText: null, confirmText: "确定"}); });
       });
   }
 
@@ -1241,6 +1261,27 @@
     });
   }
 
+  function scrollToIssue() {
+    var errorRow = document.querySelector(".adv.error, .node .dot.bad, .adv.error.warn");
+    if (errorRow) {
+      var nodeCard = errorRow.closest(".node");
+      if (nodeCard) {
+        nodeCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        nodeCard.style.transition = "box-shadow .3s ease";
+        nodeCard.style.boxShadow = "0 0 0 3px var(--amber, #b45309)";
+        setTimeout(function () { nodeCard.style.boxShadow = ""; }, 2000);
+        return;
+      }
+    }
+    var nodesSec = document.getElementById("nodes-section");
+    if (nodesSec) {
+      nodesSec.open = true;
+      nodesSec.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  window.ownlineDelNode = delNode;
+  window.ownlineScrollToIssue = scrollToIssue;
   window.ownlineSetProbeVantage = setProbeVantage;
   window.ownlineSetProbeVantageByIndex = function (idx) {
     var n = NODES[idx];

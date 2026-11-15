@@ -94,6 +94,7 @@
   }
 
   function initSceneRouter() {
+    window.switchScene = switchScene;
     var btnEnter = document.getElementById("btn-enter-setup");
     var btnCancel = document.getElementById("btn-cancel-setup");
 

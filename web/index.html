@@ -304,6 +304,51 @@ input::placeholder, textarea::placeholder {
 #other-ip, #other-credential { min-height: 44px; font-size: 15px; }
 #other-credential { resize: vertical; }
 #ssh-connection-fields .other-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; }
+
+/* Site Footer Meta Links */
+.site-footer {
+  margin-top: 48px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.site-footer-links .footer-link-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ink-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  cursor: pointer;
+  padding: 3px 6px !important;
+  min-height: auto !important;
+  line-height: 1.4 !important;
+  text-decoration: none;
+  transition: color .15s ease;
+}
+.site-footer-links .footer-link-btn:hover {
+  color: var(--ink) !important;
+  text-decoration: underline;
+}
+.site-footer-links .footer-sep {
+  color: var(--line);
+  font-size: 12px;
+  user-select: none;
+}
+button.pill-preview {
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  outline: none;
+}
+button.pill-preview:hover {
+  filter: brightness(0.95);
+  transform: translateY(-0.5px);
+}
 #ssh-connection-fields .other-actions .btn { min-height: 40px; min-width: 96px; }
 #ssh-connection-fields details.other-advanced { border: 0; background: transparent; padding: 0; margin: 0; }
 #ssh-connection-fields details.other-advanced > summary { display: flex; align-items: center; min-height: 40px; cursor: pointer; color: var(--ink-muted); }
@@ -984,10 +1029,16 @@ dialog::backdrop {
 }
 .node-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   width: 100%;
   cursor: pointer;
+}
+.node-main .dot {
+  margin-top: 6px;
+}
+.node-main .more {
+  margin-top: -2px;
 }
 .node-drawer {
   display: none;
@@ -1057,14 +1108,13 @@ dialog::backdrop {
   flex-wrap: wrap;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(194, 65, 12, 0.06);
-  border: 1px solid rgba(194, 65, 12, 0.22);
-  color: var(--red);
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  border-left: 3px solid var(--amber, #b45309);
+  color: var(--ink, #1f2937);
 }
 .adv.error.warn {
-  background: rgba(180, 83, 9, 0.06);
-  border-color: rgba(180, 83, 9, 0.22);
-  color: var(--amber);
+  border-left-color: var(--amber, #b45309);
 }
 .adv-text { flex: 1; min-width: 180px; }
 .adv-title {
@@ -1073,6 +1123,7 @@ dialog::backdrop {
   align-items: center;
   gap: 5px;
   font-size: 13px;
+  color: var(--amber, #b45309);
 }
 .adv.error span {
   display: block;
@@ -1685,7 +1736,7 @@ footer.site-footer {
       </div>
     </a>
     <div class="topbar-actions">
-      <span class="pill-preview" id="status-pill"><span id="status-dot"></span> <span id="status-text">Checking…</span></span>
+      <button class="pill-preview" id="status-pill" type="button" onclick="window.ownlineScrollToIssue()" title="点击定位异常节点"><span id="status-dot"></span> <span id="status-text">Checking…</span></button>
       <button class="user-pill-btn" id="btn-open-account" type="button" onclick="window.openAccountDialog()" aria-label="Account & Security" title="Account & Security">
         <span class="user-avatar-badge" id="topbar-user-avatar">D</span>
         <span class="user-pill-name" id="topbar-user-name">dora</span>
@@ -1720,16 +1771,7 @@ footer.site-footer {
     <div id="view-dashboard">
       <div class="sub-header">
         <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
-        <div class="quota-glance" id="quota-glance" style="display:none" title="总流量使用">
-          <span class="quota-glance-bar"><i id="quota-glance-fill" style="width: 0%;"></i></span>
-          <span id="quota-glance-text">0 / 0 GB</span>
-        </div>
         <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
-        <div style="margin-left:auto;display:flex;gap:8px">
-          <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点">
-            <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
-          </button>
-        </div>
       </div>
 
       <!-- Unready State Box -->
@@ -1933,15 +1975,20 @@ footer.site-footer {
       </dialog>
 
       <details class="inner" id="nodes-section" open style="margin-top:20px">
-        <summary style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
+        <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
           <span style="display:flex;align-items:center;gap:6px">
             <span data-i18n="nodes_title">节点列表</span>
             <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span>
             <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟">📱 本机: --</span>
           </span>
-          <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
-            <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
-          </button>
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
+              <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
+            </button>
+            <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
+              <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+            </button>
+          </div>
         </summary>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
         <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
@@ -2160,10 +2207,12 @@ footer.site-footer {
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
       <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.6.0</span>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn tiny" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
-      <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
-      <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
+    <div class="site-footer-links" style="display:flex;gap:6px;align-items:center">
+      <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
+      <span class="footer-sep">·</span>
+      <button class="btn tiny footer-link-btn" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
+      <span class="footer-sep">·</span>
+      <a class="btn tiny footer-link-btn" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
   </footer>
 </div>
@@ -3322,6 +3371,7 @@ footer.site-footer {
   }
 
   function initSceneRouter() {
+    window.switchScene = switchScene;
     var btnEnter = document.getElementById("btn-enter-setup");
     var btnCancel = document.getElementById("btn-cancel-setup");
 
@@ -4707,6 +4757,9 @@ footer.site-footer {
 
       var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var drawerActions = protoBadges + relayPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
+      if (n.cleanup_pending) {
+        drawerActions += '<button class="btn tiny danger" type="button" style="color:var(--err,#dc2626);border-color:currentColor;" onclick="event.stopPropagation();window.ownlineDelNode(' + i + ')">' + (zh ? '彻底删除' : 'Delete Permanently') + '</button>';
+      }
 
       htmlParts.push('<div class="node" id="node-row-' + i + '">' +
         '<div class="node-main" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
@@ -4762,7 +4815,7 @@ footer.site-footer {
       items.push({label: zh ? "重置密钥（断开所有设备）" : "Reset Key (Disconnect All Devices)", id: "rotate"});
     }
 
-    items.push({label: zh ? "删除节点" : "Delete Node", id: "del", danger: true});
+    items.push({label: n.cleanup_pending ? (zh ? "彻底删除节点" : "Delete Permanently") : (zh ? "删除节点" : "Delete Node"), id: "del", danger: true});
 
     var ms = (st && st.cn_ms != null) ? st.cn_ms : ((st && st.ms != null) ? st.ms : null);
     var statusSummary = "";
@@ -5101,20 +5154,37 @@ footer.site-footer {
 
   function delNode(i) {
     var n = NODES[i];
-    dialog({title: '删除节点 "' + n.name + '"？', message: "该节点将从订阅中彻底移除，并停止服务器上的节点服务。", confirmText: "确认删除", danger: true})
+    var isPending = (n.cleanup_pending === true);
+    var confirmTitle = isPending ? ('彻底删除节点 "' + n.name + '"？') : ('删除节点 "' + n.name + '"？');
+    var confirmMsg = isPending
+      ? "该节点已被移出订阅。确认后将从系统底账中彻底删除该节点记录。"
+      : "该节点将从订阅中彻底移除，并从底账中清除对应记录。";
+
+    return dialog({title: confirmTitle, message: confirmMsg, confirmText: "确认删除", danger: true})
       .then(function (yes) {
         if (!yes) return;
-        jsonRequest("/api/removenode", {
+        var reqBody = { name: n.name };
+        if (isPending) {
+          reqBody.cleanup_confirmed = true;
+        }
+        return jsonRequest("/api/removenode", {
           method: "POST",
           headers: {"Content-Type": "application/json"},
-          body: JSON.stringify({name: n.name})
+          body: JSON.stringify(reqBody)
         }).then(function (d) {
-          if (!d.ok) { dialog({title: "删除失败", message: d.error || "未知错误", cancelText: null, confirmText: "确定"}); return; }
-          var m = d.stopped === true ? "已删除节点并停止对应服务。"
-                : d.stopped === false ? "已从订阅中移除，但远程服务器服务未停止。"
-                : "已从订阅中移除。";
-          dialog({title: "删除完成", message: m, cancelText: null, confirmText: "确定"}).then(function () { refreshState(); });
-        }).catch(function (e) { dialog({title: "删除失败", message: String(e), cancelText: null, confirmText: "确定"}); });
+          if (!d.ok) { return dialog({title: "删除失败", message: d.error || "未知错误", cancelText: null, confirmText: "确定"}); }
+          if (d.cleanup_pending === true && !isPending) {
+            return jsonRequest("/api/removenode", {
+              method: "POST",
+              headers: {"Content-Type": "application/json"},
+              body: JSON.stringify({ name: n.name, cleanup_confirmed: true })
+            }).then(function (d2) {
+              if (!d2.ok) { return dialog({title: "删除失败", message: d2.error || "未知错误", cancelText: null, confirmText: "确定"}); }
+              return dialog({title: "删除完成", message: '已彻底删除节点 "' + n.name + '" 记录。', cancelText: null, confirmText: "确定"}).then(function () { refreshState(); });
+            });
+          }
+          return dialog({title: "删除完成", message: '已彻底删除节点 "' + n.name + '" 记录。', cancelText: null, confirmText: "确定"}).then(function () { refreshState(); });
+        }).catch(function (e) { return dialog({title: "删除失败", message: String(e), cancelText: null, confirmText: "确定"}); });
       });
   }
 
@@ -5552,6 +5622,27 @@ footer.site-footer {
     });
   }
 
+  function scrollToIssue() {
+    var errorRow = document.querySelector(".adv.error, .node .dot.bad, .adv.error.warn");
+    if (errorRow) {
+      var nodeCard = errorRow.closest(".node");
+      if (nodeCard) {
+        nodeCard.scrollIntoView({ behavior: "smooth", block: "center" });
+        nodeCard.style.transition = "box-shadow .3s ease";
+        nodeCard.style.boxShadow = "0 0 0 3px var(--amber, #b45309)";
+        setTimeout(function () { nodeCard.style.boxShadow = ""; }, 2000);
+        return;
+      }
+    }
+    var nodesSec = document.getElementById("nodes-section");
+    if (nodesSec) {
+      nodesSec.open = true;
+      nodesSec.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
+
+  window.ownlineDelNode = delNode;
+  window.ownlineScrollToIssue = scrollToIssue;
   window.ownlineSetProbeVantage = setProbeVantage;
   window.ownlineSetProbeVantageByIndex = function (idx) {
     var n = NODES[idx];

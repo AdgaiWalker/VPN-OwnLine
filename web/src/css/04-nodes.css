@@ -17,10 +17,16 @@
 }
 .node-main {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   width: 100%;
   cursor: pointer;
+}
+.node-main .dot {
+  margin-top: 6px;
+}
+.node-main .more {
+  margin-top: -2px;
 }
 .node-drawer {
   display: none;
@@ -90,14 +96,13 @@
   flex-wrap: wrap;
   padding: 8px 12px;
   border-radius: 8px;
-  background: rgba(194, 65, 12, 0.06);
-  border: 1px solid rgba(194, 65, 12, 0.22);
-  color: var(--red);
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  border-left: 3px solid var(--amber, #b45309);
+  color: var(--ink, #1f2937);
 }
 .adv.error.warn {
-  background: rgba(180, 83, 9, 0.06);
-  border-color: rgba(180, 83, 9, 0.22);
-  color: var(--amber);
+  border-left-color: var(--amber, #b45309);
 }
 .adv-text { flex: 1; min-width: 180px; }
 .adv-title {
@@ -106,6 +111,7 @@
   align-items: center;
   gap: 5px;
   font-size: 13px;
+  color: var(--amber, #b45309);
 }
 .adv.error span {
   display: block;

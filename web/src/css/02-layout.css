@@ -205,3 +205,48 @@ input::placeholder, textarea::placeholder {
 #other-ip, #other-credential { min-height: 44px; font-size: 15px; }
 #other-credential { resize: vertical; }
 #ssh-connection-fields .other-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; }
+
+/* Site Footer Meta Links */
+.site-footer {
+  margin-top: 48px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.site-footer-links .footer-link-btn {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ink-muted) !important;
+  font-size: 12.5px !important;
+  font-weight: 400 !important;
+  cursor: pointer;
+  padding: 3px 6px !important;
+  min-height: auto !important;
+  line-height: 1.4 !important;
+  text-decoration: none;
+  transition: color .15s ease;
+}
+.site-footer-links .footer-link-btn:hover {
+  color: var(--ink) !important;
+  text-decoration: underline;
+}
+.site-footer-links .footer-sep {
+  color: var(--line);
+  font-size: 12px;
+  user-select: none;
+}
+button.pill-preview {
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid var(--line);
+  outline: none;
+}
+button.pill-preview:hover {
+  filter: brightness(0.95);
+  transform: translateY(-0.5px);
+}
