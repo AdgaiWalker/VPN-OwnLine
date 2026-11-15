@@ -584,3 +584,38 @@ dialog::backdrop {
   box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
   padding: 0 18px;
 }
+
+/* Quick Feedback Dialog Components */
+.feedback-type-group {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.feedback-type-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  cursor: pointer;
+  background: var(--paper-card-subtle);
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: all .15s ease;
+  user-select: none;
+  text-align: center;
+  color: var(--apple-fg);
+}
+.feedback-type-pill:hover {
+  background: var(--surface-soft);
+}
+.feedback-type-pill.active {
+  background: var(--surface-soft);
+  border-color: var(--apple-blue);
+  color: var(--apple-blue);
+  font-weight: 600;
+}
+.feedback-type-pill input[type="radio"] {
+  display: none;
+}

@@ -19,4 +19,5 @@ EVENTS_LOG_FILE = DATA_DIR / "events.log"
 ALERT_FILE = DATA_DIR / "alert.json"
 ALERT_STATE_FILE = DATA_DIR / "alert_state.json"
 IPHEALTH_FILE = DATA_DIR / "iphealth.json"
+FEEDBACK_FILE = DATA_DIR / "feedback.jsonl"
 CADDYFILE = Path(os.environ.get("CADDYFILE_PATH", "/etc/caddy/Caddyfile"))

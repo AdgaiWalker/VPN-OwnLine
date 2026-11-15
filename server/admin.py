@@ -635,6 +635,19 @@ class H(BaseHTTPRequestHandler):
             q = urllib.parse.parse_qs(qs)
             force = (q.get("force") or ["0"])[0].lower() in ("1", "true", "yes")
             return self._json(200, updater_mod.check_update(force=force))
+        if path in ("/feedback", "/api/feedback"):
+            fb_file = os.path.join(DATA, "feedback.jsonl")
+            items = []
+            if os.path.exists(fb_file):
+                try:
+                    with open(fb_file, "r", encoding="utf-8") as f:
+                        for line in f:
+                            line = line.strip()
+                            if line:
+                                items.append(json.loads(line))
+                except Exception:
+                    pass
+            return self._json(200, {"ok": True, "feedback": items[-50:][::-1]})
         if path in ("/probe/vantage", "/api/probe/vantage"):
             settings = _load_json("settings.json", {})
             return self._json(200, {"ok": True, "vantage": settings.get("probe_vantage")})
@@ -861,6 +874,42 @@ class H(BaseHTTPRequestHandler):
             res = updater_mod.trigger_upgrade(target_version=target_version)
             code = 200 if res.get("ok") else (409 if "进行中" in res.get("error", "") else 500)
             return self._json(code, res)
+
+        if path in ("/feedback", "/api/feedback"):
+            fb_type = (body.get("type") or "general").strip()[:32]
+            message = (body.get("message") or "").strip()
+            contact = (body.get("contact") or "").strip()[:128]
+            diagnostics = body.get("diagnostics")
+
+            if not message:
+                return self._json(400, {"ok": False, "error": "反馈内容不能为空"})
+            if len(message) > 4000:
+                return self._json(400, {"ok": False, "error": "反馈内容过长，请控制在 4000 字以内"})
+
+            client_ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "").split(",")[0].strip()
+            now_iso = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            entry = {
+                "id": str(uuid.uuid4())[:8],
+                "ts": now_iso,
+                "ip": client_ip,
+                "type": fb_type,
+                "message": message,
+                "contact": contact,
+                "diagnostics": diagnostics,
+            }
+            fb_file = os.path.join(DATA, "feedback.jsonl")
+            try:
+                os.makedirs(DATA, exist_ok=True)
+                with open(fb_file, "a", encoding="utf-8") as f:
+                    fcntl.flock(f, fcntl.LOCK_EX)
+                    f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                    fcntl.flock(f, fcntl.LOCK_UN)
+            except Exception as e:
+                logger.log("ERROR", "FEEDBACK", f"保存反馈失败: {e}")
+                return self._json(500, {"ok": False, "error": "反馈写入失败，请稍后重试"})
+
+            logger.log("INFO", "FEEDBACK", f"收到新反馈 [{fb_type}] 来自 {client_ip}")
+            return self._json(200, {"ok": True, "message": "反馈已收到，感谢您的建议与支持！", "id": entry["id"]})
 
         if path in ("/node/check", "/api/node/check"):
             # Credentials stay in the request/worker memory and never enter a job file.

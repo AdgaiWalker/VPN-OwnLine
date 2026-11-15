@@ -5,6 +5,7 @@
       <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.6.0</span>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn tiny" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
       <button class="btn tiny" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
       <a class="btn tiny" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
@@ -206,5 +207,92 @@
     <p id="backup-error" class="small" role="status" style="color:var(--bad)"></p>
     <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
   </form>
+</dialog>
+
+<!-- Quick Feedback Modal Dialog (Apple Action Sheet Style) -->
+<dialog id="feedback-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
+    <div class="apple-sheet-header">
+      <div style="display:flex;align-items:center;gap:8px">
+        <svg class="ico" width="18" height="18" style="color:var(--navy)"><use href="#i-feedback"/></svg>
+        <h2 class="apple-sheet-title" id="feedback-dialog-title" data-i18n="feedback_dialog_title">Quick Feedback</h2>
+      </div>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('feedback-dialog').close()" aria-label="Close">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
+
+    <!-- Feedback Form -->
+    <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
+      <div style="margin-bottom:14px">
+        <label style="display:block;font-size:13px;font-weight:600;margin-bottom:8px" id="feedback-lbl-type" data-i18n="feedback_type_lbl">Category</label>
+        <div class="feedback-type-group" style="display:grid;grid-template-columns:repeat(2, 1fr);gap:8px">
+          <label class="feedback-type-pill active" id="fb-type-conn-wrap">
+            <input type="radio" name="fb_type" value="connection" checked onchange="window.selectFeedbackType('connection')">
+            <span data-i18n="feedback_type_conn">⚡️ Speed & Connect</span>
+          </label>
+          <label class="feedback-type-pill" id="fb-type-client-wrap">
+            <input type="radio" name="fb_type" value="client" onchange="window.selectFeedbackType('client')">
+            <span data-i18n="feedback_type_client">📱 Client & Import</span>
+          </label>
+          <label class="feedback-type-pill" id="fb-type-suggest-wrap">
+            <input type="radio" name="fb_type" value="suggestion" onchange="window.selectFeedbackType('suggestion')">
+            <span data-i18n="feedback_type_suggest">💡 Suggestions</span>
+          </label>
+          <label class="feedback-type-pill" id="fb-type-bug-wrap">
+            <input type="radio" name="fb_type" value="bug" onchange="window.selectFeedbackType('bug')">
+            <span data-i18n="feedback_type_bug">🐞 Bugs & Other</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="field" style="margin-bottom:12px">
+        <label for="feedback-message" id="feedback-lbl-msg" style="display:flex;justify-content:space-between">
+          <span data-i18n="feedback_msg_lbl">Description</span>
+          <span class="small muted" id="feedback-char-count">0/2000</span>
+        </label>
+        <textarea id="feedback-message" rows="4" required maxlength="2000" placeholder="Describe the issue, node name, error message or feature suggestion..." style="width:100%;box-sizing:border-box;resize:vertical;border-radius:8px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
+      </div>
+
+      <div class="field" style="margin-bottom:14px">
+        <label for="feedback-contact" id="feedback-lbl-contact" data-i18n="feedback_contact_lbl">Contact (Optional)</label>
+        <input id="feedback-contact" type="text" maxlength="128" placeholder="Email / WeChat / Telegram (for replies)" style="width:100%;box-sizing:border-box;border-radius:8px;border:1px solid var(--line);padding:8px 12px;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg)">
+      </div>
+
+      <div style="margin-bottom:16px;padding:10px 12px;background:var(--surface-soft);border-radius:8px;border:1px solid var(--line-light)">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:12.5px;color:var(--apple-fg)">
+          <input type="checkbox" id="feedback-attach-diag" checked>
+          <span data-i18n="feedback_attach_diag">Attach system diagnostic snapshot (safe, zero secrets)</span>
+        </label>
+        <div id="feedback-diag-glance" class="small muted" style="margin-top:6px;font-size:11px;line-height:1.4"></div>
+      </div>
+
+      <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)">
+          <span data-i18n="feedback_btn_copy">Copy Diagnostics</span>
+        </button>
+        <div style="display:flex;gap:8px">
+          <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">Cancel</button>
+          <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
+            <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">Submit</span>
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Success Card -->
+    <div id="feedback-success-card" style="display:none;text-align:center;padding:24px 8px 12px">
+      <div class="success-icon-circle">
+        <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">Feedback Received</h3>
+      <p class="muted small" style="margin:0 0 18px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
+        Thank you for helping us improve Evergreen OwnLine!
+      </p>
+      <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">Done</button>
+    </div>
+  </div>
 </dialog>
 
