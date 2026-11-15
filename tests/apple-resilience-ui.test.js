@@ -161,3 +161,19 @@ test('just-in-time disclosure: node drawer and quota drawer only open upon user 
   assert(innerHTML.includes('id="node-drawer-0"'), 'node-drawer-0 must exist');
   assert(innerHTML.includes('style="display:none"'), 'node drawer must be hidden by default until triggered');
 });
+
+test('apple hig: visual hierarchy, responsive topbar, and card interaction affordances', () => {
+  // 1. Primary Action First: client-ready-box appears before quota-hero-banner
+  const clientReadyIdx = html.indexOf('id="client-ready-box"');
+  const quotaBannerIdx = html.indexOf('id="quota-hero-banner"');
+  assert(clientReadyIdx > 0 && quotaBannerIdx > 0, 'both elements must exist');
+  assert(clientReadyIdx < quotaBannerIdx, 'Primary CTA #client-ready-box must precede #quota-hero-banner for instant connect intent');
+
+  // 2. Topbar actions container and responsive rules
+  assert(html.includes('class="topbar-actions"'), 'topbar-actions class must exist');
+  assert(html.includes('@media (max-width: 480px)'), 'responsive 480px breakpoint must exist in stylesheet');
+  assert(html.includes('.apple-sheet-grabber'), 'apple-sheet-grabber must exist in stylesheet');
+
+  // 3. Node card chevron affordance
+  assert(html.includes('class="ico node-chevron"'), 'node-chevron icon must exist in rendered node cards');
+});

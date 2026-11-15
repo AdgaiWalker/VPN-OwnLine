@@ -12,6 +12,43 @@ header.topbar {
   padding-bottom: 18px;
   margin-bottom: 24px;
 }
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  header.topbar {
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+  }
+  .brand-title {
+    font-size: 18px;
+    letter-spacing: -0.5px;
+  }
+  .brand-pill {
+    display: none;
+  }
+  .topbar-actions {
+    gap: 6px;
+  }
+  .user-pill-btn {
+    padding: 3px !important;
+    border-radius: 50% !important;
+  }
+  .user-pill-name {
+    display: none !important;
+  }
+  .pill-preview {
+    padding: 3px 8px;
+    font-size: 11px;
+    max-width: 110px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
 .brand {
   display: inline-flex;
   align-items: center;

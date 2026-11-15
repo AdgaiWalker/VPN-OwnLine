@@ -267,6 +267,14 @@
   border-color: var(--ink-muted);
 }
 .more:active { transform: scale(0.94); }
+.node-chevron {
+  transition: transform .22s cubic-bezier(0.16, 1, 0.3, 1);
+  color: var(--ink-muted);
+}
+.node.active .node-chevron {
+  transform: rotate(180deg);
+  color: var(--navy);
+}
 .repair-btn {
   border-color: var(--red) !important;
   color: var(--red) !important;

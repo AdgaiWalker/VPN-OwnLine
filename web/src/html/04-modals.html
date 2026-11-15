@@ -1,5 +1,6 @@
       <dialog id="client-hub-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
         <div class="sheet-inner apple-sheet-box">
+          <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header">
             <div class="apple-sheet-title-group">
               <h2 class="apple-sheet-title" id="hub-device-title">选择客户端</h2>
@@ -115,6 +116,7 @@
       <!-- Subscription QR Code Dialog -->
       <dialog id="qr-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
         <div class="sheet-inner qr-modal-box">
+          <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header" style="justify-content:center;position:relative">
             <div>
               <h2 class="apple-sheet-title" style="font-size:17px" data-i18n="scan_qr_title">扫码导入订阅</h2>
@@ -137,6 +139,7 @@
       <!-- Relay Setup Dialog -->
       <dialog id="relay-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
         <div class="sheet-inner" style="width:min(380px, calc(100vw - 32px))">
+          <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header" style="position:relative;margin-bottom:12px">
             <div>
               <h2 class="apple-sheet-title" id="relay-dialog-title" style="font-size:16px;font-weight:600" data-i18n="relay_dialog_title">设为中转加速专线</h2>

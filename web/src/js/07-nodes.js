@@ -404,7 +404,7 @@
           "<small>" + detailLine + "</small>" +
           quotaRow +
           advHtml + "</div>" +
-          '<button class="more" type="button" aria-label="' + (zh ? '更多操作' : 'More options') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico" width="16" height="16"><use href="#i-more"/></svg></button>' +
+          '<button class="more" type="button" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
         '</div>' +
         '<div class="node-drawer" id="node-drawer-' + i + '" style="display:none">' +
           '<div class="drawer-group">' + drawerActions + '</div>' +

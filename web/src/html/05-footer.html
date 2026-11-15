@@ -15,6 +15,7 @@
 <!-- Preferences Modal Dialog -->
 <dialog id="settings-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
   <div class="sheet-inner" style="width:min(400px, calc(100vw - 32px))">
+    <div class="apple-sheet-grabber"></div>
     <div class="apple-sheet-header">
       <h2 class="apple-sheet-title" id="settings-title" data-i18n="settings_title">Preferences</h2>
       <button class="apple-sheet-close" type="button" onclick="document.getElementById('settings-dialog').close()" aria-label="Close">
@@ -78,6 +79,7 @@
 <!-- Account & Security Modal Dialog (macOS Sequoia Style) -->
 <dialog id="account-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
   <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
+    <div class="apple-sheet-grabber"></div>
     <div class="apple-sheet-header">
       <div style="display:flex;align-items:center;gap:8px">
         <svg class="ico" width="18" height="18" style="color:var(--navy)" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
@@ -212,6 +214,7 @@
 <!-- Quick Feedback Modal Dialog (Apple HIG Style) -->
 <dialog id="feedback-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
   <div class="sheet-inner" style="width:min(440px, calc(100vw - 32px))">
+    <div class="apple-sheet-grabber"></div>
     <div class="apple-sheet-header">
       <div style="display:flex;align-items:center;gap:8px">
         <svg class="ico" width="18" height="18" style="color:var(--navy)"><use href="#i-feedback"/></svg>

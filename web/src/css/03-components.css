@@ -387,12 +387,21 @@ dialog::backdrop {
   width: min(440px, calc(100vw - 32px));
   max-height: 85vh;
   overflow-y: auto;
-  padding: 22px 24px;
-  border-radius: 12px;
+  padding: 20px 24px 24px;
+  border-radius: 14px;
   background: var(--paper-card);
   border: 1px solid var(--line);
   box-shadow: 0 16px 36px rgba(31, 29, 24, 0.16);
   color: var(--ink);
+  position: relative;
+}
+.apple-sheet-grabber {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  margin: -6px auto 14px;
+  opacity: 0.85;
 }
 .sheet-inner h2 { margin: 0 0 10px; font-size: 18px; font-weight: 600; color: var(--ink); }
 .sheet-inner p { margin: 0 0 16px; color: var(--ink-muted); font-size: 13.5px; line-height: 1.5; }
