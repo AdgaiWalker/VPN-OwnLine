@@ -316,16 +316,29 @@
     return report;
   }
 
+  function openMailToAuthor() {
+    var msgEl = document.getElementById("feedback-message");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var message = (msgEl ? msgEl.value : "").trim();
+    var intentTitle = (_selectedFeedbackIntent === "idea") ? (zh ? "新功能建议" : "Feature Request") : (zh ? "问题排障" : "Bug Report");
+    var subject = "[Evergreen] " + intentTitle + (message ? (" - " + (message.length > 25 ? message.slice(0, 25) + "..." : message)) : "");
+    var body = formatReport(false);
+    var mailto = "mailto:praxiswalker@gmail.com?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    if (typeof window !== "undefined") {
+      window.location.href = mailto;
+    }
+  }
+
   function ownlineCopyFeedbackAndDiag(btn) {
     var zh = (typeof isZh === "function") ? isZh() : true;
     var report = formatReport(false);
 
     function onCopied() {
       if (typeof toast === "function") {
-        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "排障报告已复制！直接发给作者（微信/TG）即可" : "Feedback & diagnostics copied to clipboard"));
+        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "排障报告已复制！可直接发邮件给作者：praxiswalker@gmail.com" : "Report copied! Email to praxiswalker@gmail.com"));
       } else if (btn) {
         var orig = btn.textContent;
-        btn.textContent = zh ? "已复制!" : "Copied!";
+        btn.textContent = zh ? "已复制！" : "Copied!";
         setTimeout(function () { btn.textContent = orig; }, 1600);
       }
     }
@@ -383,6 +396,7 @@
     window.updateFeedbackCharCount = updateFeedbackCharCount;
     window.ownlineSubmitFeedback = ownlineSubmitFeedback;
     window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;
+    window.openMailToAuthor = openMailToAuthor;
     window.openGitHubIssue = openGitHubIssue;
   }
 })();

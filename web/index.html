@@ -2492,11 +2492,20 @@ footer.site-footer {
           <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">一键发送给 AI 诊断库</span>
         </button>
 
-        <!-- Secondary Action: Copy Report to Chat Directly with Author -->
-        <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="width:100%;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-          <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
-          <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
-        </button>
+        <!-- Secondary Actions Row: Copy Report + Email Author Directly -->
+        <div style="display:flex;gap:8px">
+          <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
+            <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告</span>
+          </button>
+          <button class="btn" type="button" id="btn-email-feedback" onclick="window.openMailToAuthor()" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+            <span data-i18n="feedback_btn_email">发邮件给作者</span>
+          </button>
+        </div>
+        <div style="text-align:center;font-size:11.5px;color:var(--apple-muted);margin-top:2px">
+          作者支持邮箱：<a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
+        </div>
       </div>
     </form>
 
@@ -2511,6 +2520,7 @@ footer.site-footer {
       </p>
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1" data-i18n="feedback_btn_recopy">再复制一份报告</button>
+        <button class="btn tiny" type="button" onclick="window.openMailToAuthor()" style="flex:1" data-i18n="feedback_btn_email">发邮件给作者</button>
       </div>
       <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">完成</button>
     </div>
@@ -2652,6 +2662,7 @@ footer.site-footer {
       feedback_attach_diag: "Attach system diagnostic snapshot (safe, zero secrets)",
       feedback_btn_github: "Submit on GitHub",
       feedback_btn_copy: "Copy Report for Author",
+      feedback_btn_email: "Email Author",
       feedback_server_note: "Or save locally on this server",
       feedback_btn_submit: "Send to AI Diagnostics",
       feedback_btn_cancel: "Cancel",
@@ -2838,6 +2849,7 @@ footer.site-footer {
       feedback_attach_diag: "附带系统诊断快照（已自动过滤密钥等敏感信息）",
       feedback_btn_github: "在 GitHub 提交",
       feedback_btn_copy: "复制排障报告发给作者",
+      feedback_btn_email: "发邮件给作者",
       feedback_server_note: "或直接提交至本服务器留存",
       feedback_btn_submit: "一键发送给 AI 诊断库",
       feedback_btn_cancel: "取消",
@@ -6972,16 +6984,29 @@ footer.site-footer {
     return report;
   }
 
+  function openMailToAuthor() {
+    var msgEl = document.getElementById("feedback-message");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var message = (msgEl ? msgEl.value : "").trim();
+    var intentTitle = (_selectedFeedbackIntent === "idea") ? (zh ? "新功能建议" : "Feature Request") : (zh ? "问题排障" : "Bug Report");
+    var subject = "[Evergreen] " + intentTitle + (message ? (" - " + (message.length > 25 ? message.slice(0, 25) + "..." : message)) : "");
+    var body = formatReport(false);
+    var mailto = "mailto:praxiswalker@gmail.com?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    if (typeof window !== "undefined") {
+      window.location.href = mailto;
+    }
+  }
+
   function ownlineCopyFeedbackAndDiag(btn) {
     var zh = (typeof isZh === "function") ? isZh() : true;
     var report = formatReport(false);
 
     function onCopied() {
       if (typeof toast === "function") {
-        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "排障报告已复制！直接发给作者（微信/TG）即可" : "Feedback & diagnostics copied to clipboard"));
+        toast((typeof t === "function") ? t("feedback_copied") : (zh ? "排障报告已复制！可直接发邮件给作者：praxiswalker@gmail.com" : "Report copied! Email to praxiswalker@gmail.com"));
       } else if (btn) {
         var orig = btn.textContent;
-        btn.textContent = zh ? "已复制!" : "Copied!";
+        btn.textContent = zh ? "已复制！" : "Copied!";
         setTimeout(function () { btn.textContent = orig; }, 1600);
       }
     }
@@ -7039,6 +7064,7 @@ footer.site-footer {
     window.updateFeedbackCharCount = updateFeedbackCharCount;
     window.ownlineSubmitFeedback = ownlineSubmitFeedback;
     window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;
+    window.openMailToAuthor = openMailToAuthor;
     window.openGitHubIssue = openGitHubIssue;
   }
 })();

@@ -28,6 +28,8 @@ test('feedback ui: quick feedback entry points and dialog structure', () => {
   assert(html.includes('id="btn-copy-feedback"'), '#btn-copy-feedback must exist');
   assert(html.includes('id="feedback-quick-tags"'), '#feedback-quick-tags must exist');
   assert(html.includes('id="btn-submit-feedback"'), '#btn-submit-feedback must exist');
+  assert(html.includes('id="btn-email-feedback"'), '#btn-email-feedback must exist');
+  assert(html.includes('praxiswalker@gmail.com'), 'praxiswalker@gmail.com must be present');
   assert(html.includes('id="feedback-success-card"'), '#feedback-success-card must exist');
 });
 
@@ -39,6 +41,7 @@ test('feedback logic: functions exported and i18n keys present', () => {
   assert(html.includes('window.updateFeedbackCharCount = updateFeedbackCharCount;'), 'updateFeedbackCharCount must be exported to window');
   assert(html.includes('window.ownlineSubmitFeedback = ownlineSubmitFeedback;'), 'ownlineSubmitFeedback must be exported to window');
   assert(html.includes('window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;'), 'ownlineCopyFeedbackAndDiag must be exported to window');
+  assert(html.includes('window.openMailToAuthor = openMailToAuthor;'), 'openMailToAuthor must be exported to window');
   assert(html.includes('window.openGitHubIssue = openGitHubIssue;'), 'openGitHubIssue must be exported to window');
 
   // Bilingual i18n
