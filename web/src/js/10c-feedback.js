@@ -1,5 +1,6 @@
 (function () {
   var _selectedFeedbackType = "connection";
+  var _cachedSystemInfo = null;
 
   function setElementDisplay(id, display) {
     var el = document.getElementById(id);
@@ -66,8 +67,14 @@
     var winW = (typeof window !== "undefined" && window.innerWidth) ? window.innerWidth : 1280;
     var winH = (typeof window !== "undefined" && window.innerHeight) ? window.innerHeight : 800;
 
+    var sys = _cachedSystemInfo || {};
+
     var summary = {
-      version: ver,
+      version: sys.version || ver,
+      commit: sys.commit || "release",
+      os: sys.os || "Linux",
+      arch: sys.arch || "x86_64",
+      singbox: sys.singbox || "1.11+",
       platform: getPlatformSummary(),
       screen: winW + "x" + winH,
       time: new Date().toISOString(),
@@ -87,6 +94,22 @@
       })
     };
     return summary;
+  }
+
+  function fetchSystemInfoAsync() {
+    if (_cachedSystemInfo) return;
+    fetch("/api/system/version", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok) {
+          _cachedSystemInfo = d;
+          var diag = buildDiagnosticSnapshot();
+          var zh = (typeof isZh === "function") ? isZh() : true;
+          var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+          setElementText("feedback-diag-glance", glanceText);
+        }
+      })
+      .catch(function () {});
   }
 
   function openFeedbackDialog() {
@@ -110,8 +133,10 @@
     // Populate Diagnostic Glance
     var diag = buildDiagnosticSnapshot();
     var zh = (typeof isZh === "function") ? isZh() : true;
-    var glanceText = (zh ? "系统 " : "System ") + diag.version + " · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+    var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
     setElementText("feedback-diag-glance", glanceText);
+
+    fetchSystemInfoAsync();
 
     if (typeof dlg.showModal === "function") {
       dlg.showModal();
@@ -182,7 +207,7 @@
       });
   }
 
-  function ownlineCopyFeedbackAndDiag(btn) {
+  function formatReport(isMarkdown) {
     var msgEl = document.getElementById("feedback-message");
     var contactEl = document.getElementById("feedback-contact");
     var zh = (typeof isZh === "function") ? isZh() : true;
@@ -191,27 +216,61 @@
     var contact = (contactEl ? contactEl.value : "").trim() || (zh ? "(未填写联系方式)" : "(No contact info)");
     var diag = buildDiagnosticSnapshot();
 
-    var typeNamesZh = { connection: "⚡️ 连接与测速", client: "📱 客户端与导入", suggestion: "💡 功能建议", bug: "🐞 缺陷与其他" };
-    var typeNamesEn = { connection: "⚡️ Speed & Connect", client: "📱 Client & Import", suggestion: "💡 Suggestions", bug: "🐞 Bugs & Other" };
+    var typeNamesZh = { connection: "⚡️ 连接与测速异常", client: "📱 客户端与导入配置", suggestion: "💡 功能建议与场景需求", bug: "🐞 系统缺陷或报错" };
+    var typeNamesEn = { connection: "⚡️ Speed & Connect Issue", client: "📱 Client & Import Issue", suggestion: "💡 Feature Request", bug: "🐞 Bug & Error" };
     var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || _selectedFeedbackType) : (typeNamesEn[_selectedFeedbackType] || _selectedFeedbackType);
 
-    var report = "=== Evergreen · OwnLine " + (zh ? "快捷反馈报告" : "Feedback Report") + " ===\n";
-    report += (zh ? "【类型】: " : "[Category]: ") + typeTitle + "\n";
-    report += (zh ? "【描述】: " : "[Description]: ") + message + "\n";
-    report += (zh ? "【联系方式】: " : "[Contact]: ") + contact + "\n";
-    report += (zh ? "【系统环境】: " : "[Environment]: ") + diag.version + " (" + diag.platform + ")\n";
-    report += (zh ? "【生成时间】: " : "[Generated At]: ") + diag.time + "\n\n";
+    var report = "";
+    if (isMarkdown) {
+      report += "### 反馈类型 / Category\n" + typeTitle + "\n\n";
+      report += "### 详细描述 / Description\n" + message + "\n\n";
+      if (contact && contact !== "(未填写联系方式)") {
+        report += "### 联系方式 / Contact\n" + contact + "\n\n";
+      }
+      report += "### 运行环境与指纹 / Environment Fingerprint\n";
+      report += "- **Evergreen Version**: `" + diag.version + " (" + (diag.commit || "release") + ")`\n";
+      report += "- **Host System**: `" + diag.os + " (" + diag.arch + ", sing-box " + diag.singbox + ")`\n";
+      report += "- **Client Platform**: `" + diag.platform + " (" + diag.screen + ")`\n";
+      report += "- **Timestamp**: `" + diag.time + "`\n\n";
 
-    report += (zh ? "[节点状态]:\n" : "[Node Status]:\n");
-    if (diag.nodes && diag.nodes.length) {
-      diag.nodes.forEach(function (n) {
-        var hostProbe = n.ok === true ? (n.ms + "ms") : (n.ok === false ? "异常" : "未测");
-        var cnProbe = n.cn_ok === true ? (n.cn_ms + "ms") : (n.cn_ok === false ? "阻断" : "未测");
-        report += "  - " + n.name + " (" + n.type + "): health=" + n.health + ", 主控探活=" + hostProbe + ", 国内探活=" + cnProbe + "\n";
-      });
+      report += "### 节点状态切片 / Node Status\n```\n";
+      if (diag.nodes && diag.nodes.length) {
+        diag.nodes.forEach(function (n) {
+          var hostProbe = n.ok === true ? (n.ms + "ms") : (n.ok === false ? "异常" : "未测");
+          var cnProbe = n.cn_ok === true ? (n.cn_ms + "ms") : (n.cn_ok === false ? "阻断" : "未测");
+          report += "- " + n.name + " (" + n.type + "): health=" + n.health + ", 主控探活=" + hostProbe + ", 国内探活=" + cnProbe + "\n";
+        });
+      } else {
+        report += "(当前无节点)\n";
+      }
+      report += "```\n\n<!-- Generated by Evergreen OwnLine Quick Feedback -->\n";
     } else {
-      report += (zh ? "  (当前无节点)\n" : "  (No nodes connected)\n");
+      report = "=== Evergreen · OwnLine " + (zh ? "排障反馈报告" : "Feedback Report") + " ===\n";
+      report += (zh ? "【类型】: " : "[Category]: ") + typeTitle + "\n";
+      report += (zh ? "【描述】: " : "[Description]: ") + message + "\n";
+      report += (zh ? "【联系方式】: " : "[Contact]: ") + contact + "\n";
+      report += (zh ? "【版本指纹】: " : "[Version]: ") + diag.version + " (Commit: " + (diag.commit || "release") + ")\n";
+      report += (zh ? "【宿主底座】: " : "[Host]: ") + diag.os + " (" + diag.arch + ", sing-box " + diag.singbox + ")\n";
+      report += (zh ? "【客户端环境】: " : "[Client]: ") + diag.platform + " (" + diag.screen + ")\n";
+      report += (zh ? "【时间】: " : "[Time]: ") + diag.time + "\n\n";
+
+      report += (zh ? "[节点状态现场]:\n" : "[Node Status]:\n");
+      if (diag.nodes && diag.nodes.length) {
+        diag.nodes.forEach(function (n) {
+          var hostProbe = n.ok === true ? (n.ms + "ms") : (n.ok === false ? "异常" : "未测");
+          var cnProbe = n.cn_ok === true ? (n.cn_ms + "ms") : (n.cn_ok === false ? "阻断" : "未测");
+          report += "  - " + n.name + " (" + n.type + "): health=" + n.health + ", 主控探活=" + hostProbe + ", 国内探活=" + cnProbe + "\n";
+        });
+      } else {
+        report += (zh ? "  (当前无节点)\n" : "  (No nodes connected)\n");
+      }
     }
+    return report;
+  }
+
+  function ownlineCopyFeedbackAndDiag(btn) {
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var report = formatReport(false);
 
     function onCopied() {
       if (typeof toast === "function") {
@@ -229,6 +288,26 @@
       });
     } else {
       fallbackCopy(report, onCopied);
+    }
+  }
+
+  function openGitHubIssue() {
+    var msgEl = document.getElementById("feedback-message");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var message = (msgEl ? msgEl.value : "").trim();
+
+    var typeNamesZh = { connection: "连接与测速异常", client: "客户端导入与配置", suggestion: "功能与场景建议", bug: "系统缺陷或报错" };
+    var typeNamesEn = { connection: "Speed & Connectivity", client: "Client & Import", suggestion: "Feature Suggestion", bug: "Bug & Error" };
+    var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || "问题反馈") : (typeNamesEn[_selectedFeedbackType] || "Feedback");
+
+    var summaryTitle = message ? (message.length > 30 ? message.slice(0, 30) + "..." : message) : typeTitle;
+    var issueTitle = "[" + typeTitle + "] " + summaryTitle;
+    var body = formatReport(true);
+
+    var repo = "AdgaiWalker/VPN-OwnLine";
+    var ghUrl = "https://github.com/" + repo + "/issues/new?title=" + encodeURIComponent(issueTitle) + "&body=" + encodeURIComponent(body);
+    if (typeof window !== "undefined") {
+      window.open(ghUrl, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -256,5 +335,6 @@
     window.updateFeedbackCharCount = updateFeedbackCharCount;
     window.ownlineSubmitFeedback = ownlineSubmitFeedback;
     window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;
+    window.openGitHubIssue = openGitHubIssue;
   }
 })();

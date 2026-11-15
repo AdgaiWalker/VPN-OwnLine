@@ -2337,15 +2337,26 @@ footer.site-footer {
 
       <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)">
-          <span data-i18n="feedback_btn_copy">Copy Diagnostics</span>
-        </button>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+        <!-- Main Actions Row -->
         <div style="display:flex;gap:8px">
-          <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">Cancel</button>
-          <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
-            <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">Submit</span>
+          <button class="btn tiny" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span data-i18n="feedback_btn_github">在 GitHub 提交 Issue</span>
           </button>
+          <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">
+            <span data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+          </button>
+        </div>
+        <!-- Submit directly to server / Cancel Row -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line-light)">
+          <span class="small muted" style="font-size:11.5px" data-i18n="feedback_server_note">或直接提交至本服务器留存</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">取消</button>
+            <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
+              <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">提交</span>
+            </button>
+          </div>
         </div>
       </div>
     </form>
@@ -2355,11 +2366,15 @@ footer.site-footer {
       <div class="success-icon-circle">
         <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">Feedback Received</h3>
-      <p class="muted small" style="margin:0 0 18px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
-        Thank you for helping us improve Evergreen OwnLine!
+      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">反馈已送达</h3>
+      <p class="muted small" style="margin:0 0 16px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
+        感谢您的反馈！数据已存入本服务器，您也可以直接在 GitHub 查看进展或联系作者。
       </p>
-      <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">Done</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1">在 GitHub 跟踪 Issue</button>
+        <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">复制报告发给作者</button>
+      </div>
+      <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">完成</button>
     </div>
   </div>
 </dialog>
@@ -2492,7 +2507,9 @@ footer.site-footer {
       feedback_contact_lbl: "Contact (Optional)",
       feedback_contact_ph: "Email / WeChat / Telegram (for replies)",
       feedback_attach_diag: "Attach system diagnostic snapshot (safe, zero secrets)",
-      feedback_btn_copy: "Copy Diagnostics",
+      feedback_btn_github: "File Issue on GitHub",
+      feedback_btn_copy: "Copy Report for Author",
+      feedback_server_note: "Or save locally on this server",
       feedback_btn_submit: "Submit",
       feedback_btn_cancel: "Cancel",
       feedback_btn_close: "Done",
@@ -2669,8 +2686,10 @@ footer.site-footer {
       feedback_contact_lbl: "联系方式（选填）",
       feedback_contact_ph: "邮箱 / 微信 / Telegram（方便接收处理结果）",
       feedback_attach_diag: "附带系统诊断快照（已自动过滤密钥等敏感信息）",
-      feedback_btn_copy: "复制诊断信息",
-      feedback_btn_submit: "提交反馈",
+      feedback_btn_github: "在 GitHub 提交 Issue",
+      feedback_btn_copy: "复制排障报告发给作者",
+      feedback_server_note: "或直接提交至本服务器留存",
+      feedback_btn_submit: "提交",
       feedback_btn_cancel: "取消",
       feedback_btn_close: "完成",
       feedback_submitting: "正在提交...",
@@ -6443,6 +6462,7 @@ footer.site-footer {
 
 (function () {
   var _selectedFeedbackType = "connection";
+  var _cachedSystemInfo = null;
 
   function setElementDisplay(id, display) {
     var el = document.getElementById(id);
@@ -6509,8 +6529,14 @@ footer.site-footer {
     var winW = (typeof window !== "undefined" && window.innerWidth) ? window.innerWidth : 1280;
     var winH = (typeof window !== "undefined" && window.innerHeight) ? window.innerHeight : 800;
 
+    var sys = _cachedSystemInfo || {};
+
     var summary = {
-      version: ver,
+      version: sys.version || ver,
+      commit: sys.commit || "release",
+      os: sys.os || "Linux",
+      arch: sys.arch || "x86_64",
+      singbox: sys.singbox || "1.11+",
       platform: getPlatformSummary(),
       screen: winW + "x" + winH,
       time: new Date().toISOString(),
@@ -6530,6 +6556,22 @@ footer.site-footer {
       })
     };
     return summary;
+  }
+
+  function fetchSystemInfoAsync() {
+    if (_cachedSystemInfo) return;
+    fetch("/api/system/version", { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (d && d.ok) {
+          _cachedSystemInfo = d;
+          var diag = buildDiagnosticSnapshot();
+          var zh = (typeof isZh === "function") ? isZh() : true;
+          var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+          setElementText("feedback-diag-glance", glanceText);
+        }
+      })
+      .catch(function () {});
   }
 
   function openFeedbackDialog() {
@@ -6553,8 +6595,10 @@ footer.site-footer {
     // Populate Diagnostic Glance
     var diag = buildDiagnosticSnapshot();
     var zh = (typeof isZh === "function") ? isZh() : true;
-    var glanceText = (zh ? "系统 " : "System ") + diag.version + " · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
+    var glanceText = (zh ? "系统 " : "System ") + diag.version + " (" + (diag.commit || "release") + ") · " + diag.platform + " · " + diag.node_count + (zh ? " 个节点" : " Nodes");
     setElementText("feedback-diag-glance", glanceText);
+
+    fetchSystemInfoAsync();
 
     if (typeof dlg.showModal === "function") {
       dlg.showModal();
@@ -6625,7 +6669,7 @@ footer.site-footer {
       });
   }
 
-  function ownlineCopyFeedbackAndDiag(btn) {
+  function formatReport(isMarkdown) {
     var msgEl = document.getElementById("feedback-message");
     var contactEl = document.getElementById("feedback-contact");
     var zh = (typeof isZh === "function") ? isZh() : true;
@@ -6634,27 +6678,61 @@ footer.site-footer {
     var contact = (contactEl ? contactEl.value : "").trim() || (zh ? "(未填写联系方式)" : "(No contact info)");
     var diag = buildDiagnosticSnapshot();
 
-    var typeNamesZh = { connection: "⚡️ 连接与测速", client: "📱 客户端与导入", suggestion: "💡 功能建议", bug: "🐞 缺陷与其他" };
-    var typeNamesEn = { connection: "⚡️ Speed & Connect", client: "📱 Client & Import", suggestion: "💡 Suggestions", bug: "🐞 Bugs & Other" };
+    var typeNamesZh = { connection: "⚡️ 连接与测速异常", client: "📱 客户端与导入配置", suggestion: "💡 功能建议与场景需求", bug: "🐞 系统缺陷或报错" };
+    var typeNamesEn = { connection: "⚡️ Speed & Connect Issue", client: "📱 Client & Import Issue", suggestion: "💡 Feature Request", bug: "🐞 Bug & Error" };
     var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || _selectedFeedbackType) : (typeNamesEn[_selectedFeedbackType] || _selectedFeedbackType);
 
-    var report = "=== Evergreen · OwnLine " + (zh ? "快捷反馈报告" : "Feedback Report") + " ===\n";
-    report += (zh ? "【类型】: " : "[Category]: ") + typeTitle + "\n";
-    report += (zh ? "【描述】: " : "[Description]: ") + message + "\n";
-    report += (zh ? "【联系方式】: " : "[Contact]: ") + contact + "\n";
-    report += (zh ? "【系统环境】: " : "[Environment]: ") + diag.version + " (" + diag.platform + ")\n";
-    report += (zh ? "【生成时间】: " : "[Generated At]: ") + diag.time + "\n\n";
+    var report = "";
+    if (isMarkdown) {
+      report += "### 反馈类型 / Category\n" + typeTitle + "\n\n";
+      report += "### 详细描述 / Description\n" + message + "\n\n";
+      if (contact && contact !== "(未填写联系方式)") {
+        report += "### 联系方式 / Contact\n" + contact + "\n\n";
+      }
+      report += "### 运行环境与指纹 / Environment Fingerprint\n";
+      report += "- **Evergreen Version**: `" + diag.version + " (" + (diag.commit || "release") + ")`\n";
+      report += "- **Host System**: `" + diag.os + " (" + diag.arch + ", sing-box " + diag.singbox + ")`\n";
+      report += "- **Client Platform**: `" + diag.platform + " (" + diag.screen + ")`\n";
+      report += "- **Timestamp**: `" + diag.time + "`\n\n";
 
-    report += (zh ? "[节点状态]:\n" : "[Node Status]:\n");
-    if (diag.nodes && diag.nodes.length) {
-      diag.nodes.forEach(function (n) {
-        var hostProbe = n.ok === true ? (n.ms + "ms") : (n.ok === false ? "异常" : "未测");
-        var cnProbe = n.cn_ok === true ? (n.cn_ms + "ms") : (n.cn_ok === false ? "阻断" : "未测");
-        report += "  - " + n.name + " (" + n.type + "): health=" + n.health + ", 主控探活=" + hostProbe + ", 国内探活=" + cnProbe + "\n";
-      });
+      report += "### 节点状态切片 / Node Status\n```\n";
+      if (diag.nodes && diag.nodes.length) {
+        diag.nodes.forEach(function (n) {
+          var hostProbe = n.ok === true ? (n.ms + "ms") : (n.ok === false ? "异常" : "未测");
+          var cnProbe = n.cn_ok === true ? (n.cn_ms + "ms") : (n.cn_ok === false ? "阻断" : "未测");
+          report += "- " + n.name + " (" + n.type + "): health=" + n.health + ", 主控探活=" + hostProbe + ", 国内探活=" + cnProbe + "\n";
+        });
+      } else {
+        report += "(当前无节点)\n";
+      }
+      report += "```\n\n<!-- Generated by Evergreen OwnLine Quick Feedback -->\n";
     } else {
-      report += (zh ? "  (当前无节点)\n" : "  (No nodes connected)\n");
+      report = "=== Evergreen · OwnLine " + (zh ? "排障反馈报告" : "Feedback Report") + " ===\n";
+      report += (zh ? "【类型】: " : "[Category]: ") + typeTitle + "\n";
+      report += (zh ? "【描述】: " : "[Description]: ") + message + "\n";
+      report += (zh ? "【联系方式】: " : "[Contact]: ") + contact + "\n";
+      report += (zh ? "【版本指纹】: " : "[Version]: ") + diag.version + " (Commit: " + (diag.commit || "release") + ")\n";
+      report += (zh ? "【宿主底座】: " : "[Host]: ") + diag.os + " (" + diag.arch + ", sing-box " + diag.singbox + ")\n";
+      report += (zh ? "【客户端环境】: " : "[Client]: ") + diag.platform + " (" + diag.screen + ")\n";
+      report += (zh ? "【时间】: " : "[Time]: ") + diag.time + "\n\n";
+
+      report += (zh ? "[节点状态现场]:\n" : "[Node Status]:\n");
+      if (diag.nodes && diag.nodes.length) {
+        diag.nodes.forEach(function (n) {
+          var hostProbe = n.ok === true ? (n.ms + "ms") : (n.ok === false ? "异常" : "未测");
+          var cnProbe = n.cn_ok === true ? (n.cn_ms + "ms") : (n.cn_ok === false ? "阻断" : "未测");
+          report += "  - " + n.name + " (" + n.type + "): health=" + n.health + ", 主控探活=" + hostProbe + ", 国内探活=" + cnProbe + "\n";
+        });
+      } else {
+        report += (zh ? "  (当前无节点)\n" : "  (No nodes connected)\n");
+      }
     }
+    return report;
+  }
+
+  function ownlineCopyFeedbackAndDiag(btn) {
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var report = formatReport(false);
 
     function onCopied() {
       if (typeof toast === "function") {
@@ -6672,6 +6750,26 @@ footer.site-footer {
       });
     } else {
       fallbackCopy(report, onCopied);
+    }
+  }
+
+  function openGitHubIssue() {
+    var msgEl = document.getElementById("feedback-message");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var message = (msgEl ? msgEl.value : "").trim();
+
+    var typeNamesZh = { connection: "连接与测速异常", client: "客户端导入与配置", suggestion: "功能与场景建议", bug: "系统缺陷或报错" };
+    var typeNamesEn = { connection: "Speed & Connectivity", client: "Client & Import", suggestion: "Feature Suggestion", bug: "Bug & Error" };
+    var typeTitle = zh ? (typeNamesZh[_selectedFeedbackType] || "问题反馈") : (typeNamesEn[_selectedFeedbackType] || "Feedback");
+
+    var summaryTitle = message ? (message.length > 30 ? message.slice(0, 30) + "..." : message) : typeTitle;
+    var issueTitle = "[" + typeTitle + "] " + summaryTitle;
+    var body = formatReport(true);
+
+    var repo = "AdgaiWalker/VPN-OwnLine";
+    var ghUrl = "https://github.com/" + repo + "/issues/new?title=" + encodeURIComponent(issueTitle) + "&body=" + encodeURIComponent(body);
+    if (typeof window !== "undefined") {
+      window.open(ghUrl, "_blank", "noopener,noreferrer");
     }
   }
 
@@ -6699,6 +6797,7 @@ footer.site-footer {
     window.updateFeedbackCharCount = updateFeedbackCharCount;
     window.ownlineSubmitFeedback = ownlineSubmitFeedback;
     window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;
+    window.openGitHubIssue = openGitHubIssue;
   }
 })();
 

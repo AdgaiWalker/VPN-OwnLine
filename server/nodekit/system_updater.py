@@ -63,11 +63,26 @@ def get_commit_hash(base_dir=None):
 
 def get_version_info(base_dir=None):
     """获取当前系统版本详情（零网络调用）。"""
+    import platform
+    commit = get_commit_hash(base_dir=base_dir) or "release"
+    sb_ver = None
+    try:
+        res = subprocess.check_output(["sing-box", "version"], stderr=subprocess.DEVNULL, timeout=1)
+        m = re.search(r"sing-box version ([\d.]+)", res.decode("utf-8", errors="ignore"))
+        if m:
+            sb_ver = m.group(1)
+    except Exception:
+        pass
+
     return {
         "ok": True,
         "version": CURRENT_VERSION,
-        "commit": get_commit_hash(base_dir=base_dir) or "release",
+        "commit": commit,
         "app": "Evergreen · OwnLine",
+        "os": platform.platform(),
+        "arch": platform.machine(),
+        "python": platform.python_version(),
+        "singbox": sb_ver or "1.11+",
     }
 
 

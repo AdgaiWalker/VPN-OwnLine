@@ -269,15 +269,26 @@
 
       <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
 
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
-        <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)">
-          <span data-i18n="feedback_btn_copy">Copy Diagnostics</span>
-        </button>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-top:16px">
+        <!-- Main Actions Row -->
         <div style="display:flex;gap:8px">
-          <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">Cancel</button>
-          <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
-            <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">Submit</span>
+          <button class="btn tiny" type="button" id="btn-gh-issue" onclick="window.openGitHubIssue()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg class="ico" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+            <span data-i18n="feedback_btn_github">在 GitHub 提交 Issue</span>
           </button>
+          <button class="btn tiny" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">
+            <span data-i18n="feedback_btn_copy">复制排障报告发给作者</span>
+          </button>
+        </div>
+        <!-- Submit directly to server / Cancel Row -->
+        <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px;border-top:1px solid var(--line-light)">
+          <span class="small muted" style="font-size:11.5px" data-i18n="feedback_server_note">或直接提交至本服务器留存</span>
+          <div style="display:flex;gap:8px">
+            <button class="btn sub tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" data-i18n="feedback_btn_cancel">取消</button>
+            <button class="btn tiny primary" type="submit" id="btn-submit-feedback">
+              <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">提交</span>
+            </button>
+          </div>
         </div>
       </div>
     </form>
@@ -287,11 +298,15 @@
       <div class="success-icon-circle">
         <svg class="ico" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--green)"><polyline points="20 6 9 17 4 12"/></svg>
       </div>
-      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">Feedback Received</h3>
-      <p class="muted small" style="margin:0 0 18px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
-        Thank you for helping us improve Evergreen OwnLine!
+      <h3 style="margin:12px 0 6px;font-size:17px;font-weight:600" id="feedback-success-title" data-i18n="feedback_success_title">反馈已送达</h3>
+      <p class="muted small" style="margin:0 0 16px;line-height:1.5" id="feedback-success-desc" data-i18n="feedback_success_desc">
+        感谢您的反馈！数据已存入本服务器，您也可以直接在 GitHub 查看进展或联系作者。
       </p>
-      <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">Done</button>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn tiny" type="button" onclick="window.openGitHubIssue()" style="flex:1">在 GitHub 跟踪 Issue</button>
+        <button class="btn tiny" type="button" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1">复制报告发给作者</button>
+      </div>
+      <button class="btn primary tiny" type="button" onclick="document.getElementById('feedback-dialog').close()" style="width:100%;padding:9px;font-size:13px;font-weight:600" data-i18n="feedback_btn_close">完成</button>
     </div>
   </div>
 </dialog>

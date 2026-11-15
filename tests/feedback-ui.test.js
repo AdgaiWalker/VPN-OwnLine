@@ -27,6 +27,7 @@ test('feedback ui: quick feedback entry points and dialog structure', () => {
   assert(html.includes('id="feedback-message"'), '#feedback-message textarea must exist');
   assert(html.includes('id="feedback-contact"'), '#feedback-contact input must exist');
   assert(html.includes('id="feedback-attach-diag"'), '#feedback-attach-diag checkbox must exist');
+  assert(html.includes('id="btn-gh-issue"'), '#btn-gh-issue must exist');
   assert(html.includes('id="btn-copy-feedback"'), '#btn-copy-feedback must exist');
   assert(html.includes('id="btn-submit-feedback"'), '#btn-submit-feedback must exist');
   assert(html.includes('id="feedback-success-card"'), '#feedback-success-card must exist');
@@ -38,6 +39,7 @@ test('feedback logic: functions exported and i18n keys present', () => {
   assert(html.includes('window.updateFeedbackCharCount = updateFeedbackCharCount;'), 'updateFeedbackCharCount must be exported to window');
   assert(html.includes('window.ownlineSubmitFeedback = ownlineSubmitFeedback;'), 'ownlineSubmitFeedback must be exported to window');
   assert(html.includes('window.ownlineCopyFeedbackAndDiag = ownlineCopyFeedbackAndDiag;'), 'ownlineCopyFeedbackAndDiag must be exported to window');
+  assert(html.includes('window.openGitHubIssue = openGitHubIssue;'), 'openGitHubIssue must be exported to window');
 
   // Bilingual i18n
   assert(html.includes('footer_feedback: "Feedback"'), 'i18n.en footer_feedback must exist');
