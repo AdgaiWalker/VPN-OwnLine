@@ -3,6 +3,12 @@
 # 运行环境：Debian 12+ / Ubuntu 22.04+ (root 权限)
 set -euo pipefail
 
+# 防自覆写保护：若脚本正由 /opt/web/deploy/upgrade.sh 执行，自身被覆盖会导致 bash 偏移错乱，转为内存执行
+if [ -f "${0:-}" ] && [ "${SELF_BUFFERED:-0}" != "1" ]; then
+  export SELF_BUFFERED=1
+  exec bash -c "$(cat "$0")" "$@"
+fi
+
 TARGET_VERSION="${1:-}"
 REPO_URL="https://github.com/AdgaiWalker/VPN-OwnLine"
 BRANCH="${LADDER_BRANCH:-main}"
