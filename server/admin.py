@@ -23,9 +23,6 @@ from nodekit import remote_config as remote_cfg_mod  # noqa: E402
 from nodekit import http_utils  # noqa: E402
 from nodekit import system_updater as updater_mod  # noqa: E402
 from nodekit import ai_feedback as ai_feedback_mod  # noqa: E402
-from nodekit.relay_service import RelayService  # noqa: E402
-from nodekit.hy2_service import Hy2Service  # noqa: E402
-from nodekit.node_service import NodeService  # noqa: E402
 from nodekit.node_manager import FileNodeStore, NodeManager, NodeManagerError  # noqa: E402
 import reset_admin_password as password_mod  # noqa: E402
 import tencent_discovery as tencent_discovery_mod  # noqa: E402

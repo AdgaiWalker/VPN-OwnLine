@@ -48,9 +48,6 @@ for f in \
   server/nodekit/ports_tests.py \
   server/nodekit/http_utils_tests.py \
   server/nodekit/node_manager_tests.py \
-  server/nodekit/relay_service_tests.py \
-  server/nodekit/hy2_service_tests.py \
-  server/nodekit/node_service_tests.py \
   server/nodekit/system_updater_tests.py \
   server/nodekit/ai_feedback_tests.py
 do
