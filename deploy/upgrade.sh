@@ -90,19 +90,21 @@ else
 
   # 5. 原子同步代码至 /opt/web（绝对不触碰 /opt/web-data）
   mkdir -p "$WEB_DIR"
-  if [ -d "$TMP_DIR/server/providers" ]; then cp -r "$TMP_DIR/server/providers" "$WEB_DIR/"; fi
+  mkdir -p "$WEB_DIR/providers"
+  if [ -d "$TMP_DIR/server/providers" ]; then cp -rf "$TMP_DIR/server/providers/." "$WEB_DIR/providers/"; fi
+  mkdir -p "$WEB_DIR/nodekit"
   if [ -d "$TMP_DIR/server/nodekit" ]; then
     rm -rf "$WEB_DIR/nodekit/__pycache__" "$WEB_DIR/nodekit/node_service.py" "$WEB_DIR/nodekit/relay_service.py" "$WEB_DIR/nodekit/hy2_service.py" 2>/dev/null || true
-    cp -r "$TMP_DIR/server/nodekit" "$WEB_DIR/"
+    cp -rf "$TMP_DIR/server/nodekit/." "$WEB_DIR/nodekit/"
   fi
   cp "$TMP_DIR/server"/*.py "$WEB_DIR/" 2>/dev/null || true
   cp "$TMP_DIR/server"/*.sh "$WEB_DIR/" 2>/dev/null || true
   if [ -f "$TMP_DIR/web/index.html" ]; then cp "$TMP_DIR/web/index.html" "$WEB_DIR/"; fi
   if [ -f "$TMP_DIR/web/change-password.html" ]; then cp "$TMP_DIR/web/change-password.html" "$WEB_DIR/"; fi
   if [ -f "$TMP_DIR/web/backup-crypto.js" ]; then cp "$TMP_DIR/web/backup-crypto.js" "$WEB_DIR/"; fi
-  if [ -d "$TMP_DIR/web/assets" ]; then cp -r "$TMP_DIR/web/assets" "$WEB_DIR/"; fi
-  if [ -d "$TMP_DIR/deploy" ]; then cp -r "$TMP_DIR/deploy" "$WEB_DIR/"; fi
-  if [ -d "$TMP_DIR/scripts" ]; then cp -r "$TMP_DIR/scripts" "$WEB_DIR/"; fi
+  if [ -d "$TMP_DIR/web/assets" ]; then mkdir -p "$WEB_DIR/assets" && cp -rf "$TMP_DIR/web/assets/." "$WEB_DIR/assets/"; fi
+  if [ -d "$TMP_DIR/deploy" ]; then mkdir -p "$WEB_DIR/deploy" && cp -rf "$TMP_DIR/deploy/." "$WEB_DIR/deploy/"; fi
+  if [ -d "$TMP_DIR/scripts" ]; then mkdir -p "$WEB_DIR/scripts" && cp -rf "$TMP_DIR/scripts/." "$WEB_DIR/scripts/"; fi
   chmod 755 "$WEB_DIR"/*.sh "$WEB_DIR"/*.py 2>/dev/null || true
 fi
 

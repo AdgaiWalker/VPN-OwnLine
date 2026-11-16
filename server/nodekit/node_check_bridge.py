@@ -4,13 +4,6 @@ import json
 import os
 from pathlib import Path
 import subprocess
-
-"""Run the optional SSH preflight worker with bounded, private IPC."""
-
-import json
-import os
-from pathlib import Path
-import subprocess
 import sys
 
 CUR_DIR = Path(__file__).resolve().parent
