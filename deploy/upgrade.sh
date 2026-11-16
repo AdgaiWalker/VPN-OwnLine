@@ -81,7 +81,10 @@ else
   # 5. 原子同步代码至 /opt/web（绝对不触碰 /opt/web-data）
   mkdir -p "$WEB_DIR"
   if [ -d "$TMP_DIR/server/providers" ]; then cp -r "$TMP_DIR/server/providers" "$WEB_DIR/"; fi
-  if [ -d "$TMP_DIR/server/nodekit" ]; then cp -r "$TMP_DIR/server/nodekit" "$WEB_DIR/"; fi
+  if [ -d "$TMP_DIR/server/nodekit" ]; then
+    rm -rf "$WEB_DIR/nodekit/__pycache__" "$WEB_DIR/nodekit/node_service.py" "$WEB_DIR/nodekit/relay_service.py" "$WEB_DIR/nodekit/hy2_service.py" 2>/dev/null || true
+    cp -r "$TMP_DIR/server/nodekit" "$WEB_DIR/"
+  fi
   cp "$TMP_DIR/server"/*.py "$WEB_DIR/" 2>/dev/null || true
   cp "$TMP_DIR/server"/*.sh "$WEB_DIR/" 2>/dev/null || true
   if [ -f "$TMP_DIR/web/index.html" ]; then cp "$TMP_DIR/web/index.html" "$WEB_DIR/"; fi

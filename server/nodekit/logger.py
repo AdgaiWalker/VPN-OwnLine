@@ -70,24 +70,43 @@ def log(level, source, message):
     line = json.dumps(entry, ensure_ascii=False) + "\n"
     with _LOCK:
         try:
+            import fcntl
             os.makedirs(DATA, mode=0o700, exist_ok=True)
             with open(LOG_FILE, "a", encoding="utf-8") as f:
+                try:
+                    fcntl.flock(f, fcntl.LOCK_EX)
+                except (OSError, IOError):
+                    pass
                 f.write(line)
+                try:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                except (OSError, IOError):
+                    pass
         except Exception:
             pass
 
 
 def rotate_if_needed(max_lines=MAX_LINES):
-    """超限时截断保留最新 max_lines 行"""
+    """超限时截断保留最新 max_lines 行（持锁就地覆写）"""
     with _LOCK:
         try:
+            import fcntl
             if not os.path.exists(LOG_FILE):
                 return
-            with open(LOG_FILE, "r", encoding="utf-8") as f:
+            with open(LOG_FILE, "r+", encoding="utf-8") as f:
+                try:
+                    fcntl.flock(f, fcntl.LOCK_EX)
+                except (OSError, IOError):
+                    pass
                 lines = f.readlines()
-            if len(lines) > max_lines:
-                with open(LOG_FILE, "w", encoding="utf-8") as f:
+                if len(lines) > max_lines:
+                    f.seek(0)
                     f.writelines(lines[-max_lines:])
+                    f.truncate()
+                try:
+                    fcntl.flock(f, fcntl.LOCK_UN)
+                except (OSError, IOError):
+                    pass
         except Exception:
             pass
 
