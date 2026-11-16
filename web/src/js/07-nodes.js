@@ -1386,6 +1386,7 @@
 
   function refreshPing(btn) {
     if (btn) btn.classList.add("refreshing");
+    var zh = (typeof isZh === 'function') ? isZh() : true;
     if (location.protocol === "file:") {
       setTimeout(function () {
         if (STATUS["香港 · HK01"]) STATUS["香港 · HK01"].cn_ms = Math.floor(20 + Math.random() * 12);
@@ -1402,7 +1403,7 @@
       var s = document.getElementById("s" + i);
       if (s) {
         var existing = s.querySelector(".ping-pill");
-        if (existing) existing.textContent = "测速中...";
+        if (existing) existing.textContent = zh ? "测速中..." : "Testing...";
       }
     });
     if (typeof ownlineProbeLocalPing === "function") {
@@ -1567,7 +1568,25 @@
     });
   }
 
+  var NodeController = {
+    deriveNodeState: deriveNodeState,
+    paintStatus: paintStatus,
+    renderNodes: renderNodes,
+    toggleDrawer: toggleNodeDrawer,
+    openMenu: nodeMenu,
+    mountIsp: mountIsp,
+    delNode: delNode,
+    rotateKey: rotateKey,
+    editNode: editNode,
+    toggleHy2: toggleHy2,
+    refreshPing: refreshPing,
+    setProbeVantage: setProbeVantage,
+    openRelayDialog: openRelayDialog,
+    unbindRelay: unbindRelay
+  };
+
   if (typeof window !== "undefined") {
+    window.NodeController = NodeController;
     window.paintStatus = paintStatus;
   }
 
