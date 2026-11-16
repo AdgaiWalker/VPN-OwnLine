@@ -253,11 +253,11 @@
       STATE.csrfToken = setup && typeof setup.csrf_token === "string" ? setup.csrf_token : "";
       STATE.tencentConfigured = !!(settings && settings.tencent_configured === true);
       var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true) || STATE.tencentConfigured;
-      STATE.nodeCheckAvailable = location.protocol === "https:" && !!(settings && settings.node_check_supported === true);
+      STATE.nodeCheckAvailable = !!(settings && settings.node_check_supported === true);
       setOtherCheckBusy(!!otherCheckController);
       document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
         ? (zh ? "仅测试连接，尚未安装节点。" : "Testing connection only, node not installed yet.")
-        : (zh ? "网页连接检测不可用。" : "Web connection check unavailable.");
+        : (zh ? "网页连接检测不可用（推荐使用免密终端接入）。" : "Web connection check unavailable (terminal join recommended).");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
       if (STATE.tencentConfigured) {

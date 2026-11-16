@@ -1,10 +1,10 @@
   function setOtherCheckBusy(busy) {
-    ["other-ip", "other-user", "other-ssh-port"].forEach(function(id) {
-      document.getElementById(id).disabled = busy;
+    ["other-ip", "other-user", "other-ssh-port", "other-credential", "other-passphrase"].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.disabled = busy;
     });
-    ["other-credential", "other-passphrase", "other-connect"].forEach(function(id) {
-      document.getElementById(id).disabled = busy || !STATE.nodeCheckAvailable;
-    });
+    var btn = document.getElementById("other-connect");
+    if (btn) btn.disabled = busy || !STATE.nodeCheckAvailable;
   }
 
   function safeUrl(path) {
