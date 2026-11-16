@@ -129,10 +129,10 @@ class DeliveryContractTests(unittest.TestCase):
         handler._origin_ok.return_value = True
 
         from unittest.mock import patch
-        with patch.object(admin.tencent_discovery_mod, "discover", return_value=fake_result) as mock_disc:
+        with patch.object(admin.tencent_discovery_mod, "discover", return_value=fake_result) as mock_disc, \
+             patch.object(admin.http_utils, "parse_json_body", return_value=(200, {"secret_id": "AKIDtest", "secret_key": "skeytest"})):
             # Test /api/tencent/instances
             handler.path = "/api/tencent/instances"
-            admin.http_utils.parse_json_body = lambda h, limit: ({"secret_id": "AKIDtest", "secret_key": "skeytest"}, None)
             admin.H.do_POST(handler)
             self.assertEqual(captured["status"], 200)
             self.assertTrue(captured["data"]["ok"])
@@ -161,9 +161,9 @@ class DeliveryContractTests(unittest.TestCase):
                 handler._origin_ok.return_value = True
 
                 from unittest.mock import patch
-                with patch.object(admin.tencent_discovery_mod, "discover", return_value={"ok": True, "instances": []}) as mock_disc:
+                with patch.object(admin.tencent_discovery_mod, "discover", return_value={"ok": True, "instances": []}) as mock_disc, \
+                     patch.object(admin.http_utils, "parse_json_body", return_value=(200, {})):
                     handler.path = "/api/tencent/instances"
-                    admin.http_utils.parse_json_body = lambda h, limit: ({}, None)
                     admin.H.do_POST(handler)
 
                     self.assertEqual(captured["status"], 200)

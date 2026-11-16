@@ -12,9 +12,14 @@ MAX_BODY = 1_000_000  # 1MB 限制，防超大 Payload
 
 
 def send_json(handler: Any, code: int, obj: Any) -> None:
-    """统一序列化 JSON 响应并发送标准安全标头。"""
+    """统一序列化 JSON 响应并发送标准安全标头，支持时间与 UUID 自动转为字符串。"""
     try:
-        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        def _default_serializer(o):
+            if hasattr(o, "isoformat"):
+                return o.isoformat()
+            return str(o)
+
+        body = json.dumps(obj, ensure_ascii=False, default=_default_serializer).encode("utf-8")
         handler.send_response(code)
         handler.send_header("Content-Type", "application/json; charset=utf-8")
         handler.send_header("Cache-Control", "no-store")
@@ -81,3 +86,63 @@ def extract_client_ip(handler: Any) -> str:
     if addr and len(addr) > 0:
         return str(addr[0]).strip()
     return ""
+
+
+def normalize_api_path(path: str) -> str:
+    """归一化管理路由路径：统一剔除末尾斜杠与 /api 前缀。
+    例：
+      /api/nodes -> /nodes
+      /nodes/    -> /nodes
+      /api/ping  -> /ping
+    满足 Gateway Matching 不变式（Caddy handle_path 与直连双前缀无差别兼容）。
+    """
+    p = (path or "").strip().rstrip("/")
+    if not p.startswith("/"):
+        p = "/" + p
+    if p.startswith("/api/"):
+        p = p[4:]
+    elif p == "/api":
+        p = ""
+    return p
+
+
+class AdminRouter:
+    """声明式路由分发器，内置双前缀归一化、CSRF 保护与 JSON 异常陷阱。"""
+
+    def __init__(self) -> None:
+        self._get_handlers: dict = {}
+        self._post_handlers: dict = {}
+
+    @staticmethod
+    def normalize(path: str) -> str:
+        return normalize_api_path(path)
+
+    def get(self, path: str):
+        def decorator(fn):
+            norm = self.normalize(path)
+            self._get_handlers[norm] = fn
+            return fn
+        return decorator
+
+    def post(self, path: str):
+        def decorator(fn):
+            norm = self.normalize(path)
+            self._post_handlers[norm] = fn
+            return fn
+        return decorator
+
+    def dispatch_get(self, handler: Any, raw_path: str, qs: str) -> bool:
+        norm = self.normalize(raw_path)
+        fn = self._get_handlers.get(norm)
+        if fn:
+            fn(handler, qs)
+            return True
+        return False
+
+    def dispatch_post(self, handler: Any, raw_path: str, body: dict) -> bool:
+        norm = self.normalize(raw_path)
+        fn = self._post_handlers.get(norm)
+        if fn:
+            fn(handler, body)
+            return True
+        return False

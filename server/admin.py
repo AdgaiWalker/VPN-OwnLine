@@ -396,16 +396,7 @@ def nodes_with_advice():
 class H(BaseHTTPRequestHandler):
     timeout = 30  # 单连接最长 30 秒，防慢速攻击占线程
     def _json(self, code, obj):
-        try:
-            body = json.dumps(obj, ensure_ascii=False).encode()
-            self.send_response(code)
-            self.send_header("Content-Type", "application/json; charset=utf-8")
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
-        except (BrokenPipeError, ConnectionResetError):
-            pass
+        http_utils.send_json(self, code, obj)
 
     def do_HEAD(self):
         self.do_GET()
@@ -413,9 +404,10 @@ class H(BaseHTTPRequestHandler):
     def do_GET(self):
         path, _, qs = self.path.partition("?")
         path = path.rstrip("/")
+        norm_path = http_utils.normalize_api_path(path)
 
         # Ultra-lightweight RTT probe endpoint for client latency measurement
-        if path in ("/api/ping", "/ping"):
+        if norm_path == "/ping":
             self.send_response(204)
             self.send_header("Cache-Control", "no-store, no-cache, must-revalidate")
             self.send_header("Access-Control-Allow-Origin", "*")
@@ -424,7 +416,7 @@ class H(BaseHTTPRequestHandler):
             return
 
         # This gate is also invoked by Caddy before every management route.
-        if path == '/password-gate':
+        if norm_path == "/password-gate":
             if INITIAL_PASSWORD_MARKER.exists():
                 self.send_response(303)
                 self.send_header('Location', '/change-password')
@@ -437,9 +429,9 @@ class H(BaseHTTPRequestHandler):
                 self.send_header('Content-Length', '0')
                 self.end_headers()
             return
-        if path in ('/api/password/state', '/password/state'):
+        if norm_path == "/password/state":
             return self._json(200, {'ok': True, 'required': INITIAL_PASSWORD_MARKER.exists()})
-        if path in ('/api/user', '/user'):
+        if norm_path == "/user":
             user = ''
             auth = self.headers.get('Authorization', '')
             if auth.startswith('Basic '):
@@ -493,7 +485,7 @@ class H(BaseHTTPRequestHandler):
             self.wfile.write(resp["body"])
             return
 
-        if path == "/backup":
+        if norm_path == "/backup":
             nodes = load_nodes()
             token = get_sub_token()
             vless_links = [subs_mod.node_uri(n) for n in nodes if subs_mod.in_subscription(n)]
@@ -515,7 +507,7 @@ class H(BaseHTTPRequestHandler):
             self.wfile.write(content)
             return
 
-        if path in ("/qr", "/api/qr"):
+        if norm_path == "/qr":
             q = urllib.parse.parse_qs(qs)
             raw_url = (q.get("url") or [None])[0]
             if not raw_url:
@@ -549,9 +541,9 @@ class H(BaseHTTPRequestHandler):
                     pass
             return self._json(404, {"ok": False, "error": "QR code unavailable"})
 
-        if path in ("/nodes", "/api/nodes", ""):
+        if norm_path in ("/nodes", ""):
             return self._json(200, nodes_with_advice())
-        if path in ("/logs", "/api/logs"):
+        if norm_path == "/logs":
             q = urllib.parse.parse_qs(qs)
             try:
                 limit = int((q.get("limit") or ["100"])[0])
@@ -563,7 +555,7 @@ class H(BaseHTTPRequestHandler):
                 "ok": True,
                 "logs": logger.read_logs(limit=limit, level_filter=lvl, src_filter=src)
             })
-        if path in ("/syslogs", "/api/syslogs"):
+        if norm_path == "/syslogs":
             q = urllib.parse.parse_qs(qs)
             service = (q.get("service") or ["sing-box"])[0]
             try:
@@ -572,7 +564,7 @@ class H(BaseHTTPRequestHandler):
                 lines = 50
             res = logger.get_syslog(service, lines=lines)
             return self._json(200 if res.get("ok") else 400, res)
-        if path in ("/ping", "/api/ping"):
+        if norm_path == "/ping":
             try:
                 import probe as probe_mod
                 nodes = load_nodes()
@@ -592,13 +584,13 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
-        if path in ("/system/version", "/api/system/version"):
+        if norm_path == "/system/version":
             return self._json(200, updater_mod.get_version_info())
-        if path in ("/system/check_update", "/api/system/check_update"):
+        if norm_path == "/system/check_update":
             q = urllib.parse.parse_qs(qs)
             force = (q.get("force") or ["0"])[0].lower() in ("1", "true", "yes")
             return self._json(200, updater_mod.check_update(force=force))
-        if path in ("/feedback/analysis", "/api/feedback/analysis", "/feedback/summary", "/api/feedback/summary"):
+        if norm_path in ("/feedback/analysis", "/feedback/summary"):
             fb_file = os.path.join(DATA, "feedback.jsonl")
             items = []
             if os.path.exists(fb_file):
@@ -613,7 +605,7 @@ class H(BaseHTTPRequestHandler):
             nodes = _load_json("nodes.json", [])
             analysis = ai_feedback_mod.analyze_feedback_entries(items, active_nodes=nodes)
             return self._json(200, analysis)
-        if path in ("/feedback", "/api/feedback"):
+        if norm_path == "/feedback":
             fb_file = os.path.join(DATA, "feedback.jsonl")
             items = []
             if os.path.exists(fb_file):
@@ -626,10 +618,10 @@ class H(BaseHTTPRequestHandler):
                 except Exception:
                     pass
             return self._json(200, {"ok": True, "feedback": items[-50:][::-1]})
-        if path in ("/probe/vantage", "/api/probe/vantage"):
+        if norm_path == "/probe/vantage":
             settings = _load_json("settings.json", {})
             return self._json(200, {"ok": True, "vantage": settings.get("probe_vantage")})
-        if path in ("/settings", "/api/settings"):
+        if norm_path == "/settings":
             settings = _load_json("settings.json", {})
             domain, token, sub_url = _build_sub_url(settings, self.headers.get("Host"))
             tc_ready = os.path.exists(os.path.join(DATA, "tc.json"))
@@ -646,7 +638,7 @@ class H(BaseHTTPRequestHandler):
                 "backup_restore_supported": True,
                 "node_check_supported": node_check_bridge.available(),
             })
-        if path in ("/relay/status", "/api/relay/status"):
+        if norm_path == "/relay/status":
             nodes = load_nodes()
             status = _load_json("status.json", {})
             relay_node = next((n for n in nodes if n.get("role") == "relay"), None)
@@ -691,7 +683,7 @@ class H(BaseHTTPRequestHandler):
                 "active_target": active_target,
                 "auto_failover": bool(primary_cfg and fallback_cfg),
             })
-        if path in ("/quota/guard", "/api/quota/guard"):
+        if norm_path == "/quota/guard":
             usage = _load_json("usage.json", {})
             eval_res = quota_mod.evaluate_all(usage)
             stopped = quota_mod.stopped_hosts()
@@ -724,7 +716,7 @@ class H(BaseHTTPRequestHandler):
                 "usage_fresh": quota_mod.usage_is_fresh(usage),
                 "guards": guards,
             })
-        if path in ("/node/job", "/api/node/job"):
+        if norm_path == "/node/job":
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
             if not re.fullmatch(r"[a-f0-9]{12}", jid):
@@ -744,7 +736,7 @@ class H(BaseHTTPRequestHandler):
             if job.get("delivery"):
                 res["delivery"] = job["delivery"]
             return self._json(200, res)
-        if path in ("/job", "/api/job"):
+        if norm_path == "/job":
             q = urllib.parse.parse_qs(qs)
             jid = (q.get("id") or [""])[0]
             j = JOBS.get(jid)
@@ -767,36 +759,26 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, out)
         self._json(404, {"ok": False, "error": "not found"})
 
-    def _origin_ok(self):
-        """只靠 Basic Auth 时，第三方网页也能让浏览器带上凭据发 POST。
-        浏览器跨站请求一定带 Origin（或 Referer），核对它的主机名。"""
-        src = self.headers.get("Origin") or self.headers.get("Referer") or ""
-        if not src:
-            return True                      # 命令行 / curl：没有 Origin
-        parsed = urllib.parse.urlsplit(src)
-        host = (self.headers.get("Host") or "").lower()
-        return parsed.scheme in ("http", "https") and bool(host) and parsed.netloc.lower() == host
-
     def do_POST(self):
-        if not self._origin_ok():
+        if not http_utils.validate_origin(self):
             return self._json(403, {"ok": False, "error": "跨站请求被拒绝"})
         path = self.path.rstrip("/")
-        if INITIAL_PASSWORD_MARKER.exists() and path not in (
-            '/api/password/change', '/password/change', '/api/credentials/change', '/credentials/change'
-        ):
+        norm_path = http_utils.normalize_api_path(path)
+        if INITIAL_PASSWORD_MARKER.exists() and norm_path not in ('/password/change', '/credentials/change'):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
-        length = int(self.headers.get("Content-Length") or 0)
-        if length > MAX_BODY:
-            return self._json(413, {"ok": False, "error": "请求体过大"})
-        raw = self.rfile.read(length) if length else b"{}"
-        try:
-            body = json.loads(raw.decode() or "{}")
-        except Exception:
-            return self._json(400, {"ok": False, "error": "请求体不是合法 JSON"})
-        if not isinstance(body, dict):
-            return self._json(400, {"ok": False, "error": "请求体必须是对象"})
 
-        if path in ('/api/password/change', '/password/change', '/api/credentials/change', '/credentials/change'):
+        res = http_utils.parse_json_body(self, MAX_BODY)
+        if isinstance(res, tuple) and len(res) == 2:
+            if isinstance(res[0], int):
+                code, body = res
+            else:
+                body, code = res[0], (200 if res[0] is not None else 400)
+        else:
+            body = res if isinstance(res, dict) else {}
+        if body is None:
+            return
+
+        if norm_path in ('/password/change', '/credentials/change'):
             old = body.get('current')
             new = body.get('new')
             confirm = body.get('confirm')
@@ -847,13 +829,13 @@ class H(BaseHTTPRequestHandler):
             finally:
                 _PASSWORD_LOCK.release()
 
-        if path in ("/system/upgrade", "/api/system/upgrade"):
+        if norm_path == "/system/upgrade":
             target_version = (body.get("target_version") or "").strip() or None
             res = updater_mod.trigger_upgrade(target_version=target_version)
             code = 200 if res.get("ok") else (409 if "进行中" in res.get("error", "") else 500)
             return self._json(code, res)
 
-        if path in ("/feedback", "/api/feedback"):
+        if norm_path == "/feedback":
             fb_type = (body.get("type") or "general").strip()[:32]
             message = (body.get("message") or "").strip()
             contact = (body.get("contact") or "").strip()[:128]
@@ -892,7 +874,7 @@ class H(BaseHTTPRequestHandler):
             logger.log("INFO", "FEEDBACK", f"收到新反馈 [{fb_type}] 来自 {client_ip}")
             return self._json(200, {"ok": True, "message": "反馈已收到，感谢您的建议与支持！", "id": entry["id"]})
 
-        if path in ("/node/check", "/api/node/check"):
+        if norm_path == "/node/check":
             # Credentials stay in the request/worker memory and never enter a job file.
             if self.headers.get_content_type() != "application/json":
                 return self._json(415, {"ok": False, "code": "INVALID_TYPE", "message": "请使用安全的管理页面。"})
@@ -902,7 +884,7 @@ class H(BaseHTTPRequestHandler):
             status = 409 if result.get("code") == "HOST_KEY_CONFIRMATION" else 503 if result.get("code") == "UNAVAILABLE" else 400
             return self._json(status, result)
 
-        if path in ("/tencent/instances", "/api/tencent/instances"):
+        if norm_path == "/tencent/instances":
             sid = (body.get("secret_id") or "").strip()
             skey = (body.get("secret_key") or "").strip()
             if not sid or not skey:
@@ -920,7 +902,7 @@ class H(BaseHTTPRequestHandler):
             except tencent_discovery_mod.Problem as e:
                 return self._json(e.status, {"ok": False, "error": e.message})
 
-        if path == "/quota/settings":
+        if norm_path == "/quota/settings":
             try:
                 quota_mod.save_quota_threshold(body.get("threshold"))
             except ValueError as e:
@@ -929,7 +911,7 @@ class H(BaseHTTPRequestHandler):
                 return self._json(500, {"ok": False, "error": "保护阈值保存失败"})
             return self._json(200, {"ok": True, "threshold": quota_mod.quota_threshold()})
 
-        if path == "/rotate":
+        if norm_path == "/rotate":
             msg = "旧订阅地址已失效；已连接的设备不受影响（要踢人请用「更换密钥」）"
             if body.get("dry_run"):
                 return self._json(200, {"ok": True, "dry_run": True, "message": msg,
@@ -954,7 +936,7 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
-        if path == "/restore":
+        if norm_path == "/restore":
             incoming_nodes = body.get("nodes")
             if not isinstance(incoming_nodes, list):
                 return self._json(400, {"ok": False, "error": "备份格式不正确：缺少 nodes 节点数组"})
@@ -985,7 +967,7 @@ class H(BaseHTTPRequestHandler):
             logger.log("WARN", "ADMIN", f"恢复备份成功：还原了 {len(valid_nodes)} 个节点")
             return self._json(200, {"ok": True, "restored_count": len(valid_nodes), "message": f"已恢复 {len(valid_nodes)} 个节点配置，请检查服务器实际状态"})
 
-        if path in ("/removenode", "/api/removenode"):
+        if norm_path in ("/removenode", "/delnode"):
             name = (body.get("name") or "").strip()
             cleanup_confirmed = body.get("cleanup_confirmed") is True
             try:
@@ -997,7 +979,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path in ("/editnode", "/api/editnode"):
+        if norm_path == "/editnode":
             name = (body.get("name") or "").strip()
             try:
                 resp = node_manager.edit_node(name, body)
@@ -1009,7 +991,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path in ("/relay/switch", "/api/relay/switch"):
+        if norm_path == "/relay/switch":
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
             try:
@@ -1021,7 +1003,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path in ("/relay/bind", "/api/relay/bind"):
+        if norm_path == "/relay/bind":
             name = (body.get("name") or "").strip()
             target_host = (body.get("target") or "").strip()
             fallback_host = (body.get("fallback") or "").strip() or None
@@ -1034,7 +1016,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path in ("/relay/unbind", "/api/relay/unbind"):
+        if norm_path == "/relay/unbind":
             name = (body.get("name") or "").strip()
             try:
                 resp = node_manager.unbind_relay(name)
@@ -1045,7 +1027,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path in ("/hy2/toggle", "/api/hy2/toggle"):
+        if norm_path == "/hy2/toggle":
             host = (body.get("host") or "").strip()
             name = (body.get("name") or "").strip()
             enabled = bool(body.get("enabled"))
@@ -1058,7 +1040,7 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
-        if path == "/ping":
+        if norm_path == "/ping":
             try:
                 import probe as probe_mod
                 nodes = load_nodes()
@@ -1078,7 +1060,7 @@ class H(BaseHTTPRequestHandler):
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})
 
-        if path == "/probe/vantage":
+        if norm_path == "/probe/vantage":
             name = (body.get("name") or body.get("vantage") or "").strip()
             nodes = load_nodes()
             target = next((n for n in nodes if (n.get("name") == name or n.get("host") == name) and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn" or (n.get("country") or "").upper() == "CN")), None)
@@ -1105,7 +1087,7 @@ class H(BaseHTTPRequestHandler):
                 pass
             return self._json(200, {"ok": True, "vantage": target["name"]})
 
-        if path == "/resetpw":
+        if norm_path == "/resetpw":
             ip = (body.get("ip") or "").strip()
             import providers
             st, msg, extra, who = providers.reset_password(ip, dry_run=bool(body.get("dry_run")))
@@ -1118,12 +1100,12 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "password": extra.get("password", ""),
                                     "reboot": extra.get("reboot", False), "provider": who})
 
-        if path == "/render":
+        if norm_path == "/render":
             render()
             return self._json(200, {"ok": True})
 
 
-        if path == "/verify":
+        if norm_path == "/verify":
             name = (body.get("name") or "").strip()
             nodes = load_nodes()
             node = next((n for n in nodes if n.get("name") == name), None)
@@ -1137,7 +1119,7 @@ class H(BaseHTTPRequestHandler):
                        (name, r.get("health"), r.get("exit_ip") or "-"))
             return self._json(200, {"ok": True, "result": r})
 
-        if path == "/repair":
+        if norm_path == "/repair":
             name = (body.get("name") or "").strip()
             all_bad = bool(body.get("all_bad"))
             nodes = load_nodes()
@@ -1182,7 +1164,7 @@ class H(BaseHTTPRequestHandler):
             all_ok = all(x.get("ok") for x in results)
             return self._json(200, {"ok": True, "all_ok": all_ok, "results": results})
 
-        if path in ("/addnode", "/api/addnode"):
+        if norm_path == "/addnode":
             ip = (body.get("ip") or "").strip()
             user = (body.get("user") or "root").strip() or "root"
             auth_type = (body.get("auth_type") or "password").strip()
