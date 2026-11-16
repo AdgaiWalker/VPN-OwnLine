@@ -3,10 +3,14 @@
 # 运行环境：Debian 12+ / Ubuntu 22.04+ (root 权限)
 set -euo pipefail
 
-# 防自覆写保护：若脚本正由 /opt/web/deploy/upgrade.sh 执行，自身被覆盖会导致 bash 偏移错乱，转为内存执行
-if [ -f "${0:-}" ] && [ "${SELF_BUFFERED:-0}" != "1" ]; then
-  export SELF_BUFFERED=1
-  exec bash -c "$(cat "$0")" "$@"
+# 防自覆写保护：若脚本正从安装目录执行，自动复制到临时文件执行，防止拷贝覆盖自身造成 bash 偏移错乱
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)/$(basename "${BASH_SOURCE[0]}")"
+if [[ "$SCRIPT_PATH" == *"/deploy/upgrade.sh" ]] && [ "${RUNNING_IN_TMP:-0}" != "1" ]; then
+  TMP_SCRIPT="$(mktemp /tmp/ownline-upgrade-run.XXXXXX.sh)"
+  cp "$SCRIPT_PATH" "$TMP_SCRIPT"
+  chmod 700 "$TMP_SCRIPT"
+  export RUNNING_IN_TMP=1
+  exec bash "$TMP_SCRIPT" "$@"
 fi
 
 TARGET_VERSION="${1:-}"
