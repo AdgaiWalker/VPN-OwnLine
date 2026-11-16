@@ -59,15 +59,39 @@ def parse(link):
     }
 
 
-def build(node):
+def build(node, name=None):
     """与 parse 互逆，用于 round-trip 测试与订阅渲染。"""
+    disp_name = name or node.get("name") or node.get("host") or "vless"
     q = (
         "encryption=none&flow=%s&security=reality&sni=%s&fp=chrome&pbk=%s&sid=%s&type=%s&headerType=none"
-        % (node.get("flow") or "xtls-rprx-vision", node["sni"], node["pbk"], node["sid"], node.get("type") or "tcp")
+        % (node.get("flow") or "xtls-rprx-vision", node.get("sni") or node.get("host") or "", node.get("pbk") or "", node.get("sid") or "", node.get("type") or "tcp")
     )
     return "vless://%s@%s:%s?%s#%s" % (
-        node["uuid"], node["host"], node["port"], q, urllib.parse.quote(node.get("name") or node["host"])
+        node.get("uuid") or "", node["host"], node["port"], q, urllib.parse.quote(disp_name)
     )
+
+
+def build_hy2(node, name=None):
+    """Hysteria2 / QUIC 节点的分享链接。"""
+    disp_name = name or node.get("name") or node.get("host") or "hy2"
+    q = (
+        "insecure=1&sni=%s&alpn=h3&obfs=salamander&obfs-password=%s"
+        % (node.get("sni") or node.get("host") or "", node.get("obfs_password") or "")
+    )
+    return "hysteria2://%s@%s:%s?%s#%s" % (
+        node.get("password") or "",
+        node["host"],
+        node["port"],
+        q,
+        urllib.parse.quote(disp_name),
+    )
+
+
+def build_link(node, name=None):
+    """根据节点协议类型自动生成对应分享链接（vless:// 或 hysteria2://）。"""
+    if node.get("type") == "hysteria2":
+        return build_hy2(node, name=name)
+    return build(node, name=name)
 
 
 def parse_isp_proxy(url):

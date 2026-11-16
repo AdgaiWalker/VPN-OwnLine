@@ -9,15 +9,18 @@ import base64
 import datetime
 import ipaddress
 import json
+import re
 import time
 import urllib.parse
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 try:
     from . import lifecycle
+    from . import links
     from . import quota_guard
 except ImportError:
     import lifecycle
+    import links
     import quota_guard
 
 # 这些状态表示节点有问题，不能进订阅。
@@ -258,23 +261,17 @@ def format_display_name(node, now_ts=None):
 
 def vless_uri(n, now_ts=None):
     disp_name = format_display_name(n, now_ts=now_ts)
-    q = ("encryption=none&flow=xtls-rprx-vision&security=reality"
-         "&sni=%s&fp=chrome&pbk=%s&sid=%s&type=tcp&headerType=none"
-         % (n.get("sni") or n["host"], n.get("pbk") or "", n.get("sid") or ""))
-    return "vless://%s@%s:%s?%s#%s" % (n["uuid"], n["host"], n["port"], q,
-                                      urllib.parse.quote(disp_name))
+    return links.build(n, name=disp_name)
 
 
 def hy2_uri(n, now_ts=None):
     disp_name = format_display_name(n, now_ts=now_ts)
-    q = ("insecure=1&sni=%s&alpn=h3&obfs=salamander&obfs-password=%s"
-         % (n.get("sni") or n["host"], n.get("obfs_password") or ""))
-    return "hysteria2://%s@%s:%s?%s#%s" % (n["password"], n["host"], n["port"], q,
-                                          urllib.parse.quote(disp_name))
+    return links.build_hy2(n, name=disp_name)
 
 
 def node_uri(n, now_ts=None):
-    return hy2_uri(n, now_ts=now_ts) if n.get("type") == "hysteria2" else vless_uri(n, now_ts=now_ts)
+    disp_name = format_display_name(n, now_ts=now_ts)
+    return links.build_link(n, name=disp_name)
 
 
 def render_v2ray_base64(nodes, profile="all", now_ts=None, usage_data=None):
@@ -560,3 +557,100 @@ def pick_landing(nodes, status=None):
         "sid": best["sid"],
         "sni": best["sni"],
     }
+
+
+class SubscriptionEngine:
+    """订阅服务核心引擎：
+    - 客户端内容协商与协议探测（Clash/Mihomo/Stash/Flclash/Verge vs Base64）
+    - 客群模式过滤（office / lite / direct / pro）
+    - 标准 Subscription-Userinfo 响应头与元数据聚合
+    - 安全性校验与防自锁规则注入（ADR-013 / ADR-014）
+    """
+
+    @staticmethod
+    def detect_format(path: str, qs_params: Dict[str, List[str]], user_agent: str) -> str:
+        target = (qs_params.get("target") or [""])[0].lower()
+        if path.endswith("/clash") or target == "clash":
+            return "clash"
+        if bool(re.search(r"(?i)(clash|mihomo|stash|flclash|verge)", user_agent or "")):
+            return "clash"
+        return "base64"
+
+    @staticmethod
+    def render_payload(
+        nodes: List[Dict[str, Any]],
+        fmt: str,
+        profile: str = "all",
+        usage_data: Optional[Dict[str, Any]] = None,
+        now_ts: Optional[int] = None,
+    ) -> Tuple[bytes, str, str]:
+        """返回 (content_bytes, content_type, filename)"""
+        if fmt == "clash":
+            text = render_clash_yaml(nodes, profile=profile, now_ts=now_ts, usage_data=usage_data)
+            return text.encode("utf-8"), "text/yaml; charset=utf-8", "clash.yaml"
+        else:
+            text = render_v2ray_base64(nodes, profile=profile, now_ts=now_ts, usage_data=usage_data)
+            return text.encode("utf-8"), "text/plain; charset=utf-8", "subscription.txt"
+
+    @classmethod
+    def handle_request(
+        cls,
+        nodes: List[Dict[str, Any]],
+        path: str,
+        qs: str,
+        user_agent: str,
+        usage_data: Optional[Dict[str, Any]] = None,
+        now_ts: Optional[int] = None,
+    ) -> Dict[str, Any]:
+        """统筹处理订阅请求并组装完整 HTTP 响应元数据字典：
+        {
+            "status": 200,
+            "headers": [(name, value), ...],
+            "body": bytes,
+            "format": "Clash YAML" | "Base64",
+            "profile": str,
+            "node_count": int,
+        }
+        """
+        qs_params = urllib.parse.parse_qs(qs or "")
+        if path.endswith("/singbox") or (qs_params.get("target") or [""])[0] == "singbox":
+            return {
+                "status": 404,
+                "headers": [("Content-Type", "application/json; charset=utf-8")],
+                "body": json.dumps({"ok": False, "error": "singbox subscription format is not supported"}).encode("utf-8"),
+                "format": "error",
+                "profile": "",
+                "node_count": 0,
+            }
+
+        fmt = cls.detect_format(path, qs_params, user_agent)
+        profile = (qs_params.get("profile") or qs_params.get("mode") or ["all"])[0].lower()
+
+        eligible_hosts = quota_guard.controllable_hosts(nodes)
+        sub_count = sum(1 for n in nodes if in_subscription(
+            n, now_ts=now_ts, usage_data=usage_data, controllable_hosts=eligible_hosts
+        ))
+
+        content, content_type, filename = cls.render_payload(
+            nodes, fmt=fmt, profile=profile, usage_data=usage_data, now_ts=now_ts
+        )
+
+        headers = [
+            ("Content-Type", content_type),
+            ("Content-Disposition", f'attachment; filename="{filename}"'),
+            ("Cache-Control", "no-store"),
+            ("Content-Length", str(len(content))),
+        ]
+
+        userinfo = subscription_userinfo(usage_data, nodes=nodes)
+        if userinfo:
+            headers.append(("Subscription-Userinfo", userinfo))
+
+        return {
+            "status": 200,
+            "headers": headers,
+            "body": content,
+            "format": "Clash YAML" if fmt == "clash" else "Base64",
+            "profile": profile,
+            "node_count": sub_count,
+        }

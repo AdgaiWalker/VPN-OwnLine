@@ -56,23 +56,6 @@ def update_nodes(mutator):
     """读-改-写 全程持锁，避免两个任务同时改导致丢更新。"""
     return node_manager.update_nodes(mutator)
 
-def vless(n):
-    q = ("encryption=none&flow=xtls-rprx-vision&security=reality"
-         "&sni=%s&fp=chrome&pbk=%s&sid=%s&type=tcp&headerType=none" % (n["sni"], n["pbk"], n["sid"]))
-    return "vless://%s@%s:%s?%s#%s" % (n["uuid"], n["host"], n["port"], q, urllib.parse.quote(n["name"]))
-
-
-def hy2(n):
-    """Hysteria2 / QUIC 节点的分享链接。字段与 vless 不同：密码 + 混淆。"""
-    q = ("insecure=1&sni=%s&alpn=h3&obfs=salamander&obfs-password=%s"
-         % (n["sni"], n["obfs_password"]))
-    return "hysteria2://%s@%s:%s?%s#%s" % (n["password"], n["host"], n["port"], q,
-                                          urllib.parse.quote(n["name"]))
-
-
-def link(n):
-    return hy2(n) if n.get("type") == "hysteria2" else vless(n)
-
 def get_sub_token():
     """获取订阅 token：优先读 settings.json，兜底从 Caddyfile 解析。"""
     try:
@@ -99,7 +82,7 @@ def render():
     # 兼容过渡阶段：若显式指定 subconverter，保留旧逻辑
     try:
         nodes = [n for n in load_nodes() if subs_mod.in_subscription(n)]
-        src = urllib.parse.quote("|".join(link(n) for n in nodes), safe="")
+        src = urllib.parse.quote("|".join(links_mod.build_link(n) for n in nodes), safe="")
         with open(CADDY, encoding="utf-8") as f:
             txt = f.read()
         new = re.sub(r"url=[^&\s]+", "url=" + src, txt, count=1)
@@ -491,41 +474,23 @@ class H(BaseHTTPRequestHandler):
                 logger.log("WARN", "SUB", f"非法订阅请求 (IP={client_ip})")
                 return self._json(404, {"ok": False, "error": "invalid subscription token"})
 
-            q = urllib.parse.parse_qs(qs)
             ua = self.headers.get("User-Agent", "Unknown")
-            if path.endswith("/singbox") or (q.get("target") or [""])[0] == "singbox":
-                return self._json(404, {"ok": False, "error": "singbox subscription format is not supported"})
-            is_clash = (
-                path.endswith("/clash")
-                or (q.get("target") or [""])[0] == "clash"
-                or bool(re.search(r"(?i)(clash|mihomo|stash|flclash|verge)", ua))
-            )
-            profile = (q.get("profile") or q.get("mode") or ["all"])[0].lower()
             nodes = load_nodes()
-            fmt = "Clash YAML" if is_clash else "Base64"
             usage_data = _load_json("usage.json", {})
-            userinfo = subs_mod.subscription_userinfo(usage_data, nodes=nodes)
-            eligible_hosts = quota_mod.controllable_hosts(nodes)
-            sub_count = sum(1 for n in nodes if subs_mod.in_subscription(
-                n, usage_data=usage_data, controllable_hosts=eligible_hosts))
-            logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={fmt}, 场景={profile}, UA={ua[:30]}, 节点数={sub_count})")
-            if is_clash:
-                content = subs_mod.render_clash_yaml(nodes, profile=profile, usage_data=usage_data).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "text/yaml; charset=utf-8")
-                self.send_header("Content-Disposition", 'attachment; filename="clash.yaml"')
-            else:
-                content = subs_mod.render_v2ray_base64(nodes, profile=profile, usage_data=usage_data).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "text/plain; charset=utf-8")
-                self.send_header("Content-Disposition", 'attachment; filename="subscription.txt"')
-
-            if userinfo:
-                self.send_header("Subscription-Userinfo", userinfo)
-            self.send_header("Cache-Control", "no-store")
-            self.send_header("Content-Length", str(len(content)))
+            resp = subs_mod.SubscriptionEngine.handle_request(
+                nodes=nodes,
+                path=path,
+                qs=qs,
+                user_agent=ua,
+                usage_data=usage_data,
+            )
+            if resp.get("status") == 200:
+                logger.log("INFO", "SUB", f"拉取订阅 (IP={client_ip}, 格式={resp['format']}, 场景={resp['profile']}, UA={ua[:30]}, 节点数={resp['node_count']})")
+            self.send_response(resp["status"])
+            for h_k, h_v in resp["headers"]:
+                self.send_header(h_k, h_v)
             self.end_headers()
-            self.wfile.write(content)
+            self.wfile.write(resp["body"])
             return
 
         if path == "/backup":

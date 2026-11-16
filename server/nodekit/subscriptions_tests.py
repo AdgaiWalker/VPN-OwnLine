@@ -207,4 +207,29 @@ check("Clash 自动选择包含 50ms 防抖容差", "tolerance: 50" in yaml_str)
 check("Clash 包含 🛡️ 故障转移 fallback 策略组", 'name: "🛡️ 故障转移"' in yaml_str and "type: fallback" in yaml_str)
 check("office 安全办公采用 fallback 保障 IP 连续性", 'name: "🛡️ 安全办公"' in yaml_office and "type: fallback" in yaml_office)
 
+# 8. SubscriptionEngine 端到端请求与协议探测测试
+eng = S.SubscriptionEngine
+check("探测 User-Agent 为 Clash -> clash", eng.detect_format("/s/token", {}, "ClashForWindows/0.20.0") == "clash")
+check("探测 User-Agent 为 Mihomo -> clash", eng.detect_format("/s/token", {}, "Mihomo/1.18.0") == "clash")
+check("探测 target=clash -> clash", eng.detect_format("/s/token", {"target": ["clash"]}, "curl/7.68.0") == "clash")
+check("探测 path 结尾为 /clash -> clash", eng.detect_format("/s/token/clash", {}, "Shadowrocket/2.2.0") == "clash")
+check("默认回退为 base64", eng.detect_format("/s/token", {}, "Shadowrocket/2.2.0") == "base64")
+
+resp_clash = eng.handle_request(all_nodes, "/s/token/clash", "", "ClashForWindows/0.20.0", usage_data=real_usage)
+check("SubscriptionEngine 处理 Clash 返回 200", resp_clash["status"] == 200)
+check("SubscriptionEngine 返回 Clash Content-Type", any(h == ("Content-Type", "text/yaml; charset=utf-8") for h in resp_clash["headers"]))
+check("SubscriptionEngine 返回正确节点数", resp_clash["node_count"] == 2)
+
+resp_b64 = eng.handle_request(all_nodes, "/s/token", "", "Shadowrocket/2.2.0", usage_data=real_usage)
+check("SubscriptionEngine 处理 Base64 返回 200", resp_b64["status"] == 200)
+check("SubscriptionEngine 返回 Base64 Content-Type", any(h == ("Content-Type", "text/plain; charset=utf-8") for h in resp_b64["headers"]))
+
+resp_sb = eng.handle_request(all_nodes, "/s/token/singbox", "", "curl/7.0.0")
+check("SubscriptionEngine 拦截 singbox 请求并返回 404", resp_sb["status"] == 404)
+
+# 9. links.build_link 统一封装测试
+from nodekit import links as L
+check("build_link vless 节点输出正确", L.build_link(fast).startswith("vless://"))
+check("build_link hy2 节点输出正确", L.build_link(hy2_node).startswith("hysteria2://"))
+
 print("通过 %d 项" % ok)
