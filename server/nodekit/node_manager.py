@@ -767,10 +767,30 @@ class NodeManager:
             if not target_node:
                 raise NodeNotFoundError("未找到指定的节点")
 
+            target_warp = None
+            if self.remote_cfg and hasattr(self.remote_cfg, "toggle_warp"):
+                sync_res = self.remote_cfg.toggle_warp(target_node, enabled=enabled)
+                if not sync_res.get("ok"):
+                    self._log(
+                        "WARN",
+                        "WARP",
+                        f"切换 WARP 失败 [{name} -> {'开启' if enabled else '关闭'}]: {sync_res.get('error')}",
+                    )
+                    raise RemoteSyncError(
+                        sync_res.get("error") or "远端切换 WARP 失败",
+                        rolled_back=sync_res.get("rolled_back", False),
+                        verify=sync_res.get("verify"),
+                    )
+                target_warp = sync_res.get("warp")
+
             def _apply_warp(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
                 for n in ns:
                     if n.get("name") == name:
                         n["warp_enabled"] = bool(enabled)
+                        if target_warp:
+                            n["warp"] = target_warp
+                        elif not enabled and "warp" in n:
+                            n.pop("warp", None)
                 return ns
 
             self.store.update(_apply_warp)

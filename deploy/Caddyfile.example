@@ -3,6 +3,11 @@
 	redir /p / 308
 	redir /p/* / 308
 
+	# 免密自举路由：直接交由 admin.py 处理（一次性高熵 Token 鉴权，支持全自动入网）
+	handle /join/* {
+		reverse_proxy 127.0.0.1:8099
+	}
+
 	# 订阅路由：直接交由 admin.py 处理（支持 Base64 / Clash YAML 智能分发与 Token 鉴权）
 	handle /s/* {
 		reverse_proxy 127.0.0.1:8099

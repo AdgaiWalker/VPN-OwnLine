@@ -306,8 +306,87 @@ def test_windows_node_support():
         check("Windows HY2 节点记录标注 os=windows", res.get("hy2_node", {}).get("os") == "windows")
 
 
+def test_warp_toggle_and_rollback():
+    init_cfg = templates.exit_config(
+        port=443,
+        uuid="11111111-1111-4111-8111-111111111111",
+        sni="www.apple.com",
+        private_key="PRIVKEY_INIT_TEST",
+        sid="abcd1234",
+        hy2=None,
+        isp=None,
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        root, cfg_path, sb_bin, env, runner, ssh_calls = _make_sandbox(tmp, init_cfg)
+
+        node = {
+            "name": "美西出口",
+            "host": "203.0.113.10",
+            "port": 443,
+            "uuid": "11111111-1111-4111-8111-111111111111",
+            "sni": "www.apple.com",
+            "sid": "abcd1234",
+            "role": "exit",
+            "ssh_user": "root",
+        }
+
+        mock_warp = {
+            "ok": True,
+            "private_key": "MOCK_WARP_PRIV",
+            "local_address": ["172.16.0.2/32"],
+            "server": "engage.cloudflareclient.com",
+            "server_port": 2408,
+            "peer_public_key": "MOCK_WARP_PEER_PUB",
+            "mtu": 1280,
+        }
+
+        # 1. 成功开启 WARP
+        res = RC.toggle_warp(
+            node,
+            enabled=True,
+            warp_creds=mock_warp,
+            runner=runner,
+            verifier=lambda n: {"health": "ok"},
+            cfg_path=cfg_path,
+            bin_path=sb_bin,
+        )
+        check("成功开启 WARP", res["ok"] is True, res)
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            c = json.load(f)
+        check("写入 endpoints wireguard", any(e.get("tag") == "warp-out" for e in c.get("endpoints", [])))
+        check("写入 AI 路由规则", any("openai" in r.get("domain_keyword", []) for r in c.get("route", {}).get("rules", [])))
+
+        # 2. 失败自动回滚
+        res_fail = RC.toggle_warp(
+            node,
+            enabled=False,
+            runner=runner,
+            verifier=lambda n: {"health": "proxy", "detail": "验真失败"},
+            cfg_path=cfg_path,
+            bin_path=sb_bin,
+        )
+        check("验真失败自动报错", res_fail["ok"] is False)
+        check("验真失败标记回滚", res_fail.get("rolled_back") is True)
+
+        # 3. 成功关闭 WARP
+        res_off = RC.toggle_warp(
+            node,
+            enabled=False,
+            runner=runner,
+            verifier=lambda n: {"health": "ok"},
+            cfg_path=cfg_path,
+            bin_path=sb_bin,
+        )
+        check("成功关闭 WARP", res_off["ok"] is True)
+        with open(cfg_path, "r", encoding="utf-8") as f:
+            c_off = json.load(f)
+        check("移除 endpoints", "endpoints" not in c_off or len(c_off["endpoints"]) == 0)
+
+
 def test_boundary_rejections():
     check("拒绝外部节点", RC.check_controllable({"source": "external"})[0] is False)
+    check("拒绝无凭据免密反向自举节点", RC.check_controllable({"source": "reverse_join", "host": "203.0.113.9"})[0] is False)
+    check("允许有密码的反向自举节点", RC.check_controllable({"source": "reverse_join", "host": "203.0.113.9", "ssh_password": "pwd"})[0] is True)
     check("拒绝 Windows 节点", RC.check_controllable({"os": "windows", "host": "203.0.113.9"})[0] is False)
     check("拒绝待清理节点", RC.check_controllable({"cleanup_pending": True, "host": "203.0.113.9"})[0] is False)
 
@@ -316,5 +395,6 @@ if __name__ == "__main__":
     test_relay_bind_switch_unbind_and_rollback()
     test_hy2_toggle_cert_verify_and_rollback()
     test_windows_node_support()
+    test_warp_toggle_and_rollback()
     test_boundary_rejections()
     print(f"通过 {ok} 项")

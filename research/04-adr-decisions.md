@@ -308,4 +308,24 @@
 1. 在 `templates.py` 固化 `_warp_outbound(warp)` 与 WireGuard 原生校验契约；
 2. 保持零付费外部依赖，实现 AI 业务免费清洗出海。
 
+---
+
+### <a id="adr-016"></a>ADR-016：WARP 真实数据面闭环与反向自举中转配对协议 (WARP Data-Plane Closed-Loop & Reverse-Join Relay Pairing) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+此前 ADR-015 定义了 WARP AI 分流规则，但未集成真实的 WireGuard 注册协议与凭据生成，导致控制台开启 WARP 仅是修改 `nodes.json` 元数据，落地机 sing-box 未真实生效；同时在反向自举场景下，国内轻量服务器面临 80/443 非备案端口拦截，且主控机不掌握国内服务器 SSH 凭据，无法由主控通过 SSH 推送中转配置。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（要求用户预先安装 warp-cli 或本地代理）：需要额外守护进程与本地代理监听，增加系统复杂度与维护心智负担；
+* 方案 B（轻量内置 WireGuard 客户端与自举脚本前置编译）：
+  1. 编写 `warp_client.py`，纯 Python 原生生成 x25519 密钥对并调用 Cloudflare 官方注册 API，获取真实 WireGuard 节点凭据与专属内网 IP；
+  2. 落地机 sing-box 同步适配现代 `endpoints` WireGuard 架构，直接写入 `/opt/sing-box/config.json` 并验真生效；
+  3. 国内中转反向自举采用“前置拉取编译”模型：创建 Token 时选择关联的目标海外落地机，在生成的自举脚本中直接固化中转转发规则，且国内节点监听端口默认切换为高端口 `8443`（避开非备案 80/443 拦截），无需主控端发起 SSH 推送。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 彻底闭环 WARP 数据面端到端真实出网，AI 分流 100% 具备数据面保障；
+2. 反向自举支持国内中继角色，一键拉取即自愈成型；
+3. `remote_config.check_controllable` 明确拦截无凭据反向节点的远程 SSH 推送，保障系统不变式。
+
 

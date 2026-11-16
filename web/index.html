@@ -2162,6 +2162,11 @@ footer.site-footer {
               <button class="btn primary" type="button" id="btn-gen-reverse-join" style="height:36px" data-i18n="btn_gen_join_cmd">生成接入命令</button>
             </div>
           </div>
+          <div id="reverse-relay-landing-group" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:8px">
+            <label for="reverse-relay-landing" class="small" style="font-weight:600;display:block;margin-bottom:4px" data-i18n="lbl_relay_target_landing">绑定海外出口 (落地节点)</label>
+            <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);padding:0 8px"></select>
+            <p class="small muted" style="margin:4px 0 0 0;font-size:11px" data-i18n="tip_relay_port_8443">国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。</p>
+          </div>
           <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
 
           <div id="reverse-join-cmd-box" style="display:none;margin-top:14px;padding:12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:10px">
@@ -2682,6 +2687,8 @@ footer.site-footer {
       tab_reverse_join: "One-Click Terminal Join (Recommended)",
       tab_ssh_direct: "SSH Direct Connection",
       reverse_join_desc: "Zero SSH password or private key needed. Run the generated command on your target VPS to bootstrap automatically.",
+      lbl_relay_target_landing: "Pair Overseas Exit (Landing)",
+      tip_relay_port_8443: "Domestic non-ICP servers automatically listen on port 8443 and forward to this landing node.",
       btn_gen_join_cmd: "Generate Join Command",
       lbl_run_on_vps: "Run this command on target VPS (root required):",
       lbl_token_ttl: "Valid for 15 minutes",
@@ -2884,6 +2891,8 @@ footer.site-footer {
       tab_reverse_join: "免密终端接入 (推荐)",
       tab_ssh_direct: "SSH 直连配置",
       reverse_join_desc: "无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。",
+      lbl_relay_target_landing: "绑定海外出口 (落地节点)",
+      tip_relay_port_8443: "国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。",
       btn_gen_join_cmd: "生成接入命令",
       lbl_run_on_vps: "目标 VPS 终端执行命令（需 root 权限）：",
       lbl_token_ttl: "15 分钟内有效",
@@ -3603,6 +3612,44 @@ footer.site-footer {
     var errBox = document.getElementById("reverse-join-error");
     var nameInput = document.getElementById("reverse-node-name");
     var roleSelect = document.getElementById("reverse-node-role");
+    var relayLandingGroup = document.getElementById("reverse-relay-landing-group");
+    var relayLandingSelect = document.getElementById("reverse-relay-landing");
+
+    function updateRelayLandingOptions() {
+      if (!relayLandingSelect) return;
+      var zh = (typeof isZh === "function") ? isZh() : true;
+      var currentVal = relayLandingSelect.value;
+      relayLandingSelect.innerHTML = "";
+      var allNodes = (window._nodes || (window.state && window.state.nodes) || []);
+      var exitNodes = allNodes.filter(function (n) {
+        return n && n.role !== "relay" && n.type !== "hysteria2";
+      });
+      if (exitNodes.length === 0) {
+        var opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = zh ? "（暂无可配对的海外出口节点）" : "(No overseas exit nodes available)";
+        relayLandingSelect.appendChild(opt);
+      } else {
+        exitNodes.forEach(function (n) {
+          var opt = document.createElement("option");
+          opt.value = n.host || n.name;
+          opt.textContent = (n.name || n.host) + " (" + (n.host || "") + ":" + (n.port || 443) + ")";
+          if (opt.value === currentVal) opt.selected = true;
+          relayLandingSelect.appendChild(opt);
+        });
+      }
+    }
+
+    if (roleSelect) {
+      roleSelect.onchange = function () {
+        if (roleSelect.value === "relay") {
+          if (relayLandingGroup) relayLandingGroup.style.display = "block";
+          updateRelayLandingOptions();
+        } else {
+          if (relayLandingGroup) relayLandingGroup.style.display = "none";
+        }
+      };
+    }
 
     if (btnGen) {
       btnGen.onclick = async function () {
@@ -3614,11 +3661,15 @@ footer.site-footer {
         try {
           var name = (nameInput ? nameInput.value : "").trim();
           var role = roleSelect ? roleSelect.value : "exit";
+          var payload = { name: name, role: role };
+          if (role === "relay" && relayLandingSelect && relayLandingSelect.value) {
+            payload.landing_host = relayLandingSelect.value;
+          }
           var tokenUrl = typeof safeUrl === "function" ? safeUrl("/api/node/join-token") : "/api/node/join-token";
           var res = await fetch(tokenUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: name, role: role })
+            body: JSON.stringify(payload)
           });
           var data = await res.json();
           if (data && data.ok && data.command) {

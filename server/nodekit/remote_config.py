@@ -30,8 +30,26 @@ DEFAULT_RUNNER = subprocess.run
 
 
 def is_local_node(node):
-    host = (node or {}).get("host") or ""
-    return bool((node or {}).get("local") is True or host in ("127.0.0.1", "localhost"))
+    if not node or not isinstance(node, dict):
+        return False
+    if node.get("local") is True:
+        return True
+    host = (node.get("host") or "").strip()
+    if host in ("127.0.0.1", "localhost", "0.0.0.0", "::1"):
+        return True
+    if os.path.exists(CFG_PATH):
+        try:
+            with open(CFG_PATH, "r", encoding="utf-8") as f:
+                c = json.load(f)
+            ibs = c.get("inbounds") or []
+            if ibs and node.get("uuid") and node.get("port"):
+                u = (ibs[0].get("users") or [{}])[0].get("uuid")
+                p = int(ibs[0].get("listen_port") or 0)
+                if u == node.get("uuid") and p == int(node.get("port")):
+                    return True
+        except Exception:
+            pass
+    return False
 
 
 def check_controllable(node, allow_windows=False):
@@ -40,6 +58,8 @@ def check_controllable(node, allow_windows=False):
         return False, "节点数据无效"
     if node.get("source") == "external":
         return False, "外部节点无 SSH 控制权限，无法改写远端配置"
+    if node.get("source") == "reverse_join" and not node.get("ssh_password") and not node.get("ssh_key"):
+        return False, "该节点由终端免密接入，控制台未保存 SSH 凭据，无法在线推送改写配置"
     if node.get("cleanup_pending"):
         return False, "节点处于待人工清理状态，无法修改配置"
     is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
@@ -146,6 +166,29 @@ def extract_live_params(live_cfg, fallback_node=None):
         if isp_ob.get("password"):
             isp_info["password"] = str(isp_ob["password"])
 
+    endpoints = live_cfg.get("endpoints") or []
+    warp_ep = next((ep for ep in endpoints if ep.get("tag") == "warp-out" or ep.get("type") == "wireguard"), None)
+    warp_info = None
+    if warp_ep and warp_ep.get("private_key"):
+        peers = warp_ep.get("peers") or [{}]
+        warp_info = {
+            "type": "wireguard",
+            "private_key": warp_ep["private_key"],
+            "local_address": warp_ep.get("address") or ["172.16.0.2/32"],
+            "server": peers[0].get("address") or "engage.cloudflareclient.com",
+            "server_port": peers[0].get("port") or 2408,
+            "peer_public_key": peers[0].get("public_key") or "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo=",
+            "mtu": warp_ep.get("mtu") or 1280,
+        }
+    else:
+        warp_ob = next((ob for ob in outbounds if ob.get("tag") == "warp-out" and ob.get("type") == "socks"), None)
+        if warp_ob:
+            warp_info = {
+                "type": "socks",
+                "server": warp_ob.get("server") or "127.0.0.1",
+                "server_port": int(warp_ob.get("server_port") or 40000),
+            }
+
     return {
         "port": port,
         "uuid": uid,
@@ -154,6 +197,7 @@ def extract_live_params(live_cfg, fallback_node=None):
         "sid": str(sid),
         "hy2": hy2_info,
         "isp": isp_info,
+        "warp": warp_info,
     }
 
 
@@ -651,6 +695,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             sid=live["sid"],
             hy2=hy2_params,
             isp=active_isp,
+            warp=live.get("warp"),
         )
         for ib in new_cfg.get("inbounds", []):
             if ib.get("type") == "hysteria2":
@@ -736,6 +781,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
         sid=live["sid"],
         hy2=None,
         isp=active_isp,
+        warp=live.get("warp"),
     )
     applied, apply_err = apply_config(
         vless_node,
@@ -792,6 +838,7 @@ def sync_isp(vless_node, isp_cfg, runner=None, verifier=None,
         sid=live["sid"],
         hy2=live["hy2"],
         isp=isp_cfg,
+        warp=live.get("warp"),
     )
     applied, apply_err = apply_config(vless_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path)
     if not applied:
@@ -814,4 +861,72 @@ def sync_isp(vless_node, isp_cfg, runner=None, verifier=None,
         "exit_ip": vr.get("exit_ip") or "",
         "exit_country": vr.get("exit_country") or "",
         "health_detail": vr.get("detail") or "",
+    }
+
+
+def toggle_warp(vless_node, enabled=True, warp_creds=None,
+                runner=None, verifier=None, cfg_path=CFG_PATH, bin_path=BIN_PATH):
+    """在海外出口机上真实开启或关闭 Cloudflare WARP 清洁出网通道，并执行验真与故障回滚。"""
+    verifier = verifier or verify_mod.run
+    ok, reason = check_controllable(vless_node)
+    if not ok:
+        return {"ok": False, "error": reason}
+    if vless_node.get("role") in ("relay", "standalone"):
+        return {"ok": False, "error": "国内中转或独立节点不支持开启 WARP 清洁出口"}
+
+    ok_read, err_read, live_cfg = read_live_config(vless_node, runner=runner, cfg_path=cfg_path)
+    if not ok_read:
+        return {"ok": False, "error": err_read}
+    try:
+        live = extract_live_params(live_cfg, fallback_node=vless_node)
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
+
+    active_isp = live["isp"] if live["isp"] is not None else vless_node.get("isp")
+
+    target_warp = None
+    if enabled:
+        if warp_creds and isinstance(warp_creds, dict) and warp_creds.get("private_key"):
+            target_warp = warp_creds
+        else:
+            try:
+                from . import warp_client
+            except ImportError:
+                import warp_client
+            w_res = warp_client.register_warp()
+            if not w_res.get("ok"):
+                return {"ok": False, "error": "Cloudflare WARP 凭据注册失败: %s" % w_res.get("error")}
+            target_warp = w_res
+
+    new_cfg = templates.exit_config(
+        port=live["port"],
+        uuid=live["uuid"],
+        sni=live["sni"],
+        private_key=live["private_key"],
+        sid=live["sid"],
+        hy2=live["hy2"],
+        isp=active_isp,
+        warp=target_warp,
+    )
+
+    applied, apply_err = apply_config(vless_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path)
+    if not applied:
+        return {"ok": False, "error": apply_err}
+
+    vr = verifier(vless_node) or {"health": "ok"}
+    if vr.get("health") != "ok":
+        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=cfg_path)
+        rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功"
+        return {
+            "ok": False,
+            "rolled_back": rolled_back,
+            "verify": vr,
+            "error": "WARP 状态调整后主通道验真失败（%s），%s" % (vr.get("detail") or vr.get("health"), rb_note),
+        }
+
+    return {
+        "ok": True,
+        "enabled": enabled,
+        "warp": target_warp,
+        "verify": vr,
     }

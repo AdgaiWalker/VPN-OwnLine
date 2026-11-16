@@ -44,24 +44,38 @@ def _isp_outbound(isp):
 
 
 def _warp_outbound(warp=None):
-    """Cloudflare WARP 清洁出网通道（原生 WireGuard 或 本地 SOCKS5 代理）。"""
+    """Cloudflare WARP 清洁出网通道（SOCKS5 代理回退模式）。"""
     warp = warp or {}
-    if warp.get("type") == "socks" or (warp.get("server") and warp.get("server_port") and str(warp.get("server_port")) != "2408"):
-        return {
-            "type": "socks",
-            "tag": "warp-out",
-            "server": str(warp.get("server") or "127.0.0.1"),
-            "server_port": int(warp.get("server_port") or 40000),
-        }
+    return {
+        "type": "socks",
+        "tag": "warp-out",
+        "server": str(warp.get("server") or "127.0.0.1"),
+        "server_port": int(warp.get("server_port") or 40000),
+    }
+
+
+def _warp_endpoint(warp=None):
+    """Cloudflare WARP 原生 WireGuard 端点（sing-box 1.11+ 标准架构）。"""
+    warp = warp or {}
+    server = str(warp.get("server") or "engage.cloudflareclient.com")
+    port = int(warp.get("server_port") or 2408)
+    local_addr = warp.get("local_address") or ["172.16.0.2/32"]
+    if isinstance(local_addr, str):
+        local_addr = [local_addr]
     return {
         "type": "wireguard",
         "tag": "warp-out",
-        "server": str(warp.get("server") or "engage.cloudflareclient.com"),
-        "server_port": int(warp.get("server_port") or 2408),
-        "local_address": warp.get("local_address") or ["172.16.0.2/32"],
         "private_key": str(warp.get("private_key") or ""),
-        "peer_public_key": str(warp.get("peer_public_key") or "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="),
+        "address": local_addr,
         "mtu": int(warp.get("mtu") or 1280),
+        "peers": [
+            {
+                "address": server,
+                "port": port,
+                "public_key": str(warp.get("peer_public_key") or "bmXOC+F1FxEMF9dyiK2H5/1SUtzH0JuVo51h2wPfgyo="),
+                "allowed_ips": ["0.0.0.0/0", "::/0"],
+            }
+        ],
     }
 
 
@@ -89,7 +103,7 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None, warp=None
             "route": route,
         }
     if warp:
-        outbounds = [_warp_outbound(warp), {"type": "direct", "tag": "direct"}]
+        is_socks = warp.get("type") == "socks" or (warp.get("server") and warp.get("server_port") and str(warp.get("server_port")) != "2408")
         route = {
             "rules": [
                 {"domain_keyword": ["openai", "anthropic", "claude"], "outbound": "warp-out"},
@@ -97,10 +111,18 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None, warp=None
                 {"outbound": "direct"}
             ]
         }
+        if is_socks:
+            return {
+                "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
+                "inbounds": inbounds,
+                "outbounds": [_warp_outbound(warp), {"type": "direct", "tag": "direct"}],
+                "route": route,
+            }
         return {
             "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
+            "endpoints": [_warp_endpoint(warp)],
             "inbounds": inbounds,
-            "outbounds": outbounds,
+            "outbounds": [{"type": "direct", "tag": "direct"}],
             "route": route,
         }
     return {
@@ -207,6 +229,13 @@ def validate(cfg):
             errs.append("short_id 必须是十六进制：%s" % sid)
     if not (ib.get("tls") or {}).get("server_name"):
         errs.append("缺少 sni")
+    for ep in cfg.get("endpoints") or []:
+        if ep.get("type") == "wireguard":
+            if not ep.get("private_key"):
+                errs.append("WARP 端点缺少 private_key")
+            peers = ep.get("peers") or []
+            if not peers or not peers[0].get("public_key"):
+                errs.append("WARP 端点缺少 peer public_key")
     for ob in cfg.get("outbounds") or []:
         if ob.get("type") == "vless":
             tls = ob.get("tls") or {}

@@ -301,11 +301,18 @@ rules:
      * 纳管调用：原子调用 `NodeManager.add_node` 持锁落盘并触发全网订阅与配置重新渲染。
 
 ### 4.11 落地机 WARP WireGuard 出站与 AI 服务智能清洁分流契约 `[STATUS: IMPLEMENTED]`
-* **物理符号实现**：`server/nodekit/templates.py:exit_config` ｜ 测试：`server/nodekit/templates_tests.py`
+* **物理符号实现**：`server/nodekit/templates.py:exit_config`、`server/nodekit/warp_client.py` ｜ 测试：`server/nodekit/templates_tests.py`、`server/nodekit/warp_client_tests.py`
 * **适用场景**：出海出口机免费借道 Cloudflare 官方 WireGuard 清洁 IP，解决普通廉价机房 VPS 被 OpenAI、Claude、Anthropic 拒绝访问或封禁的问题。
 * **配置字段与分流规则契约**：
-  1. **出站声明**：当 `warp` 配置存在时，注入 WireGuard 原生出站 `tag: "warp-out"`（包含 `local_address`、`private_key`、`server`、`server_port`、`peer_public_key`）；
+  1. **端点声明 (sing-box 1.11+ / 1.14+ 现代架构)**：当 `warp` 配置存在且为 WireGuard 时，注入 `endpoints: [{"type": "wireguard", "tag": "warp-out", "address": local_address, "private_key": private_key, "peers": [{"address": server, "port": server_port, "public_key": peer_public_key, "allowed_ips": ["0.0.0.0/0", "::/0"]}]}]`；
   2. **路由规则**：常规业务走 `tag: "direct"` 原生网卡出口；针对 `openai.com`、`chatgpt.com`、`oaistatic.com`、`anthropic.com`、`claude.ai` 等高风控域名自动路由至 `warp-out`。
+
+### 4.12 免密反向自举中转配对与高端口契约 (ADR-016) `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/nodekit/join_token.py`、`server/admin.py` ｜ 测试：`server/nodekit/join_token_tests.py`
+* **契约内容**：
+  1. **国内中继端口规范**：当 `role == "relay"` 时，入网 Token 默认监听端口设定为 `8443`（避开非备案 80/443 拦截）；
+  2. **中转拉取即成型**：支持在生成 Token 时指定目标海外落地节点元数据，并在动态自举脚本中直接写入 Reality 入站与落地 Outbound 及路由规则，无需主控发起反向 SSH 推送；
+  3. **控制边界防护**：`remote_config.check_controllable` 强制校验，未保存 SSH 凭据的反向自举节点禁止发起在线配置改写。
 
 
 

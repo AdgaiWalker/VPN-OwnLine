@@ -58,4 +58,31 @@ check("安装脚本包含指定 Token", "abcd" * 16 in script)
 check("安装脚本包含目标服务器地址", "https://vpn.example.com/api/node/join" in script)
 check("安装脚本包含 sing-box systemd 服务配置", "sing-box.service" in script)
 
+# 7. 中转节点自愈与配对落地
+landing_sample = {
+    "host": "198.51.100.99",
+    "port": 443,
+    "uuid": "test-uuid-landing",
+    "pbk": "test-pbk-landing",
+    "sid": "abcd1234",
+    "sni": "www.apple.com",
+}
+rec_relay = JT.create_token(name="国内中转机", role="relay", landing=landing_sample)
+check("中转节点默认端口为 8443", rec_relay["port"] == 8443)
+check("中转节点角色一致", rec_relay["role"] == "relay")
+check("中转节点挂载落地配置", rec_relay["landing"] == landing_sample)
+
+script_relay = JT.generate_install_script(
+    token=rec_relay["token"],
+    server_url="https://vpn.example.com",
+    role="relay",
+    landing=landing_sample,
+    port=rec_relay["port"],
+)
+check("中转安装脚本监听 8443", '"listen_port": 8443' in script_relay)
+check("中转安装脚本包含落地 outbound", '"server": "198.51.100.99"' in script_relay)
+check("中转安装脚本包含落地 route", '"rules": [{"outbound": "landing"}]' in script_relay)
+check("中转安装脚本不含 Hysteria2 入站", "hysteria2" not in script_relay)
+check("安装脚本不含任何 emoji 表情", not any(ord(ch) > 0x1F000 for ch in script_relay))
+
 print("通过 %d 项" % ok)

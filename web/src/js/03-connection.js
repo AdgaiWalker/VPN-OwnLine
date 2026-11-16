@@ -202,6 +202,44 @@
     var errBox = document.getElementById("reverse-join-error");
     var nameInput = document.getElementById("reverse-node-name");
     var roleSelect = document.getElementById("reverse-node-role");
+    var relayLandingGroup = document.getElementById("reverse-relay-landing-group");
+    var relayLandingSelect = document.getElementById("reverse-relay-landing");
+
+    function updateRelayLandingOptions() {
+      if (!relayLandingSelect) return;
+      var zh = (typeof isZh === "function") ? isZh() : true;
+      var currentVal = relayLandingSelect.value;
+      relayLandingSelect.innerHTML = "";
+      var allNodes = (window._nodes || (window.state && window.state.nodes) || []);
+      var exitNodes = allNodes.filter(function (n) {
+        return n && n.role !== "relay" && n.type !== "hysteria2";
+      });
+      if (exitNodes.length === 0) {
+        var opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = zh ? "（暂无可配对的海外出口节点）" : "(No overseas exit nodes available)";
+        relayLandingSelect.appendChild(opt);
+      } else {
+        exitNodes.forEach(function (n) {
+          var opt = document.createElement("option");
+          opt.value = n.host || n.name;
+          opt.textContent = (n.name || n.host) + " (" + (n.host || "") + ":" + (n.port || 443) + ")";
+          if (opt.value === currentVal) opt.selected = true;
+          relayLandingSelect.appendChild(opt);
+        });
+      }
+    }
+
+    if (roleSelect) {
+      roleSelect.onchange = function () {
+        if (roleSelect.value === "relay") {
+          if (relayLandingGroup) relayLandingGroup.style.display = "block";
+          updateRelayLandingOptions();
+        } else {
+          if (relayLandingGroup) relayLandingGroup.style.display = "none";
+        }
+      };
+    }
 
     if (btnGen) {
       btnGen.onclick = async function () {
@@ -213,11 +251,15 @@
         try {
           var name = (nameInput ? nameInput.value : "").trim();
           var role = roleSelect ? roleSelect.value : "exit";
+          var payload = { name: name, role: role };
+          if (role === "relay" && relayLandingSelect && relayLandingSelect.value) {
+            payload.landing_host = relayLandingSelect.value;
+          }
           var tokenUrl = typeof safeUrl === "function" ? safeUrl("/api/node/join-token") : "/api/node/join-token";
           var res = await fetch(tokenUrl, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: name, role: role })
+            body: JSON.stringify(payload)
           });
           var data = await res.json();
           if (data && data.ok && data.command) {

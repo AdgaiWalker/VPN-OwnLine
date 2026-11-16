@@ -29,6 +29,8 @@ def _clean_expired_locked(now: float) -> None:
 def create_token(
     name: str = "",
     role: str = "exit",
+    landing: Optional[Dict[str, Any]] = None,
+    port: Optional[int] = None,
     expires_in: int = DEFAULT_TTL,
     now_ts: Optional[float] = None,
 ) -> Dict[str, Any]:
@@ -36,10 +38,14 @@ def create_token(
     now = time.time() if now_ts is None else float(now_ts)
     token = secrets.token_hex(32)
     role_norm = "relay" if str(role).lower() == "relay" else "exit"
+    default_port = 8443 if role_norm == "relay" else 443
+    actual_port = int(port) if port else default_port
     record = {
         "token": token,
         "name": (name or "").strip(),
         "role": role_norm,
+        "port": actual_port,
+        "landing": landing,
         "created_at": now,
         "expires_at": now + max(60, int(expires_in)),
     }
@@ -81,20 +87,83 @@ def clear_all_tokens_for_testing() -> None:
         _TOKENS.clear()
 
 
-def generate_install_script(token: str, server_url: str, role: str = "exit") -> str:
+def generate_install_script(
+    token: str,
+    server_url: str,
+    role: str = "exit",
+    landing: Optional[Dict[str, Any]] = None,
+    port: Optional[int] = None,
+) -> str:
     """生成供客户端 curl | bash 执行的原生轻量反向注册脚本。
     
     全程在远端本地安全生成密钥对与自签证书，通过单向 HTTPS POST 回传元数据。
     主控服务器与客户端均无需暴露或存储 root 密码。
     """
     server_url = (server_url or "").rstrip("/")
+    is_relay = str(role).lower() == "relay"
+    listen_port = int(port) if port else (8443 if is_relay else 443)
+
+    if is_relay:
+        cert_step = ""
+        hy2_inbound = ""
+        hy2_payload = ""
+        if landing and landing.get("host") and landing.get("uuid") and landing.get("pbk") and landing.get("sid"):
+            outbounds_json = f"""[
+    {{
+      "type": "vless",
+      "tag": "landing",
+      "server": "{landing['host']}",
+      "server_port": {int(landing.get('port') or 443)},
+      "uuid": "{landing['uuid']}",
+      "flow": "{landing.get('flow') or 'xtls-rprx-vision'}",
+      "tls": {{
+        "enabled": true,
+        "server_name": "{landing.get('sni') or 'www.apple.com'}",
+        "utls": {{"enabled": true, "fingerprint": "chrome"}},
+        "reality": {{
+          "enabled": true,
+          "public_key": "{landing['pbk']}",
+          "short_id": "{landing['sid']}"
+        }}
+      }}
+    }},
+    {{"type": "direct", "tag": "direct"}}
+  ]"""
+            route_json = ',\n  "route": {"rules": [{"outbound": "landing"}]}'
+        else:
+            outbounds_json = '[{"type": "direct", "tag": "direct"}]'
+            route_json = ""
+    else:
+        cert_step = 'openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null || true'
+        hy2_inbound = f""",
+    {{
+      "type": "hysteria2",
+      "tag": "hy2",
+      "listen": "::",
+      "listen_port": {listen_port},
+      "users": [{{"password": "$HY2_PW"}}],
+      "tls": {{
+        "enabled": true,
+        "server_name": "www.bing.com",
+        "alpn": ["h3"],
+        "certificate_path": "/opt/sing-box/hy2.crt",
+        "key_path": "/opt/sing-box/hy2.key"
+      }},
+      "obfs": {{"type": "salamander", "password": "$OBFS_PW"}}
+    }}"""
+        hy2_payload = """,
+  "hy2_password": "$HY2_PW",
+  "obfs_password": "$OBFS_PW\""""
+        outbounds_json = '[{"type": "direct", "tag": "direct"}]'
+        route_json = ""
+
     return f"""#!/usr/bin/env bash
 # Evergreen · OwnLine 一键免密反向自举脚本
 # Token: {token}
 set -euo pipefail
 
 if [ "$(id -u)" != "0" ]; then
-  echo "❌ 错误: 本脚本需要 root 权限，请使用 sudo 或切换至 root 执行。" >&2
+  echo "[ERROR] 本脚本需要 root 权限，请使用 sudo 或切换至 root 执行。" >&2
   exit 1
 fi
 
@@ -103,7 +172,7 @@ ARCH="$(uname -m)"
 case "$ARCH" in
   x86_64) SBOX_ARCH="amd64" ;;
   aarch64|arm64) SBOX_ARCH="arm64" ;;
-  *) echo "❌ 暂不支持架构: $ARCH" >&2; exit 1 ;;
+  *) echo "[ERROR] 暂不支持架构: $ARCH" >&2; exit 1 ;;
 esac
 
 echo "==> [2/5] 准备 sing-box 原版二进制..."
@@ -122,13 +191,13 @@ if [ ! -x "$BIN" ]; then
   if [ "$FOUND" -eq 1 ] && [ -f "./sing-box" ]; then
     install -m 755 ./sing-box "$BIN"
   else
-    echo "⚠️ 官方源下载慢，尝试本地包或已有进程..."
+    echo "[WARN] 官方源下载慢，尝试本地包或已有进程..."
   fi
   rm -rf /tmp/sbox-install
 fi
 
 if ! command -v "$BIN" >/dev/null 2>&1; then
-  echo "❌ 无法安装 sing-box，终止！" >&2
+  echo "[ERROR] 无法安装 sing-box，终止！" >&2
   exit 1
 fi
 
@@ -148,7 +217,7 @@ fi
 
 echo "==> [4/5] 生成本地 sing-box 配置与 systemd 服务..."
 mkdir -p /opt/sing-box /var/log
-openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null || true
+{cert_step}
 
 cat <<EOF > /opt/sing-box/config.json
 {{
@@ -158,7 +227,7 @@ cat <<EOF > /opt/sing-box/config.json
       "type": "vless",
       "tag": "vless-reality",
       "listen": "::",
-      "listen_port": 443,
+      "listen_port": {listen_port},
       "users": [{{"uuid": "$UUID", "flow": "xtls-rprx-vision"}}],
       "tls": {{
         "enabled": true,
@@ -170,24 +239,9 @@ cat <<EOF > /opt/sing-box/config.json
           "short_id": ["$SID"]
         }}
       }}
-    }},
-    {{
-      "type": "hysteria2",
-      "tag": "hy2",
-      "listen": "::",
-      "listen_port": 443,
-      "users": [{{"password": "$HY2_PW"}}],
-      "tls": {{
-        "enabled": true,
-        "server_name": "www.bing.com",
-        "alpn": ["h3"],
-        "certificate_path": "/opt/sing-box/hy2.crt",
-        "key_path": "/opt/sing-box/hy2.key"
-      }},
-      "obfs": {{"type": "salamander", "password": "$OBFS_PW"}}
-    }}
+    }}{hy2_inbound}
   ],
-  "outbounds": [{{"type": "direct", "tag": "direct"}}]
+  "outbounds": {outbounds_json}{route_json}
 }}
 EOF
 
@@ -217,15 +271,13 @@ PAYLOAD="$(cat <<EOF
 {{
   "token": "{token}",
   "host": "$PUBLIC_IP",
-  "port": 443,
+  "port": {listen_port},
   "uuid": "$UUID",
   "pbk": "$PUB_KEY",
   "sid": "$SID",
   "sni": "www.apple.com",
   "role": "{role}",
-  "type": "vless",
-  "hy2_password": "$HY2_PW",
-  "obfs_password": "$OBFS_PW"
+  "type": "vless"{hy2_payload}
 }}
 EOF
 )"
@@ -234,12 +286,13 @@ RESP="$(curl -fsSL -k --connect-timeout 10 --max-time 30 -X POST -H "Content-Typ
 
 if echo "$RESP" | grep -q '"ok":\\s*true\\|"ok":true'; then
   echo "========================================================="
-  echo "  ✅ 节点接入成功！"
+  echo "  [SUCCESS] 节点接入成功！"
   echo "  公网 IP: $PUBLIC_IP"
+  echo "  监听端口: {listen_port}"
   echo "  主控面板卡片已点亮，客户端刷新订阅即可使用。"
   echo "========================================================="
 else
-  echo "❌ 注册回传失败: $RESP" >&2
+  echo "[ERROR] 注册回传失败: $RESP" >&2
   exit 1
 fi
 """

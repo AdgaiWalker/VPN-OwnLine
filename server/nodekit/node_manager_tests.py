@@ -314,18 +314,33 @@ class NodeManagerTests(unittest.TestCase):
 
 
     def test_toggle_warp_success(self):
+        self.mock_remote_cfg.toggle_warp.return_value = {
+            "ok": True,
+            "warp": {"private_key": "MOCK_KEY"},
+        }
         res = self.mgr.toggle_warp(name="us-exit", enabled=True)
         self.assertTrue(res["ok"])
         self.assertTrue(res["warp_enabled"])
         found = self.mgr.get_node("us-exit")
         self.assertTrue(found["warp_enabled"])
+        self.assertEqual(found.get("warp"), {"private_key": "MOCK_KEY"})
         self.mock_on_change.assert_called()
 
+        self.mock_remote_cfg.toggle_warp.return_value = {"ok": True}
         res_off = self.mgr.toggle_warp(name="us-exit", enabled=False)
         self.assertTrue(res_off["ok"])
         self.assertFalse(res_off["warp_enabled"])
         found = self.mgr.get_node("us-exit")
         self.assertFalse(found["warp_enabled"])
+        self.assertNotIn("warp", found)
+
+    def test_toggle_warp_remote_failure(self):
+        self.mock_remote_cfg.toggle_warp.return_value = {
+            "ok": False,
+            "error": "Cloudflare WARP 注册超时",
+        }
+        with self.assertRaises(RemoteSyncError):
+            self.mgr.toggle_warp(name="us-exit", enabled=True)
 
     def test_toggle_warp_missing_name(self):
         with self.assertRaises(NodeValidationError):

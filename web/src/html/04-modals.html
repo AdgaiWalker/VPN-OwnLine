@@ -331,6 +331,11 @@
               <button class="btn primary" type="button" id="btn-gen-reverse-join" style="height:36px" data-i18n="btn_gen_join_cmd">生成接入命令</button>
             </div>
           </div>
+          <div id="reverse-relay-landing-group" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:8px">
+            <label for="reverse-relay-landing" class="small" style="font-weight:600;display:block;margin-bottom:4px" data-i18n="lbl_relay_target_landing">绑定海外出口 (落地节点)</label>
+            <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);padding:0 8px"></select>
+            <p class="small muted" style="margin:4px 0 0 0;font-size:11px" data-i18n="tip_relay_port_8443">国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。</p>
+          </div>
           <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
 
           <div id="reverse-join-cmd-box" style="display:none;margin-top:14px;padding:12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:10px">

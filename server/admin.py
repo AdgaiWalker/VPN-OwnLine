@@ -428,7 +428,13 @@ class H(BaseHTTPRequestHandler):
                 return
             host_header = self.headers.get("Host") or "127.0.0.1"
             base_url = f"https://{host_header}" if not host_header.startswith("http") else host_header
-            script = join_token_mod.generate_install_script(token=token, server_url=base_url, role=info.get("role", "exit"))
+            script = join_token_mod.generate_install_script(
+                token=token,
+                server_url=base_url,
+                role=info.get("role", "exit"),
+                landing=info.get("landing"),
+                port=info.get("port"),
+            )
             content = script.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/plain; charset=utf-8")
@@ -993,7 +999,29 @@ class H(BaseHTTPRequestHandler):
         if norm_path == "/node/join-token":
             name = (body.get("name") or "").strip()
             role = (body.get("role") or "exit").strip()
-            rec = join_token_mod.create_token(name=name, role=role)
+            port_val = body.get("port")
+            port = int(port_val) if port_val else (8443 if role == "relay" else 443)
+            landing = None
+            if role == "relay":
+                landing_host = (body.get("landing_host") or body.get("landing_name") or "").strip()
+                nodes = load_nodes()
+                exit_candidates = [n for n in nodes if n.get("role") != "relay" and n.get("type") != "hysteria2"]
+                target_exit = None
+                if landing_host:
+                    target_exit = next((n for n in exit_candidates if n.get("host") == landing_host or n.get("name") == landing_host), None)
+                if not target_exit and exit_candidates:
+                    target_exit = exit_candidates[0]
+                if target_exit:
+                    landing = {
+                        "host": target_exit["host"],
+                        "port": int(target_exit.get("port") or 443),
+                        "uuid": target_exit["uuid"],
+                        "sni": target_exit.get("sni", "www.apple.com"),
+                        "pbk": target_exit["pbk"],
+                        "sid": target_exit["sid"],
+                        "name": target_exit.get("name", ""),
+                    }
+            rec = join_token_mod.create_token(name=name, role=role, landing=landing, port=port)
             host_header = self.headers.get("Host") or "127.0.0.1"
             base_url = f"https://{host_header}" if not host_header.startswith("http") else host_header
             command = f"curl -fsSL {base_url}/join/{rec['token']} | bash"
@@ -1003,6 +1031,8 @@ class H(BaseHTTPRequestHandler):
                 "command": command,
                 "role": rec["role"],
                 "name": rec["name"],
+                "port": rec.get("port"),
+                "landing": rec.get("landing"),
                 "expires_at": rec["expires_at"],
                 "expires_in": int(rec["expires_at"] - rec["created_at"]),
             })
@@ -1022,7 +1052,8 @@ class H(BaseHTTPRequestHandler):
                 name = f"node-{host.replace('.', '-')}"
 
             role = token_info.get("role") or body.get("role") or "exit"
-            port = int(body.get("port") or 443)
+            port = int(body.get("port") or token_info.get("port") or (8443 if role == "relay" else 443))
+            landing = token_info.get("landing") or body.get("landing")
 
             vless_entry = {
                 "name": name,
@@ -1041,8 +1072,13 @@ class H(BaseHTTPRequestHandler):
                 "health": "ok",
                 "joined_at": int(time.time()),
                 "warp_enabled": (role != "relay"),
-                "hy2_enabled": bool(body.get("hy2_password")),
+                "hy2_enabled": bool(body.get("hy2_password")) if role != "relay" else False,
             }
+            if landing:
+                vless_entry["landing"] = landing
+                if landing.get("host"):
+                    vless_entry["health_detail"] = f"中转：经落地出网，出口 {landing['host']}"
+                    vless_entry["exit_ip"] = landing["host"]
 
             try:
                 node_manager.add_node(vless_entry)
@@ -1053,7 +1089,7 @@ class H(BaseHTTPRequestHandler):
                 return self._json(e.status_code, payload)
 
             hy2_pw = body.get("hy2_password")
-            if hy2_pw:
+            if hy2_pw and role != "relay":
                 hy2_entry = {
                     "name": f"{name}-HY2",
                     "type": "hysteria2",
