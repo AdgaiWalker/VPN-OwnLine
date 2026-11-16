@@ -49,7 +49,7 @@
             ? (zh ? "当前节点为系统国内探测基准锚点（点击右侧 ⋯ 或卡片可更换）" : "Active domestic vantage anchor for latency measurement")
             : (st && st.vantage ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得骨干物理延迟") : ("Probed via [" + st.vantage + "] backbone")) : "");
           if (typeof LOCAL_DEVICE_PING !== "undefined" && LOCAL_DEVICE_PING && LOCAL_DEVICE_PING.ms && LOCAL_DEVICE_PING.ms > 220) {
-            tip += (tip ? "\n" : "") + (zh ? ("⚠️ 当前本机网络/WiFi延迟偏高 (" + LOCAL_DEVICE_PING.ms + "ms)，节点骨干正常。") : ("⚠️ Local network latency high (" + LOCAL_DEVICE_PING.ms + "ms), node backbone normal."));
+            tip += (tip ? "\n" : "") + (zh ? ("当前本机网络/WiFi延迟偏高 (" + LOCAL_DEVICE_PING.ms + "ms)，节点骨干正常。") : ("Local network latency high (" + LOCAL_DEVICE_PING.ms + "ms), node backbone normal."));
           }
           var tipAttr = tip ? (' title="' + esc(tip) + '"') : '';
           pingHtml = '<span class="ping-pill ' + backboneCls + '"' + tipAttr + '>' + pingLabel + '</span>';
@@ -395,7 +395,18 @@
       }
 
       var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
-      var drawerActions = protoBadges + relayPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
+      var warpPill = "";
+      if (!isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
+        var isWarp = !!n.warp_enabled;
+        if (isWarp) {
+          statusBadges += '<span class="tag ok" style="font-size:11px" title="' + (zh ? 'WARP 清洁出网已开启' : 'WARP Active') + '">WARP</span>';
+        }
+        warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
+          '<svg class="ico" width="12" height="12" style="vertical-align:-2px;margin-right:3px"><use href="#i-shield"/></svg>' +
+          (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour')) +
+          '</button>';
+      }
+      var drawerActions = protoBadges + relayPill + warpPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
       if (n.cleanup_pending) {
         drawerActions += '<button class="btn tiny danger" type="button" style="color:var(--err,#dc2626);border-color:currentColor;" onclick="event.stopPropagation();window.ownlineDelNode(' + i + ')">' + (zh ? '彻底删除' : 'Delete Permanently') + '</button>';
       }
@@ -446,6 +457,13 @@
         ? (zh ? "解绑住宅 IP" : "Unmount Residential IP")
         : (zh ? "绑定住宅 IP" : "Mount Residential IP");
       items.push({label: ispLabel, id: "isp"});
+
+      if (n.type !== "hysteria2") {
+        var warpLabel = n.warp_enabled
+          ? (zh ? "关闭 WARP 清洁出口" : "Disable WARP Detour")
+          : (zh ? "开启 WARP 清洁出口 (AI 防封)" : "Enable WARP Detour (Anti-Block)");
+        items.push({label: warpLabel, id: "warp"});
+      }
     }
 
     items.push({label: zh ? "设置到期提醒" : "Set Expiration Notice", id: "lifecycle"});
@@ -490,6 +508,7 @@
         toggleHy2(n.name, n.host || n.ip, !isHy2Active);
       }
       else if (act === "isp") mountIsp(i);
+      else if (act === "warp") toggleWarp(i);
       else if (act === "lifecycle") setNodeLifecycle(i);
       else if (act === "rotate") rotateKey(i);
       else if (act === "del") delNode(i);
@@ -1204,15 +1223,15 @@
       ? ('检测到【<b>' + esc(cNode.name) + '</b>】' + reasonText + '，推荐一键唤醒【HY2 极速抢跑】')
       : ('High latency on [<b>' + esc(cNode.name) + '</b>] (' + reasonText + '). Tap to awaken HY2 Turbo.');
 
-    var btnText = zh ? "⚡️ 唤醒 HY2 抢跑" : "⚡️ Awaken HY2";
+    var btnText = zh ? "唤醒 HY2 抢跑" : "Awaken HY2";
 
     container.innerHTML = '<div class="awakening-capsule" role="alert">' +
       '<div class="awakening-content">' +
-        '<span class="awakening-icon">⚡️</span>' +
+        '<span class="awakening-icon"><svg class="ico" width="14" height="14"><use href="#i-zap"/></svg></span>' +
         '<div class="awakening-text">' + awakeningMsg + '</div>' +
       '</div>' +
       '<div class="awakening-actions">' +
-        '<button type="button" class="awakening-btn" onclick="window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')">' + btnText + '</button>' +
+        '<button type="button" class="awakening-btn" onclick="window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:4px"><use href="#i-zap"/></svg>' + btnText + '</button>' +
         '<button type="button" class="awakening-dismiss" aria-label="' + (zh ? '忽略' : 'Dismiss') + '" onclick="window.ownlineDismissAwakening(\'' + esc(cNode.name) + '\')" title="' + (zh ? '本次忽略' : 'Dismiss') + '"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>' +
       '</div>' +
     '</div>';
@@ -1568,6 +1587,43 @@
     });
   }
 
+  async function toggleWarp(i) {
+    var nodes = (typeof STATE !== "undefined" && STATE.nodes) ? STATE.nodes : (typeof NODES !== "undefined" ? NODES : []);
+    var n = nodes[i];
+    if (!n) return;
+    var targetEnabled = !n.warp_enabled;
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    try {
+      var url = typeof safeUrl === "function" ? safeUrl("/api/node/warp/toggle") : "/api/node/warp/toggle";
+      var res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n.name, enabled: targetEnabled })
+      });
+      var data = await res.json();
+      if (data && data.ok) {
+        n.warp_enabled = targetEnabled;
+        renderNodes();
+        if (typeof refreshState === "function") refreshState();
+      } else {
+        var msg = (zh ? "切换 WARP 失败：" : "Failed to toggle WARP: ") + ((data && data.error) || (zh ? "未知错误" : "Unknown error"));
+        dialog({
+          title: zh ? "WARP 出口切换失败" : "WARP Detour Error",
+          message: msg,
+          confirmText: zh ? "确定" : "OK",
+          cancelText: null
+        });
+      }
+    } catch (e) {
+      dialog({
+        title: zh ? "网络连接异常" : "Network Error",
+        message: String(e),
+        confirmText: zh ? "确定" : "OK",
+        cancelText: null
+      });
+    }
+  }
+
   var NodeController = {
     deriveNodeState: deriveNodeState,
     paintStatus: paintStatus,
@@ -1579,6 +1635,7 @@
     rotateKey: rotateKey,
     editNode: editNode,
     toggleHy2: toggleHy2,
+    toggleWarp: toggleWarp,
     refreshPing: refreshPing,
     setProbeVantage: setProbeVantage,
     openRelayDialog: openRelayDialog,
@@ -1588,5 +1645,6 @@
   if (typeof window !== "undefined") {
     window.NodeController = NodeController;
     window.paintStatus = paintStatus;
+    window.ownlineToggleWarp = toggleWarp;
   }
 

@@ -1709,6 +1709,15 @@ footer.site-footer {
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
   <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
   <symbol id="i-feedback" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+  <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><path d="m21 2-2 2m-1.5 1.5L16 7l-2-2m-1.5 1.5L11 8l-2-2m-1.5 1.5L6 9l-2-2"/><circle cx="7.5" cy="15.5" r="5.5"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-bot" viewBox="0 0 24 24"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/></symbol>
+  <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
+  <symbol id="i-lightbulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
 </svg>
 
 <div class="page">
@@ -1920,6 +1929,27 @@ footer.site-footer {
             </div>
           </div>
 
+          <div class="apple-client-download-guide" style="margin-top:14px;padding:10px 12px;background:var(--paper-card-subtle);border-radius:10px;border:1px solid var(--line-light)">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">
+              <svg class="ico" width="13" height="13"><use href="#i-download"/></svg>
+              <span data-i18n="client_install_hint">首次使用？点击下载官方客户端：</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a class="btn tiny" id="hub-dl-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
+                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
+                <span>Clash Verge</span>
+              </a>
+              <a class="btn tiny" id="hub-dl-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
+                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
+                <span>FL Clash</span>
+              </a>
+              <a class="btn tiny" id="hub-dl-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
+                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
+                <span>Shadowrocket</span>
+              </a>
+            </div>
+          </div>
+
           <div class="apple-sheet-footer">
             <details class="inner apple-disclosure" id="download-help" style="border:none;background:transparent;padding:0">
               <summary class="small muted" style="cursor:pointer;list-style:none;text-align:center" data-i18n="manual_copy_toggle">手动复制链接与撤销</summary>
@@ -1949,6 +1979,10 @@ footer.site-footer {
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
           <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用系统相机或小火箭扫描添加。</p>
+          <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
+            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px"><use href="#i-alert"/></svg>
+            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">提示：请使用 Shadowrocket / Clash 等代理客户端内置相机扫码，不要使用微信直接扫码。</span>
+          </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
               <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
@@ -1979,7 +2013,7 @@ footer.site-footer {
           <span style="display:flex;align-items:center;gap:6px">
             <span data-i18n="nodes_title">节点列表</span>
             <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span>
-            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟">📱 本机: --</span>
+            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg><span>本机: --</span></span>
           </span>
           <div style="display:flex;align-items:center;gap:8px">
             <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
@@ -2028,11 +2062,19 @@ footer.site-footer {
         </button>
       </div>
 
-      <!-- Segment Switching: Direct Connection vs Tencent Cloud -->
-      <div class="seg" role="group" aria-label="连接方式" style="max-width:360px;margin-bottom:14px">
-        <button class="segbtn active" type="button" id="tab-other" aria-pressed="true" data-i18n="tab_ssh">SSH 直连</button>
-        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false" data-i18n="tab_tc">腾讯云 API</button>
+      <!-- Segment Switching: One-Click Join vs Direct SSH vs Tencent Cloud -->
+      <div class="seg" role="group" aria-label="连接方式" style="max-width:440px;margin-bottom:16px">
+        <button class="segbtn active" type="button" id="tab-btn-reverse-join" aria-pressed="true">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入</span>
+        </button>
+        <button class="segbtn" type="button" id="tab-btn-ssh-direct" aria-pressed="false">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">SSH 直连配置</span>
+        </button>
+        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-cloud"/></svg><span data-i18n="tab_tc">腾讯云 API</span>
+        </button>
       </div>
+      <button id="tab-other" type="button" style="display:none"></button>
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
@@ -2099,11 +2141,6 @@ footer.site-footer {
 
       <!-- Panel Other: Direct SSH Connection & Reverse Join -->
       <div id="panel-other">
-        <div class="log-tabs" id="join-mode-tabs" style="margin-bottom:14px">
-          <button class="log-tab-btn active" type="button" id="tab-btn-reverse-join" data-i18n="tab_reverse_join">🚀 一键终端免密接入 (推荐)</button>
-          <button class="log-tab-btn" type="button" id="tab-btn-ssh-direct" data-i18n="tab_ssh_direct">🔑 SSH 直连配置</button>
-        </div>
-
         <!-- Mode 1: Pre-Auth Reverse Join -->
         <div id="box-reverse-join">
           <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
@@ -2125,6 +2162,7 @@ footer.site-footer {
               <button class="btn primary" type="button" id="btn-gen-reverse-join" style="height:36px" data-i18n="btn_gen_join_cmd">生成接入命令</button>
             </div>
           </div>
+          <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
 
           <div id="reverse-join-cmd-box" style="display:none;margin-top:14px;padding:12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -2199,7 +2237,6 @@ footer.site-footer {
         </div>
         </div></div>
         </div>
-        <details class="inner other-install install-guide"><summary data-i18n="terminal_install_summary">通过终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
         <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">安装指引</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">VPS 选购建议</a></p>
       </div>
     </div>
@@ -2480,22 +2517,22 @@ footer.site-footer {
 
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
-      <!-- 1. Apple Segmented Control: [ 🐞 遇到问题 | 💡 想要新功能 ] -->
+      <!-- 1. Apple Segmented Control: [ 遇到问题 | 想要新功能 ] -->
       <div class="apple-segmented-bar" style="margin-bottom:12px">
         <button type="button" class="apple-segment-btn active" id="seg-btn-bug" onclick="window.selectFeedbackIntent('bug')">
-          <span data-i18n="feedback_intent_bug">🐞 遇到问题</span>
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-bug"/></svg><span data-i18n="feedback_intent_bug">遇到问题</span>
         </button>
         <button type="button" class="apple-segment-btn" id="seg-btn-idea" onclick="window.selectFeedbackIntent('idea')">
-          <span data-i18n="feedback_intent_idea">💡 想要新功能</span>
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-lightbulb"/></svg><span data-i18n="feedback_intent_idea">想要新功能</span>
         </button>
       </div>
 
       <!-- Quick Scenario Tags (免输入一键填充) -->
       <div class="feedback-quick-tags" id="feedback-quick-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('🔴 节点连不上')">🔴 节点连不上</button>
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('🐢 看视频卡顿慢')">🐢 看视频卡顿</button>
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('📱 手机无法连接')">📱 手机无法连接</button>
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('💡 体验优化建议')">💡 体验建议</button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('节点连不上')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-alert"/></svg><span data-i18n="tag_node_unreachable">节点连不上</span></button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('看视频卡顿慢')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-refresh"/></svg><span data-i18n="tag_slow_speed">看视频卡顿</span></button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('手机无法连接')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-smartphone"/></svg><span data-i18n="tag_mobile_issue">手机无法连接</span></button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('体验优化建议')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-lightbulb"/></svg><span data-i18n="tag_ux_suggestion">体验建议</span></button>
       </div>
 
       <!-- 2. Focused Textarea -->
@@ -2547,7 +2584,7 @@ footer.site-footer {
           </button>
         </div>
         <div style="text-align:center;font-size:11.5px;color:var(--apple-muted);margin-top:2px">
-          作者支持邮箱：<a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
+          <span data-i18n="author_email_lbl">作者支持邮箱：</span><a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
         </div>
       </div>
     </form>
@@ -2642,8 +2679,8 @@ footer.site-footer {
       tc_cloud_install: "Install via Cloud Terminal",
       tc_run_as_root: "Run as root on Ubuntu 22.04 or Debian 12:",
       btn_copy_install_cmd: "Copy Install Command",
-      tab_reverse_join: "🚀 One-Click Terminal Join (Recommended)",
-      tab_ssh_direct: "🔑 SSH Direct Connection",
+      tab_reverse_join: "One-Click Terminal Join (Recommended)",
+      tab_ssh_direct: "SSH Direct Connection",
       reverse_join_desc: "Zero SSH password or private key needed. Run the generated command on your target VPS to bootstrap automatically.",
       btn_gen_join_cmd: "Generate Join Command",
       lbl_run_on_vps: "Run this command on target VPS (root required):",
@@ -2696,13 +2733,21 @@ footer.site-footer {
       footer_change_pass: "Account & Security",
       feedback_dialog_title: "Feedback & Ideas",
       feedback_dialog_subtitle: "Diagnostics will be sent to the AI library and resolved in upcoming cloud updates.",
-      feedback_intent_bug: "🐞 Report Issue",
-      feedback_intent_idea: "💡 New Idea",
+      feedback_intent_bug: "Report Issue",
+      feedback_intent_idea: "New Idea",
       feedback_type_lbl: "Category",
-      feedback_type_conn: "⚡️ Speed & Connect",
-      feedback_type_client: "📱 Client & Import",
-      feedback_type_suggest: "💡 Suggestions",
-      feedback_type_bug: "🐞 Bugs & Other",
+      feedback_type_conn: "Speed & Connect",
+      feedback_type_client: "Client & Import",
+      feedback_type_suggest: "Suggestions",
+      feedback_type_bug: "Bugs & Other",
+      client_install_hint: "Tip: If the client does not pop up, please install one below first:",
+      scan_qr_tip: "Please scan with Shadowrocket / Clash app camera, not WeChat directly.",
+      author_email_lbl: "Author Email:",
+      warp_toggle_btn: "WARP Clean Egress",
+      tag_node_unreachable: "Node Unreachable",
+      tag_slow_speed: "Slow Speed / Lag",
+      tag_mobile_issue: "Mobile Connect Issue",
+      tag_ux_suggestion: "UI / UX Idea",
       feedback_msg_lbl: "Description (Optional)",
       feedback_msg_ph: "Describe what happened, or submit diagnostics directly with 1 click...",
       feedback_msg_ph_bug: "What happened? (e.g. YouTube lag, connect timeout; or leave blank to send diagnostics)",
@@ -2836,8 +2881,8 @@ footer.site-footer {
       tc_cloud_install: "通过云终端安装",
       tc_run_as_root: "以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：",
       btn_copy_install_cmd: "复制安装命令",
-      tab_reverse_join: "🚀 一键终端免密接入 (推荐)",
-      tab_ssh_direct: "🔑 SSH 直连配置",
+      tab_reverse_join: "免密终端接入 (推荐)",
+      tab_ssh_direct: "SSH 直连配置",
       reverse_join_desc: "无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。",
       btn_gen_join_cmd: "生成接入命令",
       lbl_run_on_vps: "目标 VPS 终端执行命令（需 root 权限）：",
@@ -2890,13 +2935,21 @@ footer.site-footer {
       footer_change_pass: "账户与安全",
       feedback_dialog_title: "反馈与建议",
       feedback_dialog_subtitle: "遇到的异常现场将送达 AI 诊断库，作者排查修复后通过面板一键更新推送给你。",
-      feedback_intent_bug: "🐞 遇到问题",
-      feedback_intent_idea: "💡 想要新功能",
+      feedback_intent_bug: "遇到问题",
+      feedback_intent_idea: "想要新功能",
       feedback_type_lbl: "反馈类型",
-      feedback_type_conn: "⚡️ 连接与测速",
-      feedback_type_client: "📱 客户端与导入",
-      feedback_type_suggest: "💡 功能建议",
-      feedback_type_bug: "🐞 缺陷与其他",
+      feedback_type_conn: "连接与测速",
+      feedback_type_client: "客户端与导入",
+      feedback_type_suggest: "功能建议",
+      feedback_type_bug: "缺陷与其他",
+      client_install_hint: "提示：若未能直接调起客户端，请先下载安装：",
+      scan_qr_tip: "请使用 Shadowrocket / Clash 等客户端内置扫码，不要使用微信直接扫码。",
+      author_email_lbl: "作者邮箱：",
+      warp_toggle_btn: "WARP 清洁出口",
+      tag_node_unreachable: "节点连不上",
+      tag_slow_speed: "速度慢/卡顿",
+      tag_mobile_issue: "手机端异常",
+      tag_ux_suggestion: "界面与体验建议",
       feedback_msg_lbl: "描述（选填）",
       feedback_msg_ph: "写一句大白话即可（不填也可直接一键提交现场诊断）...",
       feedback_msg_ph_bug: "写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）",
@@ -3468,76 +3521,93 @@ footer.site-footer {
     }
   }
 
-  // 3. Connection mode switch (Direct server vs Tencent Cloud)
+  // 3. Connection mode switch (Reverse Join vs SSH Direct vs Tencent Cloud)
   function initCloudParallelSwitch() {
     var tabTc = document.getElementById("tab-tc");
     var tabOther = document.getElementById("tab-other");
-    var panelTc = document.getElementById("panel-tc");
-    var panelOther = document.getElementById("panel-other");
-
-    if (!tabTc || !tabOther) return;
-
-    tabTc.onclick = function () {
-      STATE.cloudMode = "tc";
-      tabTc.classList.add("active");
-      tabOther.classList.remove("active");
-      tabTc.setAttribute("aria-pressed", "true");
-      tabOther.setAttribute("aria-pressed", "false");
-      if (panelTc) panelTc.style.display = "block";
-      if (panelOther) panelOther.style.display = "none";
-    };
-
-    tabOther.onclick = function () {
-      var fields = document.getElementById("ssh-connection-fields");
-      var slot = document.getElementById("other-connection-slot");
-      if (fields.parentElement !== slot) {
-        clearOtherSecret();
-        ["other-credential", "other-passphrase"].forEach(function (id) { document.getElementById(id).value = ""; });
-        slot.appendChild(fields);
-      }
-      STATE.cloudMode = "other";
-      tabOther.classList.add("active");
-      tabTc.classList.remove("active");
-      tabOther.setAttribute("aria-pressed", "true");
-      tabTc.setAttribute("aria-pressed", "false");
-      if (panelTc) panelTc.style.display = "none";
-      if (panelOther) panelOther.style.display = "block";
-
-    };
-  }
-
-  // 3.5 Reverse Join (Pre-Auth Token One-Click Script)
-  function initReverseJoin() {
     var tabReverse = document.getElementById("tab-btn-reverse-join");
     var tabSsh = document.getElementById("tab-btn-ssh-direct");
+    var panelTc = document.getElementById("panel-tc");
+    var panelOther = document.getElementById("panel-other");
     var boxReverse = document.getElementById("box-reverse-join");
     var boxSsh = document.getElementById("box-ssh-direct");
-    var btnGen = document.getElementById("btn-gen-reverse-join");
-    var cmdBox = document.getElementById("reverse-join-cmd-box");
-    var cmdText = document.getElementById("reverse-join-cmd-text");
-    var btnCopy = document.getElementById("btn-copy-reverse-join");
-    var copyStatus = document.getElementById("reverse-join-copy-status");
-    var nameInput = document.getElementById("reverse-node-name");
-    var roleSelect = document.getElementById("reverse-node-role");
 
-    if (tabReverse && tabSsh) {
+    function setTabActive(activeTab) {
+      [tabReverse, tabSsh, tabTc].forEach(function(t) {
+        if (!t) return;
+        var isActive = (t === activeTab);
+        if (isActive) {
+          t.classList.add("active");
+          t.setAttribute("aria-pressed", "true");
+        } else {
+          t.classList.remove("active");
+          t.setAttribute("aria-pressed", "false");
+        }
+      });
+    }
+
+    if (tabReverse) {
       tabReverse.onclick = function () {
-        tabReverse.classList.add("active");
-        tabSsh.classList.remove("active");
+        setTabActive(tabReverse);
+        if (panelTc) panelTc.style.display = "none";
+        if (panelOther) panelOther.style.display = "block";
         if (boxReverse) boxReverse.style.display = "block";
         if (boxSsh) boxSsh.style.display = "none";
       };
+    }
+
+    if (tabSsh) {
       tabSsh.onclick = function () {
-        tabSsh.classList.add("active");
-        tabReverse.classList.remove("active");
+        var fields = document.getElementById("ssh-connection-fields");
+        var slot = document.getElementById("other-connection-slot");
+        if (fields && slot && fields.parentElement !== slot) {
+          clearOtherSecret();
+          ["other-credential", "other-passphrase"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = "";
+          });
+          slot.appendChild(fields);
+        }
+        STATE.cloudMode = "other";
+        setTabActive(tabSsh);
+        if (panelTc) panelTc.style.display = "none";
+        if (panelOther) panelOther.style.display = "block";
         if (boxSsh) boxSsh.style.display = "block";
         if (boxReverse) boxReverse.style.display = "none";
       };
     }
 
+    if (tabTc) {
+      tabTc.onclick = function () {
+        STATE.cloudMode = "tc";
+        setTabActive(tabTc);
+        if (panelTc) panelTc.style.display = "block";
+        if (panelOther) panelOther.style.display = "none";
+      };
+    }
+
+    if (tabOther) {
+      tabOther.onclick = function () {
+        if (tabReverse) tabReverse.click();
+      };
+    }
+  }
+
+  // 3.5 Reverse Join (Pre-Auth Token One-Click Script)
+  function initReverseJoin() {
+    var btnGen = document.getElementById("btn-gen-reverse-join");
+    var cmdBox = document.getElementById("reverse-join-cmd-box");
+    var cmdText = document.getElementById("reverse-join-cmd-text");
+    var btnCopy = document.getElementById("btn-copy-reverse-join");
+    var copyStatus = document.getElementById("reverse-join-copy-status");
+    var errBox = document.getElementById("reverse-join-error");
+    var nameInput = document.getElementById("reverse-node-name");
+    var roleSelect = document.getElementById("reverse-node-role");
+
     if (btnGen) {
       btnGen.onclick = async function () {
         btnGen.disabled = true;
+        if (errBox) { errBox.style.display = "none"; errBox.textContent = ""; }
         var zh = (typeof isZh === "function") ? isZh() : true;
         var origText = btnGen.textContent;
         btnGen.textContent = zh ? "正在生成..." : "Generating...";
@@ -3556,10 +3626,18 @@ footer.site-footer {
             if (cmdBox) cmdBox.style.display = "block";
             if (copyStatus) copyStatus.textContent = "";
           } else {
-            alert((zh ? "生成接入命令失败：" : "Failed to generate command: ") + (data && data.error ? data.error : (zh ? "未知错误" : "Unknown error")));
+            var errMsg = (zh ? "生成接入命令失败：" : "Failed to generate command: ") + (data && data.error ? data.error : (zh ? "未知错误" : "Unknown error"));
+            if (errBox) {
+              errBox.textContent = errMsg;
+              errBox.style.display = "block";
+            }
           }
         } catch (e) {
-          alert(zh ? "请求生成命令失败，请检查网络或登录状态。" : "Request failed, please check connection.");
+          var errMsg = zh ? "请求生成命令失败，请检查网络或登录状态。" : "Request failed, please check connection.";
+          if (errBox) {
+            errBox.textContent = errMsg;
+            errBox.style.display = "block";
+          }
         } finally {
           btnGen.disabled = false;
           btnGen.textContent = origText;
@@ -3584,7 +3662,7 @@ footer.site-footer {
             document.body.removeChild(ta);
           }
           if (copyStatus) {
-            copyStatus.textContent = zh ? "✅ 已复制到剪贴板！" : "✅ Copied to clipboard!";
+            copyStatus.textContent = zh ? "已复制到剪贴板！" : "Copied to clipboard!";
             setTimeout(function () { if (copyStatus) copyStatus.textContent = ""; }, 3000);
           }
         } catch (_) {
@@ -4569,7 +4647,7 @@ footer.site-footer {
             ? (zh ? "当前节点为系统国内探测基准锚点（点击右侧 ⋯ 或卡片可更换）" : "Active domestic vantage anchor for latency measurement")
             : (st && st.vantage ? (zh ? ("经 [" + st.vantage + "] 观测基准机房测得骨干物理延迟") : ("Probed via [" + st.vantage + "] backbone")) : "");
           if (typeof LOCAL_DEVICE_PING !== "undefined" && LOCAL_DEVICE_PING && LOCAL_DEVICE_PING.ms && LOCAL_DEVICE_PING.ms > 220) {
-            tip += (tip ? "\n" : "") + (zh ? ("⚠️ 当前本机网络/WiFi延迟偏高 (" + LOCAL_DEVICE_PING.ms + "ms)，节点骨干正常。") : ("⚠️ Local network latency high (" + LOCAL_DEVICE_PING.ms + "ms), node backbone normal."));
+            tip += (tip ? "\n" : "") + (zh ? ("当前本机网络/WiFi延迟偏高 (" + LOCAL_DEVICE_PING.ms + "ms)，节点骨干正常。") : ("Local network latency high (" + LOCAL_DEVICE_PING.ms + "ms), node backbone normal."));
           }
           var tipAttr = tip ? (' title="' + esc(tip) + '"') : '';
           pingHtml = '<span class="ping-pill ' + backboneCls + '"' + tipAttr + '>' + pingLabel + '</span>';
@@ -4915,7 +4993,18 @@ footer.site-footer {
       }
 
       var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
-      var drawerActions = protoBadges + relayPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
+      var warpPill = "";
+      if (!isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
+        var isWarp = !!n.warp_enabled;
+        if (isWarp) {
+          statusBadges += '<span class="tag ok" style="font-size:11px" title="' + (zh ? 'WARP 清洁出网已开启' : 'WARP Active') + '">WARP</span>';
+        }
+        warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
+          '<svg class="ico" width="12" height="12" style="vertical-align:-2px;margin-right:3px"><use href="#i-shield"/></svg>' +
+          (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour')) +
+          '</button>';
+      }
+      var drawerActions = protoBadges + relayPill + warpPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
       if (n.cleanup_pending) {
         drawerActions += '<button class="btn tiny danger" type="button" style="color:var(--err,#dc2626);border-color:currentColor;" onclick="event.stopPropagation();window.ownlineDelNode(' + i + ')">' + (zh ? '彻底删除' : 'Delete Permanently') + '</button>';
       }
@@ -4966,6 +5055,13 @@ footer.site-footer {
         ? (zh ? "解绑住宅 IP" : "Unmount Residential IP")
         : (zh ? "绑定住宅 IP" : "Mount Residential IP");
       items.push({label: ispLabel, id: "isp"});
+
+      if (n.type !== "hysteria2") {
+        var warpLabel = n.warp_enabled
+          ? (zh ? "关闭 WARP 清洁出口" : "Disable WARP Detour")
+          : (zh ? "开启 WARP 清洁出口 (AI 防封)" : "Enable WARP Detour (Anti-Block)");
+        items.push({label: warpLabel, id: "warp"});
+      }
     }
 
     items.push({label: zh ? "设置到期提醒" : "Set Expiration Notice", id: "lifecycle"});
@@ -5010,6 +5106,7 @@ footer.site-footer {
         toggleHy2(n.name, n.host || n.ip, !isHy2Active);
       }
       else if (act === "isp") mountIsp(i);
+      else if (act === "warp") toggleWarp(i);
       else if (act === "lifecycle") setNodeLifecycle(i);
       else if (act === "rotate") rotateKey(i);
       else if (act === "del") delNode(i);
@@ -5724,15 +5821,15 @@ footer.site-footer {
       ? ('检测到【<b>' + esc(cNode.name) + '</b>】' + reasonText + '，推荐一键唤醒【HY2 极速抢跑】')
       : ('High latency on [<b>' + esc(cNode.name) + '</b>] (' + reasonText + '). Tap to awaken HY2 Turbo.');
 
-    var btnText = zh ? "⚡️ 唤醒 HY2 抢跑" : "⚡️ Awaken HY2";
+    var btnText = zh ? "唤醒 HY2 抢跑" : "Awaken HY2";
 
     container.innerHTML = '<div class="awakening-capsule" role="alert">' +
       '<div class="awakening-content">' +
-        '<span class="awakening-icon">⚡️</span>' +
+        '<span class="awakening-icon"><svg class="ico" width="14" height="14"><use href="#i-zap"/></svg></span>' +
         '<div class="awakening-text">' + awakeningMsg + '</div>' +
       '</div>' +
       '<div class="awakening-actions">' +
-        '<button type="button" class="awakening-btn" onclick="window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')">' + btnText + '</button>' +
+        '<button type="button" class="awakening-btn" onclick="window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:4px"><use href="#i-zap"/></svg>' + btnText + '</button>' +
         '<button type="button" class="awakening-dismiss" aria-label="' + (zh ? '忽略' : 'Dismiss') + '" onclick="window.ownlineDismissAwakening(\'' + esc(cNode.name) + '\')" title="' + (zh ? '本次忽略' : 'Dismiss') + '"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>' +
       '</div>' +
     '</div>';
@@ -6088,6 +6185,43 @@ footer.site-footer {
     });
   }
 
+  async function toggleWarp(i) {
+    var nodes = (typeof STATE !== "undefined" && STATE.nodes) ? STATE.nodes : (typeof NODES !== "undefined" ? NODES : []);
+    var n = nodes[i];
+    if (!n) return;
+    var targetEnabled = !n.warp_enabled;
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    try {
+      var url = typeof safeUrl === "function" ? safeUrl("/api/node/warp/toggle") : "/api/node/warp/toggle";
+      var res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: n.name, enabled: targetEnabled })
+      });
+      var data = await res.json();
+      if (data && data.ok) {
+        n.warp_enabled = targetEnabled;
+        renderNodes();
+        if (typeof refreshState === "function") refreshState();
+      } else {
+        var msg = (zh ? "切换 WARP 失败：" : "Failed to toggle WARP: ") + ((data && data.error) || (zh ? "未知错误" : "Unknown error"));
+        dialog({
+          title: zh ? "WARP 出口切换失败" : "WARP Detour Error",
+          message: msg,
+          confirmText: zh ? "确定" : "OK",
+          cancelText: null
+        });
+      }
+    } catch (e) {
+      dialog({
+        title: zh ? "网络连接异常" : "Network Error",
+        message: String(e),
+        confirmText: zh ? "确定" : "OK",
+        cancelText: null
+      });
+    }
+  }
+
   var NodeController = {
     deriveNodeState: deriveNodeState,
     paintStatus: paintStatus,
@@ -6099,6 +6233,7 @@ footer.site-footer {
     rotateKey: rotateKey,
     editNode: editNode,
     toggleHy2: toggleHy2,
+    toggleWarp: toggleWarp,
     refreshPing: refreshPing,
     setProbeVantage: setProbeVantage,
     openRelayDialog: openRelayDialog,
@@ -6108,6 +6243,7 @@ footer.site-footer {
   if (typeof window !== "undefined") {
     window.NodeController = NodeController;
     window.paintStatus = paintStatus;
+    window.ownlineToggleWarp = toggleWarp;
   }
 
   // 07b-local-ping.js - Client-Side Real-Time Network Probing
@@ -6178,10 +6314,12 @@ footer.site-footer {
     if (!pill) return;
     var zh = (typeof isZh === "function") ? isZh() : true;
 
+    var icoHtml = '<svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg>';
+
     if (LOCAL_DEVICE_PING.probing) {
       pill.style.display = "inline-flex";
       pill.className = "ping-pill local-ping probing";
-      pill.textContent = zh ? "📱 本机: 测速中..." : "📱 Local: Probing...";
+      pill.innerHTML = icoHtml + (zh ? "本机: 测速中..." : "Local: Probing...");
       pill.title = zh ? "正在测量当前设备到控制台网关的往返物理延迟..." : "Measuring RTT from this device to gateway...";
       return;
     }
@@ -6191,7 +6329,7 @@ footer.site-footer {
       var ms = LOCAL_DEVICE_PING.ms;
       var cls = ms <= 80 ? "fast" : (ms <= 220 ? "medium" : "slow");
       pill.className = "ping-pill local-ping " + cls;
-      pill.textContent = "📱 " + (zh ? "本机 " : "Local ") + ms + "ms";
+      pill.innerHTML = icoHtml + (zh ? "本机 " : "Local ") + ms + "ms";
       var qualityText = ms <= 80 ? (zh ? "局域网及接入网络质量优秀" : "Local network quality is excellent")
         : (ms <= 220 ? (zh ? "当前网络存在轻微波动或中等延迟" : "Moderate network latency detected")
         : (zh ? "当前本地网络/WiFi延迟偏高，可能影响连接流畅度" : "High local network latency detected"));
@@ -6203,7 +6341,7 @@ footer.site-footer {
     if (LOCAL_DEVICE_PING.status === "bad") {
       pill.style.display = "inline-flex";
       pill.className = "ping-pill local-ping slow";
-      pill.textContent = zh ? "📱 本机网络异常" : "📱 Local Network Error";
+      pill.innerHTML = icoHtml + (zh ? "本机网络异常" : "Local Network Error");
       pill.title = zh ? "无法连接到网关，请检查当前网络状态" : "Unable to reach gateway, please check network connection";
     }
   }
@@ -7096,8 +7234,8 @@ footer.site-footer {
     var contact = (contactEl ? contactEl.value : "").trim() || (zh ? "(未填写联系方式)" : "(No contact info)");
     var diag = buildDiagnosticSnapshot();
 
-    var intentTitleZh = (_selectedFeedbackIntent === "idea") ? "💡 想要新功能 / 场景建议" : "🐞 遇到问题 / 排障求助";
-    var intentTitleEn = (_selectedFeedbackIntent === "idea") ? "💡 Feature Request / Scenario Idea" : "🐞 Bug & Issue Report";
+    var intentTitleZh = (_selectedFeedbackIntent === "idea") ? "想要新功能 / 场景建议" : "遇到问题 / 排障求助";
+    var intentTitleEn = (_selectedFeedbackIntent === "idea") ? "Feature Request / Scenario Idea" : "Bug & Issue Report";
     var intentTitle = zh ? intentTitleZh : intentTitleEn;
 
     var report = "";

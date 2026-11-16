@@ -91,6 +91,7 @@ test('nodeMenu: concise action items without jargon, self-heal hidden when node 
     '修改名称与端口',
     '暂停使用',
     '绑定住宅 IP',
+    '开启 WARP 清洁出口 (AI 防封)',
     '设置到期提醒',
     '重置密钥（断开所有设备）',
     '删除节点'

@@ -23,7 +23,7 @@ test('local ping logic: device probe measures RTT against gateway /api/ping', as
     });
   };
 
-  const headerPill = { style: { display: 'none' }, className: '', textContent: '', title: '' };
+  const headerPill = { style: { display: 'none' }, className: '', textContent: '', innerHTML: '', title: '' };
   const sandbox = {
     window: {},
     document: {
@@ -48,7 +48,7 @@ test('local ping logic: device probe measures RTT against gateway /api/ping', as
   assert(ms >= 20, 'ms should reflect elapsed fetch time');
   assert.equal(sandbox.window.LOCAL_DEVICE_PING.status, 'fast');
   assert.equal(headerPill.style.display, 'inline-flex');
-  assert.match(headerPill.textContent, /📱 本机 \d+ms/);
+  assert.match(headerPill.innerHTML || headerPill.textContent, /本机 \d+ms/);
 });
 
 test('local ping logic: gateway unreachable marks status as bad and updates pill', async () => {
@@ -56,7 +56,7 @@ test('local ping logic: gateway unreachable marks status as bad and updates pill
     return Promise.reject(new Error('Network offline'));
   };
 
-  const headerPill = { style: { display: 'none' }, className: '', textContent: '', title: '' };
+  const headerPill = { style: { display: 'none' }, className: '', textContent: '', innerHTML: '', title: '' };
   const sandbox = {
     window: {},
     document: {
@@ -78,5 +78,5 @@ test('local ping logic: gateway unreachable marks status as bad and updates pill
   const res = await sandbox.window.ownlineProbeLocalPing();
   assert.equal(res, null);
   assert.equal(sandbox.window.LOCAL_DEVICE_PING.status, 'bad');
-  assert.match(headerPill.textContent, /📱 本机网络异常/);
+  assert.match(headerPill.innerHTML || headerPill.textContent, /本机网络异常/);
 });

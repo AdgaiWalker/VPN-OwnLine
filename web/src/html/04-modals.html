@@ -98,6 +98,27 @@
             </div>
           </div>
 
+          <div class="apple-client-download-guide" style="margin-top:14px;padding:10px 12px;background:var(--paper-card-subtle);border-radius:10px;border:1px solid var(--line-light)">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">
+              <svg class="ico" width="13" height="13"><use href="#i-download"/></svg>
+              <span data-i18n="client_install_hint">首次使用？点击下载官方客户端：</span>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <a class="btn tiny" id="hub-dl-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
+                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
+                <span>Clash Verge</span>
+              </a>
+              <a class="btn tiny" id="hub-dl-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
+                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
+                <span>FL Clash</span>
+              </a>
+              <a class="btn tiny" id="hub-dl-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
+                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
+                <span>Shadowrocket</span>
+              </a>
+            </div>
+          </div>
+
           <div class="apple-sheet-footer">
             <details class="inner apple-disclosure" id="download-help" style="border:none;background:transparent;padding:0">
               <summary class="small muted" style="cursor:pointer;list-style:none;text-align:center" data-i18n="manual_copy_toggle">手动复制链接与撤销</summary>
@@ -127,6 +148,10 @@
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
           <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用系统相机或小火箭扫描添加。</p>
+          <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
+            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px"><use href="#i-alert"/></svg>
+            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">提示：请使用 Shadowrocket / Clash 等代理客户端内置相机扫码，不要使用微信直接扫码。</span>
+          </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
               <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
@@ -157,7 +182,7 @@
           <span style="display:flex;align-items:center;gap:6px">
             <span data-i18n="nodes_title">节点列表</span>
             <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span>
-            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟">📱 本机: --</span>
+            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg><span>本机: --</span></span>
           </span>
           <div style="display:flex;align-items:center;gap:8px">
             <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
@@ -206,11 +231,19 @@
         </button>
       </div>
 
-      <!-- Segment Switching: Direct Connection vs Tencent Cloud -->
-      <div class="seg" role="group" aria-label="连接方式" style="max-width:360px;margin-bottom:14px">
-        <button class="segbtn active" type="button" id="tab-other" aria-pressed="true" data-i18n="tab_ssh">SSH 直连</button>
-        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false" data-i18n="tab_tc">腾讯云 API</button>
+      <!-- Segment Switching: One-Click Join vs Direct SSH vs Tencent Cloud -->
+      <div class="seg" role="group" aria-label="连接方式" style="max-width:440px;margin-bottom:16px">
+        <button class="segbtn active" type="button" id="tab-btn-reverse-join" aria-pressed="true">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入</span>
+        </button>
+        <button class="segbtn" type="button" id="tab-btn-ssh-direct" aria-pressed="false">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">SSH 直连配置</span>
+        </button>
+        <button class="segbtn" type="button" id="tab-tc" aria-pressed="false">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-cloud"/></svg><span data-i18n="tab_tc">腾讯云 API</span>
+        </button>
       </div>
+      <button id="tab-other" type="button" style="display:none"></button>
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
@@ -277,11 +310,6 @@
 
       <!-- Panel Other: Direct SSH Connection & Reverse Join -->
       <div id="panel-other">
-        <div class="log-tabs" id="join-mode-tabs" style="margin-bottom:14px">
-          <button class="log-tab-btn active" type="button" id="tab-btn-reverse-join" data-i18n="tab_reverse_join">🚀 一键终端免密接入 (推荐)</button>
-          <button class="log-tab-btn" type="button" id="tab-btn-ssh-direct" data-i18n="tab_ssh_direct">🔑 SSH 直连配置</button>
-        </div>
-
         <!-- Mode 1: Pre-Auth Reverse Join -->
         <div id="box-reverse-join">
           <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
@@ -303,6 +331,7 @@
               <button class="btn primary" type="button" id="btn-gen-reverse-join" style="height:36px" data-i18n="btn_gen_join_cmd">生成接入命令</button>
             </div>
           </div>
+          <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
 
           <div id="reverse-join-cmd-box" style="display:none;margin-top:14px;padding:12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:10px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
@@ -377,7 +406,6 @@
         </div>
         </div></div>
         </div>
-        <details class="inner other-install install-guide"><summary data-i18n="terminal_install_summary">通过终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
         <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">安装指引</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">VPS 选购建议</a></p>
       </div>
     </div>

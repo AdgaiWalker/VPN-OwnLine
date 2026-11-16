@@ -703,6 +703,35 @@ class NodeManager:
                 "verify": sync_res.get("verify"),
             }
 
+    def toggle_warp(self, name: str = "", enabled: bool = True) -> Dict[str, Any]:
+        """切换海外出口节点的 Cloudflare WARP 清洁出网状态。"""
+        with self._mutation_lock:
+            name = (name or "").strip()
+            if not name:
+                raise NodeValidationError("缺少节点名称 (name)")
+
+            nodes = self.store.load()
+            target_node = next((n for n in nodes if n.get("name") == name), None)
+            if not target_node:
+                raise NodeNotFoundError("未找到指定的节点")
+
+            def _apply_warp(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                for n in ns:
+                    if n.get("name") == name:
+                        n["warp_enabled"] = bool(enabled)
+                return ns
+
+            self.store.update(_apply_warp)
+            self._trigger_on_change()
+            state_str = "开启" if enabled else "关闭"
+            self._log("INFO", "WARP", f"切换节点 [{name}] WARP 清洁出网: {state_str}")
+            return {
+                "ok": True,
+                "name": name,
+                "warp_enabled": bool(enabled),
+                "message": f"节点 [{name}] WARP 清洁出网已{state_str}",
+            }
+
     # -----------------------------------------------------------------
     # 通用事务写能力 (任意 Mutation 原子保护)
     # -----------------------------------------------------------------

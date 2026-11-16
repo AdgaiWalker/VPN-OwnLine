@@ -66,10 +66,12 @@
     if (!pill) return;
     var zh = (typeof isZh === "function") ? isZh() : true;
 
+    var icoHtml = '<svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg>';
+
     if (LOCAL_DEVICE_PING.probing) {
       pill.style.display = "inline-flex";
       pill.className = "ping-pill local-ping probing";
-      pill.textContent = zh ? "📱 本机: 测速中..." : "📱 Local: Probing...";
+      pill.innerHTML = icoHtml + (zh ? "本机: 测速中..." : "Local: Probing...");
       pill.title = zh ? "正在测量当前设备到控制台网关的往返物理延迟..." : "Measuring RTT from this device to gateway...";
       return;
     }
@@ -79,7 +81,7 @@
       var ms = LOCAL_DEVICE_PING.ms;
       var cls = ms <= 80 ? "fast" : (ms <= 220 ? "medium" : "slow");
       pill.className = "ping-pill local-ping " + cls;
-      pill.textContent = "📱 " + (zh ? "本机 " : "Local ") + ms + "ms";
+      pill.innerHTML = icoHtml + (zh ? "本机 " : "Local ") + ms + "ms";
       var qualityText = ms <= 80 ? (zh ? "局域网及接入网络质量优秀" : "Local network quality is excellent")
         : (ms <= 220 ? (zh ? "当前网络存在轻微波动或中等延迟" : "Moderate network latency detected")
         : (zh ? "当前本地网络/WiFi延迟偏高，可能影响连接流畅度" : "High local network latency detected"));
@@ -91,7 +93,7 @@
     if (LOCAL_DEVICE_PING.status === "bad") {
       pill.style.display = "inline-flex";
       pill.className = "ping-pill local-ping slow";
-      pill.textContent = zh ? "📱 本机网络异常" : "📱 Local Network Error";
+      pill.innerHTML = icoHtml + (zh ? "本机网络异常" : "Local Network Error");
       pill.title = zh ? "无法连接到网关，请检查当前网络状态" : "Unable to reach gateway, please check network connection";
     }
   }

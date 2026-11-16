@@ -1150,6 +1150,18 @@ class H(BaseHTTPRequestHandler):
                     payload.update(e.data)
                 return self._json(e.status_code, payload)
 
+        if norm_path in ("/warp/toggle", "/node/warp/toggle"):
+            name = (body.get("name") or "").strip()
+            enabled = bool(body.get("enabled"))
+            try:
+                resp = node_manager.toggle_warp(name=name, enabled=enabled)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
+
         if norm_path == "/ping":
             try:
                 import probe as probe_mod

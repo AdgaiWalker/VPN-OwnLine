@@ -18,8 +18,8 @@ test('reverse join ui: HTML elements and interactive nodes exist', () => {
 
 test('reverse join ui: i18n dictionary contains required keys in both zh and en', () => {
   const i18nSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/01-i18n.js'), 'utf8');
-  assert(i18nSrc.includes('tab_reverse_join: "🚀 One-Click Terminal Join (Recommended)"'), 'en tab_reverse_join missing');
-  assert(i18nSrc.includes('tab_reverse_join: "🚀 一键终端免密接入 (推荐)"'), 'zh tab_reverse_join missing');
+  assert(i18nSrc.includes('tab_reverse_join: "One-Click Terminal Join (Recommended)"'), 'en tab_reverse_join missing');
+  assert(i18nSrc.includes('tab_reverse_join: "免密终端接入 (推荐)"'), 'zh tab_reverse_join missing');
   assert(i18nSrc.includes('btn_gen_join_cmd: "Generate Join Command"'), 'en btn_gen_join_cmd missing');
   assert(i18nSrc.includes('btn_gen_join_cmd: "生成接入命令"'), 'zh btn_gen_join_cmd missing');
 });

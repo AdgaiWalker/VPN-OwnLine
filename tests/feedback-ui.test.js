@@ -49,10 +49,10 @@ test('feedback logic: functions exported and i18n keys present', () => {
   assert(html.includes('footer_feedback: "快捷反馈"'), 'i18n.zh footer_feedback must exist');
   assert(html.includes('feedback_dialog_title: "Feedback & Ideas"'), 'i18n.en feedback_dialog_title must exist');
   assert(html.includes('feedback_dialog_title: "反馈与建议"'), 'i18n.zh feedback_dialog_title must exist');
-  assert(html.includes('feedback_intent_bug: "🐞 Report Issue"'), 'i18n.en feedback_intent_bug must exist');
-  assert(html.includes('feedback_intent_bug: "🐞 遇到问题"'), 'i18n.zh feedback_intent_bug must exist');
-  assert(html.includes('feedback_intent_idea: "💡 New Idea"'), 'i18n.en feedback_intent_idea must exist');
-  assert(html.includes('feedback_intent_idea: "💡 想要新功能"'), 'i18n.zh feedback_intent_idea must exist');
+  assert(html.includes('feedback_intent_bug: "Report Issue"'), 'i18n.en feedback_intent_bug must exist');
+  assert(html.includes('feedback_intent_bug: "遇到问题"'), 'i18n.zh feedback_intent_bug must exist');
+  assert(html.includes('feedback_intent_idea: "New Idea"'), 'i18n.en feedback_intent_idea must exist');
+  assert(html.includes('feedback_intent_idea: "想要新功能"'), 'i18n.zh feedback_intent_idea must exist');
   assert(html.includes('feedback_success_title: "Thank You for Dogfooding"'), 'i18n.en feedback_success_title must exist');
   assert(html.includes('feedback_success_title: "感谢你帮大家踩坑"'), 'i18n.zh feedback_success_title must exist');
 });

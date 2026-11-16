@@ -313,5 +313,28 @@ class NodeManagerTests(unittest.TestCase):
         self.mock_on_change.assert_called()
 
 
+    def test_toggle_warp_success(self):
+        res = self.mgr.toggle_warp(name="us-exit", enabled=True)
+        self.assertTrue(res["ok"])
+        self.assertTrue(res["warp_enabled"])
+        found = self.mgr.get_node("us-exit")
+        self.assertTrue(found["warp_enabled"])
+        self.mock_on_change.assert_called()
+
+        res_off = self.mgr.toggle_warp(name="us-exit", enabled=False)
+        self.assertTrue(res_off["ok"])
+        self.assertFalse(res_off["warp_enabled"])
+        found = self.mgr.get_node("us-exit")
+        self.assertFalse(found["warp_enabled"])
+
+    def test_toggle_warp_missing_name(self):
+        with self.assertRaises(NodeValidationError):
+            self.mgr.toggle_warp(name="", enabled=True)
+
+    def test_toggle_warp_not_found(self):
+        with self.assertRaises(NodeNotFoundError):
+            self.mgr.toggle_warp(name="non-existent", enabled=True)
+
+
 if __name__ == "__main__":
     unittest.main()

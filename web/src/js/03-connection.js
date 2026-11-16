@@ -120,76 +120,93 @@
     }
   }
 
-  // 3. Connection mode switch (Direct server vs Tencent Cloud)
+  // 3. Connection mode switch (Reverse Join vs SSH Direct vs Tencent Cloud)
   function initCloudParallelSwitch() {
     var tabTc = document.getElementById("tab-tc");
     var tabOther = document.getElementById("tab-other");
-    var panelTc = document.getElementById("panel-tc");
-    var panelOther = document.getElementById("panel-other");
-
-    if (!tabTc || !tabOther) return;
-
-    tabTc.onclick = function () {
-      STATE.cloudMode = "tc";
-      tabTc.classList.add("active");
-      tabOther.classList.remove("active");
-      tabTc.setAttribute("aria-pressed", "true");
-      tabOther.setAttribute("aria-pressed", "false");
-      if (panelTc) panelTc.style.display = "block";
-      if (panelOther) panelOther.style.display = "none";
-    };
-
-    tabOther.onclick = function () {
-      var fields = document.getElementById("ssh-connection-fields");
-      var slot = document.getElementById("other-connection-slot");
-      if (fields.parentElement !== slot) {
-        clearOtherSecret();
-        ["other-credential", "other-passphrase"].forEach(function (id) { document.getElementById(id).value = ""; });
-        slot.appendChild(fields);
-      }
-      STATE.cloudMode = "other";
-      tabOther.classList.add("active");
-      tabTc.classList.remove("active");
-      tabOther.setAttribute("aria-pressed", "true");
-      tabTc.setAttribute("aria-pressed", "false");
-      if (panelTc) panelTc.style.display = "none";
-      if (panelOther) panelOther.style.display = "block";
-
-    };
-  }
-
-  // 3.5 Reverse Join (Pre-Auth Token One-Click Script)
-  function initReverseJoin() {
     var tabReverse = document.getElementById("tab-btn-reverse-join");
     var tabSsh = document.getElementById("tab-btn-ssh-direct");
+    var panelTc = document.getElementById("panel-tc");
+    var panelOther = document.getElementById("panel-other");
     var boxReverse = document.getElementById("box-reverse-join");
     var boxSsh = document.getElementById("box-ssh-direct");
-    var btnGen = document.getElementById("btn-gen-reverse-join");
-    var cmdBox = document.getElementById("reverse-join-cmd-box");
-    var cmdText = document.getElementById("reverse-join-cmd-text");
-    var btnCopy = document.getElementById("btn-copy-reverse-join");
-    var copyStatus = document.getElementById("reverse-join-copy-status");
-    var nameInput = document.getElementById("reverse-node-name");
-    var roleSelect = document.getElementById("reverse-node-role");
 
-    if (tabReverse && tabSsh) {
+    function setTabActive(activeTab) {
+      [tabReverse, tabSsh, tabTc].forEach(function(t) {
+        if (!t) return;
+        var isActive = (t === activeTab);
+        if (isActive) {
+          t.classList.add("active");
+          t.setAttribute("aria-pressed", "true");
+        } else {
+          t.classList.remove("active");
+          t.setAttribute("aria-pressed", "false");
+        }
+      });
+    }
+
+    if (tabReverse) {
       tabReverse.onclick = function () {
-        tabReverse.classList.add("active");
-        tabSsh.classList.remove("active");
+        setTabActive(tabReverse);
+        if (panelTc) panelTc.style.display = "none";
+        if (panelOther) panelOther.style.display = "block";
         if (boxReverse) boxReverse.style.display = "block";
         if (boxSsh) boxSsh.style.display = "none";
       };
+    }
+
+    if (tabSsh) {
       tabSsh.onclick = function () {
-        tabSsh.classList.add("active");
-        tabReverse.classList.remove("active");
+        var fields = document.getElementById("ssh-connection-fields");
+        var slot = document.getElementById("other-connection-slot");
+        if (fields && slot && fields.parentElement !== slot) {
+          clearOtherSecret();
+          ["other-credential", "other-passphrase"].forEach(function (id) {
+            var el = document.getElementById(id);
+            if (el) el.value = "";
+          });
+          slot.appendChild(fields);
+        }
+        STATE.cloudMode = "other";
+        setTabActive(tabSsh);
+        if (panelTc) panelTc.style.display = "none";
+        if (panelOther) panelOther.style.display = "block";
         if (boxSsh) boxSsh.style.display = "block";
         if (boxReverse) boxReverse.style.display = "none";
       };
     }
 
+    if (tabTc) {
+      tabTc.onclick = function () {
+        STATE.cloudMode = "tc";
+        setTabActive(tabTc);
+        if (panelTc) panelTc.style.display = "block";
+        if (panelOther) panelOther.style.display = "none";
+      };
+    }
+
+    if (tabOther) {
+      tabOther.onclick = function () {
+        if (tabReverse) tabReverse.click();
+      };
+    }
+  }
+
+  // 3.5 Reverse Join (Pre-Auth Token One-Click Script)
+  function initReverseJoin() {
+    var btnGen = document.getElementById("btn-gen-reverse-join");
+    var cmdBox = document.getElementById("reverse-join-cmd-box");
+    var cmdText = document.getElementById("reverse-join-cmd-text");
+    var btnCopy = document.getElementById("btn-copy-reverse-join");
+    var copyStatus = document.getElementById("reverse-join-copy-status");
+    var errBox = document.getElementById("reverse-join-error");
+    var nameInput = document.getElementById("reverse-node-name");
+    var roleSelect = document.getElementById("reverse-node-role");
+
     if (btnGen) {
       btnGen.onclick = async function () {
         btnGen.disabled = true;
+        if (errBox) { errBox.style.display = "none"; errBox.textContent = ""; }
         var zh = (typeof isZh === "function") ? isZh() : true;
         var origText = btnGen.textContent;
         btnGen.textContent = zh ? "正在生成..." : "Generating...";
@@ -208,10 +225,18 @@
             if (cmdBox) cmdBox.style.display = "block";
             if (copyStatus) copyStatus.textContent = "";
           } else {
-            alert((zh ? "生成接入命令失败：" : "Failed to generate command: ") + (data && data.error ? data.error : (zh ? "未知错误" : "Unknown error")));
+            var errMsg = (zh ? "生成接入命令失败：" : "Failed to generate command: ") + (data && data.error ? data.error : (zh ? "未知错误" : "Unknown error"));
+            if (errBox) {
+              errBox.textContent = errMsg;
+              errBox.style.display = "block";
+            }
           }
         } catch (e) {
-          alert(zh ? "请求生成命令失败，请检查网络或登录状态。" : "Request failed, please check connection.");
+          var errMsg = zh ? "请求生成命令失败，请检查网络或登录状态。" : "Request failed, please check connection.";
+          if (errBox) {
+            errBox.textContent = errMsg;
+            errBox.style.display = "block";
+          }
         } finally {
           btnGen.disabled = false;
           btnGen.textContent = origText;
@@ -236,7 +261,7 @@
             document.body.removeChild(ta);
           }
           if (copyStatus) {
-            copyStatus.textContent = zh ? "✅ 已复制到剪贴板！" : "✅ Copied to clipboard!";
+            copyStatus.textContent = zh ? "已复制到剪贴板！" : "Copied to clipboard!";
             setTimeout(function () { if (copyStatus) copyStatus.textContent = ""; }, 3000);
           }
         } catch (_) {

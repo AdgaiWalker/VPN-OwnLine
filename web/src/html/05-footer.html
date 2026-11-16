@@ -234,22 +234,22 @@
 
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
-      <!-- 1. Apple Segmented Control: [ 🐞 遇到问题 | 💡 想要新功能 ] -->
+      <!-- 1. Apple Segmented Control: [ 遇到问题 | 想要新功能 ] -->
       <div class="apple-segmented-bar" style="margin-bottom:12px">
         <button type="button" class="apple-segment-btn active" id="seg-btn-bug" onclick="window.selectFeedbackIntent('bug')">
-          <span data-i18n="feedback_intent_bug">🐞 遇到问题</span>
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-bug"/></svg><span data-i18n="feedback_intent_bug">遇到问题</span>
         </button>
         <button type="button" class="apple-segment-btn" id="seg-btn-idea" onclick="window.selectFeedbackIntent('idea')">
-          <span data-i18n="feedback_intent_idea">💡 想要新功能</span>
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-lightbulb"/></svg><span data-i18n="feedback_intent_idea">想要新功能</span>
         </button>
       </div>
 
       <!-- Quick Scenario Tags (免输入一键填充) -->
       <div class="feedback-quick-tags" id="feedback-quick-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('🔴 节点连不上')">🔴 节点连不上</button>
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('🐢 看视频卡顿慢')">🐢 看视频卡顿</button>
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('📱 手机无法连接')">📱 手机无法连接</button>
-        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('💡 体验优化建议')">💡 体验建议</button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('节点连不上')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-alert"/></svg><span data-i18n="tag_node_unreachable">节点连不上</span></button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('看视频卡顿慢')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-refresh"/></svg><span data-i18n="tag_slow_speed">看视频卡顿</span></button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('手机无法连接')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-smartphone"/></svg><span data-i18n="tag_mobile_issue">手机无法连接</span></button>
+        <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('体验优化建议')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-lightbulb"/></svg><span data-i18n="tag_ux_suggestion">体验建议</span></button>
       </div>
 
       <!-- 2. Focused Textarea -->
@@ -301,7 +301,7 @@
           </button>
         </div>
         <div style="text-align:center;font-size:11.5px;color:var(--apple-muted);margin-top:2px">
-          作者支持邮箱：<a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
+          <span data-i18n="author_email_lbl">作者支持邮箱：</span><a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
         </div>
       </div>
     </form>

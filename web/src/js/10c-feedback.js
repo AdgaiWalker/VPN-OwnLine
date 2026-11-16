@@ -264,8 +264,8 @@
     var contact = (contactEl ? contactEl.value : "").trim() || (zh ? "(未填写联系方式)" : "(No contact info)");
     var diag = buildDiagnosticSnapshot();
 
-    var intentTitleZh = (_selectedFeedbackIntent === "idea") ? "💡 想要新功能 / 场景建议" : "🐞 遇到问题 / 排障求助";
-    var intentTitleEn = (_selectedFeedbackIntent === "idea") ? "💡 Feature Request / Scenario Idea" : "🐞 Bug & Issue Report";
+    var intentTitleZh = (_selectedFeedbackIntent === "idea") ? "想要新功能 / 场景建议" : "遇到问题 / 排障求助";
+    var intentTitleEn = (_selectedFeedbackIntent === "idea") ? "Feature Request / Scenario Idea" : "Bug & Issue Report";
     var intentTitle = zh ? intentTitleZh : intentTitleEn;
 
     var report = "";
