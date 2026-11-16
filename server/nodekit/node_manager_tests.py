@@ -336,5 +336,42 @@ class NodeManagerTests(unittest.TestCase):
             self.mgr.toggle_warp(name="non-existent", enabled=True)
 
 
+    def test_auto_pair_relay_success(self):
+        self.mock_remote_cfg.bind_relay.return_value = {
+            "ok": True,
+            "landing": {"host": "2.2.2.2", "port": 443},
+            "landing_policy": {"strategy": "dual"},
+            "exit_ip": "2.2.2.2",
+            "exit_country": "US",
+            "health_detail": "自动专线就绪",
+            "verify": {"health": "ok"},
+        }
+        res = self.mgr.auto_pair_relay()
+        self.assertTrue(res["ok"])
+        relay = self.mgr.get_node("hk-relay")
+        self.assertEqual(relay["landing"]["host"], "2.2.2.2")
+
+    def test_auto_pair_relay_no_domestic(self):
+        # Remove the relay node so no unbonded domestic node exists
+        self.mgr.store.update(lambda ns: [n for n in ns if n["name"] != "hk-relay"])
+        res = self.mgr.auto_pair_relay()
+        self.assertFalse(res["ok"])
+        self.assertIn("不满足", res["reason"])
+
+    def test_add_node_defaults_warp_and_hy2_for_exit(self):
+        exit_node = {
+            "name": "德国出口",
+            "host": "198.51.100.99",
+            "port": 443,
+            "role": "exit",
+            "exit_country": "DE",
+        }
+        res = self.mgr.add_node(exit_node)
+        self.assertTrue(res["ok"])
+        node = res["node"]
+        self.assertTrue(node.get("warp_enabled"))
+        self.assertTrue(node.get("hy2_enabled"))
+
+
 if __name__ == "__main__":
     unittest.main()

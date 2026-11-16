@@ -1040,6 +1040,8 @@ class H(BaseHTTPRequestHandler):
                 "source": "reverse_join",
                 "health": "ok",
                 "joined_at": int(time.time()),
+                "warp_enabled": (role != "relay"),
+                "hy2_enabled": bool(body.get("hy2_password")),
             }
 
             try:
@@ -1130,6 +1132,16 @@ class H(BaseHTTPRequestHandler):
             name = (body.get("name") or "").strip()
             try:
                 resp = node_manager.unbind_relay(name)
+                return self._json(200, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
+
+        if norm_path in ("/relay/auto-pair", "/api/relay/auto-pair"):
+            try:
+                resp = node_manager.auto_pair_relay()
                 return self._json(200, resp)
             except NodeManagerError as e:
                 payload = {"ok": False, "error": e.message}

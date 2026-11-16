@@ -80,7 +80,7 @@ def cn_probe(nodes, preferred_vantage=None):
             if n.get("source") != "external"
             and n.get("host")
             and (n.get("name") == preferred_vantage or n.get("host") == preferred_vantage)
-            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn" or (n.get("country") or "").upper() == "CN")
         ), None)
 
     if not vantage:
@@ -95,7 +95,7 @@ def cn_probe(nodes, preferred_vantage=None):
                             if n.get("source") != "external"
                             and n.get("host")
                             and (n.get("name") == cfg_pref or n.get("host") == cfg_pref)
-                            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+                            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn" or (n.get("country") or "").upper() == "CN")
                         ), None)
             except Exception:
                 pass
@@ -105,7 +105,7 @@ def cn_probe(nodes, preferred_vantage=None):
             n for n in nodes
             if n.get("source") != "external"
             and n.get("host")
-            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn")
+            and (n.get("role") in ("relay", "standalone") or n.get("region_type") == "cn" or (n.get("country") or "").upper() == "CN")
         ), None)
 
     if not vantage:

@@ -4896,8 +4896,18 @@ footer.site-footer {
         var vantageBtn = isVantage
           ? ('<span class="tag ok" style="cursor:pointer;margin-left:6px" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</span>')
           : ('<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:2px 7px;height:24px" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
+        var exitCandidates = (nodes || []).filter(function (x) {
+          var xHost = x.host || x.ip;
+          var xIsDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN" || xHost === (n.host || n.ip));
+          return !xIsDom && x.type !== "hysteria2";
+        });
+        var primaryExit = exitCandidates.length > 0 ? exitCandidates[0] : null;
+        var autoPairBtn = "";
+        if (primaryExit) {
+          autoPairBtn = '<button class="btn tiny primary" style="margin-left:6px;font-size:11px;padding:2px 8px;height:24px" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
+        }
         relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
-          '<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>' + vantageBtn;
+          (autoPairBtn || ('<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');
       } else {
         detailLine = esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>';
@@ -4995,7 +5005,7 @@ footer.site-footer {
       var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var warpPill = "";
       if (!isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
-        var isWarp = !!n.warp_enabled;
+        var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
         if (isWarp) {
           statusBadges += '<span class="tag ok" style="font-size:11px" title="' + (zh ? 'WARP 清洁出网已开启' : 'WARP Active') + '">WARP</span>';
         }
@@ -6222,6 +6232,36 @@ footer.site-footer {
     }
   }
 
+  async function autoPairRelay() {
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    try {
+      var url = typeof safeUrl === "function" ? safeUrl("/api/relay/auto-pair") : "/api/relay/auto-pair";
+      var res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      var data = await res.json();
+      if (data && data.ok) {
+        if (typeof refreshState === "function") refreshState();
+      } else {
+        dialog({
+          title: zh ? "专线自动配对失败" : "Auto-Pair Failed",
+          message: (data && data.error) || (data && data.reason) || (zh ? "请手动指定中转落地目标。" : "Please configure relay manually."),
+          confirmText: zh ? "确定" : "OK",
+          cancelText: null
+        });
+      }
+    } catch (e) {
+      dialog({
+        title: zh ? "网络连接异常" : "Network Error",
+        message: String(e),
+        confirmText: zh ? "确定" : "OK",
+        cancelText: null
+      });
+    }
+  }
+
   var NodeController = {
     deriveNodeState: deriveNodeState,
     paintStatus: paintStatus,
@@ -6234,6 +6274,7 @@ footer.site-footer {
     editNode: editNode,
     toggleHy2: toggleHy2,
     toggleWarp: toggleWarp,
+    autoPairRelay: autoPairRelay,
     refreshPing: refreshPing,
     setProbeVantage: setProbeVantage,
     openRelayDialog: openRelayDialog,
@@ -6244,6 +6285,7 @@ footer.site-footer {
     window.NodeController = NodeController;
     window.paintStatus = paintStatus;
     window.ownlineToggleWarp = toggleWarp;
+    window.ownlineAutoPairRelay = autoPairRelay;
   }
 
   // 07b-local-ping.js - Client-Side Real-Time Network Probing

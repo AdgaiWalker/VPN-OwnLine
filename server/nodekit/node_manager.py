@@ -138,7 +138,7 @@ class NodeManager:
         self.logger = logger
         self.open_firewall = open_firewall_fn
         self.on_change = on_change
-        self._mutation_lock = threading.Lock()
+        self._mutation_lock = threading.RLock()
 
     def _log(self, level: str, tag: str, msg: str) -> None:
         if self.logger and hasattr(self.logger, "log"):
@@ -196,6 +196,21 @@ class NodeManager:
 
         if "health" not in node:
             node["health"] = "ok"
+
+        # 默认最佳实践：新入网海外落地机默认开启 WARP AI 清洁出网与 HY2 伴生通道能力
+        is_overseas_exit = (
+            node.get("role") != "relay"
+            and node.get("type") != "hysteria2"
+            and (node.get("exit_country") or node.get("country") or "").upper() != "CN"
+        )
+        if is_overseas_exit:
+            if "warp_enabled" not in node:
+                node["warp_enabled"] = True
+            if "hy2_enabled" not in node:
+                node["hy2_enabled"] = True
+        elif node.get("type") == "hysteria2":
+            if "enabled" not in node:
+                node["enabled"] = True
 
         def _mutator(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             filtered = [x for x in ns if x.get("name") != name]
@@ -601,6 +616,43 @@ class NodeManager:
             "ok": True,
             "message": "已解除中转关系，远端配置已还原为独立服务器",
         }
+
+    def auto_pair_relay(self) -> Dict[str, Any]:
+        """当系统内恰好存在 1 个未绑定中转的国内节点与至少 1 个海外出口节点时，自动执行专线配对。"""
+        with self._mutation_lock:
+            nodes = self.store.load()
+            dom_unbonded = [
+                n
+                for n in nodes
+                if n.get("type") != "hysteria2"
+                and (n.get("role") in ("relay", "standalone") or (n.get("country") or "").upper() == "CN")
+                and not (n.get("landing") and n.get("landing", {}).get("host"))
+                and not n.get("cleanup_pending")
+            ]
+            exit_nodes = [
+                n
+                for n in nodes
+                if n.get("type") != "hysteria2"
+                and n.get("role") not in ("relay", "standalone")
+                and (n.get("exit_country") or n.get("country") or "").upper() != "CN"
+                and not n.get("cleanup_pending")
+            ]
+
+            if len(dom_unbonded) != 1 or not exit_nodes:
+                return {"ok": False, "reason": "不满足单国内+海外出口自动配对条件"}
+
+            relay_node = dom_unbonded[0]
+            target_exit = exit_nodes[0]
+            fallback_exit = exit_nodes[1] if len(exit_nodes) > 1 else None
+
+            if not self.remote_cfg:
+                raise NodeValidationError("缺少 remote_config 模块支持")
+
+            return self.bind_relay(
+                name=relay_node.get("name"),
+                target_host=target_exit.get("host"),
+                fallback_host=fallback_exit.get("host") if fallback_exit else None,
+            )
 
     def toggle_hy2(self, name: str = "", host: str = "", enabled: bool = True) -> Dict[str, Any]:
         """切换海外出口节点的 HY2 极速通道状态。"""
