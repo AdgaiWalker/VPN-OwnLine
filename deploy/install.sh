@@ -559,6 +559,11 @@ PY
 		reverse_proxy 127.0.0.1:8099
 	}
 
+	# 免密自举反向入网路由（供目标 VPS 单向 curl 下载脚本与回传自举凭据，支持 Token 防重放鉴权）
+	handle /join/* {
+		reverse_proxy 127.0.0.1:8099
+	}
+
 	@blocked path /sub*
 	handle @blocked {
 		respond 404

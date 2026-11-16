@@ -286,6 +286,28 @@ rules:
      * `DOMAIN-KEYWORD,doubao,DIRECT`
      * 与现有微信（wechat/weixin）及国内白名单共同构成直连防线，不走海外节点，避免触发国产 AI 区域限制。
 
+### 4.10 反向自举入网凭据（Pre-Auth Token）与免密注册契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/nodekit/join_token.py` ｜ 测试：`server/nodekit/join_token_tests.py`、`tests/test_join_token_api.py`
+* **适用场景**：用户纳管自备 Linux VPS 时，无需向控制台输入任何 root 密码或私钥；终端一行 curl 命令自动拉取脚本并在本地生成密钥对，私钥物理不出机，单向 HTTPS 注册并原子核销。
+* **API 接口与状态机契约**：
+  1. **Token 签发 (`POST /api/node/join-token`)**：
+     * 请求：`{"name": "节点名称", "role": "exit" | "relay"}`
+     * 响应：`{"ok": true, "token": "<64位十六进制高熵凭据>", "command": "curl -fsSL https://<master>/join/<token> | bash", "expires_in": 900}`
+  2. **自举脚本下载 (`GET /join/<token>`)**：
+     * 只读校验 Token 真实性与时效性（15分钟），成功输出动态 Shell 安装脚本；无效或过期返回 404；
+  3. **节点入网注册与消费即焚 (`POST /join/register` 或 `POST /api/node/join`)**：
+     * 请求：`{"token": "...", "host": "...", "port": 443, "uuid": "...", "pbk": "...", "sid": "...", "sni": "...", "role": "...", "hy2_password": "..."}`
+     * 校验逻辑：服务端通过 `consume_token` 线程安全核销 Token（若已被使用过或已过期，立即驳回 HTTP 403，杜绝重放攻击）；
+     * 纳管调用：原子调用 `NodeManager.add_node` 持锁落盘并触发全网订阅与配置重新渲染。
+
+### 4.11 落地机 WARP WireGuard 出站与 AI 服务智能清洁分流契约 `[STATUS: IMPLEMENTED]`
+* **物理符号实现**：`server/nodekit/templates.py:exit_config` ｜ 测试：`server/nodekit/templates_tests.py`
+* **适用场景**：出海出口机免费借道 Cloudflare 官方 WireGuard 清洁 IP，解决普通廉价机房 VPS 被 OpenAI、Claude、Anthropic 拒绝访问或封禁的问题。
+* **配置字段与分流规则契约**：
+  1. **出站声明**：当 `warp` 配置存在时，注入 WireGuard 原生出站 `tag: "warp-out"`（包含 `local_address`、`private_key`、`server`、`server_port`、`peer_public_key`）；
+  2. **路由规则**：常规业务走 `tag: "direct"` 原生网卡出口；针对 `openai.com`、`chatgpt.com`、`oaistatic.com`、`anthropic.com`、`claude.ai` 等高风控域名自动路由至 `warp-out`。
+
+
 
 
 

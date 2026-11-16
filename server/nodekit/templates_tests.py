@@ -53,6 +53,14 @@ check("带 ISP 出口认证信息正确", c_isp["outbounds"][0]["username"] == "
 check("带 ISP 路由规则指向 isp-out", c_isp["route"]["rules"] == [{"outbound": "isp-out"}])
 check("validate 接受 ISP 静态住宅出口", T.validate(c_isp) == [])
 
+# --- 出口：带 Cloudflare WARP 免费清洁出网 (0元洗白) ---
+WARP = dict(private_key="WARP_PRIV_KEY", local_address=["172.16.0.2/32"])
+c_warp = T.exit_config(warp=WARP, **BASE)
+check("带 WARP 包含 wireguard 出口", any(o.get("tag") == "warp-out" and o.get("type") == "wireguard" for o in c_warp["outbounds"]))
+check("带 WARP 私钥传递正确", c_warp["outbounds"][0]["private_key"] == "WARP_PRIV_KEY")
+check("带 WARP 路由包含 AI 分流规则", any("openai" in r.get("domain_keyword", []) for r in c_warp["route"]["rules"]))
+check("validate 接受 WARP 清洁出网配置", T.validate(c_warp) == [])
+
 # --- 中转：单落地 ---
 LAND = dict(host="1.2.3.4", port=443, uuid="22222222-2222-4222-8222-222222222222",
             sni="www.apple.com", pbk="PUB", sid="abcd1234")

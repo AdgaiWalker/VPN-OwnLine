@@ -158,6 +158,94 @@
     };
   }
 
+  // 3.5 Reverse Join (Pre-Auth Token One-Click Script)
+  function initReverseJoin() {
+    var tabReverse = document.getElementById("tab-btn-reverse-join");
+    var tabSsh = document.getElementById("tab-btn-ssh-direct");
+    var boxReverse = document.getElementById("box-reverse-join");
+    var boxSsh = document.getElementById("box-ssh-direct");
+    var btnGen = document.getElementById("btn-gen-reverse-join");
+    var cmdBox = document.getElementById("reverse-join-cmd-box");
+    var cmdText = document.getElementById("reverse-join-cmd-text");
+    var btnCopy = document.getElementById("btn-copy-reverse-join");
+    var copyStatus = document.getElementById("reverse-join-copy-status");
+    var nameInput = document.getElementById("reverse-node-name");
+    var roleSelect = document.getElementById("reverse-node-role");
+
+    if (tabReverse && tabSsh) {
+      tabReverse.onclick = function () {
+        tabReverse.classList.add("active");
+        tabSsh.classList.remove("active");
+        if (boxReverse) boxReverse.style.display = "block";
+        if (boxSsh) boxSsh.style.display = "none";
+      };
+      tabSsh.onclick = function () {
+        tabSsh.classList.add("active");
+        tabReverse.classList.remove("active");
+        if (boxSsh) boxSsh.style.display = "block";
+        if (boxReverse) boxReverse.style.display = "none";
+      };
+    }
+
+    if (btnGen) {
+      btnGen.onclick = async function () {
+        btnGen.disabled = true;
+        var zh = (typeof isZh === "function") ? isZh() : true;
+        var origText = btnGen.textContent;
+        btnGen.textContent = zh ? "正在生成..." : "Generating...";
+        try {
+          var name = (nameInput ? nameInput.value : "").trim();
+          var role = roleSelect ? roleSelect.value : "exit";
+          var tokenUrl = typeof safeUrl === "function" ? safeUrl("/api/node/join-token") : "/api/node/join-token";
+          var res = await fetch(tokenUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: name, role: role })
+          });
+          var data = await res.json();
+          if (data && data.ok && data.command) {
+            if (cmdText) cmdText.textContent = data.command;
+            if (cmdBox) cmdBox.style.display = "block";
+            if (copyStatus) copyStatus.textContent = "";
+          } else {
+            alert((zh ? "生成接入命令失败：" : "Failed to generate command: ") + (data && data.error ? data.error : (zh ? "未知错误" : "Unknown error")));
+          }
+        } catch (e) {
+          alert(zh ? "请求生成命令失败，请检查网络或登录状态。" : "Request failed, please check connection.");
+        } finally {
+          btnGen.disabled = false;
+          btnGen.textContent = origText;
+        }
+      };
+    }
+
+    if (btnCopy && cmdText) {
+      btnCopy.onclick = async function () {
+        var text = cmdText.textContent || "";
+        if (!text) return;
+        var zh = (typeof isZh === "function") ? isZh() : true;
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            var ta = document.createElement("textarea");
+            ta.value = text;
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand("copy");
+            document.body.removeChild(ta);
+          }
+          if (copyStatus) {
+            copyStatus.textContent = zh ? "✅ 已复制到剪贴板！" : "✅ Copied to clipboard!";
+            setTimeout(function () { if (copyStatus) copyStatus.textContent = ""; }, 3000);
+          }
+        } catch (_) {
+          if (copyStatus) copyStatus.textContent = zh ? "复制失败，请手动选中复制。" : "Copy failed, please copy manually.";
+        }
+      };
+    }
+  }
+
   // 4. Copy AI agent prompt
   function setupAiPrompt() {
     function bindPromptCopy(btnId, preId) {

@@ -275,8 +275,50 @@
         </div>
       </div>
 
-      <!-- Panel Other: Direct SSH Connection -->
+      <!-- Panel Other: Direct SSH Connection & Reverse Join -->
       <div id="panel-other">
+        <div class="log-tabs" id="join-mode-tabs" style="margin-bottom:14px">
+          <button class="log-tab-btn active" type="button" id="tab-btn-reverse-join" data-i18n="tab_reverse_join">🚀 一键终端免密接入 (推荐)</button>
+          <button class="log-tab-btn" type="button" id="tab-btn-ssh-direct" data-i18n="tab_ssh_direct">🔑 SSH 直连配置</button>
+        </div>
+
+        <!-- Mode 1: Pre-Auth Reverse Join -->
+        <div id="box-reverse-join">
+          <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
+            无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。
+          </p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
+            <div class="field" style="margin-bottom:0;flex:1;min-width:140px">
+              <label for="reverse-node-name" data-i18n="lbl_node_name">节点名称 (可选)</label>
+              <input id="reverse-node-name" type="text" placeholder="例如 美西-01" autocomplete="off" spellcheck="false" />
+            </div>
+            <div class="field" style="margin-bottom:0;min-width:130px">
+              <label for="reverse-node-role" data-i18n="lbl_role">角色</label>
+              <select id="reverse-node-role" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
+                <option value="exit" data-i18n="opt_role_exit">出口落地节点</option>
+                <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
+              </select>
+            </div>
+            <div>
+              <button class="btn primary" type="button" id="btn-gen-reverse-join" style="height:36px" data-i18n="btn_gen_join_cmd">生成接入命令</button>
+            </div>
+          </div>
+
+          <div id="reverse-join-cmd-box" style="display:none;margin-top:14px;padding:12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:10px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+              <span class="small" style="font-weight:600;color:var(--ink)" data-i18n="lbl_run_on_vps">目标 VPS 终端执行命令（需 root 权限）：</span>
+              <span class="small muted" id="reverse-join-countdown" data-i18n="lbl_token_ttl">15 分钟内有效</span>
+            </div>
+            <pre id="reverse-join-cmd-text" style="margin:0;padding:10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12px;word-break:break-all;white-space:pre-wrap;user-select:all"></pre>
+            <div style="margin-top:10px;display:flex;gap:10px;align-items:center">
+              <button class="btn tiny primary" type="button" id="btn-copy-reverse-join" data-i18n="btn_copy_cmd">复制命令</button>
+              <span class="small muted" id="reverse-join-copy-status" role="status"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mode 2: Direct SSH Connection (Advanced) -->
+        <div id="box-ssh-direct" style="display:none">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写两项信息，先检测连接，再确认安装。</p>
         <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限。
 我的目标是将一台新的自备 Linux 云服务器接入本项目的节点池。
@@ -334,6 +376,7 @@
           </div>
         </div>
         </div></div>
+        </div>
         <details class="inner other-install install-guide"><summary data-i18n="terminal_install_summary">通过终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
         <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">安装指引</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">VPS 选购建议</a></p>
       </div>

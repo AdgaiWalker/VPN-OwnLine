@@ -49,6 +49,7 @@ for f in \
   server/nodekit/http_utils_tests.py \
   server/nodekit/node_manager_tests.py \
   server/nodekit/system_updater_tests.py \
+  server/nodekit/join_token_tests.py \
   server/nodekit/ai_feedback_tests.py
 do
   if out="$("$PYTHON_BIN" "$f" 2>&1)"; then

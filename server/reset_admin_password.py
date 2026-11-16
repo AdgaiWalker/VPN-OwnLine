@@ -35,6 +35,7 @@ def inspect_credentials(raw):
     template = [
         '(app) {', 'redir /p / 308', 'redir /p/* / 308',
         'handle /s/* {', 'reverse_proxy 127.0.0.1:8099', '}',
+        'handle /join/* {', 'reverse_proxy 127.0.0.1:8099', '}',
         '@blocked path /sub*', 'handle @blocked {', 'respond 404', '}',
         'handle_path /api/* {', 'basic_auth {', 'USER HASH', '}',
         'reverse_proxy 127.0.0.1:8099', '}',

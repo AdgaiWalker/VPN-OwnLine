@@ -175,6 +175,37 @@ class NodeManager:
     # 变更接口：直接返回结构化结果，自动落盘与渲染，抛出领域异常
     # -----------------------------------------------------------------
 
+    def add_node(self, node: Dict[str, Any]) -> Dict[str, Any]:
+        """原子纳管新节点（防并发冲突，自动持锁落盘与变更渲染）。"""
+        if not isinstance(node, dict):
+            raise NodeValidationError("节点数据格式不正确")
+        name = (node.get("name") or "").strip()
+        host = (node.get("host") or "").strip()
+        if not host:
+            raise NodeValidationError("缺少节点主机地址")
+        if not name:
+            name = f"节点-{host}"
+            node["name"] = name
+        try:
+            port = int(node.get("port") or 443)
+            if port < 1 or port > 65535:
+                raise ValueError()
+            node["port"] = port
+        except Exception:
+            raise NodeValidationError("端口必须是 1-65535")
+
+        if "health" not in node:
+            node["health"] = "ok"
+
+        def _mutator(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            filtered = [x for x in ns if x.get("name") != name]
+            return filtered + [node]
+
+        self.store.update(_mutator)
+        self._trigger_on_change()
+        self._log("INFO", "NODE", f"成功纳管节点: {name} ({host})")
+        return {"ok": True, "node": node}
+
     def remove_node(self, name: str, cleanup_confirmed: bool = False) -> Dict[str, Any]:
         """移除或标记待清理节点。"""
         name = (name or "").strip()

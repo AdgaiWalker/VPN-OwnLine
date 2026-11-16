@@ -102,6 +102,15 @@ else
   chmod 755 "$WEB_DIR"/*.sh "$WEB_DIR"/*.py 2>/dev/null || true
 fi
 
+# 5.5 确保 Caddyfile 具备 /join/* 免密反向自举路由支持
+if [ -f /etc/caddy/Caddyfile ] && ! grep -q 'handle /join/\*' /etc/caddy/Caddyfile; then
+  echo "==> 为 Caddy 注入 /join/* 免密反向自举路由..."
+  sed -i '/handle \/s\/\* {/i \	handle \/join\/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n' /etc/caddy/Caddyfile 2>/dev/null || true
+  if command -v caddy >/dev/null 2>&1; then
+    caddy reload --config /etc/caddy/Caddyfile 2>/dev/null || systemctl reload caddy 2>/dev/null || true
+  fi
+fi
+
 # 6. 平滑重启 admin.service
 echo "==> 重启 admin.service..."
 if command -v systemctl >/dev/null 2>&1; then

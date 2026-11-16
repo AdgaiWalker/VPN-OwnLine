@@ -295,6 +295,23 @@ class NodeManagerTests(unittest.TestCase):
         self.assertTrue(all(n.get("test_marker") for n in res))
         self.mock_on_change.assert_called_once()
 
+    def test_add_node(self):
+        new_node = {
+            "name": "东京",
+            "host": "203.0.113.88",
+            "port": 443,
+            "uuid": "44444444-4444-4444-4444-444444444444",
+            "pbk": "PUB_TK",
+            "sid": "1234abcd",
+            "sni": "www.apple.com"
+        }
+        res = self.mgr.add_node(new_node)
+        self.assertTrue(res["ok"])
+        found = self.mgr.get_node("东京")
+        self.assertIsNotNone(found)
+        self.assertEqual(found["host"], "203.0.113.88")
+        self.mock_on_change.assert_called()
+
 
 if __name__ == "__main__":
     unittest.main()

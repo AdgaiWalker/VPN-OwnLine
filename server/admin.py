@@ -23,6 +23,7 @@ from nodekit import remote_config as remote_cfg_mod  # noqa: E402
 from nodekit import http_utils  # noqa: E402
 from nodekit import system_updater as updater_mod  # noqa: E402
 from nodekit import ai_feedback as ai_feedback_mod  # noqa: E402
+from nodekit import join_token as join_token_mod  # noqa: E402
 from nodekit.node_manager import FileNodeStore, NodeManager, NodeManagerError  # noqa: E402
 import reset_admin_password as password_mod  # noqa: E402
 import tencent_discovery as tencent_discovery_mod  # noqa: E402
@@ -415,6 +416,28 @@ class H(BaseHTTPRequestHandler):
             self.end_headers()
             return
 
+        # 免密反向自举脚本分发路由（供 VPS 终端一键 curl 执行）
+        if path.startswith("/join/"):
+            token = path.split("/join/", 1)[1].strip()
+            info = join_token_mod.verify_token(token)
+            if not info:
+                self.send_response(404)
+                self.send_header("Content-Type", "text/plain; charset=utf-8")
+                self.end_headers()
+                self.wfile.write(b"Error: Token is invalid or expired\n")
+                return
+            host_header = self.headers.get("Host") or "127.0.0.1"
+            base_url = f"https://{host_header}" if not host_header.startswith("http") else host_header
+            script = join_token_mod.generate_install_script(token=token, server_url=base_url, role=info.get("role", "exit"))
+            content = script.encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Cache-Control", "no-store")
+            self.send_header("Content-Length", str(len(content)))
+            self.end_headers()
+            self.wfile.write(content)
+            return
+
         # This gate is also invoked by Caddy before every management route.
         if norm_path == "/password-gate":
             if INITIAL_PASSWORD_MARKER.exists():
@@ -764,7 +787,7 @@ class H(BaseHTTPRequestHandler):
             return self._json(403, {"ok": False, "error": "跨站请求被拒绝"})
         path = self.path.rstrip("/")
         norm_path = http_utils.normalize_api_path(path)
-        if INITIAL_PASSWORD_MARKER.exists() and norm_path not in ('/password/change', '/credentials/change'):
+        if INITIAL_PASSWORD_MARKER.exists() and norm_path not in ('/password/change', '/credentials/change', '/node/join', '/join/register'):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
 
         res = http_utils.parse_json_body(self, MAX_BODY)
@@ -966,6 +989,93 @@ class H(BaseHTTPRequestHandler):
             render()
             logger.log("WARN", "ADMIN", f"恢复备份成功：还原了 {len(valid_nodes)} 个节点")
             return self._json(200, {"ok": True, "restored_count": len(valid_nodes), "message": f"已恢复 {len(valid_nodes)} 个节点配置，请检查服务器实际状态"})
+
+        if norm_path == "/node/join-token":
+            name = (body.get("name") or "").strip()
+            role = (body.get("role") or "exit").strip()
+            rec = join_token_mod.create_token(name=name, role=role)
+            host_header = self.headers.get("Host") or "127.0.0.1"
+            base_url = f"https://{host_header}" if not host_header.startswith("http") else host_header
+            command = f"curl -fsSL {base_url}/join/{rec['token']} | bash"
+            return self._json(200, {
+                "ok": True,
+                "token": rec["token"],
+                "command": command,
+                "role": rec["role"],
+                "name": rec["name"],
+                "expires_at": rec["expires_at"],
+                "expires_in": int(rec["expires_at"] - rec["created_at"]),
+            })
+
+        if norm_path in ("/node/join", "/join/register"):
+            token = (body.get("token") or "").strip()
+            token_info = join_token_mod.consume_token(token)
+            if not token_info:
+                return self._json(403, {"ok": False, "error": "入网凭据无效或已过期，请重新生成"})
+
+            host = (body.get("host") or "").strip()
+            if not host:
+                return self._json(400, {"ok": False, "error": "缺少节点公网 IP/主机名"})
+
+            name = (token_info.get("name") or body.get("name") or "").strip()
+            if not name:
+                name = f"node-{host.replace('.', '-')}"
+
+            role = token_info.get("role") or body.get("role") or "exit"
+            port = int(body.get("port") or 443)
+
+            vless_entry = {
+                "name": name,
+                "type": body.get("type") or "vless",
+                "role": role,
+                "host": host,
+                "port": port,
+                "uuid": body.get("uuid", ""),
+                "pbk": body.get("pbk", ""),
+                "sid": body.get("sid", ""),
+                "sni": body.get("sni", "www.apple.com"),
+                "network": "tcp",
+                "flow": "xtls-rprx-vision",
+                "status": "online",
+                "source": "reverse_join",
+                "health": "ok",
+                "joined_at": int(time.time()),
+            }
+
+            try:
+                node_manager.add_node(vless_entry)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
+
+            hy2_pw = body.get("hy2_password")
+            if hy2_pw:
+                hy2_entry = {
+                    "name": f"{name}-HY2",
+                    "type": "hysteria2",
+                    "role": role,
+                    "host": host,
+                    "port": port,
+                    "password": hy2_pw,
+                    "obfs_password": body.get("obfs_password", ""),
+                    "sni": "www.bing.com",
+                    "source": "reverse_join",
+                    "enabled": True,
+                    "health": "ok",
+                    "joined_at": int(time.time()),
+                }
+                try:
+                    node_manager.add_node(hy2_entry)
+                except Exception as e:
+                    logger.log("WARN", "JOIN", f"伴生 HY2 节点纳管跳过: {e}")
+
+            return self._json(200, {
+                "ok": True,
+                "message": f"节点 {name} 反向自举纳管成功",
+                "node": vless_entry,
+            })
 
         if norm_path in ("/removenode", "/delnode"):
             name = (body.get("name") or "").strip()

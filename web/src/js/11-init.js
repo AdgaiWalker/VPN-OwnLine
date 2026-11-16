@@ -5,6 +5,7 @@
     setupInputHighlights();
     initSceneRouter();
     initCloudParallelSwitch();
+    initReverseJoin();
     setupAiPrompt();
     initInstallCopy();
     initOtherConnection();

@@ -265,3 +265,47 @@
 2. 保持长青定位纯粹：做最省心、最硬核的自备节点供应链，不越界侵入客户端分流领域；
 3. 现网已对齐订阅生成器与单元测试，彻底消灭 AI 策略组的跨国自动漂移漏洞。
 
+---
+
+### <a id="adr-014"></a>ADR-014：零摩擦反向自举纳管协议与免密安全边界 (Pre-Auth Reverse Join Protocol & Zero-SSH Invariant) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+此前纳管自备 Linux VPS 时，系统依赖两种途径：
+1. **控制台网页输入 SSH 密码/私钥**：尽管前端采用内存即用即焚策略，但对于安全敏感型用户与现代安全审计体系而言，在 Web 界面键入 root 凭据依然存在巨大的心理阻力；
+2. **正向批量探活端口暴露风险**：正向 SSH 连接要求目标机器开放公网 22 端口并允许远程密码登录，容易遭受全网暴力穷举扫描。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（维持纯正向 SSH 推送）：改动最小，但无法消除用户的安全顾虑与网络防火墙限制；
+* 方案 B（重型 Agent/Daemon 常驻守护）：在目标机安装后台常驻 Agent。但增加资源消耗，违背长青原生态零冗余定位；
+* 方案 C（预鉴权一次性凭据 + 终端反向拉取自举 + 消费即焚防重放）：
+  1. **预鉴权高熵凭据（Pre-Auth Token）**：由管理员在控制台生成 64 位十六进制一次性 Token，默认 15 分钟 TTL；
+  2. **终端一键自举拉取**：目标 VPS 运行 `curl -fsSL https://<master>/join/<token> | bash`；
+  3. **私钥物理不出机原则**：Reality 私钥与 HY2 证书完全在目标机本地物理生成，私钥绝对不回传；
+  4. **单向 HTTPS 回传元数据并原子核销**：仅回传公钥（`pbk`）、短 ID（`sid`）、UUID 与服务端口；服务端原子消费 Token 并纳管节点，杜绝重放攻击。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 C。**
+1. 控制台新增 `/node/join-token` 与 `/join/<token>` 路由，Caddyfile 直通 `/join/*` 反向自举通道；
+2. 纳管落盘严格通过 `NodeManager.add_node` 原子事务持锁完成；
+3. 全面保障私钥物理不出机与凭据即焚不变式。
+
+---
+
+### <a id="adr-015"></a>ADR-015：出海落地机 WARP WireGuard 出站与 AI 服务智能清洁分流 (WARP Detour for AI Services) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+廉价数据中心 VPS（如 DigitalOcean、Linode、RackNerd、Vultr 等）机房 IP 经常被 OpenAI、Claude 等高风控 AI 平台标记甚至封禁，出现 `Access Denied` 或高频 Cloudflare 验证码；然而租用昂贵的纯净家庭住宅 IP 又增加了长期使用成本。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（全局强行走住宅代理）：成本高昂，且大流量下载或日常浏览极度消耗住宅 IP 昂贵流量；
+* 方案 B（sing-box 落地机 WARP WireGuard 原生出站分流）：
+  1. 免费利用 Cloudflare 官方原生 WARP WireGuard 出口作为落地机第二出站通道（`warp-out`）；
+  2. 在 `templates.py:exit_config` 注入域名规则路由：常规流量走原生 `direct` 保证最高速率与超低延迟；
+  3. 针对 `openai.com`、`anthropic.com`、`claude.ai`、`oaistatic.com` 等 AI 域名智能路由至 `warp-out`，由 Cloudflare 清洁住宅出口代为转发，完美绕过机房 IP 风控限制。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 在 `templates.py` 固化 `_warp_outbound(warp)` 与 WireGuard 原生校验契约；
+2. 保持零付费外部依赖，实现 AI 业务免费清洗出海。
+
+
