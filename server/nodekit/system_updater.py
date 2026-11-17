@@ -7,7 +7,10 @@
 import json
 import os
 import re
+import secrets
+import shutil
 import subprocess
+import sys
 import threading
 import time
 import urllib.error
@@ -27,6 +30,46 @@ _CACHE = {
 
 _UPGRADE_LOCK = threading.Lock()
 _UPGRADING = False
+
+
+def _upgrade_status_path(job_id):
+    if not isinstance(job_id, str) or not re.fullmatch(r"[0-9a-f]{32}", job_id):
+        return None
+    return Path(os.environ.get("LADDER_DATA", "/opt/web-data")) / ".upgrade-jobs" / (job_id + ".json")
+
+
+def upgrade_status(job_id):
+    path = _upgrade_status_path(job_id)
+    if path is None:
+        return {"ok": False, "error": "无效的升级任务"}
+    try:
+        status = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {"ok": False, "error": "升级任务状态不可用"}
+    if (sys.platform.startswith("linux") and status.get("status") == "running"
+            and time.time() - status.get("started_at", time.time()) > 30):
+        try:
+            result = subprocess.run(["systemctl", "show", "--property=LoadState", "--property=ActiveState",
+                                     "ownline-upgrade-" + job_id], capture_output=True, text=True, timeout=3)
+            fields = dict(line.split("=", 1) for line in result.stdout.splitlines() if "=" in line)
+            if fields.get("LoadState") and fields.get("ActiveState") in ("inactive", "failed"):
+                latest = json.loads(path.read_text(encoding="utf-8"))
+                if latest.get("status") == "running":
+                    latest["status"] = "failed"
+                return latest
+        except (OSError, ValueError, subprocess.SubprocessError):
+            pass
+    return status
+
+
+def _write_upgrade_status(job_id, status, target):
+    path = _upgrade_status_path(job_id)
+    path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump({"ok": True, "status": status, "target_version": target, "started_at": time.time()}, f)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, path)
 
 
 def parse_version_tuple(v_str):
@@ -238,17 +281,43 @@ def trigger_upgrade(target_version=None, script_path=None, runner=None):
         cmd = ["bash", script]
         if target_version:
             cmd.append(str(target_version))
-        subprocess.Popen(
+        job_id = secrets.token_hex(16)
+        target = target_version or "latest"
+        _write_upgrade_status(job_id, "running", target)
+        env = dict(os.environ, OWNLINE_UPGRADE_JOB_ID=job_id,
+                   OWNLINE_UPGRADE_STATUS_DIR=str(_upgrade_status_path(job_id).parent))
+        if sys.platform.startswith("linux") and script_path is None:
+            systemd_run = shutil.which("systemd-run")
+            if not systemd_run:
+                raise RuntimeError("缺少 systemd-run，无法独立运行升级任务")
+            cmd = [systemd_run, "--unit=ownline-upgrade-" + job_id, "--wait", "--collect",
+                   "--setenv=OWNLINE_UPGRADE_JOB_ID=" + job_id,
+                   "--setenv=OWNLINE_UPGRADE_STATUS_DIR=" + env["OWNLINE_UPGRADE_STATUS_DIR"],
+                   "--"] + cmd
+        process = subprocess.Popen(
             cmd,
             start_new_session=True,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
             close_fds=True,
+            env=env,
         )
+        def monitor():
+            global _UPGRADING
+            try:
+                process.wait()
+                current = upgrade_status(job_id)
+                if current.get("status") == "running":
+                    _write_upgrade_status(job_id, "failed", target)
+            finally:
+                with _UPGRADE_LOCK:
+                    _UPGRADING = False
+        threading.Thread(target=monitor, daemon=True).start()
         return {
             "ok": True,
             "status": "upgrading",
             "target_version": target_version or "latest",
+            "job_id": job_id,
             "message": "升级任务已在后台启动，服务将自动平滑重载",
         }
     except Exception as e:

@@ -6899,6 +6899,13 @@ footer.site-footer {
     if (el) el.style.display = display;
   }
 
+  function allowUpgradeRetry() {
+    _isUpgrading = false;
+    setElementDisplay("update-action-box", "block");
+    var btn = document.getElementById("btn-check-update");
+    if (btn) btn.disabled = false;
+  }
+
   function updateVersionBadges(version) {
     if (!version) return;
     setElementText("current-version-tag", version);
@@ -6990,7 +6997,7 @@ footer.site-footer {
       })
       .then(function (res) {
         if (!res || !res.ok) {
-          _isUpgrading = false;
+          allowUpgradeRetry();
           setElementDisplay("update-progress-box", "none");
           setElementDisplay("update-action-box", "block");
           if (btnCheck) btnCheck.disabled = false;
@@ -6999,32 +7006,37 @@ footer.site-footer {
         }
 
         // Service is restarting in background. Begin polling for health check.
-        pollForRecovery(0);
+        if (!res.job_id) {
+          allowUpgradeRetry();
+          setElementText("update-progress-title", zh ? "无法确认升级状态" : "Upgrade status unavailable");
+          return;
+        }
+        pollForRecovery(0, res.job_id);
       })
       .catch(function () {
-        // Even if connection drops (expected if admin restarts instantly), begin polling
-        pollForRecovery(0);
+        // Without a job ID the outcome cannot be determined.
+        allowUpgradeRetry();
+        setElementText("update-progress-title", zh ? "无法确认升级状态" : "Upgrade status unavailable");
       });
   }
 
-  function pollForRecovery(attempt) {
+  function pollForRecovery(attempt, jobId) {
     var zh = isZh();
-    if (attempt > 30) {
-      // 30 * 1.5s = 45s timeout
-      _isUpgrading = false;
+    if (attempt > 320) {
+      allowUpgradeRetry();
       setElementText("update-progress-title", zh ? "升级耗时较长" : "Taking longer than usual");
       setElementText("update-progress-desc", zh ? "请手动刷新页面确认服务是否恢复。" : "Please refresh the page to check service status.");
       return;
     }
 
     setTimeout(function () {
-      fetch("/api/system/version", { cache: "no-store" })
+      fetch("/api/system/upgrade-status?id=" + encodeURIComponent(jobId), { cache: "no-store" })
         .then(function (r) {
           if (!r.ok) throw new Error("not ready");
           return r.json();
         })
         .then(function (data) {
-          if (data && data.ok) {
+          if (data && data.ok && data.status === "succeeded") {
             setElementText("update-progress-title", zh ? "升级完成！" : "Upgrade Complete!");
             setElementText("update-progress-desc", zh ? "服务已就绪，正在刷新界面..." : "Service reloaded. Refreshing page…");
             setTimeout(function () {
@@ -7032,12 +7044,16 @@ footer.site-footer {
                 window.location.reload();
               }
             }, 1200);
+          } else if (data && data.ok && data.status === "failed") {
+            allowUpgradeRetry();
+            setElementText("update-progress-title", zh ? "升级失败" : "Upgrade failed");
+            setElementText("update-progress-desc", zh ? "请检查服务器状态后重试。" : "Check the server and retry.");
           } else {
-            pollForRecovery(attempt + 1);
+            pollForRecovery(attempt + 1, jobId);
           }
         })
         .catch(function () {
-          pollForRecovery(attempt + 1);
+          pollForRecovery(attempt + 1, jobId);
         });
     }, 1500);
   }

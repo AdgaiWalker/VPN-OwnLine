@@ -82,7 +82,11 @@ class JoinTokenApiTests(unittest.TestCase):
             self.assertEqual(len(token), 64)
             self.assertEqual(captured["data"]["name"], "sg-node")
             self.assertEqual(captured["data"]["role"], "relay")
-            self.assertIn(f"curl -fsSL https://v.example.com/join/{token} | bash", captured["data"]["command"])
+            self.assertIn(f"--proto-redir '=https' https://v.example.com/join/{token} | bash", captured["data"]["command"])
+
+    def test_join_host_rejects_shell_metacharacters(self):
+        self.assertIsNone(admin.join_base_url('example.com";id;"'))
+        self.assertEqual(admin.join_base_url('[2001:db8::1]:8443'), 'https://[2001:db8::1]:8443')
 
     def test_post_join_register_lifecycle_and_replay_protection(self):
         rec = join_token.create_token(name="jp-exit", role="exit")
@@ -125,6 +129,9 @@ class JoinTokenApiTests(unittest.TestCase):
             hy2_arg = mock_add_node.call_args_list[1][0][0]
             self.assertEqual(vless_arg["name"], "jp-exit")
             self.assertEqual(vless_arg["type"], "vless")
+            self.assertEqual(vless_arg["health"], "unknown")
+            self.assertFalse(vless_arg["warp_enabled"])
+            self.assertEqual(hy2_arg["health"], "unknown")
             self.assertEqual(hy2_arg["name"], "jp-exit-HY2")
             self.assertEqual(hy2_arg["type"], "hysteria2")
 

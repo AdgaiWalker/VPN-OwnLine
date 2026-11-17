@@ -215,8 +215,8 @@ rules:
 * **一键平滑升级**：
   * `POST /api/system/upgrade` 与 `POST /system/upgrade`（受 Basic Auth 保护）：
     * 请求体：`{"target_version": "v0.6.0"}`（可选）
-    * 响应体：`{"ok": true, "status": "upgrading", "target_version": "v0.6.0", "message": "升级任务已在后台启动"}`
-    * 执行链路：独立后台子进程沙箱拉取代码，校验完整性，备份快照，原子同步至 `/opt/web`（严禁触碰 `/opt/web-data`），重启 `admin.service`，自检通过后完成收敛；若失败自动回滚。前端心跳探活自愈重载。
+    * 响应体包含 `job_id`，通过 `GET /api/system/upgrade-status?id=<job_id>` 或裸路径查询 `running`、`succeeded`、`failed`。任务 ID 为 32 位十六进制；状态记录保存在数据目录中。
+    * 执行链路：独立 systemd 单元拉取代码并在非 Git 部署下备份快照，重启服务后核对健康状态与指定版本；下载、版本核对或自检失败不报告成功。前端只在对应任务成功后刷新。
 
 ### 4.6 客户端本地网关 RTT 探活契约 `[STATUS: IMPLEMENTED]`
 * **物理符号实现**：`server/admin.py:H.do_GET (/api/ping, /ping)`, `server/admin.py:H.do_HEAD` ｜ `web/src/js/07b-local-ping.js:probeDeviceLocalLatency` ｜ 测试：`tests/test_ping_api.py`, `tests/local-ping.test.js`
@@ -292,13 +292,13 @@ rules:
 * **API 接口与状态机契约**：
   1. **Token 签发 (`POST /api/node/join-token`)**：
      * 请求：`{"name": "节点名称", "role": "exit" | "relay"}`
-     * 响应：`{"ok": true, "token": "<64位十六进制高熵凭据>", "command": "curl -fsSL https://<master>/join/<token> | bash", "expires_in": 900}`
+     * 响应：包含高熵 `token`、限制 HTTPS 重定向的 `command`、`expires_in`；主控必须有目标机信任的证书。
   2. **自举脚本下载 (`GET /join/<token>`)**：
      * 只读校验 Token 真实性与时效性（15分钟），成功输出动态 Shell 安装脚本；无效或过期返回 404；
   3. **节点入网注册与消费即焚 (`POST /join/register` 或 `POST /api/node/join`)**：
      * 请求：`{"token": "...", "host": "...", "port": 443, "uuid": "...", "pbk": "...", "sid": "...", "sni": "...", "role": "...", "hy2_password": "..."}`
      * 校验逻辑：服务端通过 `consume_token` 线程安全核销 Token（若已被使用过或已过期，立即驳回 HTTP 403，杜绝重放攻击）；
-     * 纳管调用：原子调用 `NodeManager.add_node` 持锁落盘并触发全网订阅与配置重新渲染。
+     * 纳管调用：调用 `NodeManager.add_node` 持锁落盘；初始健康状态为 `unknown`，反向自举配置未安装 WARP 时 `warp_enabled` 为 false。自举前拒绝覆盖已有服务或配置，检查证书、生成私密配置、校验并启动成功后才登记；登记失败后已启动服务须人工处理。
 
 ### 4.11 落地机 WARP WireGuard 出站与 AI 服务智能清洁分流契约 `[STATUS: IMPLEMENTED]`
 * **物理符号实现**：`server/nodekit/templates.py:exit_config`、`server/nodekit/warp_client.py` ｜ 测试：`server/nodekit/templates_tests.py`、`server/nodekit/warp_client_tests.py`

@@ -14,6 +14,30 @@ if [[ "$SCRIPT_PATH" == *"/deploy/upgrade.sh" ]] && [ "${RUNNING_IN_TMP:-0}" != 
 fi
 
 TARGET_VERSION="${1:-}"
+JOB_ID="${OWNLINE_UPGRADE_JOB_ID:-}"
+STATUS_DIR="${OWNLINE_UPGRADE_STATUS_DIR:-}"
+write_job_status() {
+  [ -n "$JOB_ID" ] && [ -n "$STATUS_DIR" ] || return 0
+  python3 - "$STATUS_DIR" "$JOB_ID" "$1" "${TARGET_VERSION:-latest}" <<'PY'
+import json, os, sys, tempfile
+directory, job_id, status, target = sys.argv[1:]
+os.makedirs(directory, mode=0o700, exist_ok=True)
+fd, tmp = tempfile.mkstemp(dir=directory, prefix='.status-')
+with os.fdopen(fd, 'w') as f:
+    json.dump({'ok': True, 'status': status, 'target_version': target}, f)
+os.replace(tmp, os.path.join(directory, job_id + '.json'))
+PY
+}
+finish_job() {
+  result="${1:-$?}"
+  if [ "$result" -eq 0 ]; then write_job_status succeeded || true; else write_job_status failed || true; fi
+}
+trap finish_job EXIT
+if [ -n "$STATUS_DIR" ]; then
+  mkdir -p "$STATUS_DIR"
+  exec 9>"$STATUS_DIR/upgrade.lock"
+  flock -n 9 || { echo "升级任务已在进行中" >&2; exit 1; }
+fi
 REPO_URL="https://github.com/AdgaiWalker/VPN-OwnLine"
 BRANCH="${LADDER_BRANCH:-main}"
 WEB_DIR="/opt/web"
@@ -23,7 +47,7 @@ TMP_DIR="$(mktemp -d /tmp/ownline-upgrade.XXXXXX)"
 cleanup() {
   rm -rf "$TMP_DIR"
 }
-trap cleanup EXIT
+trap 'result=$?; cleanup; finish_job "$result"' EXIT
 
 echo "==> 开始执行 Evergreen · OwnLine 平滑升级..."
 
@@ -37,12 +61,12 @@ fi
 if command -v git >/dev/null 2>&1 && [ -d "$WEB_DIR/.git" ]; then
   echo "==> 检测到 Git 仓库，执行 git 更新..."
   cd "$WEB_DIR"
-  git fetch --tags origin || true
-  if [ -n "$TARGET_VERSION" ]; then
+  git fetch --tags origin
+  if [ -n "$TARGET_VERSION" ] && [ "$TARGET_VERSION" != "latest" ]; then
     git checkout "$TARGET_VERSION"
   else
-    git checkout "$BRANCH" || true
-    git pull origin "$BRANCH" || true
+    git checkout "$BRANCH"
+    git pull origin "$BRANCH"
   fi
 else
   echo "==> 正在下载最新发布包..."
@@ -59,17 +83,6 @@ else
       break
     fi
   done
-
-  if [ "$found" -ne 1 ] && [ -n "$TARGET_VERSION" ] && [ "$TARGET_VERSION" != "latest" ]; then
-    echo "==> 标签下载未命中，回退按主分支拉取..."
-    ARCHIVE_URL="$REPO_URL/archive/refs/heads/$BRANCH.tar.gz"
-    for prefix in '' 'https://ghproxy.net/' 'https://ghfast.top/'; do
-      if curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 8 --max-time 120 "${prefix}${ARCHIVE_URL}" | tar xz -C "$TMP_DIR" --strip-components=1; then
-        found=1
-        break
-      fi
-    done
-  fi
 
   if [ "$found" -ne 1 ]; then
     echo "错误: 无法下载目标版本，终止升级！" >&2
@@ -128,9 +141,11 @@ echo "==> 执行升级健康自检..."
 HEALTHY=0
 for i in 1 2 3 4 5; do
   sleep 1
-  if curl -fsSL -k --max-time 3 http://127.0.0.1:8099/api/system/version >/dev/null 2>&1 || curl -fsSL -k --max-time 3 http://127.0.0.1:8000/api/system/version >/dev/null 2>&1; then
-    HEALTHY=1
-    break
+  if VERSION_JSON="$(curl -fsS --max-time 3 http://127.0.0.1:8099/api/system/version 2>/dev/null || curl -fsS --max-time 3 http://127.0.0.1:8000/api/system/version 2>/dev/null)"; then
+    if printf '%s' "$VERSION_JSON" | python3 -c 'import json,sys; d=json.load(sys.stdin); target=sys.argv[1]; sys.exit(0 if d.get("ok") and (target in ("", "latest") or d.get("version") == target) else 1)' "$TARGET_VERSION"; then
+      HEALTHY=1
+      break
+    fi
   fi
 done
 

@@ -22,6 +22,7 @@
 - [ADR-014：零摩擦反向自举纳管协议与免密安全边界 (Pre-Auth Reverse Join Protocol & Zero-SSH Invariant)](#adr-014)
 - [ADR-015：出海落地机 WARP WireGuard 出站与 AI 服务智能清洁分流 (WARP Detour for AI Services)](#adr-015)
 - [ADR-016：WARP 真实数据面闭环与反向自举中转配对协议 (WARP Data-Plane Closed-Loop & Reverse-Join Relay Pairing)](#adr-016)
+- [ADR-017：反向入网与升级状态的安全边界](#adr-017)
 
 ---
 
@@ -330,5 +331,11 @@
 1. 彻底闭环 WARP 数据面端到端真实出网，AI 分流 100% 具备数据面保障；
 2. 反向自举支持国内中继角色，一键拉取即自愈成型；
 3. `remote_config.check_controllable` 明确拦截无凭据反向节点的远程 SSH 推送，保障系统不变式。
+
+### <a id="adr-017"></a>ADR-017：反向入网与升级状态的安全边界 [STATUS: IMPLEMENTED]
+
+反向入网在写入之前检查现有服务与配置，拒绝覆盖已有资产；通过可信 HTTPS 下载和注册，限制私钥配置权限，配置校验及服务启动失败时不登记。新入网节点的连通性为待验证，WARP 状态按实际配置显示。现有自签名主控需要配置目标机信任的证书后才能使用此入口；注册失败后的本机残留需人工处理。
+
+升级任务以独立 systemd 单元执行，使用持久化任务状态记录结果；指定版本必须与服务报告版本一致才显示成功。任务异常中断时按 systemd 状态识别失败。历史节点的 HMAC 存证建立与安全迁移仍未完成，本决策不声称已修复远程配置的归属校验。
 
 

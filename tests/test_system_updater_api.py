@@ -1,5 +1,8 @@
 """Automated tests for System Updater API contracts and dual prefix matching."""
 import json
+import os
+import tempfile
+import time
 from pathlib import Path
 import sys
 import unittest
@@ -96,6 +99,47 @@ class SystemUpdaterApiTests(unittest.TestCase):
                 admin.H.do_POST(handler)
                 self.assertEqual(captured["status"], 200)
                 self.assertEqual(captured["data"]["status"], "upgrading")
+
+    def test_failed_child_records_failure_and_allows_retry(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"LADDER_DATA": tmp}):
+            script = Path(tmp) / "fail.sh"
+            script.write_text("#!/bin/sh\nexit 1\n")
+            first = system_updater.trigger_upgrade("v9.9.9", script_path=str(script))
+            self.assertTrue(first["ok"])
+            for _ in range(100):
+                status = system_updater.upgrade_status(first["job_id"])
+                if status.get("status") == "failed" and not system_updater.is_upgrading():
+                    break
+                time.sleep(0.02)
+            self.assertEqual(status["status"], "failed")
+            self.assertFalse(system_updater.is_upgrading())
+            self.assertTrue(system_updater.trigger_upgrade("v9.9.9", script_path=str(script))["ok"])
+
+    def test_status_requires_valid_job_id_and_supports_both_prefixes(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"LADDER_DATA": tmp}):
+            job_id = "a" * 32
+            system_updater._write_upgrade_status(job_id, "succeeded", "v1.2.3")
+            self.assertFalse(system_updater.upgrade_status("../settings")["ok"])
+            for endpoint in ("/system/upgrade-status", "/api/system/upgrade-status"):
+                handler = MagicMock()
+                handler.path = endpoint + "?id=" + job_id
+                handler.headers = {}
+                admin.H.do_GET(handler)
+                self.assertEqual(handler._json.call_args.args[1]["status"], "succeeded")
+
+    def test_interrupted_systemd_job_does_not_remain_running(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, {"LADDER_DATA": tmp}):
+            job_id = "b" * 32
+            system_updater._write_upgrade_status(job_id, "running", "v1.2.3")
+            path = system_updater._upgrade_status_path(job_id)
+            state = json.loads(path.read_text())
+            state["started_at"] = 0
+            path.write_text(json.dumps(state))
+            result = MagicMock(returncode=4, stdout="LoadState=not-found\nActiveState=inactive\n")
+            with patch.object(system_updater.sys, "platform", "linux"), patch.object(system_updater.subprocess, "run", return_value=result):
+                self.assertEqual(system_updater.upgrade_status(job_id)["status"], "failed")
+                result.stdout = "LoadState=loaded\nActiveState=active\n"
+                self.assertEqual(system_updater.upgrade_status(job_id)["status"], "running")
 
 
 if __name__ == "__main__":

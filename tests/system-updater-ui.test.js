@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
@@ -29,4 +30,38 @@ test('system updater ui: function signatures and updater methods exist in client
   assert(html.includes('function ownlinePerformUpgrade'), 'ownlinePerformUpgrade must exist');
   assert(html.includes('function pollForRecovery'), 'pollForRecovery must exist');
   assert(html.includes('function initUpdater'), 'initUpdater must exist');
+});
+
+test('updater waits for the specific job result before claiming success', async () => {
+  const source = fs.readFileSync(path.join(__dirname, '../web/src/js/10b-updater.js'), 'utf8');
+  for (const terminal of ['failed', 'succeeded']) {
+    const timers = [];
+    const nodes = new Map();
+    let reloads = 0;
+    let polls = 0;
+    const context = {
+      document: { getElementById(id) { if (!nodes.has(id)) nodes.set(id, { style: {}, textContent: '' }); return nodes.get(id); } },
+      window: { confirm: () => true, location: { reload: () => reloads++ } },
+      setTimeout: (fn) => timers.push(fn), isZh: () => true, t: () => '', alert: () => {},
+      fetch: async (url) => ({ ok: true, json: async () => url === '/api/system/upgrade'
+        ? { ok: true, job_id: 'a'.repeat(32) }
+        : { ok: true, status: ++polls === 1 ? 'running' : terminal } }),
+    };
+    vm.runInNewContext(source, context);
+    context.window.ownlinePerformUpgrade();
+    await new Promise(setImmediate);
+    timers.shift()();
+    await new Promise(setImmediate);
+    assert.notEqual(nodes.get('update-progress-title')?.textContent, '升级完成！');
+    assert.equal(reloads, 0);
+    timers.shift()();
+    await new Promise(setImmediate);
+    assert.equal(nodes.get('update-progress-title').textContent, terminal === 'failed' ? '升级失败' : '升级完成！');
+    if (terminal === 'failed') {
+      assert.equal(nodes.get('update-action-box').style.display, 'block');
+      assert.equal(nodes.get('btn-check-update').disabled, false);
+    }
+    if (terminal === 'succeeded') timers.shift()();
+    assert.equal(reloads, terminal === 'succeeded' ? 1 : 0);
+  }
 });

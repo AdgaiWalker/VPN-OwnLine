@@ -134,7 +134,7 @@ def generate_install_script(
             outbounds_json = '[{"type": "direct", "tag": "direct"}]'
             route_json = ""
     else:
-        cert_step = 'openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null || true'
+        cert_step = 'openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null'
         hy2_inbound = f""",
     {{
       "type": "hysteria2",
@@ -161,9 +161,33 @@ def generate_install_script(
 # Evergreen · OwnLine 一键免密反向自举脚本
 # Token: {token}
 set -euo pipefail
+umask 077
 
 if [ "$(id -u)" != "0" ]; then
   echo "[ERROR] 本脚本需要 root 权限，请使用 sudo 或切换至 root 执行。" >&2
+  exit 1
+fi
+
+command -v systemctl >/dev/null && command -v pgrep >/dev/null || {{
+  echo "[ERROR] 缺少 systemctl 或 pgrep，无法安全检查现有服务。" >&2
+  exit 1
+}}
+if ! systemctl show --property=Version >/dev/null 2>&1; then
+  echo "[ERROR] 无法检查 systemd 服务，停止安装。" >&2
+  exit 1
+fi
+occupied() {{ [ -e "$1" ] || [ -L "$1" ]; }}
+if occupied /opt/sing-box/config.json || occupied /opt/sing-box/hy2.key || \
+   occupied /opt/sing-box/hy2.crt || occupied /etc/systemd/system/sing-box.service || \
+   occupied /run/systemd/system/sing-box.service || occupied /lib/systemd/system/sing-box.service || \
+   occupied /usr/lib/systemd/system/sing-box.service || \
+   systemctl cat sing-box.service >/dev/null 2>&1 || pgrep -x sing-box >/dev/null 2>&1; then
+  echo "[ERROR] 检测到已有 sing-box 服务或配置，停止安装以保护现有业务。" >&2
+  exit 1
+fi
+
+if ! curl -fsS --proto '=https' --connect-timeout 10 --max-time 30 "{server_url}/join/{token}" >/dev/null; then
+  echo "[ERROR] 无法验证主控 HTTPS 证书或入网凭据，请检查证书和链接。" >&2
   exit 1
 fi
 
@@ -244,6 +268,9 @@ cat <<EOF > /opt/sing-box/config.json
   "outbounds": {outbounds_json}{route_json}
 }}
 EOF
+chmod 600 /opt/sing-box/config.json
+
+"$BIN" check -c /opt/sing-box/config.json
 
 cat <<EOF > /etc/systemd/system/sing-box.service
 [Unit]
@@ -263,8 +290,9 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable sing-box >/dev/null 2>&1 || true
-systemctl restart sing-box || true
+systemctl enable sing-box >/dev/null 2>&1
+systemctl start sing-box
+systemctl is-active --quiet sing-box
 
 echo "==> [5/5] 向主控端登记入网凭据..."
 PAYLOAD="$(cat <<EOF
@@ -282,17 +310,17 @@ PAYLOAD="$(cat <<EOF
 EOF
 )"
 
-RESP="$(curl -fsSL -k --connect-timeout 10 --max-time 30 -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "{server_url}/join/register" 2>/dev/null || curl -fsSL -k --connect-timeout 10 --max-time 30 -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "{server_url}/api/node/join" 2>/dev/null || true)"
+RESP="$(curl -fsS --proto '=https' --connect-timeout 10 --max-time 30 -X POST -H "Content-Type: application/json" -d "$PAYLOAD" "{server_url}/join/register" 2>/dev/null || true)"
 
 if echo "$RESP" | grep -q '"ok":\\s*true\\|"ok":true'; then
   echo "========================================================="
   echo "  [SUCCESS] 节点接入成功！"
   echo "  公网 IP: $PUBLIC_IP"
   echo "  监听端口: {listen_port}"
-  echo "  主控面板卡片已点亮，客户端刷新订阅即可使用。"
+  echo "  服务已启动，主控面板将显示待验证状态。"
   echo "========================================================="
 else
-  echo "[ERROR] 注册回传失败: $RESP" >&2
+  echo "[ERROR] 注册回传失败；本机服务已启动但尚未纳管，请检查主控连接和证书后人工处理。: $RESP" >&2
   exit 1
 fi
 """

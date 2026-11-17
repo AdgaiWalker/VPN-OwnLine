@@ -55,7 +55,7 @@ check("核销后 Token 不再存在", v_after is None)
 script = JT.generate_install_script(token="abcd" * 16, server_url="https://vpn.example.com", role="exit")
 check("安装脚本非空且以 #!/usr/bin/env bash 开头", script.startswith("#!/usr/bin/env bash"))
 check("安装脚本包含指定 Token", "abcd" * 16 in script)
-check("安装脚本包含目标服务器地址", "https://vpn.example.com/api/node/join" in script)
+check("安装脚本包含目标服务器地址", "https://vpn.example.com/join/register" in script)
 check("安装脚本包含 sing-box systemd 服务配置", "sing-box.service" in script)
 
 # 7. 中转节点自愈与配对落地

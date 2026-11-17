@@ -35,6 +35,13 @@ INITIAL_PASSWORD_MARKER = Path(DATA) / '.initial-password-required'
 _PASSWORD_LOCK = threading.Lock()
 _PASSWORD_ATTEMPTS = deque()
 
+
+def join_base_url(host):
+    host = (host or "").strip()
+    if not re.fullmatch(r"(?:[A-Za-z0-9.-]+|\[[0-9a-fA-F:]+\])(?::[0-9]{1,5})?", host):
+        return None
+    return "https://" + host
+
 node_manager = NodeManager(
     store=FileNodeStore(lambda: NODES),
     remote_cfg_mod=remote_cfg_mod,
@@ -426,8 +433,9 @@ class H(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(b"Error: Token is invalid or expired\n")
                 return
-            host_header = self.headers.get("Host") or "127.0.0.1"
-            base_url = f"https://{host_header}" if not host_header.startswith("http") else host_header
+            base_url = join_base_url(self.headers.get("Host") or "127.0.0.1")
+            if not base_url:
+                return self._json(400, {"ok": False, "error": "无效的主控地址"})
             script = join_token_mod.generate_install_script(
                 token=token,
                 server_url=base_url,
@@ -615,6 +623,10 @@ class H(BaseHTTPRequestHandler):
 
         if norm_path == "/system/version":
             return self._json(200, updater_mod.get_version_info())
+        if norm_path == "/system/upgrade-status":
+            job_id = (urllib.parse.parse_qs(qs).get("id") or [""])[0]
+            result = updater_mod.upgrade_status(job_id)
+            return self._json(200 if result.get("ok") else 404, result)
         if norm_path == "/system/check_update":
             q = urllib.parse.parse_qs(qs)
             force = (q.get("force") or ["0"])[0].lower() in ("1", "true", "yes")
@@ -1022,9 +1034,10 @@ class H(BaseHTTPRequestHandler):
                         "name": target_exit.get("name", ""),
                     }
             rec = join_token_mod.create_token(name=name, role=role, landing=landing, port=port)
-            host_header = self.headers.get("Host") or "127.0.0.1"
-            base_url = f"https://{host_header}" if not host_header.startswith("http") else host_header
-            command = f"curl -fsSL {base_url}/join/{rec['token']} | bash"
+            base_url = join_base_url(self.headers.get("Host") or "127.0.0.1")
+            if not base_url:
+                return self._json(400, {"ok": False, "error": "无效的主控地址"})
+            command = f"curl -fsSL --proto '=https' --proto-redir '=https' {base_url}/join/{rec['token']} | bash"
             return self._json(200, {
                 "ok": True,
                 "token": rec["token"],
@@ -1067,11 +1080,11 @@ class H(BaseHTTPRequestHandler):
                 "sni": body.get("sni", "www.apple.com"),
                 "network": "tcp",
                 "flow": "xtls-rprx-vision",
-                "status": "online",
+                "status": "unknown",
                 "source": "reverse_join",
-                "health": "ok",
+                "health": "unknown",
                 "joined_at": int(time.time()),
-                "warp_enabled": (role != "relay"),
+                "warp_enabled": False,
                 "hy2_enabled": bool(body.get("hy2_password")) if role != "relay" else False,
             }
             if landing:
@@ -1101,7 +1114,7 @@ class H(BaseHTTPRequestHandler):
                     "sni": "www.bing.com",
                     "source": "reverse_join",
                     "enabled": True,
-                    "health": "ok",
+                    "health": "unknown",
                     "joined_at": int(time.time()),
                 }
                 try:
