@@ -68,6 +68,18 @@ class LegacyAdoptionTests(unittest.TestCase):
             adoption.adopt(self.node["host"], self.sha, confirmed=True, **self.options)
         self.assert_untouched()
 
+    def test_explicit_proxy_scope_does_not_adopt_or_modify_custom_gateway(self):
+        self.caddy.write_text("custom gateway fixture")
+        before = self.caddy.read_bytes()
+        with self.assertRaises(ValueError):
+            adoption.adopt(self.node["host"], self.sha, scope="proxy", **self.options)
+        self.assert_untouched()
+        result = adoption.adopt(self.node["host"], self.sha, confirmed=True, scope="proxy", **self.options)
+        self.assertEqual(result["status"], "adopted_without_restart")
+        self.assertEqual(self.caddy.read_bytes(), before)
+        self.assertTrue(provenance.verify_provenance(json.loads(self.manifest.read_bytes()), provenance.load_master_secret(self.data))[0])
+        self.assertEqual(self.runner.call_args.args[0][:3], ["systemctl", "show", "sing-box"])
+
     def test_confirmed_matching_state_only_writes_private_metadata(self):
         result = adoption.adopt(self.node["host"], self.sha, confirmed=True, **self.options)
         self.assertEqual(result["status"], "adopted_without_restart")

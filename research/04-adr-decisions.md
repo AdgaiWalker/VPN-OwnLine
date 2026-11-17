@@ -357,3 +357,9 @@
 发布恢复的稳定代码位于 `/opt/ownline-upgrade/`（root 所有，无凭据），事务记录位于 `/opt/.web-upgrade-journal.json`；`ownline-upgrade-recovery.service` 支持启动恢复，配套 timer 每 20 秒检查未完成事务。卸载先核验独占归属和受管网关/单元，停止恢复任务后再停止其余服务，确认停止后才清理；purge 才删除恢复代码和记录。
 
 旧部署提供显式操作工具 `deploy/adopt_legacy.py`：`--check-only` 仅检查本机节点、配置摘要、受管网关与服务路径；建立存证必须同时提供 `--confirm-exclusive --host <已核实本机IP> --expected-config-sha <事先核对的SHA256>`。工具只写签名元数据，不重启、不改代理配置；摘要漂移、身份不一致、共享网关或已有不同存证均拒绝。运行入口不会自动调用它。
+
+### <a id="adr-019"></a>ADR-019：按资源范围迁移旧代理归属 [STATUS: IMPLEMENTED]
+
+生产只读预检发现旧主控使用自定义 Caddy 配置，代理记录也尚未标记 `local`。ADR-018 的完整安装归属检查会因此拒绝迁移；但本次代理签名和控制台代码升级并不需要停止或改写 Caddy。将两者所有权混为一体会迫使用户改造正常网关。
+
+保留 `adopt_legacy.py` 默认 `--scope installation` 的严格网关检查，新增显式 `--scope proxy`：只核实本机节点、冻结的代理配置摘要及实际代理服务路径，建立代理签名元数据；仍要求 `--confirm-exclusive`，仍拒绝摘要漂移、身份不一致和不同已有存证，且不修改网关或重启服务。卸载继续执行完整安装及网关独占检查。缺少本机标记的旧记录须先由运维人员根据配置匹配证据明确确认，经 NodeManager 持锁绑定；检查和运行入口不自动修改该标记。

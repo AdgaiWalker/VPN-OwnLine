@@ -17,11 +17,13 @@ from nodekit import provenance
 import reset_admin_password
 
 
-def adopt(host, expected_sha, *, confirmed=False, inspect_only=False, data="/opt/web-data", cfg="/opt/sing-box/config.json",
+def adopt(host, expected_sha, *, confirmed=False, inspect_only=False, scope="installation", data="/opt/web-data", cfg="/opt/sing-box/config.json",
           manifest=None, caddy="/etc/caddy/Caddyfile", lock="/run/ownline-service.lock", runner=subprocess.run):
     """Only metadata is written, after explicit exclusivity and frozen-state checks."""
     if not confirmed and not inspect_only:
         raise ValueError("必须由运维人员明确确认本项目独占此服务")
+    if scope not in ("installation", "proxy"):
+        raise ValueError("无效归属范围")
     if not isinstance(expected_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_sha):
         raise ValueError("必须提供事先核对的完整配置 SHA-256")
     config = Path(cfg)
@@ -29,7 +31,8 @@ def adopt(host, expected_sha, *, confirmed=False, inspect_only=False, data="/opt
     directory = Path(data)
     with open(lock, "a") as handle:
         fcntl.flock(handle, fcntl.LOCK_EX)
-        for path in (config, directory / "nodes.json", Path(caddy)):
+        paths = (config, directory / "nodes.json") + ((Path(caddy),) if scope == "installation" else ())
+        for path in paths:
             info = path.lstat()
             if not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid():
                 raise ValueError("迁移输入必须为普通文件，拒绝符号链接")
@@ -48,13 +51,14 @@ def adopt(host, expected_sha, *, confirmed=False, inspect_only=False, data="/opt
                 or int(inbound.get("listen_port", 0)) != int(node.get("port", 0))
                 or provenance.node_identity(node) != host):
             raise ValueError("节点底账与运行配置不一致，未建立存证")
-        reset_admin_password.inspect_credentials(Path(caddy).read_text())
+        if scope == "installation":
+            reset_admin_password.inspect_credentials(Path(caddy).read_text())
         unit = runner(["systemctl", "show", "sing-box", "-p", "ExecStart", "--value"],
                       capture_output=True, text=True, timeout=10)
         if unit.returncode or str(config) not in unit.stdout or "/opt/sing-box/sing-box" not in unit.stdout:
             raise ValueError("运行服务路径与本产品不一致，未建立存证")
         if inspect_only:
-            return {"status": "eligible_for_explicit_confirmation", "node_id": host, "config_sha256": expected_sha}
+            return {"status": "eligible_for_explicit_confirmation", "scope": scope, "node_id": host, "config_sha256": expected_sha}
         if target_manifest.is_symlink():
             raise ValueError("拒绝符号链接存证")
         if target_manifest.exists():
@@ -83,13 +87,15 @@ def main():
     parser = argparse.ArgumentParser(description="核实旧本机服务归属后建立存证；本命令不重启服务")
     parser.add_argument("--confirm-exclusive", action="store_true")
     parser.add_argument("--check-only", action="store_true")
+    parser.add_argument("--scope", choices=("installation", "proxy"), default="installation")
     parser.add_argument("--host", required=True)
     parser.add_argument("--expected-config-sha", required=True)
     args = parser.parse_args()
     try:
         if os.geteuid() != 0:
             raise ValueError("迁移需要 root 权限")
-        result = adopt(args.host, args.expected_config_sha, confirmed=args.confirm_exclusive, inspect_only=args.check_only)
+        result = adopt(args.host, args.expected_config_sha, confirmed=args.confirm_exclusive,
+                       inspect_only=args.check_only, scope=args.scope)
     except Exception:
         print("归属迁移未完成；未重启服务，请核对独占确认、配置摘要和现网底账。", file=sys.stderr)
         return 1

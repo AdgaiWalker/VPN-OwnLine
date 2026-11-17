@@ -346,3 +346,7 @@ rules:
 
 
 生产恢复路径为 `/opt/ownline-upgrade/`、`/opt/.web-upgrade-journal.json` 和 `ownline-upgrade-recovery.service/timer`；timer 间隔 20 秒，不接触 SSH 凭据。Linux 目录交换使用 `renameat2(RENAME_EXCHANGE)`，不支持时在切换前失败。macOS 离线回归使用 `RENAME_SWAP`。旧节点迁移只有显式 `adopt_legacy.py --confirm-exclusive` 操作可建立缺失存证；必须匹配事先核对的配置摘要，且不执行服务重启。
+
+### 4.14 旧代理归属迁移范围（ADR-019） `[STATUS: IMPLEMENTED]`
+
+`adopt_legacy.py --scope installation` 为默认完整安装归属检查；`--scope proxy` 只针对本机代理，不检查或修改 Caddy。两者均需要明确独占确认、唯一的本机节点、现网配置 SHA-256 和服务路径一致。`--check-only` 只读且不建立密钥或存证。不同现网摘要或已有不同签名必须拒绝；运行入口不会自动补充旧记录的 `local` 标记或自动签名。卸载不接受代理范围替代完整网关与单元检查。
