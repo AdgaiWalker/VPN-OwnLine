@@ -24,15 +24,15 @@ def build() -> str:
     template = read_file(SRC_DIR / "template.html")
 
     # 1. Gather CSS
-    css_files = sorted((SRC_DIR / "css").glob("*.css"))
+    css_files = sorted(p for p in (SRC_DIR / "css").glob("*.css") if not p.name.startswith('local-'))
     css_content = "\n".join(read_file(f).rstrip() for f in css_files)
 
     # 2. Gather HTML
-    html_files = sorted((SRC_DIR / "html").glob("*.html"))
+    html_files = sorted(p for p in (SRC_DIR / "html").glob("*.html") if not p.name.startswith('local-'))
     html_content = "\n".join(read_file(f).rstrip() for f in html_files)
 
     # 3. Gather JS
-    js_files = sorted((SRC_DIR / "js").glob("*.js"))
+    js_files = sorted(p for p in (SRC_DIR / "js").glob("*.js") if not p.name.startswith('local-'))
     js_content = "\n\n".join(read_file(f).rstrip() for f in js_files)
 
     out = template
@@ -44,22 +44,22 @@ def build() -> str:
 
 def main():
     check_mode = "--check" in sys.argv
-    synthesized = build()
+    local = read_file(SRC_DIR / 'html/local-setup.html')
+    local = local.replace('/* {{STYLE}} */', read_file(SRC_DIR / 'css/local-setup.css'))
+    local = local.replace('/* {{SCRIPT}} */', read_file(SRC_DIR / 'js/local-setup.js'))
+    outputs = {TARGET: build(), ROOT / 'web/local-setup.html': local}
 
     if check_mode:
-        if not TARGET.exists():
-            print(f"Error: {TARGET} does not exist.")
-            sys.exit(1)
-        current = read_file(TARGET)
-        if current != synthesized:
-            print(f"Error: {TARGET} is out of sync with web/src/. Run 'python3 scripts/build_web.py' to rebuild.")
-            sys.exit(1)
+        for target, synthesized in outputs.items():
+            if not target.exists() or read_file(target) != synthesized:
+                print(f"Error: {target} is out of sync with web/src/.")
+                sys.exit(1)
         print("OK: web/index.html is up to date with web/src/.")
         sys.exit(0)
 
-    with open(TARGET, "w", encoding="utf-8") as f:
-        f.write(synthesized)
-    print(f"Synthesized {TARGET} ({len(synthesized.splitlines())} lines, {len(synthesized)} bytes)")
+    for target, synthesized in outputs.items():
+        target.write_text(synthesized, encoding='utf-8')
+        print(f"Synthesized {target}")
 
 
 if __name__ == "__main__":

@@ -350,3 +350,12 @@ rules:
 ### 4.14 旧代理归属迁移范围（ADR-019） `[STATUS: IMPLEMENTED]`
 
 `adopt_legacy.py --scope installation` 为默认完整安装归属检查；`--scope proxy` 只针对本机代理，不检查或修改 Caddy。两者均需要明确独占确认、唯一的本机节点、现网配置 SHA-256 和服务路径一致。`--check-only` 只读且不建立密钥或存证。不同现网摘要或已有不同签名必须拒绝；运行入口不会自动补充旧记录的 `local` 标记或自动签名。卸载不接受代理范围替代完整网关与单元检查。
+
+
+### 4.15 Mac 本地首装（ADR-020） `[STATUS: IMPLEMENTED]`
+
+本地独立服务仅绑定 127.0.0.1 随机端口；这些接口不是生产 admin 路由。GET `/` 下发页面与 HttpOnly、SameSite=Strict 会话 cookie；其他 GET 必须验证 cookie 和精确 Host。POST 还必须匹配本地 Origin 和 application/json，输入限 150000 字节，拒绝跨站请求；没有 CORS 放行或第三方遥测。
+
+POST `/api/check` 接收 `host/username/ssh_port/password/private_key/passphrase/fingerprint`；首次指纹需人工核对。返回只读 `result`，满足空白首装条件时附加 `check_token`（600 秒一次性内存能力）。POST `/api/install` 接收 `{check_token,confirm:true}`，不接受替换目标，消费票据后返回 202；安装前重新检查身份与条件。单个进程只允许一个安装任务，失败不能重放。
+
+GET `/api/status` 返回 `idle/running/attention/done`。只有目标本地双协议代理出网、服务状态以及 Mac 到目标的可信 HTTPS、登录、订阅均通过，才返回 `done` 和 `delivery`（standalone dashboard_url、username、temp_password、direct_sub_url）。目标侧代理测试不代表 Mac/手机客户端网络路径已验收。未知异常返回固定安全提示，不转发安装原始日志。POST `/api/quit` 仅在非 running 时退出服务；退出丢失内存任务和交付信息，不自动恢复/重装。

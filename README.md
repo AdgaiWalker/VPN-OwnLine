@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 758 Passed](https://img.shields.io/badge/Tests-758%20Passed%20(100%25)-success.svg)]()
+[![Tests: 776 Passed](https://img.shields.io/badge/Tests-776%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/06-trusted-delivery-plan.md)
 
@@ -49,6 +49,16 @@ flowchart LR
 ## 🚀 2 分钟极速装配
 
 材料就绪后，选择以下任意一种方式完成部署：
+
+### Mac 本地网页安装
+
+在仓库根目录双击 **`启动安装.command`**，自动打开只监听本机的安装页面。需要 Python 3.10+；首次启动会按 `requirements.lock` 安装本地依赖。随后在网页输入目标服务器的 root 登录信息，核对 SSH 指纹，完成连接检查后点击安装。
+
+SSH 连接由 Mac 直接发往目标服务器；密码、私钥和私钥口令不写入文件或日志。安装会下载目标依赖并申请 HTTPS 证书，需要云安全组放通 SSH、80/TCP、8443/TCP、443/TCP、443/UDP。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器，不接管已有服务。
+
+安装期间保持 Mac 和启动窗口运行。页面刷新可读取当前进程的任务状态；退出进程会丢失内存任务和交付信息，不会自动重装或恢复。完成后保存初始密码，再点击网页的“关闭本地服务”。服务端代理出网与管理 HTTPS/登录/订阅均通过才展示交付信息；外部客户端导入需要另行确认。
+
+此入口已通过离线回归，真实空白云机首装仍待用户验收。
 
 ### 方式 1：交给本地 AI Agent 全自动装配（⭐ 最推荐 · 小白首选）
 不用打开云服务器黑框终端，不用学任何 Linux 命令。  

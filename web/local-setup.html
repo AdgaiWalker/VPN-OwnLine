@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>:root{color-scheme:light;font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;color:#20251f;background:#f6f5f0}*{box-sizing:border-box}body{margin:0}main{max-width:720px;margin:40px auto;padding:24px}header{display:flex;justify-content:space-between;border-bottom:1px solid #d6d7cd;padding-bottom:20px;gap:16px}small,header span{font-size:13px;color:#626a60}h1{font-size:30px;margin:32px 0 8px}h2{font-size:22px}p{color:#626a60}label{display:block;margin:16px 0}input,textarea,select{display:block;width:100%;padding:12px;border:1px solid #cacdc2;border-radius:8px;background:white;font:inherit;color:inherit}.row{display:flex;gap:16px}.row label{flex:1;min-width:0}.notice{background:#eceee5;padding:16px;border-radius:8px;font-size:14px}button{cursor:pointer;padding:11px 20px;border:0;border-radius:7px;background:#173451;color:white;font:inherit}button:disabled{opacity:.45;cursor:default}section{margin-top:24px;border-top:1px solid #ccc;padding-top:16px}.consent{display:flex;align-items:flex-start;gap:10px}.consent input{width:20px;margin-top:6px;flex:none}footer{border-top:1px solid #ccc;margin-top:30px;padding-top:20px}footer button,#reveal{background:#e6e8df;color:#20251f}[hidden]{display:none!important}#status{white-space:pre-wrap}a{color:#173451}@media(max-width:500px){main{margin:0;padding:20px}.row{display:block}header{flex-wrap:wrap}}
+</style></head>
+<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>Mac 本地安装</span></header>
+<h1>连接你的服务器</h1><p>从这台 Mac 直接连接你的 Linux 服务器。登录信息仅在本机内存中使用。</p>
+<p class="notice">使用空白 Ubuntu 22.04+ / Debian 12+ 服务器和 root 账号。请先在云控制台放行 SSH 端口，以及 80/TCP、8443/TCP、443/TCP 和 443/UDP。</p>
+<form id="connection"><label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off" placeholder="例如 你的服务器公网 IP"></label>
+<div class="row"><label>SSH 用户名<input name="username" value="root" required autocomplete="off"></label><label>SSH 端口<input name="ssh_port" type="number" min="1" max="65535" value="22" required></label></div>
+<label>登录方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option></select></label>
+<label id="password-label">服务器密码<input name="password" type="password" autocomplete="off"></label>
+<label id="key-label" hidden>SSH 私钥<textarea name="private_key" rows="5" autocomplete="off" spellcheck="false"></textarea></label>
+<label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
+<button id="check" type="submit">连接检查</button></form>
+<section id="confirmation" hidden><h2>服务器检查通过</h2><p id="target"></p><label class="consent"><input id="consent" type="checkbox">确认在这台空白服务器上安装代理服务和独立管理后台</label><button id="install" disabled>开始安装</button></section>
+<section id="delivery" hidden><h2>安装与服务端验收通过</h2><p>Mac 已验证管理入口的 HTTPS、登录和订阅；目标服务器已验证代理出网。手机或桌面客户端导入仍需你实际确认。</p><p><a id="dashboard" target="_blank" rel="noreferrer">打开管理后台</a></p><p>账号：admin</p><label>初始密码<input id="initial-password" type="password" readonly></label><button id="reveal">显示 / 隐藏初始密码</button><p>请保存密码并在管理后台完成首次改密。关闭本地服务后，本页交付信息会失效。</p></section>
+<p id="status" role="status" aria-live="polite">准备连接。安装期间请保持启动窗口运行。</p>
+<footer><button id="quit" type="button">关闭本地服务</button></footer></main><script>'use strict';
+(() => {
+  const $ = id => document.getElementById(id);
+  let ticket = '', busy = false, timer = null, stopped = false;
+  const status = text => { $('status').textContent = text; };
+  async function request(path, body) {
+    const options = body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'};
+    const response = await fetch(path, options);
+    const data = await response.json();
+    if (!response.ok) { const error = new Error(data.message || '操作未完成。'); error.data = data; throw error; }
+    return data;
+  }
+  function clearSecrets() { for (const name of ['password','private_key','passphrase']) $('connection').elements[name].value = ''; }
+  function invalidate() { ticket = ''; $('confirmation').hidden = true; $('consent').checked = false; $('install').disabled = true; }
+  $('connection').addEventListener('input', invalidate);
+  $('auth').onchange = () => { clearSecrets(); invalidate(); $('password-label').hidden = $('auth').value !== 'password'; $('key-label').hidden = $('phrase-label').hidden = $('auth').value !== 'private_key'; };
+  $('connection').onsubmit = async event => {
+    event.preventDefault(); if (busy) return; busy = true; invalidate(); $('check').disabled = true;
+    const values = Object.fromEntries(new FormData($('connection'))); values.ssh_port = Number(values.ssh_port);
+    if ($('auth').value === 'password') { values.private_key = ''; values.passphrase = ''; } else values.password = '';
+    clearSecrets(); status('正在只读检查连接和服务器条件…');
+    try {
+      let data;
+      try { data = await request('/api/check', values); }
+      catch (error) {
+        const fingerprint = error.data && error.data.fingerprint;
+        if (!error.data || error.data.code !== 'HOST_KEY_CONFIRMATION' || !/^SHA256:[A-Za-z0-9+/]{43}$/.test(fingerprint || '')) throw error;
+        if (!window.confirm('请通过云控制台等可信渠道核对 SSH 指纹：\n\n' + fingerprint + '\n\n确认一致后继续？')) { status('未确认服务器指纹，已停止。'); return; }
+        values.fingerprint = fingerprint; data = await request('/api/check', values);
+      }
+      if (!data.check_token) { status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : '')); return; }
+      ticket = data.check_token; $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
+      $('confirmation').hidden = false; status('连接检查通过；尚未安装。');
+    } catch (error) { status(error.message); }
+    finally { values.password = values.private_key = values.passphrase = ''; busy = false; $('check').disabled = false; }
+  };
+  $('consent').onchange = () => { $('install').disabled = !$('consent').checked || !ticket; };
+  $('install').onclick = async () => {
+    if (busy || !ticket || !$('consent').checked) return;
+    busy = true; $('install').disabled = true; $('check').disabled = true;
+    try { await request('/api/install', {check_token:ticket,confirm:true}); ticket = ''; }
+    catch (error) { status(error.message + '\n请刷新状态确认原任务，勿重复提交。'); }
+    finally { busy = false; poll(); }
+  };
+  async function poll() {
+    if (stopped) return;
+    if (timer) clearTimeout(timer);
+    try {
+      const job = await request('/api/status');
+      if (job.state === 'running') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = true; status('正在安装和验收，可能需要数分钟。请保持 Mac 和启动窗口运行。'); }
+      if (job.state === 'done') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = false; $('delivery').hidden = false; const url = new URL(job.delivery.dashboard_url); if (url.protocol !== 'https:') throw new Error('交付地址无效'); $('dashboard').href = url.href; $('initial-password').value = job.delivery.temp_password; status('安装与服务端验收通过。'); }
+      if (job.state === 'attention') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = false; status(job.message); }
+    } catch (_) { status('无法获取本地任务状态。请检查启动窗口，安装可能仍在运行，不要重复安装。'); }
+    if (!stopped) timer = setTimeout(poll, 3000);
+  }
+  $('reveal').onclick = () => { $('initial-password').type = $('initial-password').type === 'password' ? 'text' : 'password'; };
+  $('quit').onclick = async () => { try { await request('/api/quit', {}); stopped = true; clearTimeout(timer); clearSecrets(); $('initial-password').value = ''; $('delivery').hidden = true; status('本地服务已关闭，可以关闭此页面和启动窗口。'); } catch (error) { status(error.message); } };
+  poll();
+})();
+</script></body></html>
