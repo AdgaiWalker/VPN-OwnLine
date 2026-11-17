@@ -11,6 +11,7 @@
 [![Tests: 776 Passed](https://img.shields.io/badge/Tests-776%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/06-trusted-delivery-plan.md)
+[![Mac Install: Tested](https://img.shields.io/badge/Mac%20Install-Tested-success.svg)](research/07-mac-install-acceptance.md)
 
 ---
 
@@ -58,7 +59,7 @@ SSH 连接由 Mac 直接发往目标服务器；密码、私钥和私钥口令�
 
 安装期间保持 Mac 和启动窗口运行。页面刷新可读取当前进程的任务状态；退出进程会丢失内存任务和交付信息，不会自动重装或恢复。完成后保存初始密码，再点击网页的“关闭本地服务”。服务端代理出网与管理 HTTPS/登录/订阅均通过才展示交付信息；外部客户端导入需要另行确认。
 
-此入口已通过离线回归，真实空白云机首装仍待用户验收。
+此入口已完成 Mac → 空白 Debian 12 云机的网页首装、首次改密、客户端导入和 Reality/HY2 独立出网验证；776 项离线门禁通过。后台自动状态刷新仍有异常，安装进度缺少阶段提示；跨设备验证边界和清理状态见[本轮验收记录](research/07-mac-install-acceptance.md)。
 
 ### 方式 1：交给本地 AI Agent 全自动装配（⭐ 最推荐 · 小白首选）
 不用打开云服务器黑框终端，不用学任何 Linux 命令。  
