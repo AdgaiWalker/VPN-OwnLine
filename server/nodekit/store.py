@@ -7,6 +7,9 @@ from __future__ import annotations
 import json
 import os
 import threading
+import fcntl
+import tempfile
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Union
 
@@ -21,6 +24,32 @@ def _get_lock(path_str: str) -> threading.Lock:
         return _GLOBAL_FILE_LOCKS[path_str]
 
 
+@contextmanager
+def _file_lock(path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with _get_lock(str(path.resolve())):
+        fd = os.open(str(path) + ".lock", os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+
+def _write(path, data, indent):
+    fd, tmp = tempfile.mkstemp(prefix="." + path.name + "-", dir=path.parent)
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(data, output, ensure_ascii=False, indent=indent)
+            output.flush()
+            os.fsync(output.fileno())
+        os.replace(tmp, path)
+    finally:
+        if os.path.exists(tmp):
+            os.unlink(tmp)
+
+
 class AtomicJsonStore:
     """原子化 JSON 文件持久化引擎。"""
 
@@ -29,8 +58,7 @@ class AtomicJsonStore:
         p = Path(path)
         if not p.exists():
             return default
-        lock = _get_lock(str(p.resolve()))
-        with lock:
+        with _file_lock(p):
             try:
                 with open(p, "r", encoding="utf-8") as f:
                     return json.load(f)
@@ -40,34 +68,17 @@ class AtomicJsonStore:
     @classmethod
     def dump(cls, path: Union[str, Path], data: Any, indent: int = 1) -> None:
         p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        tmp = p.with_suffix(p.suffix + ".tmp")
-        lock = _get_lock(str(p.resolve()))
-        with lock:
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=indent)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, p)
+        with _file_lock(p):
+            _write(p, data, indent)
 
     @classmethod
     def update(cls, path: Union[str, Path], mutator: Callable[[Any], Any], default: Any = None) -> Any:
         p = Path(path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        lock = _get_lock(str(p.resolve()))
-        with lock:
+        with _file_lock(p):
             current = default
             if p.exists():
-                try:
-                    with open(p, "r", encoding="utf-8") as f:
-                        current = json.load(f)
-                except Exception:
-                    current = default
+                with open(p, "r", encoding="utf-8") as f:
+                    current = json.load(f)
             updated = mutator(current)
-            tmp = p.with_suffix(p.suffix + ".tmp")
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(updated, f, ensure_ascii=False, indent=1)
-                f.flush()
-                os.fsync(f.fileno())
-            os.replace(tmp, p)
+            _write(p, updated, 1)
             return updated

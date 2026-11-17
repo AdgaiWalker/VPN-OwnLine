@@ -7,6 +7,11 @@
 
 import re
 
+try:
+    from .ai_domains import AI_DOMAIN_KEYWORDS, AI_DOMAIN_SUFFIXES
+except ImportError:
+    from ai_domains import AI_DOMAIN_KEYWORDS, AI_DOMAIN_SUFFIXES
+
 
 def _inbound(port, uuid, sni, private_key, sid):
     return {
@@ -106,8 +111,8 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None, warp=None
         is_socks = warp.get("type") == "socks" or (warp.get("server") and warp.get("server_port") and str(warp.get("server_port")) != "2408")
         route = {
             "rules": [
-                {"domain_keyword": ["openai", "anthropic", "claude"], "outbound": "warp-out"},
-                {"domain_suffix": ["oaistatic.com", "oaiusercontent.com"], "outbound": "warp-out"},
+                {"domain_keyword": list(AI_DOMAIN_KEYWORDS), "outbound": "warp-out"},
+                {"domain_suffix": list(AI_DOMAIN_SUFFIXES), "outbound": "warp-out"},
                 {"outbound": "direct"}
             ]
         }

@@ -8,7 +8,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 675 Passed](https://img.shields.io/badge/Tests-675%20Passed%20(100%25)-success.svg)]()
+[![Tests: 757 Passed](https://img.shields.io/badge/Tests-757%20Passed%20(100%25)-success.svg)]()
+[![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 
 ---
 
@@ -91,6 +92,8 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
 ---
 
 ## 🧱 开源基石致敬
+
+安装、升级及节点控制的归属校验、失败恢复和兼容规则见 [可信交付方案与执行清单](research/06-trusted-delivery-plan.md)。旧节点的现有连接继续保留；无法确认服务归属时，在线修改会被拒绝，需要先核实归属。
 
 本项目建立在以下卓越的开源技术之上：
 * [sing-box](https://github.com/SagerNet/sing-box) - 下一代通用代理核心引擎

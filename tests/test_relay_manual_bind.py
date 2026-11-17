@@ -1,5 +1,6 @@
 """HTTP 集成测试：验证 /relay/*、/hy2/toggle、/rotate 与订阅鉴权的真实控制面—数据面闭环。"""
 import base64
+import hashlib
 import json
 import os
 import subprocess
@@ -16,7 +17,7 @@ from urllib.request import Request, urlopen
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "server"))
 import admin  # noqa: E402
 from nodekit import remote_config as RC  # noqa: E402
-from nodekit import templates  # noqa: E402
+from nodekit import provenance, templates  # noqa: E402
 
 
 class ManualRelayAndHy2HTTPTests(unittest.TestCase):
@@ -47,6 +48,9 @@ class ManualRelayAndHy2HTTPTests(unittest.TestCase):
             )
             sb.chmod(0o755)
 
+        flock = self.bindir / "flock"
+        flock.write_text("#!/usr/bin/env python3\nimport fcntl, subprocess, sys\nwith open(sys.argv[4], 'a') as f:\n fcntl.flock(f, fcntl.LOCK_EX)\n sys.exit(subprocess.run(sys.argv[5:]).returncode)\n")
+        flock.chmod(0o755)
         systemctl = self.bindir / "systemctl"
         systemctl.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
         systemctl.chmod(0o755)
@@ -107,6 +111,13 @@ class ManualRelayAndHy2HTTPTests(unittest.TestCase):
                 "quota_control_managed": True,
             },
         ]
+        for node in self.initial_nodes:
+            node["control_secret"] = hashlib.sha256(("offline-fixture:" + node["host"]).encode()).hexdigest()
+            node["provenance_id"] = node["host"]
+        for node, cfg in ((self.initial_nodes[0], self.exit_cfg_path), (self.initial_nodes[2], self.relay_cfg_path)):
+            manifest = provenance.sign_provenance(node["host"], provenance.compute_config_sha256(cfg.read_bytes()),
+                                                  bytes.fromhex(node["control_secret"]))
+            (cfg.parent / ".evergreen-provenance.json").write_text(json.dumps(manifest))
         self.nodes_file = self.data_dir / "nodes.json"
         self.nodes_file.write_text(json.dumps(self.initial_nodes), encoding="utf-8")
         (self.data_dir / "settings.json").write_text(
@@ -129,6 +140,9 @@ class ManualRelayAndHy2HTTPTests(unittest.TestCase):
                 if tok:
                     inner = base64.b64decode(tok[-1]).decode("utf-8")
                     script = inner
+            script = script.replace(provenance.PROVENANCE_PATH_LINUX, str(target_dir / ".evergreen-provenance.json"))
+            script = script.replace("/run/ownline-service.lock", str(target_dir / "service.lock"))
+            script = script.replace("/var/lib/ownline", str(target_dir / "ownline"))
             script = script.replace("/opt/sing-box", str(target_dir))
             return subprocess.run(["bash", "-c", script], env=self.env, capture_output=True, text=True, timeout=15)
 
@@ -234,6 +248,8 @@ class ManualRelayAndHy2HTTPTests(unittest.TestCase):
         hy2_node = next(n for n in admin.load_nodes() if n.get("type") == "hysteria2")
         self.assertTrue(hy2_node["enabled"])
         self.assertTrue(hy2_node["quota_control_managed"])
+        self.assertEqual(hy2_node["control_secret"], self.initial_nodes[0]["control_secret"])
+        self.assertEqual(hy2_node["provenance_id"], self.initial_nodes[0]["provenance_id"])
 
         # 2. 关闭 HY2 → 远端真实移除 hysteria2 入站
         code_off, res_off = self._req("POST", "/hy2/toggle", {"name": "美西出口", "host": "203.0.113.10", "enabled": False})

@@ -36,7 +36,8 @@ def execute_remote(node: Dict[str, Any], cmd_str: str, runner: Callable = subpro
     user = node.get("ssh_user") or ("Administrator" if is_win else "root")
     base = verify_mod.ssh_cmd(user, host, timeout=timeout, port=node.get("ssh_port") or 22)
     if is_win:
-        full_cmd = base + [cmd_str]
+        encoded = base64.b64encode(cmd_str.encode("utf-16le")).decode("ascii")
+        full_cmd = base + ["powershell -NoProfile -EncodedCommand " + encoded]
     else:
         b64 = base64.b64encode(cmd_str.encode("utf-8")).decode("ascii")
         full_cmd = base + ["echo %s | base64 -d | bash" % b64]
@@ -82,17 +83,8 @@ def repair_node(
 
     exec_fn = execute_remote_fn or (lambda n, cmd, **kw: execute_remote(n, cmd, runner=runner, **kw))
 
-    # 2. 独占性存证校验 (HMAC-SHA256 Provenance)
-    provenance_verified = False
-    prov_reason = "未提供主控签名密钥"
-
-    if master_secret:
-        manifest = prov_mod.read_remote_provenance(node, exec_fn)
-        if manifest:
-            is_valid, prov_reason = prov_mod.verify_provenance(manifest, master_secret)
-            provenance_verified = is_valid
-        else:
-            prov_reason = "目标主机缺少 .evergreen-provenance.json 存证文件"
+    # 所有变更共享同一归属门禁，名称不参与身份匹配。
+    provenance_verified, prov_reason, snapshot = prov_mod.verify_target(node, exec_fn, master_secret)
 
     is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
     steps.append("目标系统识别: %s" % ("Windows Server" if is_win else "Linux"))
@@ -142,59 +134,48 @@ def repair_node(
 
     # 4.2 语法完整性与配置健康检查 (仅 Linux)
     if not is_win:
-        syntax_cmd = """
-if [ -x /opt/sing-box/sing-box ]; then BIN=/opt/sing-box/sing-box;
-elif command -v sing-box >/dev/null 2>&1; then BIN=$(command -v sing-box);
-else BIN=""; fi
-if [ -z "$BIN" ]; then echo "NO_BIN";
-elif [ ! -f /etc/sing-box/config.json ]; then echo "NO_CFG";
-elif ! $BIN check -c /etc/sing-box/config.json; then echo "SYNTAX_ERR";
-else echo "SYNTAX_OK"; fi
+        cfg = prov_mod.config_path(node)
+        syntax_cmd = f"""
+if [ ! -x {shlex.quote(BIN)} ]; then echo NO_BIN;
+elif [ ! -f {shlex.quote(cfg)} ]; then echo NO_CFG;
+elif ! {shlex.quote(BIN)} check -c {shlex.quote(cfg)}; then echo SYNTAX_ERR;
+else echo SYNTAX_OK; fi
 """
         try:
             chk_res = exec_fn(node, syntax_cmd, timeout=12)
             chk_out = (getattr(chk_res, "stdout", "") or "").strip()
-            if "SYNTAX_ERR" in chk_out:
-                steps.append("配置检查失败: /etc/sing-box/config.json 语法校验不通过")
-                # 尝试从 .ownline.bak 还原
-                restore_cmd = "test -s /etc/sing-box/config.json.ownline.bak && cp -pf /etc/sing-box/config.json.ownline.bak /etc/sing-box/config.json && echo RESTORED || echo FAILED"
-                r_res = exec_fn(node, restore_cmd, timeout=10)
-                if "RESTORED" in (getattr(r_res, "stdout", "") or ""):
-                    steps.append("已自动从已知健康的备份配置 .ownline.bak 完成恢复")
+            if getattr(chk_res, "returncode", -1) != 0 or "SYNTAX_OK" not in chk_out:
+                if "SYNTAX_ERR" in chk_out:
+                    from . import remote_config
+                    restored = remote_config.rollback_config(node, master_secret=master_secret, execute_remote_fn=exec_fn)
+                    if restored:
+                        provenance_verified, prov_reason, snapshot = prov_mod.verify_target(node, exec_fn, master_secret)
+                        if not provenance_verified:
+                            raise ValueError("restored ownership unavailable")
+                        steps.append("已从签名验证通过的配置和存证备份成对恢复")
+                    else:
+                        raise ValueError("no verified backup")
                 else:
-                    return {
-                        "name": name,
-                        "before": before_health,
-                        "after": before_health,
-                        "ok": False,
-                        "requires_manual": True,
-                        "detail": "配置文件语法损坏且无有效备份，未盲目执行重启",
-                        "steps": steps,
-                    }
-            elif "NO_BIN" in chk_out:
-                return {
-                    "name": name,
-                    "before": before_health,
-                    "after": before_health,
-                    "ok": False,
-                    "requires_manual": True,
-                    "detail": "未在远端找到可执行的 sing-box 二进制程序",
-                    "steps": steps,
-                }
+                    raise ValueError("syntax inspection unavailable")
             else:
                 steps.append("配置检查通过: sing-box 配置语法校验无误")
-        except Exception as e:
-            steps.append(f"配置检查跳过: {e}")
+        except Exception:
+            return {"name": name, "before": before_health, "after": before_health,
+                    "ok": False, "requires_manual": True,
+                    "detail": "无法确认配置及签名备份有效，未盲目执行重启", "steps": steps}
 
     # 4.3 安全重启目标服务
     if is_win:
-        restart_cmd = "powershell -Command \"Restart-Service sing-box -ErrorAction SilentlyContinue; if (-not $?) { Start-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue }\""
+        restart_cmd = ("if (Get-Service -Name sing-box -ErrorAction SilentlyContinue) { "
+                       "Restart-Service sing-box -ErrorAction Stop } else { "
+                       "Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue; "
+                       "Start-ScheduledTask -TaskName 'sing-box' -ErrorAction Stop }")
     else:
         restart_cmd = "systemctl daemon-reload && systemctl restart sing-box && systemctl is-active sing-box"
 
     steps.append("执行安全重启: 下发系统守护进程复活指令")
     try:
-        rst_res = exec_fn(node, restart_cmd, timeout=20)
+        rst_res = exec_fn(node, prov_mod.guarded_script(node, snapshot, restart_cmd), timeout=20)
         if getattr(rst_res, "returncode", -1) != 0:
             steps.append("服务重启返回非零状态码")
             return {

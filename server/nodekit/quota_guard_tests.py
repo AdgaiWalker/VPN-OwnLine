@@ -12,9 +12,24 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from nodekit import quota_guard  # noqa: E402
+from nodekit import provenance, quota_guard  # noqa: E402
 
+SECRET = b"offline-owned-node-fixture-secret"
 ok = 0
+
+
+def owned_runner(runner):
+    """合法控制场景始终提供真实签名快照；仅服务变更交给被测执行器。"""
+    def execute(cmd, **kwargs):
+        script = remote_script(cmd)
+        if "base64.b64encode(Path(p)" in script:
+            host = next((part.split("@", 1)[1] for part in cmd if "@" in part), "127.0.0.1")
+            manifest = provenance.sign_provenance(host, provenance.compute_config_sha256(b'{}'), SECRET)
+            return subprocess.CompletedProcess(cmd, 0, json.dumps({
+                "config": base64.b64encode(b'{}').decode(),
+                "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()}), "")
+        return runner(cmd, **kwargs)
+    return execute
 
 
 def check(name, cond, extra=""):
@@ -80,6 +95,7 @@ def remote_script(cmd):
 def test_enforce_quota():
     mock_cmds = []
 
+    @owned_runner
     def mock_runner(cmd, **kwargs):
         mock_cmds.append(cmd)
         class Dummy:
@@ -103,7 +119,7 @@ def test_enforce_quota():
             "198.51.100.10": {"used": 450.0, "total": 500.0},
             "203.0.113.10": {"used": 50.0, "total": 500.0},
         }
-        actions = quota_guard.enforce_quota(nodes, usage_tripped, runner=mock_runner, state_file=state_path)
+        actions = quota_guard.enforce_quota(nodes, usage_tripped, runner=mock_runner, state_file=state_path, master_secret=SECRET)
         check("触发停机断流动作 1 次", len(actions) == 1)
         check("停机目标为超标机", actions[0]["ip"] == "198.51.100.10" and actions[0]["action"] == "stop")
         check("执行了远程停机命令", any("systemctl stop sing-box" in remote_script(c) for c in mock_cmds))
@@ -114,7 +130,7 @@ def test_enforce_quota():
 
         # 2. 再次执行相同用量，已停机不重复执行
         mock_cmds.clear()
-        actions_dup = quota_guard.enforce_quota(nodes, usage_tripped, runner=mock_runner, state_file=state_path)
+        actions_dup = quota_guard.enforce_quota(nodes, usage_tripped, runner=mock_runner, state_file=state_path, master_secret=SECRET)
         check("已处于断流状态不重复发停机命令", len(actions_dup) == 0 and len(mock_cmds) == 0)
 
         # 3. 模拟新周期流量恢复正常
@@ -124,7 +140,7 @@ def test_enforce_quota():
             "198.51.100.10": {"used": 10.0, "total": 500.0},
             "203.0.113.10": {"used": 50.0, "total": 500.0},
         }
-        actions_rec = quota_guard.enforce_quota(nodes, usage_recovered, runner=mock_runner, state_file=state_path)
+        actions_rec = quota_guard.enforce_quota(nodes, usage_recovered, runner=mock_runner, state_file=state_path, master_secret=SECRET)
         check("触发恢复启动动作 1 次", len(actions_rec) == 1)
         check("启动目标为恢复机", actions_rec[0]["ip"] == "198.51.100.10" and actions_rec[0]["action"] == "start")
         check("执行了远程拉起命令", any("systemctl start sing-box" in remote_script(c) for c in mock_cmds))
@@ -143,14 +159,17 @@ def test_enforce_failures_and_unknown_usage():
     low = {"_ts": datetime.now(timezone.utc).isoformat(), node["host"]: {"used": 0, "total": 100}}
     calls = []
 
+    @owned_runner
     def success(cmd, **kwargs):
         calls.append(cmd)
         return subprocess.CompletedProcess(cmd, 0)
 
+    @owned_runner
     def failed(cmd, **kwargs):
         calls.append(cmd)
         return subprocess.CompletedProcess(cmd, 255)
 
+    @owned_runner
     def timeout(cmd, **kwargs):
         calls.append(cmd)
         raise subprocess.TimeoutExpired(cmd, 15)
@@ -163,9 +182,9 @@ def test_enforce_failures_and_unknown_usage():
                 return json.load(f)["stopped_ips"]
 
         for runner in (failed, timeout):
-            actions = quota_guard.enforce_quota([node], high, runner=runner, state_file=state_path)
+            actions = quota_guard.enforce_quota([node], high, runner=runner, state_file=state_path, master_secret=SECRET)
             check("停机失败返回错误且未记录已停机", actions[0].get("ok") is False and stopped() == [])
-        actions = quota_guard.enforce_quota([node], high, runner=success, state_file=state_path)
+        actions = quota_guard.enforce_quota([node], high, runner=success, state_file=state_path, master_secret=SECRET)
         check("失败后下轮重试停机并持久化成功状态", actions[0]["action"] == "stop" and stopped() == [node["host"]])
 
         for bad in (None, {}, {"used": "bad", "total": 100}, {"used": 0},
@@ -178,14 +197,14 @@ def test_enforce_failures_and_unknown_usage():
             partial = {"_ts": datetime.now(timezone.utc).isoformat(), other["host"]: {"used": 10, "total": 100}}
             if bad is not None:
                 partial[node["host"]] = bad
-            actions = quota_guard.enforce_quota([node, other], partial, runner=success, state_file=state_path)
+            actions = quota_guard.enforce_quota([node, other], partial, runner=success, state_file=state_path, master_secret=SECRET)
             check("未知用量保留熔断状态且不启动", not actions and not calls and stopped() == [node["host"]])
             check("缺失或无效用量标为 unknown", quota_guard.evaluate_instance_quota(bad)["status"] == "unknown")
 
         for runner in (failed, timeout):
-            actions = quota_guard.enforce_quota([node], low, runner=runner, state_file=state_path)
+            actions = quota_guard.enforce_quota([node], low, runner=runner, state_file=state_path, master_secret=SECRET)
             check("恢复失败保留已熔断状态", actions[0].get("ok") is False and stopped() == [node["host"]])
-        actions = quota_guard.enforce_quota([node], low, runner=success, state_file=state_path)
+        actions = quota_guard.enforce_quota([node], low, runner=success, state_file=state_path, master_secret=SECRET)
         check("有效零用量允许恢复且下轮重试成功", actions[0]["action"] == "start" and stopped() == [])
         check("执行失败写入错误日志", any(c.args[0] == "ERROR" for c in log.log.call_args_list))
 
@@ -197,11 +216,11 @@ def test_enforce_failures_and_unknown_usage():
             return success(cmd, **kwargs)
         both_high = {n["host"]: {"used": 90, "total": 100} for n in (node, other)}
         both_high["_ts"] = datetime.now(timezone.utc).isoformat()
-        actions = quota_guard.enforce_quota([node, other], both_high, runner=mixed, state_file=state_path)
+        actions = quota_guard.enforce_quota([node, other], both_high, runner=mixed, state_file=state_path, master_secret=SECRET)
         check("单节点异常不阻断其他节点熔断", len(actions) == 2 and stopped() == [other["host"]])
 
         with patch.object(quota_guard, "repair", None):
-            actions = quota_guard.enforce_quota([node], high, runner=success, state_file=state_path)
+            actions = quota_guard.enforce_quota([node], high, runner=success, state_file=state_path, master_secret=SECRET)
             check("远程执行器不可用不记录停机成功", actions[0].get("ok") is False and stopped() == [other["host"]])
 
 
@@ -222,18 +241,19 @@ def test_threshold_freshness_and_ownership():
         stale = {"_ts": (now - timedelta(hours=1)).isoformat(), node["host"]: {"used": 10, "total": 100}}
         state = os.path.join(tmp, "state.json")
         calls = []
+        @owned_runner
         def run(cmd, **kwargs):
             calls.append(cmd)
             return subprocess.CompletedProcess(cmd, 0)
         unmanaged = {"host": node["host"]}
-        check("未确认服务归属不自动停止", not quota_guard.enforce_quota([unmanaged], fresh, runner=run, state_file=state))
+        check("未确认服务归属不自动停止", not quota_guard.enforce_quota([unmanaged], fresh, runner=run, state_file=state, master_secret=SECRET))
         windows = {"host": node["host"], "os": "windows", "quota_control_managed": True}
-        check("Windows 停止进程会影响其他服务时不自动保护", not quota_guard.enforce_quota([windows], fresh, runner=run, state_file=state))
+        check("Windows 停止进程会影响其他服务时不自动保护", not quota_guard.enforce_quota([windows], fresh, runner=run, state_file=state, master_secret=SECRET))
         check("自定义阈值适用于状态判断", quota_guard.evaluate_all(fresh)[node["host"]]["is_tripped"])
         check("自定义阈值适用于订阅判断", quota_guard.is_node_circuit_broken(node["host"], fresh))
-        check("自定义阈值适用于自动停机", quota_guard.enforce_quota([node], fresh, runner=run, state_file=state)[0]["action"] == "stop")
+        check("自定义阈值适用于自动停机", quota_guard.enforce_quota([node], fresh, runner=run, state_file=state, master_secret=SECRET)[0]["action"] == "stop")
         calls.clear()
-        check("过期用量不触发恢复", not quota_guard.enforce_quota([node], stale, runner=run, state_file=state) and not calls)
+        check("过期用量不触发恢复", not quota_guard.enforce_quota([node], stale, runner=run, state_file=state, master_secret=SECRET) and not calls)
         check("过期用量不显示为实时数值", quota_guard.evaluate_all(stale)[node["host"]]["status"] == "unknown")
         check("缺失时间戳不可用于保护决策", not quota_guard.usage_is_fresh({node["host"]: {"used": 0, "total": 100}}))
 
@@ -260,22 +280,28 @@ def test_persistent_service_guard_and_restart():
             p.chmod(0o755)
         env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ.get("PATH", ""),
                    START_EXIT="0", STOP_EXIT="0", ACTIVE="0", SHOW_STATE="inactive")
+        cfg = Path(tmp) / "config.json"
+        prov = Path(tmp) / ".evergreen-provenance.json"
+        cfg.write_bytes(b'{}')
+        prov.write_text(json.dumps(provenance.sign_provenance("127.0.0.1", provenance.compute_config_sha256(b'{}'), SECRET)))
+        node = {"host": "127.0.0.1"}
         def execute(node, command, runner, timeout):
+            command = command.replace(provenance.config_path(node), str(cfg)).replace(provenance.get_provenance_path(node), str(prov))
             isolated = command.replace("/run/ownline-service.lock", str(Path(tmp) / "lock"))
             isolated = isolated.replace("/var/lib/ownline", str(state_dir))
             return subprocess.run(["sh", "-c", isolated], env=env, capture_output=True)
         with patch.object(quota_guard, "repair", SimpleNamespace(execute_remote=execute)):
             env["SHOW_STATE"] = "active"
-            check("停止命令返回成功但服务仍运行时不声称成功", quota_guard.stop_node_proxy({}).returncode != 0 and marker.exists())
+            check("停止命令返回成功但服务仍运行时不声称成功", quota_guard.stop_node_proxy(node, master_secret=SECRET).returncode != 0 and marker.exists())
             env["SHOW_STATE"] = "inactive"
-            check("已确认服务停止后才报告成功", quota_guard.stop_node_proxy({}).returncode == 0 and marker.exists())
+            check("已确认服务停止后才报告成功", quota_guard.stop_node_proxy(node, master_secret=SECRET).returncode == 0 and marker.exists())
             env["ACTIVE"] = "0"
-            check("启动命令返回成功但服务未运行时恢复保护标记", quota_guard.start_node_proxy({}).returncode != 0 and marker.exists())
+            check("启动命令返回成功但服务未运行时恢复保护标记", quota_guard.start_node_proxy(node, master_secret=SECRET).returncode != 0 and marker.exists())
             env["START_EXIT"] = "1"
-            check("启动命令失败时保留保护标记", quota_guard.start_node_proxy({}).returncode != 0 and marker.exists())
+            check("启动命令失败时保留保护标记", quota_guard.start_node_proxy(node, master_secret=SECRET).returncode != 0 and marker.exists())
             env["START_EXIT"] = "0"
             env["ACTIVE"] = "1"
-            check("仅真实运行成功后移除保护标记", quota_guard.start_node_proxy({}).returncode == 0 and not marker.exists())
+            check("仅真实运行成功后移除保护标记", quota_guard.start_node_proxy(node, master_secret=SECRET).returncode == 0 and not marker.exists())
 
 
 def test_addnode_existing_service_preflight():

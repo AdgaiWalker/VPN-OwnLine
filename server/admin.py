@@ -24,6 +24,7 @@ from nodekit import http_utils  # noqa: E402
 from nodekit import system_updater as updater_mod  # noqa: E402
 from nodekit import ai_feedback as ai_feedback_mod  # noqa: E402
 from nodekit import join_token as join_token_mod  # noqa: E402
+from nodekit import installations as install_mod  # noqa: E402
 from nodekit.node_manager import FileNodeStore, NodeManager, NodeManagerError  # noqa: E402
 import reset_admin_password as password_mod  # noqa: E402
 import tencent_discovery as tencent_discovery_mod  # noqa: E402
@@ -31,6 +32,8 @@ sys.path.insert(0, WEB)
 NODES = os.path.join(DATA, "nodes.json")
 CADDY = "/etc/caddy/Caddyfile"
 JOBS = {}
+CHECKED_TARGETS = install_mod.CheckedTargets()
+_INSTALL_LOCK = threading.Lock()
 INITIAL_PASSWORD_MARKER = Path(DATA) / '.initial-password-required'
 _PASSWORD_LOCK = threading.Lock()
 _PASSWORD_ATTEMPTS = deque()
@@ -110,9 +113,8 @@ def _gen_node():
         priv = re.search(r"PrivateKey:\s*(\S+)", kp).group(1)
         pub = re.search(r"PublicKey:\s*(\S+)", kp).group(1)
     except Exception:
-        uid = str(uuid.uuid4())
-        priv = os.urandom(32).hex()
-        pub = os.urandom(32).hex()
+        raise RuntimeError("sing-box 密钥生成失败，未启动安装") from None
+    cert, cert_key = remote_cfg_mod.generate_self_signed_cert_pem("www.bing.com")
     return {
         "uuid": uid,
         "private_key": priv,
@@ -122,136 +124,119 @@ def _gen_node():
         "hy2_password": os.urandom(12).hex(),
         "obfs_password": os.urandom(8).hex(),
         "hy2_sni": "www.bing.com",
+        "hy2_cert_b64": base64.b64encode(cert.encode()).decode(),
+        "hy2_key_b64": base64.b64encode(cert_key.encode()).decode(),
         "initial_password": secrets.token_urlsafe(16),
     }
 
 
 def _write_job(jid, data, secret):
-    """任务写文件（0600），凭据单独一个文件：不进 argv、不进日志。"""
-    d = os.path.join(DATA, ".jobs")
-    os.makedirs(d, mode=0o700, exist_ok=True)
-    cfg = os.path.join(d, jid + ".json")
-    sec = cfg + ".secret"
-    fd = os.open(sec, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        f.write(secret.rstrip("\n") + "\n")
-    data["secret_file"] = sec
-    fd = os.open(cfg, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        json.dump(data, f, ensure_ascii=False)
-    return cfg
+    """Compatibility adapter: installation inputs live only in worker memory."""
+    spec = dict(data)
+    spec["private_key" if data.get("auth_type") == "key" else "password"] = secret
+    return spec
 
 
-def run_job(jid, cfg_path):
+def run_job(jid, spec):
     j = JOBS[jid]
     j["state"] = "running"
-    dry = False
+    process = None
+    checked = spec.pop("checked_target", None)
     try:
-        dry = bool(json.load(open(cfg_path, encoding="utf-8")).get("dry_run"))
-    except Exception:
-        pass
-    try:
-        p = subprocess.Popen(["/opt/web/addnode.sh", cfg_path], stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT, text=True, bufsize=1)
-        for line in p.stdout:
+        if not checked:
+            raise install_mod.InstallError("缺少已验证的安装目标")
+        install_mod.CheckedTargets.recheck(checked, node_check_bridge.check)
+        if not spec.get("dry_run"):
+            install_mod.pin_known_host(checked, verify_mod.KNOWN_HOSTS)
+        login = checked["login"]
+        identity = checked["identity"]
+        spec.update(ip=identity[0], user=login["username"], ssh_port=login["ssh_port"],
+                    password=login.get("password", ""), private_key=login.get("private_key", ""),
+                    auth_type="key" if login.get("private_key") else "password",
+                    passphrase=login.get("passphrase", ""), machine_id=identity[2],
+                    host_key_type=identity[3], host_key=identity[4])
+        ports = {(int(spec.get("port") or 443), "TCP"), (int(spec.get("port") or 443), "UDP")}
+        if spec.get("self_bootstrap"):
+            ports.update({(80, "TCP"), (8443, "TCP")})
+        for port, protocol in ([] if spec.get("dry_run") else sorted(ports)):
+            try:
+                status, _ = open_firewall(identity[0], port, proto=protocol)
+                if status not in ("opened", "already"):
+                    j["log"].append("云防火墙未确认放行 %s/%s，请核对云安全组" % (port, protocol))
+            except Exception:
+                j["log"].append("云防火墙未确认，请核对云安全组")
+        process = subprocess.Popen(["/opt/web/addnode.sh", "--stdin"], stdin=subprocess.PIPE,
+                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                                   text=True, bufsize=1)
+        process.stdin.write(json.dumps(spec, ensure_ascii=False))
+        process.stdin.close()
+        records, candidate = [], None
+        for line in process.stdout:
             line = line.rstrip("\n")
             if not line:
                 continue
             if line.startswith("STEP "):
                 parts = line.split(" ", 2)
-                try:
-                    j["step"] = int(parts[1])
-                except Exception:
-                    pass
+                j["step"] = int(parts[1])
                 j["stepname"] = parts[2] if len(parts) > 2 else ""
             elif line.startswith("{"):
-                try:
-                    node = json.loads(line)
-                    update_nodes(lambda ns: [x for x in ns if x["name"] != node["name"]] + [node])
-                    render()
-                    j["node"] = node
-                    logger.log("INFO", "NODE", "成功添加节点: %s (%s)" % (node.get("name"), node.get("host")))
-                except Exception as e:
-                    j["log"].append("parse error: %s" % e)
-            j["log"].append(line)
-            j["log"] = j["log"][-60:]
-        rc = p.wait()
-        if rc != 0 or (not j.get("node") and not dry):
-            j["state"] = "error"
-            j["error"] = "installation failed"
-            err_msg = j["log"][-1] if j.get("log") else "未知错误"
-            logger.log("ERROR", "NODE", "添加节点任务失败 (jid=%s): %s" % (jid, err_msg))
-            j["hint"] = hints_mod.hint_from_log(j["log"])
+                event = json.loads(line)
+                if "delivery" in event:
+                    candidate = event["delivery"]
+                elif event.get("name") and event.get("host"):
+                    records.append(event)
+                continue
+            # Secret material and raw node events never enter progress logs.
+            for key in ("password", "private_key", "passphrase", "control_secret"):
+                if spec.get(key):
+                    line = line.replace(spec[key], "[redacted]")
+            j["log"] = (j["log"] + [line])[-60:]
+        if process.wait() != 0:
+            raise install_mod.InstallError("目标安装未完成，请检查服务器状态后重新检测")
+        if spec.get("dry_run"):
+            j.update(state="done", warn="dry_run")
+            return
+        if not records:
+            raise install_mod.InstallError("安装没有返回节点记录，未交付资产")
+        main = next((n for n in records if n.get("type") != "hysteria2"), None)
+        if main is None:
+            raise install_mod.InstallError("安装没有返回主节点，未交付资产")
+        for record in records:
+            record.update(control_secret=spec["control_secret"], provenance_id=identity[0])
+            verification = verify_mod.run(record)
+            record.update(health=verification.get("health", "unknown"),
+                          health_detail=verification.get("detail", ""))
+            for key in ("exit_ip", "exit_country"):
+                if verification.get(key):
+                    record[key] = verification[key]
+            node_manager.add_node(record)
+            if record is main:
+                j["node"], j["verify"] = record, verification
+        if any(record.get("health") != "ok" for record in records):
+            raise install_mod.InstallError("节点已安装但真实代理验收未通过，未交付可用资产")
+        if spec.get("self_bootstrap"):
+            if not candidate:
+                raise install_mod.InstallError("独立后台未完成部署，未交付管理地址")
+            delivery = install_mod.verify_delivery(candidate, identity[0], spec["node"]["initial_password"])
+            delivery["deep_links"] = links_mod.build_deep_links(delivery["direct_sub_url"], name=main["name"])
+            j["delivery"] = delivery
         else:
-            # 先处理完端口/防火墙，再自测，最后才标 done。
-            # 顺序反了，前端会在防火墙还没开、自测还没跑完时就看到“完成”。
-            if dry and not j.get("node"):
-                j["state"] = "done"
-                j["warn"] = "dry_run"
-                j["log"].append("演练完成：未对目标机做任何修改")
-                return
-
-            j["warn"] = "port_blocked" if any("PORT_BLOCKED" in l for l in j["log"]) else ""
-            if j["warn"] == "port_blocked" and j.get("node"):
-                host = j["node"]["host"]
-                port = j["node"]["port"]
-                role = j["node"].get("role") or "exit"
-                st, msg = open_firewall(host, port, proto="TCP")
-                j["log"].append("防火墙(TCP): " + msg)
-                if role == "exit":
-                    st_u, msg_u = open_firewall(host, port, proto="UDP")
-                    j["log"].append("防火墙(UDP): " + msg_u)
-                if st in ("opened", "already"):
-                    time.sleep(3)
-                    if port_reachable(host, port):
-                        j["warn"] = ""
-                        j["log"].append("端口已通，重新自测")
-                    else:
-                        j["log"].append("端口仍不通：可能有云端安全组之外的拦截")
-                else:
-                    j["log"].append("没能自动放行，需要手动去控制台加规则")
-
-            if j.get("node"):
-                host = j["node"]["host"]
-                matching = [n for n in load_nodes() if n.get("host") == host]
-                for n in matching:
-                    try:
-                        r = verify_node(n)
-                        if n.get("name") == j["node"].get("name"):
-                            j["verify"] = r
-                            j["node"]["health"] = r.get("health", "unknown")
-                            if r.get("exit_ip"):
-                                j["node"]["exit_ip"] = r["exit_ip"]
-                                j["node"]["exit_country"] = r.get("exit_country", "")
-                            if r.get("detail"):
-                                j["node"]["health_detail"] = r["detail"]
-                    except Exception as e:
-                        if n.get("name") == j["node"].get("name"):
-                            j["verify"] = {"health": "unknown", "detail": str(e)[:80]}
-            if j.get("node"):
-                host = j["node"]["host"]
-                token = j["node"].get("sub_token") or get_sub_token()
-                direct_sub_url = f"https://{host}:8443/s/{token}"
-                temp_pass = j.get("temp_password") or j["node"].get("initial_password") or j["node"].get("hy2_password") or j["node"].get("password") or "admin"
-                deep_links = links_mod.build_deep_links(direct_sub_url, name=j["node"].get("name", "OwnLine"))
-                j["delivery"] = {
-                    "dashboard_url": f"https://{host}:8443/",
-                    "username": "admin",
-                    "temp_password": temp_pass,
-                    "sub_token": token,
-                    "direct_sub_url": direct_sub_url,
-                    "deep_links": deep_links,
-                }
-            j["state"] = "done"
-    except Exception as e:
-        j["state"] = "error"
-        j["error"] = str(e)[:200]
+            j["delivery"] = {"kind": "managed_node", "node_name": main["name"]}
+        j["state"] = "done"
+    except Exception as exc:
+        j.update(state="error", error=str(exc) if isinstance(exc, install_mod.InstallError) else
+                 "安装或验收未完成，请重新检查服务器状态", error_code=type(exc).__name__)
+        j.pop("delivery", None)
     finally:
-        for f in (cfg_path, cfg_path + ".secret"):
+        if process is not None and process.poll() is None:
+            process.terminate()
             try:
-                os.remove(f)
-            except Exception:
-                pass
+                process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                process.kill()
+        if checked:
+            checked["login"].clear()
+        spec.clear()
 
 
 import base64 as _b64
@@ -774,6 +759,9 @@ class H(BaseHTTPRequestHandler):
                 "stepname": job.get("stepname", ""),
                 "health": verification.get("health", "unknown"),
             }
+            if job.get("error"):
+                res["error"] = job["error"]
+                res["error_code"] = job.get("error_code", "INSTALL_FAILED")
             if job.get("delivery"):
                 res["delivery"] = job["delivery"]
             return self._json(200, res)
@@ -921,6 +909,11 @@ class H(BaseHTTPRequestHandler):
                 return self._json(415, {"ok": False, "code": "INVALID_TYPE", "message": "请使用安全的管理页面。"})
             result = node_check_bridge.check(body)
             if result.get("ok"):
+                if (result.get("result") or {}).get("ready_for_install") is True:
+                    try:
+                        result = dict(result, check_ticket=CHECKED_TARGETS.remember(body, result["result"]), expires_in=600)
+                    except install_mod.InstallError as exc:
+                        return self._json(400, {"ok": False, "error": str(exc)})
                 return self._json(200, result)
             status = 409 if result.get("code") == "HOST_KEY_CONFIRMATION" else 503 if result.get("code") == "UNAVAILABLE" else 400
             return self._json(status, result)
@@ -1321,7 +1314,7 @@ class H(BaseHTTPRequestHandler):
                 targets = [target]
 
             settings = _load_json("settings.json", {})
-            master_secret = settings.get("master_secret") or settings.get("sub_token") or "ownline_default_secret"
+            master_secret = None
             results = []
             for t in targets:
                 r = repair_mod.repair_node(t, master_secret=master_secret)
@@ -1348,77 +1341,79 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {"ok": True, "all_ok": all_ok, "results": results})
 
         if norm_path == "/addnode":
-            ip = (body.get("ip") or "").strip()
-            user = (body.get("user") or "root").strip() or "root"
-            auth_type = (body.get("auth_type") or "password").strip()
-            pwd = body.get("pass") or ""
-            key_text = body.get("private_key") or ""
-            name = (body.get("name") or "").strip() or ("节点-" + ip)
-            role = (body.get("role") or "auto").strip()
-            landing = body.get("landing") or None
-            dry_run = bool(body.get("dry_run"))
-            self_bootstrap = bool(body.get("self_bootstrap", True))
-            if not _valid_host(ip):
-                return self._json(400, {"ok": False, "error": "地址格式不对（IP 或域名）"})
-            if not re.fullmatch(r"[a-zA-Z_][a-zA-Z0-9_-]{0,31}", user):
-                return self._json(400, {"ok": False, "error": "SSH 用户名格式不正确"})
-            if auth_type not in ("password", "key"):
-                return self._json(400, {"ok": False, "error": "认证方式只支持 password 或 key"})
-            if auth_type == "password" and not pwd:
-                return self._json(400, {"ok": False, "error": "密码或私钥至少填一个"})
-            if auth_type == "key" and "PRIVATE KEY" not in key_text:
-                return self._json(400, {"ok": False, "error": "私钥格式不对，应为 OpenSSH 或 PEM"})
+            checked = None
             try:
+                ticket = body.get("check_ticket")
+                if ticket:
+                    checked = CHECKED_TARGETS.take(ticket)
+                else:
+                    # Legacy callers undergo the same pinned check; never accept unverified SSH input.
+                    login = {"host": body.get("ip"), "username": body.get("user") or "root",
+                             "ssh_port": body.get("ssh_port") or 22, "password": body.get("pass") or "",
+                             "private_key": body.get("private_key") or "", "passphrase": body.get("passphrase") or "",
+                             "fingerprint": body.get("fingerprint") or ""}
+                    response = node_check_bridge.check(login)
+                    if not response.get("ok"):
+                        return self._json(409, {"ok": False, "code": response.get("code", "CHECK_REQUIRED"),
+                                               "error": response.get("message", "请先完成连接和指纹检查"),
+                                               "fingerprint": response.get("fingerprint", "")})
+                    checked = CHECKED_TARGETS.take(CHECKED_TARGETS.remember(login, response["result"]))
+                ip = checked["identity"][0]
+                name = str(body.get("name") or "节点-" + ip).strip()
+                role = body.get("role") or "auto"
                 port = int(body.get("port") or 443)
-            except Exception:
-                return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
-            if not (0 < port < 65536):
-                return self._json(400, {"ok": False, "error": "端口必须是 1-65535"})
-            try:
-                ssh_port = int(body.get("ssh_port") or 22)
-            except Exception:
-                return self._json(400, {"ok": False, "error": "SSH 端口必须是 1-65535"})
-            if not (0 < ssh_port < 65536):
-                return self._json(400, {"ok": False, "error": "SSH 端口必须是 1-65535"})
-            if role not in ("auto", "exit", "relay"):
-                return self._json(400, {"ok": False, "error": "角色只支持 auto / exit / relay"})
-
-            # 装前 3 秒连通性排雷与大白话提示（非演练模式下检测目标 SSH 端口）
-            if not dry_run and not port_reachable(ip, ssh_port, timeout=3):
-                return self._json(400, {
-                    "ok": False,
-                    "error": f"无法连接服务器 {ip} 的 {ssh_port} 端口，请检查：1. 服务器是否已在云控制台开机；2. 安全组/防火墙是否放行了 {ssh_port} 端口（TCP）。"
-                })
-
-            # 防呆约束：中国大陆服务器禁止误设为直接出口
-            if role == "exit":
-                srvs = _load_json("servers.json", {}).get("servers", [])
-                matched_srv = next((s for s in srvs if s.get("ip") == ip), None)
-                if matched_srv and matched_srv.get("regionId", "").startswith("ap-"):
-                    reg = matched_srv.get("region", "")
-                    if reg in ("北京", "广州", "上海", "南京", "成都", "重庆"):
-                        return self._json(400, {
-                            "ok": False,
-                            "error": f"服务器位于中国大陆（{reg}），受 GFW 拦截无法作为出口节点，请将角色设为「中转（relay）」"
-                        })
-
-            if not landing:
-                # 不指定落地时，自动挑一台最快的海外节点当出口。
-                # 目标机是不是直连由 addnode.sh 现场判断；这里只负责准备候选。
-                landing = subs_mod.pick_landing(load_nodes(), _load_json("status.json", {}))
-            if role == "relay" and not landing:
-                return self._json(400, {"ok": False, "error": "中转必须先指定落地节点"})
-            node = _gen_node()
-            jid = uuid.uuid4().hex[:12]
-            cfg_path = _write_job(jid, {
-                "ip": ip, "user": user, "auth_type": auth_type, "name": name,
-                "port": port, "ssh_port": ssh_port, "role": role, "node": node, "landing": landing,
-                "dry_run": dry_run, "self_bootstrap": self_bootstrap,
-            }, secret=(key_text if auth_type == "key" else pwd))
-            JOBS[jid] = {"state": "queued", "step": 0, "stepname": "", "log": [], "temp_password": node.get("initial_password")}
-            t = threading.Thread(target=run_job, args=(jid, cfg_path), daemon=True)
-            t.start()
-            return self._json(200, {"ok": True, "job": jid})
+                if not name or len(name) > 128 or any(ord(c) < 32 for c in name) or role not in ("auto", "exit", "relay") or not 1 <= port <= 65535:
+                    raise install_mod.InstallError("节点名称、角色或端口无效")
+                if any(n.get("name") in (name, name + "-HY2") or n.get("host") == ip for n in load_nodes()):
+                    raise install_mod.InstallError("该节点名称或服务器已在管理列表中，请先核对")
+                if role == "exit":
+                    servers = _load_json("servers.json", {}).get("servers", [])
+                    server = next((item for item in servers if item.get("ip") == ip), {})
+                    if server.get("region") in ("北京", "广州", "上海", "南京", "成都", "重庆"):
+                        raise install_mod.InstallError("中国大陆服务器不能作为直接出口，请选择中转角色")
+                landing = body.get("landing") or subs_mod.pick_landing(load_nodes(), _load_json("status.json", {}))
+                if landing and not landing.get("uuid") and landing.get("link"):
+                    landing = links_mod.parse(landing["link"])
+                if role == "relay" and not landing:
+                    raise install_mod.InstallError("中转必须先指定可用落地节点")
+                self_bootstrap = bool(body.get("self_bootstrap", True))
+                if self_bootstrap and port in (80, 8443):
+                    raise install_mod.InstallError("独立后台保留 80 和 8443 端口，请为代理选择其他端口")
+                node = _gen_node()
+                panel_hash = ""
+                if self_bootstrap:
+                    panel_hash = subprocess.check_output(["caddy", "hash-password"],
+                                                         input=node["initial_password"] + "\n", text=True, timeout=15).strip()
+                    if not re.fullmatch(password_mod.HASH, panel_hash):
+                        raise install_mod.InstallError("管理密码初始化失败")
+                jid = uuid.uuid4().hex[:12]
+                spec = {"checked_target": checked, "name": name, "port": port, "role": role,
+                        "node": node, "landing": landing, "dry_run": bool(body.get("dry_run")),
+                        "self_bootstrap": self_bootstrap, "panel_hash": panel_hash,
+                        "sub_token": secrets.token_hex(32), "control_secret": secrets.token_hex(32),
+                        "job_id": uuid.uuid4().hex}
+                with _INSTALL_LOCK:
+                    for active in JOBS.values():
+                        reservation = active.get("_reservation")
+                        if active.get("state") in ("queued", "running") and reservation and (reservation[0] == name or reservation[1] == ip):
+                            raise install_mod.InstallError("同名节点或目标服务器已有安装任务")
+                    if any(n.get("name") in (name, name + "-HY2") or n.get("host") == ip for n in load_nodes()):
+                        raise install_mod.InstallError("该节点名称或服务器已在管理列表中")
+                    JOBS[jid] = {"state": "queued", "step": 0, "stepname": "", "log": [], "_reservation": (name, ip)}
+                    try:
+                        threading.Thread(target=run_job, args=(jid, spec), daemon=True).start()
+                    except Exception:
+                        JOBS.pop(jid, None)
+                        raise
+                return self._json(200, {"ok": True, "job": jid})
+            except (install_mod.InstallError, ValueError, KeyError, TypeError) as exc:
+                if checked:
+                    checked["login"].clear()
+                return self._json(400, {"ok": False, "code": "CHECK_REQUIRED", "error": str(exc) if isinstance(exc, install_mod.InstallError) else "安装输入无效"})
+            except (OSError, subprocess.SubprocessError, RuntimeError):
+                if checked:
+                    checked["login"].clear()
+                return self._json(500, {"ok": False, "error": "安装初始化失败，未执行远程安装"})
 
         self._json(404, {"ok": False, "error": "not found"})
 

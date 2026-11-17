@@ -18,10 +18,12 @@ try:
     from . import lifecycle
     from . import links
     from . import quota_guard
+    from .ai_domains import AI_DOMAIN_KEYWORDS, AI_DOMAIN_SUFFIXES
 except ImportError:
     import lifecycle
     import links
     import quota_guard
+    from ai_domains import AI_DOMAIN_KEYWORDS, AI_DOMAIN_SUFFIXES
 
 # 这些状态表示节点有问题，不能进订阅。
 # unknown 不在此列：外部节点永远未验证，但仍可被用户手动选择。
@@ -293,36 +295,46 @@ def render_v2ray_base64(nodes, profile="all", now_ts=None, usage_data=None):
     return base64.b64encode(raw.encode("utf-8")).decode("utf-8")
 
 
+def _yaml_string(value):
+    """JSON string escaping is valid for YAML double-quoted scalars."""
+    encoded = json.dumps(str(value), ensure_ascii=False)
+    return "".join(
+        "\\u%04x" % ord(char)
+        if 0x7F <= ord(char) <= 0x9F or char in "\u2028\u2029\ufffe\uffff" or 0xD800 <= ord(char) <= 0xDFFF
+        else char for char in encoded
+    )
+
+
 def clash_proxy_lines(n, now_ts=None):
     name = format_display_name(n, now_ts=now_ts)
     if n.get("type") == "hysteria2":
         return [
-            '  - name: "%s"' % name,
+            "  - name: %s" % _yaml_string(name),
             "    type: hysteria2",
-            "    server: %s" % n["host"],
-            "    port: %s" % n["port"],
-            "    password: %s" % n["password"],
-            "    sni: %s" % (n.get("sni") or n["host"]),
+            "    server: %s" % _yaml_string(n["host"]),
+            "    port: %s" % int(n["port"]),
+            "    password: %s" % _yaml_string(n["password"]),
+            "    sni: %s" % _yaml_string(n.get("sni") or n["host"]),
             "    skip-cert-verify: true",
             "    alpn: [h3]",
             "    obfs: salamander",
-            "    obfs-password: %s" % (n.get("obfs_password") or ""),
+            "    obfs-password: %s" % _yaml_string(n.get("obfs_password") or ""),
         ]
     return [
-        '  - name: "%s"' % name,
+        "  - name: %s" % _yaml_string(name),
         "    type: vless",
-        "    server: %s" % n["host"],
-        "    port: %s" % n["port"],
-        "    uuid: %s" % n["uuid"],
+        "    server: %s" % _yaml_string(n["host"]),
+        "    port: %s" % int(n["port"]),
+        "    uuid: %s" % _yaml_string(n["uuid"]),
         "    network: tcp",
         "    udp: true",
         "    tls: true",
         "    flow: xtls-rprx-vision",
-        "    servername: %s" % (n.get("sni") or n["host"]),
+        "    servername: %s" % _yaml_string(n.get("sni") or n["host"]),
         "    client-fingerprint: chrome",
         "    reality-opts:",
-        "      public-key: %s" % (n.get("pbk") or ""),
-        "      short-id: %s" % (n.get("sid") or ""),
+        "      public-key: %s" % _yaml_string(n.get("pbk") or ""),
+        "      short-id: %s" % _yaml_string(n.get("sid") or ""),
     ]
 
 
@@ -336,6 +348,8 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
     eligible = quota_guard.controllable_hosts(nodes)
     valid = [n for n in (nodes or []) if in_subscription(n, now_ts=now_ts, usage_data=usage_data, controllable_hosts=eligible)]
     profile = (profile or "all").lower()
+    if profile not in ("all", "pro", "office", "lite", "direct"):
+        profile = "all"
 
     if profile == "direct":
         # 纯直连省流：剔除所有 relay 中继
@@ -367,7 +381,7 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
     for n in valid:
         lines.extend(clash_proxy_lines(n, now_ts=now_ts))
 
-    escaped_names = ", ".join('"%s"' % x for x in names)
+    escaped_names = ", ".join(_yaml_string(x) for x in names)
 
     # 提取所有受控节点 IP，直接写入 rules 顶层 DIRECT 豁免规则
     # 防止客户端将管理面板访问流量打入被它所管理的代理隧道（消除“用户在隧道里拔自己网线”自锁故障）
@@ -468,9 +482,9 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         for x in names:
             if x not in ai_proxies:
                 ai_proxies.append(x)
-        escaped_ai = ", ".join('"%s"' % x for x in ai_proxies)
+        escaped_ai = ", ".join(_yaml_string(x) for x in ai_proxies)
 
-        node_select_proxies = ['"自动选择"', '"🛡️ 故障转移"', '"🤖 AI 业务"'] + ['"%s"' % x for x in names if x not in ("自动选择", "🛡️ 故障转移", "🤖 AI 业务")]
+        node_select_proxies = [_yaml_string(x) for x in ("自动选择", "🛡️ 故障转移", "🤖 AI 业务")] + [_yaml_string(x) for x in names if x not in ("自动选择", "🛡️ 故障转移", "🤖 AI 业务")]
         escaped_node_select = ", ".join(node_select_proxies)
 
         lines.extend([
@@ -501,14 +515,9 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         ])
         if node_ip_rules:
             lines.extend(node_ip_rules)
+        lines.extend("  - DOMAIN-KEYWORD,%s,🤖 AI 业务" % keyword for keyword in AI_DOMAIN_KEYWORDS)
+        lines.extend("  - DOMAIN-SUFFIX,%s,🤖 AI 业务" % domain for domain in AI_DOMAIN_SUFFIXES)
         lines.extend([
-            "  - DOMAIN-KEYWORD,openai,🤖 AI 业务",
-            "  - DOMAIN-KEYWORD,anthropic,🤖 AI 业务",
-            "  - DOMAIN-KEYWORD,claude,🤖 AI 业务",
-            "  - DOMAIN-SUFFIX,oaistatic.com,🤖 AI 业务",
-            "  - DOMAIN-SUFFIX,oaiusercontent.com,🤖 AI 业务",
-            "  - DOMAIN-SUFFIX,ai.google.dev,🤖 AI 业务",
-            "  - DOMAIN-SUFFIX,bard.google.com,🤖 AI 业务",
             "  - DOMAIN-KEYWORD,deepseek,DIRECT",
             "  - DOMAIN-KEYWORD,moonshot,DIRECT",
             "  - DOMAIN-KEYWORD,kimi,DIRECT",

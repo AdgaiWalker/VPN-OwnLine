@@ -226,131 +226,112 @@ def read_live_config(node, runner=None, cfg_path=None, allow_windows=False):
     return True, "", cfg
 
 
-def _build_windows_apply_script(cfg_json_text, cfg_path=r"C:\proxy\config.json", bin_path=r"C:\proxy\sing-box.exe", ensure_hy2_cert=None, prov_json_text=None):
-    b64_cfg = base64.b64encode(cfg_json_text.encode("utf-8")).decode("ascii")
-    stg_path = cfg_path + ".staged"
-    bak_path = cfg_path + ".ownline.bak"
-    hy2_prep = ""
+def _build_windows_apply_script(cfg_json_text, cfg_path=r"C:\proxy\config.json", bin_path=r"C:\proxy\sing-box.exe", ensure_hy2_cert=None, prov_json_text=None, prov_path=None, expected=None):
+    """仅构造锁内事务；调用方必须先取得并复核归属快照。"""
+    cfg, binary = cfg_path.replace("'", "''"), bin_path.replace("'", "''")
+    prov = (prov_path or prov_mod.PROVENANCE_PATH_WIN).replace("'", "''")
+    b64_cfg = base64.b64encode(cfg_json_text.encode()).decode("ascii")
+    b64_prov = base64.b64encode(prov_json_text.encode()).decode("ascii")
+    cert_write = ""
     if ensure_hy2_cert:
-        hy2_port = int(ensure_hy2_cert.get("port") or 443)
-        crt_path = ensure_hy2_cert.get("cert_path") or r"C:\proxy\hy2.crt"
-        key_path = ensure_hy2_cert.get("key_path") or r"C:\proxy\hy2.key"
-        crt_b64 = ensure_hy2_cert.get("cert_b64") or ""
-        key_b64 = ensure_hy2_cert.get("key_b64") or ""
-        cert_write = ""
-        if crt_b64 and key_b64:
-            cert_write = f"""
-[IO.File]::WriteAllBytes('{crt_path}', [Convert]::FromBase64String('{crt_b64}'))
-[IO.File]::WriteAllBytes('{key_path}', [Convert]::FromBase64String('{key_b64}'))
+        crt = (ensure_hy2_cert.get("cert_path") or r"C:\proxy\hy2.crt").replace("'", "''")
+        key = (ensure_hy2_cert.get("key_path") or r"C:\proxy\hy2.key").replace("'", "''")
+        cert_write = f"""
+if (-not (Test-Path '{crt}') -or -not (Test-Path '{key}')) {{
+  [IO.File]::WriteAllBytes('{crt}', [Convert]::FromBase64String('{ensure_hy2_cert['cert_b64']}'))
+  [IO.File]::WriteAllBytes('{key}', [Convert]::FromBase64String('{ensure_hy2_cert['key_b64']}'))
+}}
+netsh advfirewall firewall add rule name="OwnLine-HY2-UDP" dir=in action=allow protocol=UDP localport={int(ensure_hy2_cert.get('port') or 443)} >$null 2>&1
 """
-        hy2_prep = f"""
+    return f"""$ownlineChanged = $false
+try {{
+  Copy-Item -Force '{cfg}' '{cfg}.ownline.bak'
+  Copy-Item -Force '{prov}' '{prov}.ownline.bak'
 {cert_write}
-netsh advfirewall firewall add rule name="OwnLine-HY2-UDP" dir=in action=allow protocol=UDP localport={hy2_port} >$null 2>&1
-"""
-    prov_prep = ""
-    if prov_json_text:
-        b64_prov = base64.b64encode(prov_json_text.encode("utf-8")).decode("ascii")
-        prov_path = r"C:\proxy\.evergreen-provenance.json"
-        prov_prep = f"""
-[IO.File]::WriteAllBytes('{prov_path}', [Convert]::FromBase64String('{b64_prov}'))
-"""
-    ps_script = f"""$ErrorActionPreference = 'Stop'
-{hy2_prep}
-[IO.File]::WriteAllBytes('{stg_path}', [Convert]::FromBase64String('{b64_cfg}'))
-& '{bin_path}' check -c '{stg_path}'
-if ($LASTEXITCODE -ne 0) {{
-    Remove-Item -Force '{stg_path}' -ErrorAction SilentlyContinue
-    Write-Error "SINGBOX_CHECK_FAILED"
-    exit 14
+  [IO.File]::WriteAllBytes('{cfg}.staged', [Convert]::FromBase64String('{b64_cfg}'))
+  [IO.File]::WriteAllBytes('{prov}.staged', [Convert]::FromBase64String('{b64_prov}'))
+  & '{binary}' check -c '{cfg}.staged'
+  if ($LASTEXITCODE -ne 0) {{ throw 'SINGBOX_CHECK_FAILED' }}
+  $ownlineChanged = $true
+  Move-Item -Force '{cfg}.staged' '{cfg}'
+  Move-Item -Force '{prov}.staged' '{prov}'
+  Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
+  Start-ScheduledTask -TaskName 'sing-box'
+}} catch {{
+  if ($ownlineChanged -and
+      (Get-FileHash -Algorithm SHA256 -LiteralPath '{cfg}.ownline.bak').Hash.ToLowerInvariant() -eq '{expected['config_sha256']}' -and
+      (Get-FileHash -Algorithm SHA256 -LiteralPath '{prov}.ownline.bak').Hash.ToLowerInvariant() -eq '{expected['manifest_sha256']}') {{
+    Copy-Item -Force '{cfg}.ownline.bak' '{cfg}'
+    Copy-Item -Force '{prov}.ownline.bak' '{prov}'
+    Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
+    Start-ScheduledTask -TaskName 'sing-box'
+  }}
+  throw
+}} finally {{
+  Remove-Item -Force '{cfg}.staged','{prov}.staged' -ErrorAction SilentlyContinue
 }}
-if (Test-Path '{cfg_path}') {{
-    Copy-Item -Force '{cfg_path}' '{bak_path}'
-}}
-Move-Item -Force '{stg_path}' '{cfg_path}'
-{prov_prep}
-Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
-Start-Sleep -Milliseconds 600
-Start-ScheduledTask -TaskName 'sing-box'
 """
-    return ps_script
 
 
-def _build_apply_script(cfg_json_text, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None, prov_json_text=None):
-    b64_cfg = base64.b64encode(cfg_json_text.encode("utf-8")).decode("ascii")
-    q_cfg = shlex.quote(cfg_path)
-    q_bak = shlex.quote(cfg_path + ".ownline.bak")
-    q_stg = shlex.quote(cfg_path + ".ownline.staged")
+def _build_apply_script(cfg_json_text, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None, prov_json_text=None, prov_path=None, expected=None):
+    b64_cfg = base64.b64encode(cfg_json_text.encode()).decode("ascii")
+    b64_prov = base64.b64encode(prov_json_text.encode()).decode("ascii")
+    prov_path = prov_path or prov_mod.PROVENANCE_PATH_LINUX
+    q_cfg, q_bak, q_stg = map(shlex.quote, (cfg_path, cfg_path + ".ownline.bak", cfg_path + ".ownline.staged"))
+    q_prov, q_prov_bak, q_prov_stg = map(shlex.quote, (prov_path, prov_path + ".ownline.bak", prov_path + ".staged"))
     q_bin = shlex.quote(bin_path)
-
-    prov_prep = ""
-    if prov_json_text:
-        b64_prov = base64.b64encode(prov_json_text.encode("utf-8")).decode("ascii")
-        prov_path = "/etc/sing-box/.evergreen-provenance.json"
-        prov_prep = f"""
-mkdir -p /etc/sing-box
-echo {shlex.quote(b64_prov)} | base64 -d > {prov_path}
-chmod 600 {prov_path}
-"""
-
     hy2_prep = ""
     if ensure_hy2_cert:
-        hy2_sni = str(ensure_hy2_cert.get("sni") or "www.bing.com")
-        hy2_port = int(ensure_hy2_cert.get("port") or 443)
         q_crt = shlex.quote(ensure_hy2_cert.get("cert_path") or HY2_CERT_PATH)
         q_key = shlex.quote(ensure_hy2_cert.get("key_path") or HY2_KEY_PATH)
-        q_subj = shlex.quote("/CN=" + hy2_sni)
+        port = int(ensure_hy2_cert.get("port") or 443)
         hy2_prep = f"""
 if [ ! -s {q_crt} ] || [ ! -s {q_key} ]; then
-  openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \\
-    -days 3650 -nodes -subj {q_subj} \\
-    -keyout {q_key} -out {q_crt} >/dev/null 2>&1
+  echo {shlex.quote(ensure_hy2_cert['cert_b64'])} | base64 -d > {q_crt}
+  echo {shlex.quote(ensure_hy2_cert['key_b64'])} | base64 -d > {q_key}
   chmod 600 {q_key} {q_crt}
 fi
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-  ufw allow {hy2_port}/udp >/dev/null 2>&1 || true
+  ufw allow {port}/udp >/dev/null 2>&1 || true
 fi
 if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
-  firewall-cmd --add-port={hy2_port}/udp --permanent >/dev/null 2>&1 || true
+  firewall-cmd --add-port={port}/udp --permanent >/dev/null 2>&1 || true
   firewall-cmd --reload >/dev/null 2>&1 || true
 fi
 """
-
-    inner = f"""set -euo pipefail
-umask 077
-if [ ! -x {q_bin} ]; then
-  echo "MISSING_SINGBOX_BIN" >&2
-  exit 12
-fi
-if [ ! -f {q_cfg} ]; then
-  echo "MISSING_CONFIG_JSON" >&2
-  exit 13
-fi
-{hy2_prep}
-cp -pf {q_cfg} {q_bak}
-echo {shlex.quote(b64_cfg)} | base64 -d > {q_stg}
-chmod 600 {q_stg}
-if ! {q_bin} check -c {q_stg}; then
-  rm -f {q_stg}
-  echo "SINGBOX_CHECK_FAILED" >&2
-  exit 14
-fi
-mv -f {q_stg} {q_cfg}
-{prov_prep}
-if [ ! -f /var/lib/ownline/quota-paused ]; then
-  if ! (systemctl restart sing-box && systemctl is-active --quiet sing-box); then
-    cp -pf {q_bak} {q_cfg} || true
-    systemctl restart sing-box >/dev/null 2>&1 || true
-    echo "SINGBOX_RESTART_FAILED" >&2
-    exit 15
+    return f"""test -x {q_bin}
+changed=0
+restore_pair() {{
+  test "$(sha256sum {q_bak} | cut -d' ' -f1)" = {shlex.quote(expected['config_sha256'])} &&
+  test "$(sha256sum {q_prov_bak} | cut -d' ' -f1)" = {shlex.quote(expected['manifest_sha256'])} &&
+  cp -pf {q_bak} {q_cfg} && cp -pf {q_prov_bak} {q_prov}
+}}
+finish() {{
+  rc=$?
+  trap - EXIT
+  if [ "$rc" -ne 0 ] && [ "$changed" = 1 ]; then
+    if restore_pair && [ ! -f /var/lib/ownline/quota-paused ]; then
+      systemctl restart sing-box >/dev/null 2>&1 || true
+    fi
   fi
+  rm -f {q_stg} {q_prov_stg}
+  exit "$rc"
+}}
+trap finish EXIT
+cp -pf {q_cfg} {q_bak}
+cp -pf {q_prov} {q_prov_bak}
+{hy2_prep}
+echo {shlex.quote(b64_cfg)} | base64 -d > {q_stg}
+echo {shlex.quote(b64_prov)} | base64 -d > {q_prov_stg}
+chmod 600 {q_stg} {q_prov_stg}
+{q_bin} check -c {q_stg}
+changed=1
+mv -f {q_stg} {q_cfg}
+mv -f {q_prov_stg} {q_prov}
+if [ ! -f /var/lib/ownline/quota-paused ]; then
+  systemctl restart sing-box && systemctl is-active --quiet sing-box
 fi
 """
-    b64_inner = base64.b64encode(inner.encode("utf-8")).decode("ascii")
-    return (
-        "if command -v flock >/dev/null 2>&1; then "
-        f"flock -x -w 10 /run/ownline-service.lock bash -c 'echo {b64_inner} | base64 -d | bash'; "
-        f"else echo {b64_inner} | base64 -d | bash; fi"
-    )
 
 
 def generate_self_signed_cert_pem(sni="www.bing.com"):
@@ -374,92 +355,92 @@ def generate_self_signed_cert_pem(sni="www.bing.com"):
 
 
 def apply_config(node, new_cfg, runner=None, cfg_path=None, bin_path=None, ensure_hy2_cert=None, master_secret=None, allow_windows=False):
-    """校验并原子下发新配置至目标节点并重启 sing-box。"""
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
+    """通过共享归属门禁后，在目标锁内成对更新配置及存证。"""
+    is_win = prov_mod.is_windows(node)
     ok, reason = check_controllable(node, allow_windows=allow_windows or is_win)
     if not ok:
         return False, reason
     errs = templates.validate(new_cfg)
     if errs:
         return False, "配置模板校验未通过：" + "；".join(errs)
-
+    actual_cfg_path = cfg_path or prov_mod.config_path(node)
+    actual_bin_path = bin_path or (r"C:\proxy\sing-box.exe" if is_win else BIN_PATH)
+    execute = lambda n, script, **kw: run_target(n, script, runner=runner, **kw)
+    try:
+        secret = prov_mod.secret_for_node(node) if master_secret is None else master_secret
+    except (OSError, ValueError):
+        return False, "未提供有效的独立主控签名密钥"
+    ok, reason, snapshot = prov_mod.verify_target(node, execute, secret, cfg_path=actual_cfg_path)
+    if not ok:
+        return False, "服务归属核验失败：" + reason
+    new_cfg = json.loads(json.dumps(new_cfg))
     if is_win and isinstance(new_cfg.get("log"), dict):
         new_cfg["log"]["output"] = r"C:\proxy\sing-box.log"
-
     cfg_text = json.dumps(new_cfg, ensure_ascii=False, indent=2) + "\n"
-    prov_text = None
-    if master_secret:
-        node_id = (node or {}).get("name") or (node or {}).get("host") or "unknown_node"
-        manifest = prov_mod.sign_provenance(node_id, prov_mod.compute_config_sha256(cfg_text), master_secret)
-        prov_text = json.dumps(manifest, indent=2, ensure_ascii=False)
-
-    if is_win:
-        actual_cfg_path = cfg_path or r"C:\proxy\config.json"
-        actual_bin_path = bin_path or r"C:\proxy\sing-box.exe"
-        win_hy2 = dict(ensure_hy2_cert) if ensure_hy2_cert else None
-        if win_hy2 and not win_hy2.get("cert_b64"):
-            try:
-                crt_pem, key_pem = generate_self_signed_cert_pem(win_hy2.get("sni") or "www.bing.com")
-                win_hy2["cert_b64"] = base64.b64encode(crt_pem.encode("utf-8")).decode("ascii")
-                win_hy2["key_b64"] = base64.b64encode(key_pem.encode("utf-8")).decode("ascii")
-            except Exception:
-                pass
-        script = _build_windows_apply_script(cfg_text, cfg_path=actual_cfg_path, bin_path=actual_bin_path, ensure_hy2_cert=win_hy2, prov_json_text=prov_text)
-    else:
-        actual_cfg_path = cfg_path or CFG_PATH
-        actual_bin_path = bin_path or BIN_PATH
-        script = _build_apply_script(cfg_text, cfg_path=actual_cfg_path, bin_path=actual_bin_path, ensure_hy2_cert=ensure_hy2_cert, prov_json_text=prov_text)
-
+    manifest = prov_mod.sign_provenance(prov_mod.node_identity(node), prov_mod.compute_config_sha256(cfg_text), secret,
+                                        installed_at=snapshot["manifest"]["installed_at"])
+    cert = dict(ensure_hy2_cert) if ensure_hy2_cert else None
+    if cert and not (cert.get("cert_b64") and cert.get("key_b64")):
+        try:
+            crt_pem, key_pem = generate_self_signed_cert_pem(cert.get("sni") or "www.bing.com")
+            cert.update(cert_b64=base64.b64encode(crt_pem.encode()).decode("ascii"),
+                        key_b64=base64.b64encode(key_pem.encode()).decode("ascii"))
+        except Exception:
+            return False, "无法生成 RSA 2048 HY2 证书，未改写配置"
+    builder = _build_windows_apply_script if is_win else _build_apply_script
+    body = builder(cfg_text, cfg_path=actual_cfg_path, bin_path=actual_bin_path, ensure_hy2_cert=cert,
+                   prov_json_text=json.dumps(manifest, ensure_ascii=False),
+                   prov_path=snapshot["provenance_path"], expected=snapshot)
     try:
-        res = run_target(node, script, runner=runner, timeout=30)
-    except Exception as exc:
-        return False, "SSH 下发配置超时或连接异常：%s" % str(exc)[:120]
+        res = execute(node, prov_mod.guarded_script(node, snapshot, body), timeout=30)
+    except Exception:
+        return False, "SSH 下发配置超时或连接异常，请核实原任务状态"
     if res is None or res.returncode != 0:
-        detail = ((getattr(res, "stderr", "") or getattr(res, "stdout", "") or "").strip())[:160]
-        return False, "远端应用配置失败%s" % (("：" + detail) if detail else "")
+        return False, "远端应用配置失败，未确认配置变更成功"
     return True, ""
 
 
-def rollback_config(node, runner=None, cfg_path=None):
-    """将目标节点配置回滚至最近一次 `.ownline.bak` 并重启服务。"""
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    if is_win:
-        actual_cfg_path = cfg_path or r"C:\proxy\config.json"
-        bak_path = actual_cfg_path + ".ownline.bak"
-        script = f"""
-if (Test-Path '{bak_path}') {{
-    Copy-Item -Force '{bak_path}' '{actual_cfg_path}'
-    Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
-    Start-Sleep -Milliseconds 600
-    Start-ScheduledTask -TaskName 'sing-box'
-    exit 0
-}} else {{
-    exit 1
-}}
+def rollback_config(node, runner=None, cfg_path=None, master_secret=None, execute_remote_fn=None, bin_path=None):
+    """只有现网与备份均具有有效归属时，才成对恢复配置及存证。"""
+    ok, _ = check_controllable(node, allow_windows=True)
+    if not ok:
+        return False
+    actual_cfg_path = cfg_path or prov_mod.config_path(node)
+    execute = execute_remote_fn or (lambda n, script, **kw: run_target(n, script, runner=runner, **kw))
+    ok, _, current = prov_mod.verify_target(node, execute, master_secret, cfg_path=actual_cfg_path)
+    if not ok:
+        return False
+    ok, _, backup = prov_mod.verify_target(node, execute, master_secret, cfg_path=actual_cfg_path + ".ownline.bak",
+                                           provenance_path=current["provenance_path"] + ".ownline.bak")
+    if not ok:
+        return False
+    if prov_mod.is_windows(node):
+        cfg, prov = actual_cfg_path.replace("'", "''"), current["provenance_path"].replace("'", "''")
+        binary = (bin_path or r"C:\proxy\sing-box.exe").replace("'", "''")
+        body = f"""if ((Get-FileHash -Algorithm SHA256 -LiteralPath '{cfg}.ownline.bak').Hash.ToLowerInvariant() -ne '{backup['config_sha256']}' -or
+    (Get-FileHash -Algorithm SHA256 -LiteralPath '{prov}.ownline.bak').Hash.ToLowerInvariant() -ne '{backup['manifest_sha256']}') {{ throw 'BACKUP_CHANGED' }}
+& '{binary}' check -c '{cfg}.ownline.bak'
+if ($LASTEXITCODE -ne 0) {{ throw 'BACKUP_SYNTAX_INVALID' }}
+Copy-Item -Force '{cfg}.ownline.bak' '{cfg}'
+Copy-Item -Force '{prov}.ownline.bak' '{prov}'
+Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
+Start-ScheduledTask -TaskName 'sing-box'
 """
-        try:
-            res = run_target(node, script, runner=runner, timeout=25)
-            return bool(res is not None and res.returncode == 0)
-        except Exception:
-            return False
-
-    actual_cfg_path = cfg_path or CFG_PATH
-    q_cfg = shlex.quote(actual_cfg_path)
-    q_bak = shlex.quote(actual_cfg_path + ".ownline.bak")
-    inner = (
-        f"set -euo pipefail; "
-        f"if [ -f {q_bak} ]; then cp -pf {q_bak} {q_cfg}; "
-        f"if [ ! -f /var/lib/ownline/quota-paused ]; then systemctl restart sing-box && systemctl is-active --quiet sing-box; fi; "
-        f"else exit 1; fi"
-    )
-    b64_inner = base64.b64encode(inner.encode("utf-8")).decode("ascii")
-    script = (
-        "if command -v flock >/dev/null 2>&1; then "
-        f"flock -x -w 10 /run/ownline-service.lock bash -c 'echo {b64_inner} | base64 -d | bash'; "
-        f"else echo {b64_inner} | base64 -d | bash; fi"
-    )
+    else:
+        cfg, prov = shlex.quote(actual_cfg_path), shlex.quote(current["provenance_path"])
+        bak, prov_bak = shlex.quote(actual_cfg_path + ".ownline.bak"), shlex.quote(current["provenance_path"] + ".ownline.bak")
+        binary = shlex.quote(bin_path or BIN_PATH)
+        body = f"""test "$(sha256sum {bak} | cut -d' ' -f1)" = {backup['config_sha256']}
+test "$(sha256sum {prov_bak} | cut -d' ' -f1)" = {backup['manifest_sha256']}
+{binary} check -c {bak}
+cp -pf {bak} {cfg}
+cp -pf {prov_bak} {prov}
+if [ ! -f /var/lib/ownline/quota-paused ]; then
+  systemctl restart sing-box && systemctl is-active --quiet sing-box
+fi
+"""
     try:
-        res = run_target(node, script, runner=runner, timeout=25)
+        res = execute(node, prov_mod.guarded_script(node, current, body), timeout=25)
         return bool(res is not None and res.returncode == 0)
     except Exception:
         return False
@@ -487,7 +468,7 @@ def _landing_from_exit(exit_node):
 
 def bind_relay(relay_node, exit_node, fallback_exit_node=None,
                runner=None, verifier=None,
-               cfg_path=CFG_PATH, bin_path=BIN_PATH):
+               cfg_path=CFG_PATH, bin_path=BIN_PATH, master_secret=None):
     """真实登录中转机改写 relay 配置 + 重启 sing-box + 端到端出网验真（失败自动回滚）。"""
     verifier = verifier or verify_mod.run
     ok, reason = check_controllable(relay_node)
@@ -522,7 +503,7 @@ def bind_relay(relay_node, exit_node, fallback_exit_node=None,
         landing=landing,
         fallback_landing=fallback_landing,
     )
-    applied, apply_err = apply_config(relay_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path)
+    applied, apply_err = apply_config(relay_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
     if not applied:
         return {"ok": False, "error": apply_err}
 
@@ -538,7 +519,7 @@ def bind_relay(relay_node, exit_node, fallback_exit_node=None,
     vr = verifier(probe_node) or {"health": "proxy", "detail": "中转探测无响应"}
     exit_cc = (vr.get("exit_country") or "").upper()
     if vr.get("health") != "ok" or exit_cc == "CN":
-        rolled_back = rollback_config(relay_node, runner=runner, cfg_path=cfg_path)
+        rolled_back = rollback_config(relay_node, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
         detail = vr.get("detail") or vr.get("health") or "未知错误"
         if exit_cc == "CN":
             detail = "中转出口仍位于中国大陆 (%s)" % (vr.get("exit_ip") or "CN")
@@ -577,7 +558,7 @@ def bind_relay(relay_node, exit_node, fallback_exit_node=None,
 
 def switch_relay(relay_node, target_exit_node, fallback_exit_node=None,
                  runner=None, verifier=None,
-                 cfg_path=CFG_PATH, bin_path=BIN_PATH):
+                 cfg_path=CFG_PATH, bin_path=BIN_PATH, master_secret=None):
     """切换中转节点的首选海外落地（本质是保留原私钥重新下发 relay_config 并真实探测）。"""
     return bind_relay(
         relay_node=relay_node,
@@ -587,12 +568,13 @@ def switch_relay(relay_node, target_exit_node, fallback_exit_node=None,
         verifier=verifier,
         cfg_path=cfg_path,
         bin_path=bin_path,
+        master_secret=master_secret,
     )
 
 
 def unbind_relay(relay_node, runner=None,
                  tcp_check=None, tls_check=None,
-                 cfg_path=CFG_PATH, bin_path=BIN_PATH):
+                 cfg_path=CFG_PATH, bin_path=BIN_PATH, master_secret=None):
     """解除中转绑定：改写远端为无落地直连配置，校验服务与握手正常，失败回滚。"""
     tcp_check = tcp_check or verify_mod.tcp_ok
     tls_check = tls_check or verify_mod.tls_ok
@@ -616,13 +598,13 @@ def unbind_relay(relay_node, runner=None,
         hy2=None,
         isp=None,
     )
-    applied, apply_err = apply_config(relay_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path)
+    applied, apply_err = apply_config(relay_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
     if not applied:
         return {"ok": False, "error": apply_err}
 
     host = relay_node.get("host") or "127.0.0.1"
     if not tcp_check(host, live["port"]) or not tls_check(host, live["port"], live["sni"]):
-        rolled_back = rollback_config(relay_node, runner=runner, cfg_path=cfg_path)
+        rolled_back = rollback_config(relay_node, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
         rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功，请检查服务器"
         return {
             "ok": False,
@@ -639,7 +621,7 @@ def unbind_relay(relay_node, runner=None,
 
 def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
                open_firewall_fn=None, runner=None, verifier=None,
-               cfg_path=None, bin_path=None):
+               cfg_path=None, bin_path=None, master_secret=None):
     """在海外出口机上真实开启或移除 Hysteria2 QUIC 入站，并执行端到端验真。"""
     verifier = verifier or verify_mod.run
     is_win = (vless_node.get("os") == "windows") or (vless_node.get("ssh_user") == "Administrator")
@@ -672,13 +654,6 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             "sni": prev.get("sni") or "www.bing.com",
         }
         firewall_note = ""
-        if open_firewall_fn and not is_local_node(vless_node):
-            try:
-                fw_st, fw_msg = open_firewall_fn(vless_node["host"], hy2_port, proto="UDP")
-                firewall_note = fw_msg or fw_st or ""
-            except Exception as exc:
-                firewall_note = str(exc)[:80]
-
         if is_win:
             cert_path = r"C:\proxy\hy2.crt"
             key_path = r"C:\proxy\hy2.key"
@@ -709,6 +684,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             cfg_path=actual_cfg_path,
             bin_path=actual_bin_path,
             allow_windows=True,
+            master_secret=master_secret,
             ensure_hy2_cert={
                 "sni": hy2_params["sni"],
                 "port": hy2_port,
@@ -718,6 +694,13 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
         )
         if not applied:
             return {"ok": False, "error": apply_err, "firewall_note": firewall_note}
+
+        if open_firewall_fn and not is_local_node(vless_node):
+            try:
+                fw_st, fw_msg = open_firewall_fn(vless_node["host"], hy2_port, proto="UDP")
+                firewall_note = fw_msg or fw_st or ""
+            except Exception as exc:
+                firewall_note = str(exc)[:80]
 
         hy2_record = dict(existing_hy2_node or {})
         hy2_record.update({
@@ -734,6 +717,9 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             "ssh_port": int(vless_node.get("ssh_port") or 22),
             "enabled": True,
         })
+        for field in ("control_secret", "provenance_id"):
+            if vless_node.get(field):
+                hy2_record[field] = vless_node[field]
         if is_win:
             hy2_record["os"] = "windows"
         if vless_node.get("local") is True:
@@ -749,7 +735,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             time.sleep(0.8)
             vr = verifier(hy2_record) or {"health": "proxy", "detail": "HY2 探测无响应"}
         if vr.get("health") != "ok":
-            rolled_back = rollback_config(vless_node, runner=runner, cfg_path=actual_cfg_path)
+            rolled_back = rollback_config(vless_node, runner=runner, cfg_path=actual_cfg_path, bin_path=actual_bin_path, master_secret=master_secret)
             rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功，请检查服务器"
             fw_tip = ("（云防火墙提示：%s）" % firewall_note) if firewall_note else ""
             return {
@@ -790,6 +776,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
         cfg_path=actual_cfg_path,
         bin_path=actual_bin_path,
         allow_windows=True,
+        master_secret=master_secret,
     )
     if not applied:
         return {"ok": False, "error": apply_err}
@@ -800,7 +787,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
         time.sleep(0.8)
         vr = verifier(vless_node) or {"health": "proxy", "detail": "主节点探测无响应"}
     if vr.get("health") != "ok":
-        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=actual_cfg_path)
+        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=actual_cfg_path, bin_path=actual_bin_path, master_secret=master_secret)
         rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功"
         return {
             "ok": False,
@@ -813,7 +800,7 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
 
 
 def sync_isp(vless_node, isp_cfg, runner=None, verifier=None,
-             cfg_path=CFG_PATH, bin_path=BIN_PATH):
+             cfg_path=CFG_PATH, bin_path=BIN_PATH, master_secret=None):
     """在海外出口机（本机或远端 SSH）真实挂载或卸载静态住宅 ISP 链式代理并验真。"""
     verifier = verifier or verify_mod.run
     ok, reason = check_controllable(vless_node)
@@ -840,13 +827,13 @@ def sync_isp(vless_node, isp_cfg, runner=None, verifier=None,
         isp=isp_cfg,
         warp=live.get("warp"),
     )
-    applied, apply_err = apply_config(vless_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path)
+    applied, apply_err = apply_config(vless_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
     if not applied:
         return {"ok": False, "error": apply_err}
 
     vr = verifier(vless_node) or {"health": "proxy", "detail": "探测无响应"}
     if vr.get("health") != "ok":
-        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=cfg_path)
+        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
         rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功"
         return {
             "ok": False,
@@ -865,7 +852,7 @@ def sync_isp(vless_node, isp_cfg, runner=None, verifier=None,
 
 
 def toggle_warp(vless_node, enabled=True, warp_creds=None,
-                runner=None, verifier=None, cfg_path=CFG_PATH, bin_path=BIN_PATH):
+                runner=None, verifier=None, cfg_path=CFG_PATH, bin_path=BIN_PATH, master_secret=None):
     """在海外出口机上真实开启或关闭 Cloudflare WARP 清洁出网通道，并执行验真与故障回滚。"""
     verifier = verifier or verify_mod.run
     ok, reason = check_controllable(vless_node)
@@ -889,6 +876,10 @@ def toggle_warp(vless_node, enabled=True, warp_creds=None,
         if warp_creds and isinstance(warp_creds, dict) and warp_creds.get("private_key"):
             target_warp = warp_creds
         else:
+            execute = lambda n, script, **kw: run_target(n, script, runner=runner, **kw)
+            owned, reason, _ = prov_mod.verify_target(vless_node, execute, master_secret, cfg_path=cfg_path)
+            if not owned:
+                return {"ok": False, "error": "服务归属核验失败：" + reason}
             try:
                 from . import warp_client
             except ImportError:
@@ -909,13 +900,13 @@ def toggle_warp(vless_node, enabled=True, warp_creds=None,
         warp=target_warp,
     )
 
-    applied, apply_err = apply_config(vless_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path)
+    applied, apply_err = apply_config(vless_node, new_cfg, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
     if not applied:
         return {"ok": False, "error": apply_err}
 
     vr = verifier(vless_node) or {"health": "ok"}
     if vr.get("health") != "ok":
-        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=cfg_path)
+        rolled_back = rollback_config(vless_node, runner=runner, cfg_path=cfg_path, bin_path=bin_path, master_secret=master_secret)
         rb_note = "已自动回滚原配置" if rolled_back else "自动回滚未确认成功"
         return {
             "ok": False,

@@ -10,8 +10,9 @@ from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from nodekit import remote_config as RC  # noqa: E402
-from nodekit import templates  # noqa: E402
+from nodekit import provenance, templates  # noqa: E402
 
+SECRET = b"offline-owned-node-fixture-secret"
 ok = 0
 
 
@@ -45,6 +46,10 @@ def _make_sandbox(tmp_dir, initial_cfg):
     )
     sb_bin.chmod(0o755)
 
+    flock = bindir / "flock"
+    flock.write_text("#!/usr/bin/env python3\nimport fcntl, subprocess, sys\nwith open(sys.argv[4], 'a') as f:\n fcntl.flock(f, fcntl.LOCK_EX)\n sys.exit(subprocess.run(sys.argv[5:]).returncode)\n")
+    flock.chmod(0o755)
+
     systemctl = bindir / "systemctl"
     systemctl.write_text(
         "#!/bin/sh\n"
@@ -60,8 +65,16 @@ def _make_sandbox(tmp_dir, initial_cfg):
 
     env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ.get("PATH", ""))
     ssh_calls = []
+    seeded = False
+    prov_path = sb_dir / ".evergreen-provenance.json"
 
     def runner(cmd, **kwargs):
+        nonlocal seeded
+        if not seeded:
+            host = next((part.split("@", 1)[1] for part in cmd if "@" in part), "127.0.0.1")
+            manifest = provenance.sign_provenance(host, provenance.compute_config_sha256(cfg_path.read_bytes()), SECRET)
+            prov_path.write_text(json.dumps(manifest))
+            seeded = True
         ssh_calls.append(cmd)
         if cmd[0] == "ssh":
             remote_part = cmd[-1]
@@ -73,7 +86,9 @@ def _make_sandbox(tmp_dir, initial_cfg):
                 script = base64.b64decode(b64).decode("utf-8")
             else:
                 script = remote_part
+            script = script.replace(provenance.PROVENANCE_PATH_LINUX, str(prov_path))
             script = script.replace("/run/ownline-service.lock", str(root / "ownline-service.lock"))
+            script = script.replace("/var/lib/ownline", str(root / "ownline"))
             return subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=15)
         return subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=15)
 
@@ -131,6 +146,7 @@ def test_relay_bind_switch_unbind_and_rollback():
             exit_us,
             fallback_exit_node=exit_sg,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok", "exit_ip": "203.0.113.10", "exit_country": "US", "detail": "中转正常"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -150,6 +166,7 @@ def test_relay_bind_switch_unbind_and_rollback():
             exit_sg,
             fallback_exit_node=exit_us,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "landing", "detail": "入口和落地都通，但代理连不出去"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -164,6 +181,7 @@ def test_relay_bind_switch_unbind_and_rollback():
             exit_sg,
             fallback_exit_node=exit_us,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok", "exit_ip": "203.0.113.20", "exit_country": "SG", "detail": "切流成功"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -176,6 +194,7 @@ def test_relay_bind_switch_unbind_and_rollback():
         res_ub = RC.unbind_relay(
             relay_node,
             runner=runner,
+            master_secret=SECRET,
             tcp_check=lambda h, p: True,
             tls_check=lambda h, p, s: True,
             cfg_path=cfg_path,
@@ -216,6 +235,7 @@ def test_hy2_toggle_cert_verify_and_rollback():
             enabled=True,
             open_firewall_fn=lambda ip, port, proto="UDP": (fw_calls.append((ip, port, proto)) or ("skip", "需手动放行")),
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "proxy", "detail": "UDP 端口未放行"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -230,6 +250,7 @@ def test_hy2_toggle_cert_verify_and_rollback():
             vless_node,
             enabled=True,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok", "exit_ip": "203.0.113.50", "exit_country": "US", "detail": "HY2 通畅"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -247,6 +268,7 @@ def test_hy2_toggle_cert_verify_and_rollback():
             vless_node,
             isp_cfg,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok", "exit_ip": "198.51.100.88", "exit_country": "US", "detail": "住宅出口正常"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -262,6 +284,7 @@ def test_hy2_toggle_cert_verify_and_rollback():
             existing_hy2_node=hy2_rec,
             enabled=False,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok", "exit_ip": "198.51.100.88", "exit_country": "US"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -288,17 +311,24 @@ def test_windows_node_support():
         )
         Path(cfg_path).write_text(json.dumps(init_cfg), encoding="utf-8")
 
-        def fake_runner(cmd, capture_output=True, text=True, timeout=25):
+        def fake_runner(cmd, capture_output=True, text=True, timeout=25, input=None):
             class R:
                 returncode = 0
                 stdout = json.dumps(init_cfg)
                 stderr = ""
-            return R()
+            result = R()
+            script = input.decode() if isinstance(input, bytes) else str(input or "")
+            if "ConvertTo-Json" in script:
+                manifest = provenance.sign_provenance(win_node["host"], provenance.compute_config_sha256(json.dumps(init_cfg)), SECRET)
+                result.stdout = json.dumps({"config": base64.b64encode(json.dumps(init_cfg).encode()).decode(),
+                                           "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()})
+            return result
 
         res = RC.toggle_hy2(
             win_node,
             enabled=True,
             runner=fake_runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok", "exit_ip": "43.163.4.104", "exit_country": "SG"},
             cfg_path=cfg_path,
         )
@@ -346,6 +376,7 @@ def test_warp_toggle_and_rollback():
             enabled=True,
             warp_creds=mock_warp,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -361,6 +392,7 @@ def test_warp_toggle_and_rollback():
             node,
             enabled=False,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "proxy", "detail": "验真失败"},
             cfg_path=cfg_path,
             bin_path=sb_bin,
@@ -373,6 +405,7 @@ def test_warp_toggle_and_rollback():
             node,
             enabled=False,
             runner=runner,
+            master_secret=SECRET,
             verifier=lambda n: {"health": "ok"},
             cfg_path=cfg_path,
             bin_path=sb_bin,

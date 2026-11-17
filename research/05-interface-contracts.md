@@ -314,7 +314,35 @@ rules:
   2. **中转拉取即成型**：支持在生成 Token 时指定目标海外落地节点元数据，并在动态自举脚本中直接写入 Reality 入站与落地 Outbound 及路由规则，无需主控发起反向 SSH 推送；
   3. **控制边界防护**：`remote_config.check_controllable` 强制校验，未保存 SSH 凭据的反向自举节点禁止发起在线配置改写。
 
+### 4.13 可信安装、归属与发布契约（ADR-018） `[STATUS: IMPLEMENTED]`
+
+本节更新第二节的安装任务与交付条件，公开路径均保留 `/api/*` 和裸路径。
+
+**检查与凭据**：`POST /node/check` 请求保持 `host/username/ssh_port/password/private_key/passphrase/fingerprint`。只有 `result.ready_for_install == true` 且完整身份验证通过时，响应附加 `check_ticket`（64 位十六进制）与 `expires_in: 600`。票据在服务端绑定解析 IP、SSH host key、machine_id、用户与内存凭据；一次性使用，过期和进程重启后重新检查。响应不返回密码、私钥或私钥口令。
+
+**启动安装**：`POST /addnode` 推荐请求：
+
+```json
+{"check_ticket":"<64hex>","name":"东京节点","role":"auto","port":443,"self_bootstrap":true,"dry_run":false}
+```
+
+旧 SSH 参数仍由同一只读检查适配；必须确认指纹，检查失败时不安装。票据入口不接受客户端替换已检查目标。独立后台保留 TCP 80/8443，代理不能占用；同名节点或同目标并行安装被拒绝。`landing.link` 在主控统一解析为结构化落地参数。演练不放行云端端口、不写目标配置、不交付资产。
+
+**状态与交付**：`GET /node/job?id=<12hex>` 继续返回 `state/step/stepname/health`，错误时增加安全的 `error/error_code`。`done` 的非演练任务要求所有代理记录真实出网通过：
+
+- `self_bootstrap=false`：`delivery={"kind":"managed_node","node_name":"..."}`，不声称存在目标后台。
+- `self_bootstrap=true`：部署完整独立后台，目标命名为 `<IPv4用横线连接>.sslip.io:8443`；经固定目标地址的可信 TLS、匿名登录门禁、管理员认证和独立订阅验收后，才返回 `delivery.kind="standalone"` 及第二节其余交付字段。目标订阅令牌独立生成，不回退主控令牌。证书和启动传播采用有限重试。
+- 失败或未知结果为 `error`，不返回 `delivery`；重启后的未知任务不自动重装。
+
+**归属和节点组**：节点可持有稳定 `provenance_id`、协议组 `group_id` 及受保护的目标 `control_secret`；这些字段不能作为“已验证”的布尔替代。现网 HMAC、目标标识和配置摘要全部验证后才允许控制；锁内再次确认配置和存证未变。旧未签名服务拒绝控制。主控签名密钥独立于 `sub_token`，令牌轮换不破坏归属。配置回滚必须恢复配套存证。改名不改变协议组，删除、暂停与 HY2 切换按组处理。
+
+**发布**：`GET /system/version` 增加可空 `release_id`（当前进程启动时冻结的归档 SHA-256）。首装与升级共同清单包含所有升级和恢复资源。应用包只接受官方 HTTPS 来源；固定二进制必须与内置摘要一致。完整暂存检查、原子版本交换、外置恢复记录与版本健康探测共同决定升级结果；异常不得留下不完整活动版本。恢复入口独立于被升级目录。生产默认重启前执行归属校验，未知旧部署不得自动补签。
+
+**订阅规则**：所有 Clash 动态标量安全编码，数字外观的协议字符串保持字符串；服务端 WARP 与客户端 AI 组共用域名数据，包含 `chatgpt.com` 主域及子域。本契约只定义路由和验真行为，不保证第三方网站接受任何特定出口 IP。
 
 
 
 
+
+
+生产恢复路径为 `/opt/ownline-upgrade/`、`/opt/.web-upgrade-journal.json` 和 `ownline-upgrade-recovery.service/timer`；timer 间隔 20 秒，不接触 SSH 凭据。Linux 目录交换使用 `renameat2(RENAME_EXCHANGE)`，不支持时在切换前失败。macOS 离线回归使用 `RENAME_SWAP`。旧节点迁移只有显式 `adopt_legacy.py --confirm-exclusive` 操作可建立缺失存证；必须匹配事先核对的配置摘要，且不执行服务重启。

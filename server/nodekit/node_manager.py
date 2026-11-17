@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import threading
 import uuid
+from copy import deepcopy
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Union
 
@@ -95,21 +96,21 @@ class InMemoryNodeStore:
 
     def __init__(self, initial_nodes: Optional[List[Dict[str, Any]]] = None):
         self._lock = threading.Lock()
-        self._nodes: List[Dict[str, Any]] = [dict(n) for n in (initial_nodes or [])]
+        self._nodes: List[Dict[str, Any]] = deepcopy(initial_nodes or [])
 
     def load(self) -> List[Dict[str, Any]]:
         with self._lock:
-            return [dict(n) for n in self._nodes]
+            return deepcopy(self._nodes)
 
     def dump(self, nodes: List[Dict[str, Any]]) -> None:
         with self._lock:
-            self._nodes = [dict(n) for n in nodes]
+            self._nodes = deepcopy(nodes)
 
     def update(self, mutator: Callable[[List[Dict[str, Any]]], List[Dict[str, Any]]]) -> List[Dict[str, Any]]:
         with self._lock:
-            updated = mutator([dict(n) for n in self._nodes])
-            self._nodes = [dict(n) for n in updated]
-            return [dict(n) for n in self._nodes]
+            updated = mutator(deepcopy(self._nodes))
+            self._nodes = deepcopy(updated)
+            return deepcopy(self._nodes)
 
 
 # =====================================================================
@@ -171,6 +172,56 @@ class NodeManager:
             return None
         return next((n for n in self.store.load() if n.get("name") == name), None)
 
+    @staticmethod
+    def _group(nodes, target):
+        """Read stable groups; recognize a same-host conventional pair in legacy data."""
+        group_id = target.get("group_id")
+        if group_id:
+            return [n for n in nodes if n.get("group_id") == group_id]
+        name = target.get("name") or ""
+        is_hy2 = target.get("type") == "hysteria2"
+        companion = name[:-4] if is_hy2 and name.endswith("-HY2") else name + "-HY2"
+        return [n for n in nodes if n is target or (
+            n.get("name") == companion
+            and n.get("host") == target.get("host")
+            and bool(n.get("type") == "hysteria2") != is_hy2
+        )]
+
+    @classmethod
+    def _ensure_group(cls, nodes, target):
+        group = cls._group(nodes, target)
+        group_id = target.get("group_id") or next(
+            (n["group_id"] for n in group if n.get("group_id")), None
+        ) or uuid.uuid4().hex
+        for n in group:
+            n["group_id"] = group_id
+        return group
+
+    @classmethod
+    def _rename_plan(cls, nodes, target, newname):
+        if not newname or newname == target.get("name"):
+            return {}
+        names = {target["name"]: newname}
+        if target.get("type") != "hysteria2":
+            companion = target["name"] + "-HY2"
+            if any(n.get("name") == companion for n in cls._group(nodes, target)):
+                names[companion] = newname + "-HY2"
+        for n in nodes:
+            if n.get("name") not in names and n.get("name") in names.values():
+                raise NodeConflictError("节点名称已存在")
+        return names
+
+    @staticmethod
+    def _rename_references(nodes, names):
+        for n in nodes:
+            refs = [n.get("landing"), n.get("fallback_landing")]
+            policy = n.get("landing_policy")
+            if isinstance(policy, dict):
+                refs.extend(policy.get(key) for key in ("primary", "fallback"))
+            for ref in refs:
+                if isinstance(ref, dict) and ref.get("name") in names:
+                    ref["name"] = names[ref["name"]]
+
     # -----------------------------------------------------------------
     # 变更接口：直接返回结构化结果，自动落盘与渲染，抛出领域异常
     # -----------------------------------------------------------------
@@ -185,7 +236,7 @@ class NodeManager:
             raise NodeValidationError("缺少节点主机地址")
         if not name:
             name = f"节点-{host}"
-            node["name"] = name
+        node["name"] = name
         try:
             port = int(node.get("port") or 443)
             if port < 1 or port > 65535:
@@ -213,8 +264,13 @@ class NodeManager:
                 node["enabled"] = True
 
         def _mutator(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            existing = next((n for n in ns if n.get("name") == name), None)
+            if existing and existing.get("group_id"):
+                node["group_id"] = existing["group_id"]
             filtered = [x for x in ns if x.get("name") != name]
-            return filtered + [node]
+            updated = filtered + [node]
+            self._ensure_group(updated, node)
+            return updated
 
         self.store.update(_mutator)
         self._trigger_on_change()
@@ -227,33 +283,24 @@ class NodeManager:
         if not name:
             raise NodeNotFoundError("缺少节点名称")
 
-        nodes = self.store.load()
-        target = next((n for n in nodes if n.get("name") == name), None)
-        if not target:
-            raise NodeNotFoundError("没找到这个节点")
+        def _remove(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            target = next((n for n in ns if n.get("name") == name), None)
+            if target is None:
+                raise NodeNotFoundError("没找到这个节点")
+            group = self._ensure_group(ns, target)
+            if cleanup_confirmed is True:
+                if not all(n.get("cleanup_pending") for n in group):
+                    raise CleanupPendingError("请先移出订阅并完成服务器人工清理")
+                return [n for n in ns if n not in group]
+            for n in group:
+                n["enabled"] = False
+                n["cleanup_pending"] = True
+                n.pop("quota_control_managed", None)
+            return ns
 
-        to_remove = {name}
-        if name.endswith("-HY2"):
-            base_name = name[:-4]
-            if any(n.get("name") == base_name for n in nodes):
-                to_remove.add(base_name)
-        else:
-            hy2_name = name + "-HY2"
-            if any(n.get("name") == hy2_name for n in nodes):
-                to_remove.add(hy2_name)
-
+        self.store.update(_remove)
         if cleanup_confirmed is True:
-            if not target.get("cleanup_pending") or not all(
-                n.get("cleanup_pending") for n in nodes if n.get("name") in to_remove
-            ):
-                raise CleanupPendingError("请先移出订阅并完成服务器人工清理")
-
             self._log("WARN", "NODE", f"用户确认已人工清理，移除节点记录: {name}")
-
-            def _apply_remove(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-                return [n for n in ns if n.get("name") not in to_remove]
-
-            self.store.update(_apply_remove)
             self._trigger_on_change()
             return {
                 "ok": True,
@@ -262,16 +309,6 @@ class NodeManager:
                 "message": "已按你的确认移除记录；服务器清理结果未由系统验证",
             }
 
-        # 首次调用：标记 cleanup_pending 并移出订阅
-        def _mark_cleanup(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-            for n in ns:
-                if n.get("name") in to_remove:
-                    n["enabled"] = False
-                    n["cleanup_pending"] = True
-                    n.pop("quota_control_managed", None)
-            return ns
-
-        self.store.update(_mark_cleanup)
         self._trigger_on_change()
         self._log("WARN", "NODE", f"节点已移出订阅，待用户人工清理: {name}")
         return {
@@ -293,6 +330,7 @@ class NodeManager:
             raise NodeConflictError("节点待人工清理，不能重新启用")
 
         newname = (body.get("newname") or "").strip()
+        self._rename_plan(nodes, target, newname)
         newkey = bool(body.get("newkey"))
         port_raw = body.get("port")
         new_port = None
@@ -358,24 +396,20 @@ class NodeManager:
                 )
 
         def _apply_edit(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+            current = next((n for n in ns if n.get("name") == name), None)
+            if current is None:
+                raise NodeNotFoundError("没找到这个节点")
+            group = self._group(ns, current)
+            if body.get("enabled") is True and any(n.get("cleanup_pending") for n in group):
+                raise NodeConflictError("节点待人工清理，不能重新启用")
+            rename = self._rename_plan(ns, current, newname)
+            group = self._ensure_group(ns, current)
             for n in ns:
-                if n.get("name") == name:
+                if n is current:
                     if new_uuid:
                         n["uuid"] = new_uuid
                     if new_port is not None:
                         n["port"] = new_port
-                    if newname and newname != name:
-                        n["name"] = newname
-                    if "enabled" in body:
-                        n["enabled"] = bool(body["enabled"])
-                    if "expire_at" in body:
-                        n["expire_at"] = body["expire_at"]
-                    if "lifecycle" in body and isinstance(body["lifecycle"], dict):
-                        n["lifecycle"] = dict(body["lifecycle"])
-                    if "state" in body:
-                        lc = dict(n.get("lifecycle") or {})
-                        lc["state"] = body["state"]
-                        n["lifecycle"] = lc
                     if "landing_policy" in body and isinstance(body["landing_policy"], dict):
                         n["landing_policy"] = dict(body["landing_policy"])
                     if isp_changed:
@@ -391,6 +425,23 @@ class NodeManager:
                                 n["exit_country"] = isp_sync_res["exit_country"]
                             if isp_sync_res.get("health_detail"):
                                 n["health_detail"] = isp_sync_res["health_detail"]
+                if n in group:
+                    if "enabled" in body:
+                        n["enabled"] = bool(body["enabled"])
+                        if n.get("type") == "hysteria2" and body["enabled"]:
+                            primary = next((x for x in group if x.get("type") != "hysteria2"), {})
+                            n["enabled"] = primary.get("hy2_enabled", True) is not False
+                    if "expire_at" in body:
+                        n["expire_at"] = body["expire_at"]
+                    if "lifecycle" in body and isinstance(body["lifecycle"], dict):
+                        n["lifecycle"] = dict(body["lifecycle"])
+                    if "state" in body:
+                        lc = dict(n.get("lifecycle") or {})
+                        lc["state"] = body["state"]
+                        n["lifecycle"] = lc
+                if n.get("name") in rename:
+                    n["name"] = rename[n["name"]]
+            self._rename_references(ns, rename)
             return ns
 
         self.store.update(_apply_edit)
@@ -664,6 +715,8 @@ class NodeManager:
 
             nodes = self.store.load()
             base_name = name[:-4] if name.endswith("-HY2") else name
+            named = next((n for n in nodes if n.get("name") == name), None)
+            named_group = self._group(nodes, named) if named else []
             vless_node = next(
                 (
                     n
@@ -671,7 +724,8 @@ class NodeManager:
                     if n.get("type") != "hysteria2"
                     and (
                         (host and (n.get("host") == host or n.get("ip") == host))
-                        or (base_name and n.get("name") == base_name)
+                        or (named_group and n in named_group)
+                        or (not named and base_name and n.get("name") == base_name)
                     )
                 ),
                 None,
@@ -680,15 +734,21 @@ class NodeManager:
                 raise NodeNotFoundError("未找到对应的海外出口主节点")
 
             target_host = vless_node.get("host")
+            group = self._group(nodes, vless_node)
+            if enabled and any(n.get("cleanup_pending") for n in group):
+                raise NodeConflictError("节点待人工清理，不能重新启用")
             existing_hy2 = next(
                 (
                     n
                     for n in nodes
                     if n.get("type") == "hysteria2"
-                    and (n.get("host") == target_host or n.get("name") == vless_node.get("name", "") + "-HY2")
+                    and n in group
                 ),
                 None,
             )
+            hy2_name = (existing_hy2 or {}).get("name") or vless_node["name"] + "-HY2"
+            if enabled and any(n.get("name") == hy2_name and n not in group for n in nodes):
+                raise NodeConflictError("HY2 伴生节点名称已存在")
 
             if not self.remote_cfg:
                 raise NodeValidationError("缺少 remote_config 模块支持")
@@ -714,16 +774,23 @@ class NodeManager:
             hy2_record = sync_res.get("hy2_node")
 
             def _apply_hy2(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                current = next((n for n in ns if n.get("name") == vless_node.get("name")), None)
+                if current is None:
+                    raise NodeNotFoundError("未找到对应的海外出口主节点")
+                current_group = self._ensure_group(ns, current)
+                if hy2_record:
+                    hy2_record["group_id"] = current["group_id"]
+                    if any(n.get("name") == hy2_record.get("name") and n not in current_group for n in ns):
+                        raise NodeConflictError("HY2 伴生节点名称已存在")
                 out_list = []
                 placed_hy2 = False
                 for n in ns:
-                    is_same_host = n.get("host") == target_host
-                    is_hy2_item = n.get("type") == "hysteria2" and (
-                        is_same_host or n.get("name") == vless_node.get("name", "") + "-HY2"
-                    )
+                    is_hy2_item = n.get("type") == "hysteria2" and n in current_group
                     if is_hy2_item:
                         if enabled and hy2_record:
-                            out_list.append(hy2_record)
+                            record = dict(hy2_record)
+                            record["enabled"] = current.get("enabled", True) is not False
+                            out_list.append(record)
                             placed_hy2 = True
                         else:
                             updated_hy2 = dict(n)
@@ -737,7 +804,9 @@ class NodeManager:
                     else:
                         out_list.append(n)
                 if enabled and hy2_record and not placed_hy2:
-                    out_list.append(hy2_record)
+                    record = dict(hy2_record)
+                    record["enabled"] = current.get("enabled", True) is not False
+                    out_list.append(record)
                 return out_list
 
             self.store.update(_apply_hy2)

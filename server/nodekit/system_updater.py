@@ -18,6 +18,21 @@ import urllib.request
 from pathlib import Path
 
 CURRENT_VERSION = "v0.6.1"
+
+
+def _release_stamp(base_dir=None):
+    try:
+        path = Path(base_dir) if base_dir else Path(__file__).resolve().parent.parent
+        value = json.loads((path / ".release.json").read_text(encoding="utf-8"))
+        if not isinstance(value, dict) or not re.fullmatch(r"[0-9a-f]{64}", str(value.get("release_id", ""))):
+            return {}
+        return value
+    except (OSError, ValueError):
+        return {}
+
+
+# Capture at process startup: an old process must never claim a newly switched release.
+_RUNNING_RELEASE = _release_stamp()
 REPO_NAME = "AdgaiWalker/VPN-OwnLine"
 GITHUB_API_URL = f"https://api.github.com/repos/{REPO_NAME}/releases/latest"
 CACHE_TTL = 3600  # 1小时缓存，防止 GitHub API 限流
@@ -107,6 +122,7 @@ def get_commit_hash(base_dir=None):
 def get_version_info(base_dir=None):
     """获取当前系统版本详情（零网络调用）。"""
     import platform
+    release = _release_stamp(base_dir) if base_dir else _RUNNING_RELEASE
     commit = get_commit_hash(base_dir=base_dir) or "release"
     sb_ver = None
     try:
@@ -121,6 +137,7 @@ def get_version_info(base_dir=None):
         "ok": True,
         "version": CURRENT_VERSION,
         "commit": commit,
+        "release_id": release.get("release_id", ""),
         "app": "Evergreen · OwnLine",
         "os": platform.platform(),
         "arch": platform.machine(),
@@ -254,11 +271,14 @@ def trigger_upgrade(target_version=None, script_path=None, runner=None):
     script = script_path
     if not script:
         candidates = [
-            "/opt/web/deploy/upgrade.sh",
+            str(Path(__file__).resolve().parent.parent / "deploy/upgrade.sh"),
             os.path.abspath(os.path.join(os.path.dirname(__file__), "../../deploy/upgrade.sh")),
         ]
         for c in candidates:
-            if os.path.isfile(c) and os.access(c, os.X_OK):
+            resources = Path(c).parent
+            if (os.path.isfile(c) and os.access(c, os.X_OK)
+                    and (resources / "release.py").is_file()
+                    and (resources / "runtime_manifest.py").is_file()):
                 script = c
                 break
 

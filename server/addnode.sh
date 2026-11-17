@@ -2,8 +2,15 @@
 # 用法：addnode.sh <job.json>
 set -uo pipefail
 
-J="${1:?need job config}"
-get() { python3 -c 'import json,sys;d=json.load(open(sys.argv[1]));v=d.get(sys.argv[2]);print("" if v is None else v)' "$J" "$1"; }
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ "${1:-}" = "--stdin" ]; then
+  JOB_JSON=$(cat)
+else
+  JOB_JSON=$(cat "${1:?need job config}")
+fi
+get() { printf '%s' "$JOB_JSON" | python3 -c 'import json,sys; v=json.load(sys.stdin);
+for part in sys.argv[1].split("."): v=v.get(part) if isinstance(v,dict) else None
+print("" if v is None else v)' "$1"; }
 
 IP=$(get ip); UNAME=$(get user); AUTH=$(get auth_type); NAME=$(get name)
 PORT=$(get port); ROLE=$(get role); SECRET=$(get secret_file); DRY=$(get dry_run)
@@ -11,7 +18,13 @@ SSH_PORT=$(get ssh_port); PIN_HOSTS=$(get pin_hosts_file); PASSPHRASE_FILE=$(get
 DRY=$(echo "$DRY" | tr 'A-Z' 'a-z')
 
 [ -n "$IP" ] || { echo "缺少服务器地址"; exit 2; }
-[ -n "$SECRET" ] && [ -f "$SECRET" ] || { echo "缺少凭据文件"; exit 2; }
+PASSWORD=$(get password); PRIVATE_KEY=$(get private_key); PASSPHRASE=$(get passphrase)
+HOST_KEY_TYPE=$(get host_key_type); HOST_KEY=$(get host_key)
+if [ -n "$SECRET" ] && [ -f "$SECRET" ]; then
+  if [ "$AUTH" = "key" ]; then PRIVATE_KEY=$(cat "$SECRET"); else PASSWORD=$(cat "$SECRET"); fi
+fi
+[ -n "$PASSWORD$PRIVATE_KEY" ] || { echo "缺少内存认证信息"; exit 2; }
+SELF_BOOTSTRAP=$(get self_bootstrap)
 PORT="${PORT:-443}"
 ROLE="${ROLE:-auto}"
 UNAME="${UNAME:-root}"
@@ -29,25 +42,10 @@ CACHE_DIR="/opt/sing-box/pkg"
 KH="/opt/sing-box/known_hosts"
 touch "$KH" 2>/dev/null || true
 chmod 600 "$KH" 2>/dev/null || true
-if [ -n "$PIN_HOSTS" ]; then
-  [ -f "$PIN_HOSTS" ] || { echo "缺少已确认的服务器指纹"; exit 2; }
-  OPTS=(-p "$SSH_PORT" -o UserKnownHostsFile="$PIN_HOSTS" -o StrictHostKeyChecking=yes -o GlobalKnownHostsFile=/dev/null -o ConnectTimeout=20 -o ServerAliveInterval=10)
-else
-  # Legacy callers keep their existing known-hosts policy; new installs must pin.
-  OPTS=(-p "$SSH_PORT" -o UserKnownHostsFile="$KH" -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20 -o ServerAliveInterval=10)
-fi
-
-if [ "$AUTH" = "key" ]; then
-  if [ -n "$PASSPHRASE_FILE" ]; then
-    [ -f "$PASSPHRASE_FILE" ] || { echo "缺少私钥口令"; exit 2; }
-    SSH=(sshpass -P 'Enter passphrase' -f "$PASSPHRASE_FILE" ssh -i "$SECRET" -o IdentitiesOnly=yes)
-  else
-    SSH=(ssh -i "$SECRET" -o IdentitiesOnly=yes -o BatchMode=yes)
-  fi
-else
-  SSH=(sshpass -f "$SECRET" ssh)
-fi
-rsh() { "${SSH[@]}" "${OPTS[@]}" "$UNAME@$IP" "$@"; }
+[ -n "$HOST_KEY_TYPE" ] && [ -n "$HOST_KEY" ] || { echo "缺少已确认的服务器指纹"; exit 2; }
+rsh() {
+  python3 "$SCRIPT_DIR/nodekit/ssh_memory.py" 6 "$@" 6< <(printf '%s' "$JOB_JSON")
+}
 
 if [ -n "$EXPECT_MACHINE" ] && ! rsh "test \"\$(cat /etc/machine-id 2>/dev/null)\" = '$EXPECT_MACHINE'"; then
   echo "服务器身份与检查时不同，已停止安装"; exit 3
@@ -56,7 +54,7 @@ fi
 echo "STEP 1 正在连接服务器"
 CONN=""
 for try in 1 2; do
-  if CONN=$(rsh -o NumberOfPasswordPrompts=1 "uname -m" 2>&1); then break; fi
+  if CONN=$(rsh "uname -m" 2>&1); then break; fi
   if [ "$try" = "1" ]; then echo "  第一次没连上，3 秒后重试"; sleep 3; fi
 done
 if ! printf '%s' "$CONN" | grep -qE "^(x86_64|aarch64|arm64)"; then
@@ -81,12 +79,17 @@ fi
 eval "$PF_OUT"
 rm -f "$PF"
 echo "  预检通过：架构 $ARCH"
+if [ "$SELF_BOOTSTRAP" = "True" ] || [ "$SELF_BOOTSTRAP" = "true" ]; then
+  if ! rsh "for p in /opt/web /opt/web-data /etc/caddy/Caddyfile /etc/systemd/system/admin.service; do [ ! -e \"\$p\" ] || exit 3; done"; then
+    echo "目标已有管理配置，未覆盖"; exit 3
+  fi
+fi
 # 不将已有 sing-box 当作可接管服务，避免覆盖其他业务。
 if ! rsh "command -v systemctl >/dev/null 2>&1 && systemctl list-units --all --no-legend --no-pager >/dev/null 2>&1 || { echo '无法检查系统服务'; exit 3; }; for p in /opt/sing-box /etc/systemd/system/sing-box.service /lib/systemd/system/sing-box.service /usr/lib/systemd/system/sing-box.service; do if [ -e \"\$p\" ]; then echo '检测到已有 sing-box，未安装；请人工检查'; exit 3; fi; done; if systemctl is-active --quiet sing-box 2>/dev/null; then echo '检测到运行中的 sing-box，未安装'; exit 3; fi"; then
   echo "目标服务器的既有服务检查未通过，已停止安装"; exit 3
 fi
 if [ "$DRY" = "true" ]; then echo "演练模式：预检通过，未安装"; exit 0; fi
-if [ -n "$PIN_HOSTS" ]; then
+if [ -n "$HOST_KEY" ]; then
   if ! rsh "mkdir /run/ownline-node-install.lock"; then
     echo "目标上已有安装任务或待确认状态，请检查后再试"; exit 3
   fi
@@ -113,13 +116,8 @@ if printf '%s' "$EGRESS" | grep -qE '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
 else
   echo "  直连不了国外，会自动借道另一台节点"
 fi
-HAS_LANDING=$(python3 - "$J" <<'PYLANDING'
-import json, sys
-job = json.load(open(sys.argv[1], encoding="utf-8"))
-landing = job.get("landing") or {}
-print("1" if (landing.get("host") and landing.get("uuid")) or landing.get("link") else "0")
-PYLANDING
-)
+HAS_LANDING=$(printf '%s' "$JOB_JSON" | python3 -c 'import json,sys; j=json.load(sys.stdin); l=j.get("landing") or {}; print("1" if (l.get("host") and l.get("uuid")) or l.get("link") else "0")')
+
 if [ "$DIRECT" != "1" ] && [ "$HAS_LANDING" != "1" ]; then
   echo "这台连不了国外，但还没有可用的海外节点可以借道。请先装一台海外机器，或手动指定落地节点。"
   exit 4
@@ -175,7 +173,7 @@ if [ "$DL_OK" != "1" ]; then
 fi
 if [ "$DL_OK" != "1" ]; then echo "全部下载源都失败"; exit 3; fi
 
-CONFIG=$(TARGET_DIRECT="$DIRECT" python3 - "$J" "$PORT" <<'PYCFG'
+CONFIG=$(TARGET_DIRECT="$DIRECT" python3 - /dev/fd/6 "$PORT" 6< <(printf '%s' "$JOB_JSON") <<'PYCFG'
 import json, os, sys
 sys.path.insert(0, "/opt/web")
 from nodekit import templates, links
@@ -208,17 +206,9 @@ PYCFG
 )
 if [ -z "$CONFIG" ]; then echo "生成配置失败"; exit 4; fi
 
-CFG_TMP="/tmp/cfg.$$.json"
-printf '%s' "$CONFIG" > "$CFG_TMP"
-if [ -x /opt/sing-box/sing-box ]; then
-  if ! /opt/sing-box/sing-box check -c "$CFG_TMP" > /tmp/cfgchk.$$ 2>&1; then
-    echo "配置校验失败：$(tail -1 /tmp/cfgchk.$$)"
-    rm -f "$CFG_TMP" "/tmp/cfgchk.$$"
-    exit 4
-  fi
-  echo "  配置校验通过"
-fi
-rm -f "$CFG_TMP" "/tmp/cfgchk.$$"
+MANIFEST=$(printf '%s\n%s' "$CONFIG" "$JOB_JSON" | python3 -c 'import json,sys; sys.path.insert(0,"/opt/web"); from nodekit import provenance as p; cfg=sys.stdin.readline(); job=json.load(sys.stdin); secret=bytes.fromhex(job["control_secret"]); m=p.sign_provenance(job["ip"],p.compute_config_sha256(cfg),secret); assert p.verify_provenance(m,secret)[0]; print(json.dumps(m))')
+[ -n "$MANIFEST" ] || { echo "服务归属存证生成失败"; exit 4; }
+CERT_B64=$(get node.hy2_cert_b64); KEY_B64=$(get node.hy2_key_b64)
 
 HAS_HY2=0
 if [ "$ROLE" = "exit" ] || ([ "$ROLE" = "auto" ] && [ "$DIRECT" = "1" ]); then
@@ -239,10 +229,16 @@ mkdir /opt/sing-box
 tar xzf "__ARCHIVE__" -C /opt/sing-box --strip-components=1
 rm -f "__ARCHIVE__"
 
-if [ "__HAS_HY2__" = "1" ] && [ ! -f /opt/sing-box/hy2.key ]; then
-  openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null || true
-  chmod 600 /opt/sing-box/hy2.key 2>/dev/null || true
+umask 077
+if [ "__HAS_HY2__" = "1" ]; then
+  printf '%s' '__CERT_B64__' | base64 -d > /opt/sing-box/hy2.crt
+  printf '%s' '__KEY_B64__' | base64 -d > /opt/sing-box/hy2.key
+  test -s /opt/sing-box/hy2.key && test -s /opt/sing-box/hy2.crt
 fi
+mkdir -p /etc/sing-box
+cat > /etc/sing-box/.evergreen-provenance.json <<'PROVENANCE'
+__MANIFEST__
+PROVENANCE
 
 cat > /opt/sing-box/config.json <<'JSONCFG'
 __CONFIG__
@@ -265,7 +261,8 @@ WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
 systemctl enable sing-box >/dev/null 2>&1 || true
-systemctl restart sing-box
+/opt/sing-box/sing-box check -c /opt/sing-box/config.json
+systemctl start sing-box
 sleep 2
 systemctl is-active sing-box
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
@@ -304,12 +301,14 @@ REMOTE="${REMOTE//__UNAME__/$UNAME}"
 REMOTE="${REMOTE//__HAS_HY2__/$HAS_HY2}"
 REMOTE="${REMOTE//__ARCHIVE__/$REMOTE_ARCHIVE}"
 REMOTE="${REMOTE//__CTL_PUB__/$CTL_PUB}"
+REMOTE="${REMOTE//__CERT_B64__/$CERT_B64}"
+REMOTE="${REMOTE//__KEY_B64__/$KEY_B64}"
+REMOTE="${REMOTE//__MANIFEST__/$MANIFEST}"
 
-B64=$(printf '%s' "$REMOTE" | base64 -w0)
 if [ "$UNAME" = "root" ]; then
-  OUT=$(rsh "echo $B64 | base64 -d | bash" 2>&1)
+  OUT=$(printf '%s' "$REMOTE" | rsh "bash -s" 2>&1)
 else
-  OUT=$(rsh "echo $B64 | base64 -d | sudo -n bash" 2>&1)
+  OUT=$(printf '%s' "$REMOTE" | rsh "sudo -n bash -s" 2>&1)
 fi
 echo "$OUT"
 if ! printf '%s' "$OUT" | grep -q PROVISION_OK; then
@@ -320,7 +319,19 @@ fi
 echo "STEP 4 正在检查端口"
 if timeout 8 bash -c "</dev/tcp/$IP/$PORT" 2>/dev/null; then echo REACHABLE; else echo PORT_BLOCKED; fi
 
-TARGET_DIRECT_2="$DIRECT" python3 - "$J" <<'PYOUT'
+if [ "$SELF_BOOTSTRAP" = "True" ] || [ "$SELF_BOOTSTRAP" = "true" ]; then
+  echo "STEP 4 正在部署独立管理后台"
+  SOURCE_DIR="/tmp/ownline-source-$JOB_ID"
+  rsh "install -d -m 700 '$SOURCE_DIR'" || exit 7
+  python3 "$SCRIPT_DIR/nodekit/installations.py" bundle "$SCRIPT_DIR" | rsh "tar xzf - -C '$SOURCE_DIR'" || exit 7
+  BOOTSTRAP_JSON=$(printf '%s' "$JOB_JSON" | python3 -c 'import json,sys; j=json.load(sys.stdin); allowed=("job_id","ip","name","user","ssh_port","port","role","landing","control_secret","sub_token","panel_hash","self_bootstrap"); out={k:j.get(k) for k in allowed}; out["actual_role"]="exit" if j["role"]=="exit" or (j["role"]=="auto" and sys.argv[1]=="1") else "relay"; out["node"]={"pbk":j["node"]["pbk"]}; print(json.dumps(out))' "$DIRECT")
+  if ! printf '%s' "$BOOTSTRAP_JSON" | rsh "python3 '$SOURCE_DIR/server/bootstrap_target.py'"; then
+    echo "独立后台部署未完成，请检查服务器状态"; exit 7
+  fi
+  rsh "rm -rf '$SOURCE_DIR'" >/dev/null 2>&1 || true
+fi
+
+TARGET_DIRECT_2="$DIRECT" python3 - /dev/fd/6 6< <(printf '%s' "$JOB_JSON") <<'PYOUT'
 import json, os, sys
 job = json.load(open(sys.argv[1], encoding="utf-8"))
 node = job.get("node") or {}
@@ -343,6 +354,8 @@ vless_out = {
     "source": "builtin",
     "quota_control_managed": True,
     "health": "unknown",
+    "warp_enabled": False,
+    "hy2_enabled": actual_role == "exit",
 }
 print(json.dumps(vless_out, ensure_ascii=False))
 

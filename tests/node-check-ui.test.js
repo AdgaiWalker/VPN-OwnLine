@@ -122,13 +122,15 @@ test('successful connection check reveals install confirmation and clicking inst
       return {
         json: async () => ({
           ok: true,
+          check_ticket: 'a'.repeat(64),
           result: {
             os: 'ubuntu',
             version: '22.04',
             architecture: 'x86_64',
             root: true,
             existing_singbox: false,
-            singbox_service: 'inactive'
+            singbox_service: 'inactive',
+            ready_for_install: true
           }
         })
       };
@@ -161,10 +163,10 @@ test('successful connection check reveals install confirmation and clicking inst
   assert.equal(requests.length, 2);
   const addnodeCall = requests[1];
   assert.match(addnodeCall.url, /\/api\/addnode/);
-  assert.equal(addnodeCall.body.ip, '8.8.8.8');
-  assert.equal(addnodeCall.body.user, 'root');
-  assert.equal(addnodeCall.body.pass, 'valid-root-pass');
-  assert.equal(addnodeCall.body.ssh_port, 2222);
+  assert.equal(addnodeCall.body.check_ticket, 'a'.repeat(64));
+  assert.equal(addnodeCall.body.pass, undefined);
+  assert.equal(addnodeCall.body.private_key, undefined);
+  assert.equal(addnodeCall.body.passphrase, undefined);
   assert.equal(addnodeCall.body.port, 443);
   assert.equal(addnodeCall.body.name, 'Tokyo-Edge');
   assert.equal(addnodeCall.body.role, 'exit');
@@ -180,7 +182,7 @@ test('two-field setup uses default account, port, name and automatic role withou
   const {elements, context} = createUI(async (url, opts) => {
     requests.push({url, body:JSON.parse(opts.body)});
     return {json:async()=> url.includes('/check')
-      ? {ok:true,result:{os:'ubuntu',root:true,existing_singbox:false,singbox_service:'inactive'}}
+      ? {ok:true,check_ticket:'a'.repeat(64),result:{os:'ubuntu',root:true,existing_singbox:false,singbox_service:'inactive',ready_for_install:true}}
       : {ok:true,job:'feedbeef1234'}};
   });
   context.initInstallProgress = () => {};
@@ -228,10 +230,29 @@ test('missing visible credentials are identified without opening advanced settin
 });
 
 test('previous manual role stays visible in installation options after checking another server', async () => {
-  const {elements} = createUI(async () => ({json:async()=>({ok:true,result:{os:'ubuntu',root:true,existing_singbox:false}})}));
+  const {elements} = createUI(async () => ({json:async()=>({ok:true,check_ticket:'a'.repeat(64),result:{os:'ubuntu',root:true,existing_singbox:false,ready_for_install:true}})}));
   elements['other-credential'].value = 'fixture-password';
   elements['node-role-select'].value = 'relay';
   await elements['other-connect'].onclick();
   assert.equal(elements['node-role-select'].value, 'relay');
   assert.equal(elements['node-install-options'].open, true);
+});
+
+// The browser discards the encrypted key and passphrase after the checked capability is issued.
+test('encrypted-key installation sends only the checked capability', async () => {
+  const calls = [];
+  const {elements, context} = createUI(async (url, opts) => {
+    calls.push({url, body:JSON.parse(opts.body)});
+    return {json:async()=>url.includes('/check')
+      ? {ok:true,check_ticket:'b'.repeat(64),result:{os:'ubuntu',root:true,ready_for_install:true}}
+      : {ok:true,job:'fixture'}};
+  });
+  context.otherPrivateKey = '-----BEGIN OPENSSH PRIVATE KEY-----\nfixture\n-----END OPENSSH PRIVATE KEY-----';
+  elements['other-passphrase'].value = 'fixture-phrase';
+  await elements['other-connect'].onclick();
+  await elements['btn-submit-addnode'].onclick();
+  assert.equal(calls[0].body.passphrase, 'fixture-phrase');
+  assert.equal(calls[1].body.check_ticket, 'b'.repeat(64));
+  assert.equal(JSON.stringify(calls[1]).includes('fixture-phrase'), false);
+  assert.equal(elements['other-passphrase'].value, '');
 });

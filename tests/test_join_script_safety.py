@@ -1,5 +1,8 @@
 """Execute the generated installer in a disposable, offline fake host."""
+import hashlib
+import io
 import os
+import tarfile
 from pathlib import Path
 import subprocess
 import sys
@@ -19,11 +22,22 @@ class JoinScriptSafetyTests(unittest.TestCase):
         self.bin.mkdir()
         (self.root / "systemd").mkdir()
         self.mock("id", 'echo 0')
+        self.mock("uname", 'echo x86_64')
         self.mock("pgrep", 'exit 1')
         self.mock("systemctl", 'case "$1" in cat) exit 1;; show) [ "${FAIL_SYSTEMD:-0}" != 1 ];; start) [ "${FAIL_START:-0}" != 1 ];; *) exit 0;; esac')
-        self.mock("curl", 'case "$*" in *ipify*) echo 198.51.100.2;; *join/register*) echo "$*" > "$CALL_LOG"; [ "${FAIL_TLS:-0}" != 1 ] || exit 60; echo \'{"ok": true}\';; *join/*) [ "${FAIL_PREFLIGHT:-0}" != 1 ];; *) exit 1;; esac')
-        self.mock("sing-box", 'case "$1" in generate) printf "PrivateKey: private\\nPublicKey: public\\n";; check) exit "${FAIL_CHECK:-0}";; esac')
+        self.archive = self.root / "sing-box.tar.gz"
+        executable = b'#!/bin/sh\ncase "$1" in version) echo "sing-box version 1.14.4";; generate) printf "PrivateKey: private\\nPublicKey: public\\n";; check) exit "${FAIL_CHECK:-0}";; esac\n'
+        with tarfile.open(self.archive, "w:gz") as bundle:
+            member = tarfile.TarInfo("sing-box-1.14.4-linux-amd64/sing-box")
+            member.size = len(executable)
+            bundle.addfile(member, io.BytesIO(executable))
+        self.bad_archive = self.root / "bad.tar.gz"
+        self.bad_archive.write_bytes(self.archive.read_bytes() + b"tampered")
+        self.mock("curl", 'case "$*" in *releases/download*) destination=""; while [ "$#" -gt 0 ]; do if [ "$1" = -o ]; then shift; destination="$1"; break; fi; shift; done; if [ "${MALICIOUS_MIRROR:-0}" = 1 ]; then case "$*" in *ghfast*|*ghproxy*) cp "$BAD_ARCHIVE" "$destination";; *) exit 7;; esac; else cp "$SBOX_ARCHIVE" "$destination"; fi;; *ipify*) echo 198.51.100.2;; *join/register*) echo "$*" > "$CALL_LOG"; [ "${FAIL_TLS:-0}" != 1 ] || exit 60; echo \'{"ok": true}\';; *join/*) [ "${FAIL_PREFLIGHT:-0}" != 1 ];; *) exit 1;; esac')
+        (self.bin / "sing-box").write_bytes(executable)
+        (self.bin / "sing-box").chmod(0o755)
         script = generate_install_script("a" * 64, "https://example.com", role="exit")
+        script = script.replace("699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968", hashlib.sha256(self.archive.read_bytes()).hexdigest())
         for old, new in (("/opt/sing-box", self.root / "config"),
                          ("/etc/systemd/system", self.root / "systemd"),
                          ("/run/systemd/system", self.root / "run-systemd"),
@@ -42,7 +56,7 @@ class JoinScriptSafetyTests(unittest.TestCase):
 
     def run_script(self, **env):
         variables = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ["PATH"],
-                         CALL_LOG=str(self.root / "registration"), **env)
+                         CALL_LOG=str(self.root / "registration"), SBOX_ARCHIVE=str(self.archive), BAD_ARCHIVE=str(self.bad_archive), **env)
         return subprocess.run(["bash", str(self.script)], env=variables, capture_output=True, text=True, timeout=20)
 
     def test_existing_assets_are_not_overwritten(self):
@@ -89,3 +103,25 @@ class JoinScriptSafetyTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("[SUCCESS]", result.stdout)
         self.assertEqual((self.root / "config/config.json").stat().st_mode & 0o777, 0o600)
+
+    def test_malicious_mirror_never_installs_or_starts(self):
+        original = (self.bin / "sing-box").read_bytes()
+        result = self.run_script(MALICIOUS_MIRROR="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse((self.root / "config").exists())
+        self.assertFalse((self.root / "registration").exists())
+        self.assertEqual((self.bin / "sing-box").read_bytes(), original)
+
+    def test_unverified_existing_executable_is_not_overwritten(self):
+        (self.bin / "sing-box").write_text("unrelated executable")
+        result = self.run_script()
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual((self.bin / "sing-box").read_text(), "unrelated executable")
+        self.assertFalse((self.root / "config").exists())
+
+    def test_join_and_first_install_use_identical_pinned_release(self):
+        production = generate_install_script("a" * 64, "https://example.com")
+        install = (Path(__file__).resolve().parents[1] / "deploy/install.sh").read_text()
+        for value in ("1.14.4", "699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968", "436441f76ee2f7fe21b5b2d426d3cb261a480455a704865789ad533e4273ec26"):
+            self.assertIn(value, production)
+            self.assertIn(value, install)

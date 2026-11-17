@@ -12,6 +12,8 @@ import subprocess
 import tempfile
 from datetime import datetime, timezone
 
+from . import provenance as prov_mod
+
 try:
     from . import repair
 except ImportError:
@@ -116,7 +118,7 @@ def parse_reset_day(val):
 
 
 def supports_quota_control(node):
-    # Windows 当前使用按进程名停止，可能影响其他软件，不能视为可安全控制。
+    # Windows 尚无可核验的配额停启机制，不能视为可安全控制。
     return (node.get("quota_control_managed") is True and node.get("source") != "external"
             and node.get("os") != "windows" and node.get("ssh_user") != "Administrator")
 
@@ -245,37 +247,35 @@ def is_node_circuit_broken(node_host, usage_json_data, tripped_pct=None):
     return eval_res["is_tripped"]
 
 
-def stop_node_proxy(node, runner=subprocess.run):
-    """停止远程或本地节点上的代理服务。"""
-    if not repair:
-        return None
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    if is_win:
-        cmd = 'taskkill /f /im sing-box.exe 2>nul & schtasks /end /tn sing-box 2>nul'
+def _control_node_proxy(node, start, runner, master_secret=None, cfg_path=None):
+    if not repair or prov_mod.is_windows(node):
+        return subprocess.CompletedProcess([], 77, "", "服务控制不可用")
+    execute = lambda n, cmd, **kw: repair.execute_remote(n, cmd, runner=runner, **kw)
+    ok, reason, snapshot = prov_mod.verify_target(node, execute, master_secret, cfg_path=cfg_path)
+    if not ok:
+        return subprocess.CompletedProcess([], 77, "", "服务归属核验失败：" + reason)
+    if start:
+        body = ("rm -f /var/lib/ownline/quota-paused\n"
+                "if systemctl start sing-box && systemctl is-active --quiet sing-box; then exit 0; "
+                "else touch /var/lib/ownline/quota-paused; systemctl stop sing-box >/dev/null 2>&1 || true; exit 1; fi")
     else:
-        cmd = ("flock -x -w 5 /run/ownline-service.lock sh -c "
-               "'install -d -m 700 /var/lib/ownline && touch /var/lib/ownline/quota-paused && "
-               "systemctl stop sing-box && state=$(systemctl show sing-box -p ActiveState --value) && "
-               "case \"$state\" in inactive|failed) exit 0 ;; *) exit 1 ;; esac'")
-    return repair.execute_remote(node, cmd, runner=runner, timeout=15)
+        body = ("install -d -m 700 /var/lib/ownline && touch /var/lib/ownline/quota-paused && "
+                "systemctl stop sing-box && state=$(systemctl show sing-box -p ActiveState --value) && "
+                "case \"$state\" in inactive|failed) exit 0 ;; *) exit 1 ;; esac")
+    return execute(node, prov_mod.guarded_script(node, snapshot, body, wait=5), timeout=15)
 
 
-def start_node_proxy(node, runner=subprocess.run):
-    """启动远程或本地节点上的代理服务。"""
-    if not repair:
-        return None
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    if is_win:
-        cmd = 'schtasks /run /tn sing-box 2>nul'
-    else:
-        cmd = ("flock -x -w 5 /run/ownline-service.lock sh -c "
-               "'rm -f /var/lib/ownline/quota-paused && "
-               "if systemctl start sing-box && systemctl is-active --quiet sing-box; then exit 0; "
-               "else touch /var/lib/ownline/quota-paused; systemctl stop sing-box >/dev/null 2>&1 || true; exit 1; fi'")
-    return repair.execute_remote(node, cmd, runner=runner, timeout=15)
+def stop_node_proxy(node, runner=subprocess.run, master_secret=None, cfg_path=None):
+    """签名、节点标识及现网配置全部匹配后才停止服务。"""
+    return _control_node_proxy(node, False, runner, master_secret, cfg_path)
 
 
-def enforce_quota(nodes, usage_data, runner=subprocess.run, state_file=QUOTA_STATE_FILE):
+def start_node_proxy(node, runner=subprocess.run, master_secret=None, cfg_path=None):
+    """签名、节点标识及现网配置全部匹配后才恢复服务。"""
+    return _control_node_proxy(node, True, runner, master_secret, cfg_path)
+
+
+def enforce_quota(nodes, usage_data, runner=subprocess.run, state_file=QUOTA_STATE_FILE, master_secret=None):
     """真机断流与自愈恢复执行器：
     1. 遍历归属已确认的节点，检查对应 IP 是否达到用户设置的阈值；
     2. 若超标且当前仍在运行：执行远程停机，避免持续跑流量扣费；
@@ -313,7 +313,7 @@ def enforce_quota(nodes, usage_data, runner=subprocess.run, state_file=QUOTA_STA
         # subprocess 默认不因非零返回码抛异常，必须先确认结果再变更状态。
         error = None
         try:
-            result = execute(node, runner=runner)
+            result = execute(node, runner=runner, master_secret=master_secret)
             if result is None or result.returncode != 0:
                 error = "远程命令未成功" if result is None else f"远程命令返回码 {result.returncode}"
         except Exception as exc:

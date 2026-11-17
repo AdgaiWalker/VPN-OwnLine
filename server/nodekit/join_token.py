@@ -201,29 +201,41 @@ esac
 
 echo "==> [2/5] 准备 sing-box 原版二进制..."
 BIN="/usr/local/bin/sing-box"
-if [ ! -x "$BIN" ]; then
-  mkdir -p /tmp/sbox-install
-  cd /tmp/sbox-install
-  DL_URL="https://github.com/SagerNet/sing-box/releases/download/v1.11.0/sing-box-1.11.0-linux-${{SBOX_ARCH}}.tar.gz"
-  FOUND=0
-  for PREFIX in '' 'https://ghfast.top/' 'https://ghproxy.net/'; do
-    if curl -fsSL --connect-timeout 8 --max-time 120 "${{PREFIX}}${{DL_URL}}" | tar xz --strip-components=1; then
+# VERIFIED BINARY DOWNLOAD BEGIN
+SINGBOX_VERSION="1.14.4"
+case "$SBOX_ARCH" in
+  amd64) EXPECTED_SHA="699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968" ;;
+  arm64) EXPECTED_SHA="436441f76ee2f7fe21b5b2d426d3cb261a480455a704865789ad533e4273ec26" ;;
+esac
+# An arbitrary pre-existing executable is not proof of the pinned release.
+SBOX_TMP="$(mktemp -d)"
+trap 'rm -rf "$SBOX_TMP"' EXIT
+DL_URL="https://github.com/SagerNet/sing-box/releases/download/v${{SINGBOX_VERSION}}/sing-box-${{SINGBOX_VERSION}}-linux-${{SBOX_ARCH}}.tar.gz"
+FOUND=0
+for PREFIX in '' 'https://ghfast.top/' 'https://ghproxy.net/'; do
+  if curl -fsSL --proto '=https' --proto-redir '=https' --connect-timeout 8 --max-time 120 -o "$SBOX_TMP/archive.tar.gz" "${{PREFIX}}${{DL_URL}}"; then
+    ACTUAL_SHA="$(sha256sum "$SBOX_TMP/archive.tar.gz" | awk '{{print $1}}')"
+    if [ "$ACTUAL_SHA" = "$EXPECTED_SHA" ]; then
       FOUND=1
       break
     fi
-  done
-  if [ "$FOUND" -eq 1 ] && [ -f "./sing-box" ]; then
-    install -m 755 ./sing-box "$BIN"
-  else
-    echo "[WARN] 官方源下载慢，尝试本地包或已有进程..."
   fi
-  rm -rf /tmp/sbox-install
-fi
-
-if ! command -v "$BIN" >/dev/null 2>&1; then
-  echo "[ERROR] 无法安装 sing-box，终止！" >&2
+  rm -f "$SBOX_TMP/archive.tar.gz"
+done
+if [ "$FOUND" != 1 ]; then
+  echo "[ERROR] 无法获取通过固定摘要校验的 sing-box，未安装或启动服务。" >&2
   exit 1
 fi
+# Extract only the expected executable after authenticating the complete archive.
+tar -xOf "$SBOX_TMP/archive.tar.gz" "sing-box-${{SINGBOX_VERSION}}-linux-${{SBOX_ARCH}}/sing-box" > "$SBOX_TMP/sing-box"
+chmod 755 "$SBOX_TMP/sing-box"
+"$SBOX_TMP/sing-box" version | grep -Fq "sing-box version $SINGBOX_VERSION"
+if [ -L "$BIN" ] || {{ [ -e "$BIN" ] && ! cmp -s "$BIN" "$SBOX_TMP/sing-box"; }}; then
+  echo "[ERROR] 已有不同的 sing-box 可执行文件，未覆盖；请先人工核对。" >&2
+  exit 1
+fi
+[ -e "$BIN" ] || install -m 755 "$SBOX_TMP/sing-box" "$BIN"
+# VERIFIED BINARY DOWNLOAD END
 
 echo "==> [3/5] 本地物理生成 Reality / Hysteria 2 密钥对 (私钥物理不出机)..."
 KP="$("$BIN" generate reality-keypair)"

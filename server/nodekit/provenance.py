@@ -9,15 +9,71 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import base64
 import json
 import os
+import re
+import secrets
 import shlex
+import stat
 import time
 from typing import Any, Dict, Optional, Tuple
 
 PROVENANCE_PATH_LINUX = "/etc/sing-box/.evergreen-provenance.json"
 PROVENANCE_PATH_WIN = r"C:\ProgramData\sing-box\.evergreen-provenance.json"
 SYSTEM_IDENTIFIER = "Evergreen-OwnLine"
+
+
+def load_master_secret(data_dir=None, create=False) -> bytes:
+    """读取独立主控签名密钥；仅首装可显式创建，不依赖订阅令牌。"""
+    directory = os.fspath(data_dir or os.environ.get("LADDER_DATA", "/opt/web-data"))
+    path = os.path.join(directory, "master_secret")
+    if create:
+        os.makedirs(directory, mode=0o700, exist_ok=True)
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        except FileExistsError:
+            pass
+        else:
+            with os.fdopen(fd, "w", encoding="ascii") as f:
+                f.write(secrets.token_hex(32) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+    fd = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(fd, "r", encoding="ascii") as f:
+        info = os.fstat(f.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077:
+            raise ValueError("主控签名密钥文件权限必须为 0600")
+        value = f.read(128).strip()
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", value):
+        raise ValueError("主控签名密钥格式无效")
+    return bytes.fromhex(value)
+
+
+def secret_for_node(node, data_dir=None) -> bytes:
+    """目标独立密钥优先；没有目标密钥时使用本机专用签名密钥。"""
+    value = node.get("control_secret")
+    if value is None:
+        return load_master_secret(data_dir=data_dir)
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", value):
+        raise ValueError("节点签名密钥格式无效")
+    return bytes.fromhex(value)
+
+
+def node_identity(node) -> str:
+    """归属标识不随节点改名或协议伴生记录变化。"""
+    value = node.get("provenance_id") or str(node.get("host") or "").strip().lower().rstrip(".")
+    if not isinstance(value, str) or not value or len(value) > 253 or any(ord(c) < 33 for c in value):
+        raise ValueError("节点缺少稳定归属标识")
+    return value
+
+
+def config_path(node):
+    return r"C:\proxy\config.json" if is_windows(node) else "/opt/sing-box/config.json"
+
+
+def is_windows(node):
+    return node.get("os") == "windows" or node.get("ssh_user") == "Administrator"
 
 
 def compute_config_sha256(config_content: str | bytes) -> str:
@@ -64,6 +120,8 @@ def verify_provenance(manifest: Any, master_secret: str | bytes) -> Tuple[bool, 
 
     返回 (is_valid, reason)
     """
+    if not master_secret:
+        return False, "未提供主控签名密钥"
     if not isinstance(manifest, dict):
         return False, "存证内容不是有效的 JSON 字典"
 
@@ -88,6 +146,73 @@ def verify_provenance(manifest: Any, master_secret: str | bytes) -> Tuple[bool, 
         return False, "HMAC-SHA256 存证签名不匹配，疑似配置被非主控进程篡改"
 
     return True, "独占签名合法有效"
+
+
+def verify_target(node, execute_remote_fn, master_secret=None, cfg_path=None, provenance_path=None):
+    """只读核验签名、稳定目标标识和现网配置，返回锁内复核所需的快照。"""
+    try:
+        secret = secret_for_node(node) if master_secret is None else master_secret
+        if not secret:
+            raise ValueError("empty secret")
+        expected_id = node_identity(node)
+    except (OSError, ValueError, UnicodeError):
+        return False, "未提供有效的独立主控签名密钥或节点标识", None
+    cfg = cfg_path or config_path(node)
+    prov = provenance_path or get_provenance_path(node)
+    if is_windows(node):
+        q_cfg, q_prov = cfg.replace("'", "''"), prov.replace("'", "''")
+        command = ("$ErrorActionPreference='Stop'; "
+                   f"@{{config=[Convert]::ToBase64String([IO.File]::ReadAllBytes('{q_cfg}')); "
+                   f"provenance=[Convert]::ToBase64String([IO.File]::ReadAllBytes('{q_prov}'))}} | ConvertTo-Json -Compress")
+    else:
+        source = ("import base64,json,sys; from pathlib import Path; "
+                  "print(json.dumps({k:base64.b64encode(Path(p).read_bytes()).decode('ascii') "
+                  "for k,p in zip(('config','provenance'),sys.argv[1:])}))")
+        command = "python3 -c %s %s %s" % (shlex.quote(source), shlex.quote(cfg), shlex.quote(prov))
+    try:
+        result = execute_remote_fn(node, command, timeout=12)
+        if result is None or result.returncode != 0:
+            raise ValueError("read failed")
+        payload = json.loads(result.stdout)
+        raw_cfg = base64.b64decode(payload["config"], validate=True)
+        raw_prov = base64.b64decode(payload["provenance"], validate=True)
+        if len(raw_cfg) > 2_000_000 or len(raw_prov) > 16384:
+            raise ValueError("too large")
+        manifest = json.loads(raw_prov)
+        ok, reason = verify_provenance(manifest, secret)
+        if not ok:
+            return False, reason, None
+        if manifest.get("node_id") != expected_id:
+            return False, "存证目标标识与当前节点不匹配", None
+        digest = compute_config_sha256(raw_cfg)
+        if not hmac.compare_digest(str(manifest.get("config_sha256", "")), digest):
+            return False, "存证与目标现网配置摘要不匹配", None
+        return True, "", {"manifest": manifest, "config_sha256": digest,
+                          "manifest_sha256": compute_config_sha256(raw_prov),
+                          "config_path": cfg, "provenance_path": prov}
+    except Exception:
+        return False, "无法读取有效存证及现网配置，未执行服务变更", None
+
+
+def guarded_script(node, snapshot, body, wait=10):
+    """在目标互斥锁内重比已验证文件，状态改变时禁止任何变更。"""
+    cfg, prov = snapshot["config_path"], snapshot["provenance_path"]
+    if is_windows(node):
+        cfg, prov = cfg.replace("'", "''"), prov.replace("'", "''")
+        return f"""$ErrorActionPreference='Stop'
+$ownlineMutex = New-Object System.Threading.Mutex($false, 'Global\\OwnLineServiceMutation')
+if (-not $ownlineMutex.WaitOne({int(wait) * 1000})) {{ throw 'SERVICE_LOCK_BUSY' }}
+try {{
+  if ((Get-FileHash -Algorithm SHA256 -LiteralPath '{cfg}').Hash.ToLowerInvariant() -ne '{snapshot['config_sha256']}' -or
+      (Get-FileHash -Algorithm SHA256 -LiteralPath '{prov}').Hash.ToLowerInvariant() -ne '{snapshot['manifest_sha256']}') {{ throw 'OWNERSHIP_CHANGED' }}
+{body}
+}} finally {{ $ownlineMutex.ReleaseMutex(); $ownlineMutex.Dispose() }}
+"""
+    checks = (f"test \"$(sha256sum {shlex.quote(cfg)} | cut -d' ' -f1)\" = {shlex.quote(snapshot['config_sha256'])}\n"
+              f"test \"$(sha256sum {shlex.quote(prov)} | cut -d' ' -f1)\" = {shlex.quote(snapshot['manifest_sha256'])}\n")
+    inner = "set -euo pipefail\numask 077\n" + checks + body
+    return ("command -v flock >/dev/null 2>&1 || exit 76\n"
+            f"flock -x -w {int(wait)} /run/ownline-service.lock bash -c {shlex.quote(inner)}")
 
 
 def get_provenance_path(node: Dict[str, Any]) -> str:
@@ -127,8 +252,11 @@ def inject_remote_provenance(
     execute_remote_fn: Any,
     timeout: int = 15,
 ) -> bool:
-    """在目标节点生成并持久化写入独占存证文件。"""
-    node_id = node.get("id") or node.get("name") or node.get("host") or "unknown_node"
+    """仅续签已验证的同一配置；首装必须在空白目标流程中建立存证。"""
+    ok, _, snapshot = verify_target(node, execute_remote_fn, master_secret)
+    if not ok or snapshot["config_sha256"] != compute_config_sha256(config_content):
+        return False
+    node_id = node_identity(node)
     config_sha = compute_config_sha256(config_content)
     manifest = sign_provenance(node_id, config_sha, master_secret)
     content_json = json.dumps(manifest, indent=2, ensure_ascii=False)
@@ -137,15 +265,15 @@ def inject_remote_provenance(
     is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
 
     if is_win:
-        escaped = content_json.replace("`", "``").replace('"', '`"')
-        cmd = f'powershell -Command "New-Item -ItemType Directory -Force -Path (Split-Path \'{path}\') | Out-Null; [IO.File]::WriteAllText(\'{path}\', @\'{escaped}\'@)"'
+        encoded = base64.b64encode(content_json.encode()).decode("ascii")
+        cmd = f"[IO.File]::WriteAllBytes('{path.replace(chr(39), chr(39) * 2)}', [Convert]::FromBase64String('{encoded}'))"
     else:
         dir_path = os.path.dirname(path)
         quoted_content = shlex.quote(content_json)
         cmd = f"mkdir -p {shlex.quote(dir_path)} && printf %s {quoted_content} > {shlex.quote(path)} && chmod 600 {shlex.quote(path)}"
 
     try:
-        res = execute_remote_fn(node, cmd, timeout=timeout)
+        res = execute_remote_fn(node, guarded_script(node, snapshot, cmd), timeout=timeout)
         return getattr(res, "returncode", -1) == 0
     except Exception:
         return False

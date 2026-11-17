@@ -387,6 +387,77 @@ class NodeManagerTests(unittest.TestCase):
         self.assertTrue(node.get("warp_enabled"))
         self.assertTrue(node.get("hy2_enabled"))
 
+    def test_renamed_group_is_removed_from_subscription(self):
+        from nodekit.subscriptions import in_subscription
+
+        self.mgr.edit_node("sg-exit", {"newname": "Tokyo"})
+        self.assertIsNone(self.mgr.get_node("sg-exit-HY2"))
+        self.assertIsNotNone(self.mgr.get_node("Tokyo-HY2"))
+        self.mgr.edit_node("Tokyo-HY2", {"newname": "custom-quic"})
+        self.mgr.remove_node("Tokyo")
+        for name in ("Tokyo", "custom-quic"):
+            node = self.mgr.get_node(name)
+            self.assertTrue(node["cleanup_pending"])
+            self.assertFalse(in_subscription(node))
+        self.mgr.remove_node("custom-quic", cleanup_confirmed=True)
+        self.assertIsNone(self.mgr.get_node("Tokyo"))
+        self.assertIsNone(self.mgr.get_node("custom-quic"))
+
+    def test_rename_pause_and_hy2_toggle_keep_one_group(self):
+        self.mgr.edit_node("sg-exit", {"newname": "Tokyo"})
+        self.mgr.edit_node("Tokyo", {"enabled": False})
+        self.assertFalse(self.mgr.get_node("Tokyo-HY2")["enabled"])
+        self.mock_remote_cfg.toggle_hy2.return_value = {
+            "ok": True,
+            "hy2_node": {"name": "Tokyo-HY2", "type": "hysteria2", "host": "3.3.3.3", "port": 8443},
+        }
+        self.mgr.toggle_hy2(name="Tokyo", enabled=True)
+        self.assertFalse(self.mgr.get_node("Tokyo-HY2")["enabled"])
+        self.mgr.edit_node("Tokyo", {"enabled": True})
+        self.assertTrue(self.mgr.get_node("Tokyo-HY2")["enabled"])
+        self.mgr.edit_node("Tokyo-HY2", {"newname": "custom-quic"})
+        self.mock_remote_cfg.toggle_hy2.return_value = {"ok": True}
+        self.mgr.toggle_hy2(name="custom-quic", enabled=False)
+        self.assertFalse(self.mgr.get_node("Tokyo")["hy2_enabled"])
+        self.assertFalse(self.mgr.get_node("custom-quic")["enabled"])
+        self.mgr.edit_node("Tokyo", {"enabled": True})
+        self.assertFalse(self.mgr.get_node("custom-quic")["enabled"])
+        self.assertEqual(sum(n["type"] == "hysteria2" for n in self.mgr.list_nodes()), 1)
+
+    def test_rename_collision_keeps_group_and_references_unchanged(self):
+        for conflicting_name in ("us-exit", "us-exit-HY2"):
+            with self.subTest(conflicting_name=conflicting_name):
+                before = self.mgr.list_nodes()
+                newname = "us-exit" if conflicting_name == "us-exit" else "occupied"
+                if conflicting_name.endswith("-HY2"):
+                    self.mgr.add_node({"name": "occupied-HY2", "type": "vless", "host": "8.8.8.8", "port": 443})
+                    before = self.mgr.list_nodes()
+                with self.assertRaises(NodeConflictError):
+                    self.mgr.edit_node("sg-exit", {"newname": newname})
+                self.assertEqual(self.mgr.list_nodes(), before)
+        self.assertFalse(self.mock_remote_cfg.sync_isp.called)
+
+    def test_rename_updates_landing_name_references(self):
+        self.mgr.update_nodes(lambda ns: [dict(n, landing={"host": "3.3.3.3", "name": "sg-exit"},
+            landing_policy={"primary": {"name": "sg-exit"}, "fallback": {"name": "us-exit"}})
+            if n["name"] == "hk-relay" else n for n in ns])
+        self.mgr.edit_node("sg-exit", {"newname": "Tokyo"})
+        relay = self.mgr.get_node("hk-relay")
+        self.assertEqual(relay["landing"]["name"], "Tokyo")
+        self.assertEqual(relay["landing_policy"]["primary"]["name"], "Tokyo")
+        self.assertEqual(relay["landing_policy"]["fallback"]["name"], "us-exit")
+
+    def test_same_name_suffix_on_other_host_is_not_a_companion(self):
+        self.store.update(lambda ns: [dict(n, host="9.9.9.9") if n["name"] == "sg-exit-HY2" else n for n in ns])
+        self.mgr.remove_node("sg-exit")
+        self.assertNotIn("cleanup_pending", self.mgr.get_node("sg-exit-HY2"))
+
+    def test_group_lifecycle_changes_reach_companion(self):
+        self.mgr.edit_node("sg-exit", {"newname": "Tokyo", "state": "paused", "expire_at": "2026-12-31"})
+        hy2 = self.mgr.get_node("Tokyo-HY2")
+        self.assertEqual(hy2["lifecycle"]["state"], "paused")
+        self.assertEqual(hy2["expire_at"], "2026-12-31")
+
 
 if __name__ == "__main__":
     unittest.main()

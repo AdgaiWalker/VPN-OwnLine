@@ -454,14 +454,6 @@
         return;
       }
       var body = {host:host, username:username, ssh_port:Number(port), password:password, private_key:otherPrivateKey, passphrase:otherPrivateKey ? passphrase : ""};
-      var pendingAuth = {
-        ip: host,
-        user: username,
-        ssh_port: Number(port),
-        pass: password,
-        private_key: otherPrivateKey,
-        auth_type: otherPrivateKey ? "key" : "password"
-      };
       otherCheckController = new AbortController();
       var controller = otherCheckController;
       setOtherCheckBusy(true);
@@ -504,8 +496,8 @@
         resultBox.style.display = "block";
         note.textContent = "只读检测已完成。";
 
-        if (confirmBox && item.root && !item.existing_singbox && item.os !== "windows") {
-          pendingNodeInstall = pendingAuth;
+        if (confirmBox && item.ready_for_install === true && /^[a-f0-9]{64}$/.test(data.check_ticket || "")) {
+          pendingNodeInstall = {ticket: data.check_ticket};
           var nameInput = document.getElementById("node-name-input");
           if (nameInput) nameInput.value = "节点-" + host;
           var installOptions = document.getElementById("node-install-options");
@@ -533,7 +525,7 @@
         }
         var nameInput = document.getElementById("node-name-input");
         var roleSelect = document.getElementById("node-role-select");
-        var nodeName = (nameInput && nameInput.value.trim()) || ("节点-" + pendingNodeInstall.ip);
+        var nodeName = (nameInput && nameInput.value.trim()) || "新节点";
         var nodeRole = (roleSelect && roleSelect.value) || "auto";
 
         btnSubmit.disabled = true;
@@ -545,12 +537,7 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              ip: pendingNodeInstall.ip,
-              user: pendingNodeInstall.user,
-              pass: pendingNodeInstall.pass,
-              private_key: pendingNodeInstall.private_key,
-              auth_type: pendingNodeInstall.auth_type,
-              ssh_port: pendingNodeInstall.ssh_port || 22,
+              check_ticket: pendingNodeInstall.ticket,
               port: 443,
               name: nodeName,
               role: nodeRole
@@ -607,16 +594,16 @@
           title.textContent = "正在安装节点"; message.textContent = labels[step] + "。离开此页面不会中断后台任务。";
           timer = setTimeout(update, 5000);
         } else if (job.state === "done") {
-          title.textContent = job.delivery ? "安装就绪 · 私人专属资产已就绪" : "安装任务已结束";
+          title.textContent = job.health === "ok" ? "安装与验收已完成" : "安装任务已结束";
           var baseMsg = job.health === "ok" ? "节点已通过连通性校验，可在主面板导入订阅。" : "节点尚未确认连通，请检查服务器防火墙与运行状态。";
-          if (job.delivery && job.delivery.dashboard_url) {
+          if (job.health === "ok" && job.delivery && job.delivery.kind === "standalone" && job.delivery.dashboard_url) {
             var d = job.delivery;
             message.textContent = baseMsg + " (专属后台: " + d.dashboard_url + ")";
-            var srLink = (d.deep_links && d.deep_links.shadowrocket) ? '<a href="' + d.deep_links.shadowrocket + '" class="btn primary" style="font-size:12px;padding:4px 10px;text-decoration:none;">一键导入小火箭</a>' : '';
-            var clashLink = (d.deep_links && d.deep_links.clash) ? '<a href="' + d.deep_links.clash + '" class="btn primary" style="font-size:12px;padding:4px 10px;text-decoration:none;">一键导入 Clash</a>' : '';
+            var srLink = (d.deep_links && d.deep_links.shadowrocket) ? '<a href="' + esc(d.deep_links.shadowrocket) + '" class="btn primary" style="font-size:12px;padding:4px 10px;text-decoration:none;">一键导入小火箭</a>' : '';
+            var clashLink = (d.deep_links && d.deep_links.clash) ? '<a href="' + esc(d.deep_links.clash) + '" class="btn primary" style="font-size:12px;padding:4px 10px;text-decoration:none;">一键导入 Clash</a>' : '';
             message.innerHTML = baseMsg + '<div style="margin-top:10px;padding:10px;background:rgba(0,0,0,0.05);border-radius:6px;font-size:13px;line-height:1.6;">' +
-              '<div><strong>专属后台：</strong><a href="' + d.dashboard_url + '" target="_blank" rel="noopener">' + d.dashboard_url + '</a></div>' +
-              '<div><strong>初始账号：</strong><code>' + (d.username || 'admin') + '</code> ｜ <strong>初始密码：</strong><code>' + (d.temp_password || '已预设') + '</code></div>' +
+              '<div><strong>专属后台：</strong><a href="' + esc(d.dashboard_url) + '" target="_blank" rel="noopener">' + esc(d.dashboard_url) + '</a></div>' +
+              '<div><strong>初始账号：</strong><code>' + esc(d.username || 'admin') + '</code> ｜ <strong>初始密码：</strong><code>' + esc(d.temp_password || '已预设') + '</code></div>' +
               ((srLink || clashLink) ? ('<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' + srLink + clashLink + '</div>') : '') +
               '</div>';
           } else {

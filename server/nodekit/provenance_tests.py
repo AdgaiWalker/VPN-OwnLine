@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """服务独占性加密存证模块单测。"""
+import base64
 import json
 import os
 import sys
@@ -78,8 +79,11 @@ def test_remote_provenance_read_and_inject():
 
     def fake_execute(n, cmd, **kwargs):
         captured_commands.append(cmd)
+        sample_manifest = provenance.sign_provenance(node["host"], provenance.compute_config_sha256('{"sample":"cfg"}'), secret)
+        if "base64.b64encode(Path(p)" in cmd:
+            return DummyResult(0, json.dumps({"config": base64.b64encode(b'{"sample":"cfg"}').decode(),
+                                             "provenance": base64.b64encode(json.dumps(sample_manifest).encode()).decode()}))
         if "cat" in cmd:
-            sample_manifest = provenance.sign_provenance("测试节点", "dummy_sha", secret)
             return DummyResult(0, json.dumps(sample_manifest))
         return DummyResult(0, "")
 
@@ -91,7 +95,7 @@ def test_remote_provenance_read_and_inject():
     # 2. 读取存证
     read_manifest = provenance.read_remote_provenance(node, fake_execute)
     assert read_manifest is not None
-    assert read_manifest["node_id"] == "测试节点"
+    assert read_manifest["node_id"] == node["host"]
     ok, _ = provenance.verify_provenance(read_manifest, secret)
     assert ok is True
     print("  OK 模拟远端存证注入与读取解析成功")

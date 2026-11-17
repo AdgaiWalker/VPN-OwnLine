@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """未经独占验证的服务不得执行自愈；验证独占存证后方可执行安全闭环自愈。"""
+import base64
 import json
 import os
 import sys
@@ -50,7 +51,7 @@ def test_provenance_verified_self_heal_success():
     secret = "test_master_secret_123"
     node = {"name": "香港节点", "host": "192.0.2.10", "port": 443, "health": "bad"}
     cfg_sha = provenance.compute_config_sha256('{"inbounds":[]}')
-    manifest = provenance.sign_provenance("香港节点", cfg_sha, secret)
+    manifest = provenance.sign_provenance(node["host"], cfg_sha, secret)
 
     class DummyRes:
         def __init__(self, code, out):
@@ -62,8 +63,9 @@ def test_provenance_verified_self_heal_success():
 
     def fake_exec(n, cmd, **kwargs):
         captured_cmds.append(cmd)
-        if ".evergreen-provenance.json" in cmd:
-            return DummyRes(0, json.dumps(manifest))
+        if "base64.b64encode(Path(p)" in cmd:
+            return DummyRes(0, json.dumps({"config": base64.b64encode(b'{"inbounds":[]}').decode(),
+                                          "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()}))
         if "ss -lptn" in cmd:
             return DummyRes(0, 'LISTEN 0 128 *:443 *:* users:(("sing-box",pid=1234,fd=3))')
         if "BIN check" in cmd or "SYNTAX" in cmd:
@@ -93,7 +95,7 @@ def test_provenance_port_conflict_safety_abort():
     secret = "test_master_secret_123"
     node = {"name": "东京节点", "host": "192.0.2.20", "port": 443, "health": "bad"}
     cfg_sha = provenance.compute_config_sha256('{"inbounds":[]}')
-    manifest = provenance.sign_provenance("东京节点", cfg_sha, secret)
+    manifest = provenance.sign_provenance(node["host"], cfg_sha, secret)
 
     class DummyRes:
         def __init__(self, code, out):
@@ -103,8 +105,9 @@ def test_provenance_port_conflict_safety_abort():
     restarted = []
 
     def fake_exec(n, cmd, **kwargs):
-        if ".evergreen-provenance.json" in cmd:
-            return DummyRes(0, json.dumps(manifest))
+        if "base64.b64encode(Path(p)" in cmd:
+            return DummyRes(0, json.dumps({"config": base64.b64encode(b'{"inbounds":[]}').decode(),
+                                          "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()}))
         if "ss -lptn" in cmd:
             # 端口被第三方 nginx 占用
             return DummyRes(0, 'LISTEN 0 128 *:443 *:* users:(("nginx",pid=888,fd=4))')

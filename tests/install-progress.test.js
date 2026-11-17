@@ -8,7 +8,7 @@ async function run(response) {
   const a=html.indexOf('  function initInstallProgress()'),b=html.indexOf('  function detectClient()',a);
   const e={};for(const id of ['install-task','install-task-title','install-task-message','install-task-refresh','install-task-dismiss'])e[id]={style:{},textContent:'',disabled:false};
   const calls=[];const storage={sb_job:'a'.repeat(12)};
-  const c={document:{getElementById:id=>e[id]},localStorage:{getItem:k=>storage[k],removeItem:k=>delete storage[k]},fetch:async (url,opts)=>{calls.push({url,opts});return response},setTimeout:()=>1,clearTimeout:()=>{},AbortController,encodeURIComponent};
+  const c={document:{getElementById:id=>e[id]},localStorage:{getItem:k=>storage[k],removeItem:k=>delete storage[k]},fetch:async (url,opts)=>{calls.push({url,opts});return response},setTimeout:()=>1,clearTimeout:()=>{},AbortController,encodeURIComponent,esc:s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;")};
   vm.createContext(c);vm.runInContext(html.slice(a,b),c);c.initInstallProgress();
   await new Promise(resolve=>setImmediate(resolve));
   return {e,calls,storage};
@@ -44,6 +44,7 @@ test('completed task with delivery displays self-bootstrapping credentials and t
       state: 'done',
       health: 'ok',
       delivery: {
+        kind: 'standalone',
         dashboard_url: 'https://1.2.3.4:8443/',
         username: 'admin',
         temp_password: 'pass-1234567890',
@@ -54,8 +55,14 @@ test('completed task with delivery displays self-bootstrapping credentials and t
       }
     })
   });
-  assert.match(e['install-task-title'].textContent, /私人专属资产/);
-  assert.match(e['install-task-message'].textContent, /1\.2\.3\.4:8443/);
+  assert.match(e['install-task-title'].textContent, /安装与验收已完成/);
+  assert.match(e['install-task-message'].innerHTML, /1\.2\.3\.4:8443/);
   assert.equal(e['install-task-dismiss'].disabled, false);
 });
 
+
+test('unverified delivery never renders credentials', async () => {
+  const {e} = await run({ok:true,json:async()=>({ok:true,state:'done',health:'proxy',delivery:{kind:'standalone',dashboard_url:'https://fixture/',temp_password:'fixture-secret'}})});
+  assert(!JSON.stringify(e).includes('fixture-secret'));
+  assert.match(e['install-task-message'].textContent,/尚未确认连通/);
+});

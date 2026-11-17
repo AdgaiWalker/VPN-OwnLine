@@ -88,19 +88,24 @@ fetch_verified() {
 # ---------- 卸载逻辑 ----------
 if [ "$UNINSTALL" = 1 ]; then
   say "正在卸载 Ladder 服务..."
-  SERVICES="admin.service sing-box.service probe.timer probe.service usage-refresh.timer usage-refresh.service ipcheck.timer ipcheck.service backup-remote.timer backup-remote.service"
-  for s in $SERVICES; do
-    systemctl stop "$s" 2>/dev/null || true
-    systemctl disable "$s" 2>/dev/null || true
-    rm -f "/etc/systemd/system/$s"
+  UNINSTALL_HELPER=""
+  UNINSTALL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  for candidate in "$UNINSTALL_DIR/../server/nodekit/maintenance.py" "$UNINSTALL_DIR/../nodekit/maintenance.py" /opt/web/nodekit/maintenance.py; do
+    if [ -f "$candidate" ]; then UNINSTALL_HELPER="$candidate"; break; fi
   done
-  systemctl daemon-reload 2>/dev/null || true
-  ok "系统服务已停止并清理"
-
-  if [ "$PURGE" = 1 ]; then
-    rm -rf /opt/web /opt/web-data /opt/sing-box /etc/caddy/Caddyfile
-    ok "已彻底清除数据与配置目录 (--purge)"
+  [ -n "$UNINSTALL_HELPER" ] || die "未找到可信卸载校验器，未停止或清理服务"
+  UNINSTALL_ARGS=()
+  if [ "$PURGE" = 1 ]; then UNINSTALL_ARGS+=(--purge); fi
+  if [ "$DRY_RUN" = 1 ]; then UNINSTALL_ARGS+=(--dry-run); fi
+  python3 "$UNINSTALL_HELPER" --uninstall "${UNINSTALL_ARGS[@]+"${UNINSTALL_ARGS[@]}"}" || die "卸载安全检查或服务停止未通过，请人工核实"
+  if [ "$DRY_RUN" = 1 ]; then
+    ok "归属核验演练完成，未停止或清理服务"
+  elif [ "$PURGE" = 1 ]; then
+    ok "已停止归属核验通过的项目服务并清除数据与升级恢复文件"
   else
+    ok "项目服务已停止并清理，配置与数据保留"
+  fi
+  if [ "$PURGE" = 0 ] && [ "$DRY_RUN" = 0 ]; then
     warn "配置与数据仍保存在 /opt/web-data，如需彻底清除请加 --purge"
   fi
   exit 0
@@ -330,15 +335,9 @@ say "3/10 部署代码到 /opt/web 与 /opt/web-data"
 run mkdir -p /opt/web /opt/web-data
 run chmod 700 /opt/web-data
 if [ "$SRC_SERVER" != "/opt/web" ]; then
-  if [ -d "$SRC_SERVER/providers" ]; then run cp -r "$SRC_SERVER/providers" /opt/web/; fi
-  if [ -d "$SRC_SERVER/nodekit" ]; then run cp -r "$SRC_SERVER/nodekit" /opt/web/; fi
-  run cp "$SRC_SERVER"/*.py /opt/web/ 2>/dev/null || true
-  run cp "$SRC_SERVER"/*.sh /opt/web/ 2>/dev/null || true
-  if [ -f "$SRC_WEB/index.html" ]; then run cp "$SRC_WEB/index.html" /opt/web/; fi
-  if [ -f "$SRC_WEB/backup-crypto.js" ]; then run cp "$SRC_WEB/backup-crypto.js" /opt/web/; fi
-  if [ -f "$SRC_WEB/change-password.html" ]; then run cp "$SRC_WEB/change-password.html" /opt/web/; fi
-  if [ -d "$SRC_WEB/assets" ]; then run cp -r "$SRC_WEB/assets" /opt/web/; fi
-  run chmod 755 /opt/web/*.sh /opt/web/*.py 2>/dev/null || true
+  # The canonical runtime manifest includes upgrade helpers and their resources.
+  SOURCE_REPO="$(cd "$SRC_DEPLOY/.." && pwd)"
+  run python3 "$SRC_DEPLOY/runtime_manifest.py" "$SOURCE_REPO" /opt/web
 fi
 
 # SSH checking runs outside the web root with separately locked dependencies.
@@ -419,7 +418,8 @@ if [ "$DRY_RUN" = 0 ]; then
 import json, os, secrets, subprocess, sys
 from pathlib import Path
 sys.path.insert(0, "/opt/web")
-from nodekit import templates
+from nodekit import templates, provenance
+from nodekit.node_manager import NodeManager, FileNodeStore
 binary="/opt/sing-box/sing-box"
 config=Path("/opt/sing-box/config.json");nodes=Path("/opt/web-data/nodes.json");seed=Path("/opt/web-data/.setup-seed.json")
 def atomic(path,value):
@@ -429,7 +429,11 @@ def atomic(path,value):
         json.dump(value,f,ensure_ascii=False,indent=2);f.flush();os.fsync(f.fileno())
     os.replace(temporary,path)
 if config.exists() and nodes.exists():
-    print("已有配置与节点底账，保留不动")
+    secret=provenance.load_master_secret()
+    manifest=json.loads(Path(provenance.PROVENANCE_PATH_LINUX).read_text())
+    if not provenance.verify_provenance(manifest,secret)[0] or manifest.get("node_id")!=sys.argv[1] or manifest.get("config_sha256")!=provenance.compute_config_sha256(config.read_bytes()):
+        raise SystemExit("已有服务归属或配置未通过核验，未启动")
+    print("已有配置与节点底账，归属已核验，保留不动")
     raise SystemExit
 if seed.exists():
     saved=json.loads(seed.read_text());cfg=saved["config"];records=saved["nodes"]
@@ -441,8 +445,10 @@ else:
     lines=subprocess.check_output([binary,"generate","reality-keypair"],text=True).splitlines()
     keys={line.split(":",1)[0]:line.split(":",1)[1].strip() for line in lines if ":" in line}
     sid=secrets.token_hex(4);password=secrets.token_hex(16);obfs=secrets.token_hex(16)
-    subprocess.run(["openssl","req","-x509","-nodes","-newkey","rsa:2048","-keyout","/opt/sing-box/hy2.key","-out","/opt/sing-box/hy2.crt","-days","3650","-subj","/CN=www.bing.com"],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    os.chmod("/opt/sing-box/hy2.key",0o600)
+    certificate, private_certificate = __import__("nodekit.remote_config",fromlist=["generate_self_signed_cert_pem"]).generate_self_signed_cert_pem("www.bing.com")
+    Path("/opt/sing-box/hy2.crt").write_text(certificate)
+    keyfd=os.open("/opt/sing-box/hy2.key",os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    with os.fdopen(keyfd,"w") as output: output.write(private_certificate)
     cfg=templates.exit_config(443,uid,"www.apple.com",keys["PrivateKey"],sid,hy2={"port":443,"password":password,"obfs_password":obfs,"sni":"www.bing.com","cert_path":"/opt/sing-box/hy2.crt","key_path":"/opt/sing-box/hy2.key"})
     if templates.validate(cfg):raise SystemExit("节点配置验证失败")
     records=[{"name":"主控-出口","host":sys.argv[1],"port":443,"uuid":uid,"sni":"www.apple.com","pbk":keys["PublicKey"],"sid":sid,"role":"exit","source":"builtin","local":True,"quota_control_managed":True,"health":"unknown"},
@@ -452,7 +458,14 @@ if not config.exists():
     staged=config.with_suffix(".staged.json");atomic(staged,cfg)
     subprocess.run([binary,"check","-c",str(staged)],check=True,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
     os.replace(staged,config)
-if not nodes.exists():atomic(nodes,records)
+for record in records:
+    record["provenance_id"]=sys.argv[1]
+if not nodes.exists():NodeManager(store=FileNodeStore(nodes)).save_nodes(records)
+secret=provenance.load_master_secret(create=True)
+manifest=provenance.sign_provenance(sys.argv[1],provenance.compute_config_sha256(config.read_bytes()),secret)
+if not provenance.verify_provenance(manifest,secret)[0]:raise SystemExit("服务归属签名失败")
+manifest_path=Path(provenance.PROVENANCE_PATH_LINUX);manifest_path.parent.mkdir(parents=True,exist_ok=True)
+atomic(manifest_path,manifest)
 seed.unlink(missing_ok=True)
 print("节点配置与底账已提交")
 PYSEED
@@ -670,7 +683,19 @@ run systemctl daemon-reload
 # A long download never holds this short lifecycle lock. Quota stop can acquire it independently.
 run systemctl enable sing-box
 if [ "$DRY_RUN" = 0 ]; then
-  flock -x -w 5 /run/ownline-service.lock sh -c 'test ! -e /var/lib/ownline/quota-paused && systemctl start sing-box' || die "代理处于保护状态或启动失败，请复查"
+  python3 - "$PUB_IP" <<'PYSTART'
+import subprocess, sys
+sys.path.insert(0,"/opt/web")
+from nodekit import provenance
+node={"host":sys.argv[1],"local":True,"provenance_id":sys.argv[1]}
+def execute(node,script,**kwargs):
+    return subprocess.run(["bash","-c",script],capture_output=True,text=True,**kwargs)
+ok,reason,snapshot=provenance.verify_target(node,execute)
+if not ok:raise SystemExit("服务归属未通过核验，未启动")
+script=provenance.guarded_script(node,snapshot,"test ! -e /var/lib/ownline/quota-paused && systemctl start sing-box")
+result=execute(node,script,timeout=15)
+if result.returncode:raise SystemExit("代理处于保护状态、配置变化或启动失败，请复查")
+PYSTART
 fi
 run systemctl enable --now admin probe.timer usage-refresh.timer ipcheck.timer
 run systemctl enable caddy
