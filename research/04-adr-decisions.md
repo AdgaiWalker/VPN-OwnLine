@@ -19,10 +19,13 @@
 - [ADR-011：本地自主智能体 (Local Agent) 全生命周期装配与任务书协议 (Autonomous Agentic Onboarding & Task Brief Protocol)](#adr-011)
 - [ADR-012：单双机分级拓扑自适应装配与晚高峰抗丢包自愈架构 (Tiered Single/Dual-Host Adaptive Topology & Peak-Congestion Self-Healing Architecture)](#adr-012)
 - [ADR-013：AI 业务 IP 粘滞防护不变式与客户端分流边界解耦 (AI IP-Stickiness Anti-Ban Invariant & Client Routing Decoupling)](#adr-013)
+- [ADR-014：零摩擦反向自举纳管协议与免密安全边界 (Pre-Auth Reverse Join Protocol & Zero-SSH Invariant)](#adr-014)
+- [ADR-015：出海落地机 WARP WireGuard 出站与 AI 服务智能清洁分流 (WARP Detour for AI Services)](#adr-015)
+- [ADR-016：WARP 真实数据面闭环与反向自举中转配对协议 (WARP Data-Plane Closed-Loop & Reverse-Join Relay Pairing)](#adr-016)
 
 ---
 
-### <a id="adr-001"></a>ADR-001：确立“去中心化自备主机自举”定位，彻底摒弃“商业机场代理运营”模式
+### <a id="adr-001"></a>ADR-001：确立“去中心化自备主机自举”定位，彻底摒弃“商业机场代理运营”模式 [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 在项目初期讨论中，曾有一种思路是中心服务器集中采购大带宽节点，搭建统一分发后台，直接向终端用户下发代理流量。
@@ -36,7 +39,7 @@
 
 ---
 
-### <a id="adr-002"></a>ADR-002：确立“双门户隔离机制”，将管理控制与客户端订阅彻底解耦
+### <a id="adr-002"></a>ADR-002：确立“双门户隔离机制”，将管理控制与客户端订阅彻底解耦 [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 当前单一面板将“客户端一键导入/测速”与“添加服务器/修改 SSH 密码/配额熔断/底层日志”混在同一个页面中。
@@ -51,7 +54,7 @@
 
 ---
 
-### <a id="adr-003"></a>ADR-003：否决“生活场景化标签”，坚持以真实地理地域与网络特性命名
+### <a id="adr-003"></a>ADR-003：否决“生活场景化标签”，坚持以真实地理地域与网络特性命名 [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 曾提议将节点命名为“看剧专用”、“ChatGPT 专用”、“游戏低延迟”等生活业务场景化标签。
@@ -65,7 +68,7 @@
 
 ---
 
-### <a id="adr-004"></a>ADR-004：界定客户端热插拔边界，依托下游订阅原生机制而非介入客户端
+### <a id="adr-004"></a>ADR-004：界定客户端热插拔边界，依托下游订阅原生机制而非介入客户端 [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 在讨论“动态按需加载模块（如开启 HY2 或挂载中转）”时，曾探讨系统是否需要解决客户端的动态热插拔问题。
@@ -78,7 +81,7 @@
 
 ---
 
-### <a id="adr-005"></a>ADR-005：确立“按需功能双向唤醒”而非“静态全量平铺”的 UX 范式
+### <a id="adr-005"></a>ADR-005：确立“按需功能双向唤醒”而非“静态全量平铺”的 UX 范式 [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 系统具备 HY2 抢跑、国内中转加速、住宅原生 IP 挂载等强悍高阶能力，但普通小白用户处于“不知道自己不知道”的盲区。
@@ -94,7 +97,7 @@
 
 ---
 
-### <a id="adr-006"></a>ADR-006：前端源码模块化拆分与零外部依赖确定性合成管线 (Zero-Dependency Modular Build)
+### <a id="adr-006"></a>ADR-006：前端源码模块化拆分与零外部依赖确定性合成管线 (Zero-Dependency Modular Build) [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 此前 `web/index.html` 采用 5,400+ 行的单文件巨石架构（Monolith），所有 CSS、HTML 模态框与 JS 脚本交织在一起，存在状态竞争风险（如定时轮询覆盖用户操作）及代码可维护性瓶颈。但生产服务器采用 Caddy 直接托管单文件 HTML，且部署环境无 Node.js/Webpack/Vite 等构建工具链。
@@ -112,7 +115,7 @@
 
 ---
 
-### <a id="adr-007"></a>ADR-007：工作区全景按生命周期状态分层与 Git 扁平化架构 (Workspace Lifecycle State Stratification)
+### <a id="adr-007"></a>ADR-007：工作区全景按生命周期状态分层与 Git 扁平化架构 (Workspace Lifecycle State Stratification) [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 此前工作区存在“顶层工作区 (`梯子/`) 与核心 Git 仓库 (`梯子/仓库/`)”双层嵌套，且外围平铺着原型、历史归档、备份快照与运维脚本，存在多处路径二义性、文件散落及公开推送与生产发布边界模糊的问题。
@@ -131,7 +134,7 @@
 
 ---
 
-### <a id="adr-008"></a>ADR-008：控制面通信与代理数据面彻底解耦及高可用切换防抖机制 (Control Plane Decoupling & Anti-Flapping)
+### <a id="adr-008"></a>ADR-008：控制面通信与代理数据面彻底解耦及高可用切换防抖机制 (Control Plane Decoupling & Anti-Flapping) [STATUS: IMPLEMENTED]
 
 #### 1. 背景与上下文 (Context)
 在真实生产使用中，用户在管理面板关闭或切换节点 HY2 极速通道时，发生严重可用性故障：用户客户端网络骤断，面板打不开，服务端日志出现“移除 HY2 后主通道验真失败（端口连不上），已自动回滚原配置”，且连续操作导致 `sing-box.service` 重启过于频繁触发 systemd `start-limit-hit` 崩溃。
