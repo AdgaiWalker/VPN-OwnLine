@@ -61,12 +61,22 @@ class ResetConfigTests(unittest.TestCase):
     def test_refuses_custom_or_shared_configs(self):
         for candidate in (template() + '\nother.example {\n respond 200\n}\n',
                           template().replace('# ownline-setup-job:testjob', '# another-project'),
-                          template().replace('root * /opt/web-data', 'root * /other'),
+                          template().replace('header Cache-Control "no-store"\n\t\treverse_proxy 127.0.0.1:8099', 'header Cache-Control "no-store"\n\t\treverse_proxy 127.0.0.1:9999'),
                           template().replace(OLD, NEW, 1),
                           template().replace('import app', 'import app\n\timport app')):
             with self.subTest(candidate=candidate[-50:]):
                 with self.assertRaises(ValueError):
                     reset_tool.replace_hash(candidate, NEW)
+
+    def test_both_exact_snapshot_transports_remain_supported(self):
+        new = template()
+        old = new.replace('header Cache-Control "no-store"\n\t\treverse_proxy 127.0.0.1:8099',
+                          'header Cache-Control "no-store"\n\t\troot * /opt/web-data\n\t\tfile_server')
+        self.assertNotEqual(old, new)
+        for config in (old, new):
+            domain, after = reset_tool.replace_hash(config, NEW)
+            self.assertEqual(domain, 'example.test')
+            self.assertEqual(after.replace(NEW, OLD), config)
 
     def test_hash_password_never_appears_in_command_arguments(self):
         with mock.patch.object(reset_tool, 'run_quiet', return_value=types.SimpleNamespace(

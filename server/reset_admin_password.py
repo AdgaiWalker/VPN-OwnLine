@@ -86,7 +86,12 @@ def inspect_credentials(raw):
         template.remove('TLS')
     else:
         normalized = ['TLS' if line == 'tls internal' else line for line in normalized]
-    if normalized != template:
+    # Accept both exact project-generated snapshot transports. Older installs
+    # used static files; new ones proxy to admin without exposing DATA to Caddy.
+    proxied_template = list(template)
+    snapshot_root = proxied_template.index('root * /opt/web-data')
+    proxied_template[snapshot_root:snapshot_root + 2] = ['reverse_proxy 127.0.0.1:8099']
+    if normalized not in (template, proxied_template):
         raise ValueError('检测到自定义或共享 Caddy 配置，不做修改')
     return domain, username, hash_val
 

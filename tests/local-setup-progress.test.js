@@ -1,0 +1,93 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+
+function element() {
+  return {hidden:false,disabled:false,value:'',textContent:'',type:'password',dataset:{},
+    children:[],addEventListener(){},replaceChildren(...rows){this.children=rows;}};
+}
+const running = {state:'running',stage:'dependencies',stage_label:'安装系统依赖和管理网关',elapsed_seconds:83,
+  stage_elapsed_seconds:65,stages:[{code:'upload',label:'传输安装程序',elapsed_seconds:18,state:'done'},
+    {code:'dependencies',label:'安装系统依赖和管理网关',elapsed_seconds:65,state:'running'}],log:['fixture-private-log']};
+
+async function harness(job = running) {
+  const elements = Object.fromEntries([...fs.readFileSync('web/src/html/local-setup.html','utf8').matchAll(/id="([^"]+)"/g)].map(m=>[m[1],element()]));
+  elements.connection.elements=Object.fromEntries(['password','private_key','passphrase'].map(k=>[k,element()]));
+  const timers=new Map(), calls=[];let id=0, current=job, fail=false, hang=false, hold=false, release;
+  const context={AbortController,URL,document:{getElementById:k=>elements[k],createElement:element},
+    setTimeout(fn,ms){timers.set(++id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
+    fetch:async (path,options)=>{
+      calls.push({path,options});
+      if (hang) return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('timeout'))));
+      if (fail) throw new Error('fixture network failure');
+      if (hold && path==='/api/status') return new Promise(resolve=>{release=ok=>resolve({ok,json:async()=>current});});
+      return {ok:true,json:async()=>path==='/api/status'?current:{}};
+    }};
+  vm.createContext(context);vm.runInContext(fs.readFileSync('web/src/js/local-setup.js','utf8'),context);
+  const settle=()=>new Promise(r=>setImmediate(r));await settle();
+  return {elements,calls,timers,settle,setJob(value){current=value;fail=hang=false;},setFailure(){fail=true;},setHang(){hang=true;},
+    holdNextStatus(){hold=true;},releaseStatus(ok=true){release(ok);},
+    async tick(ms){const entry=[...timers].find(([,v])=>v.ms===ms);assert(entry,`timer ${ms}`);timers.delete(entry[0]);entry[1].fn();await settle();}};
+}
+
+test('reload resumes the same actual stage and elapsed time using GET only',async()=>{
+  const a=await harness(),b=await harness();
+  for(const h of [a,b]) {
+    assert.equal(h.elements['progress-title'].textContent,running.stage_label);
+    assert.match(h.elements['progress-time'].textContent,/1 分 23 秒/);
+    assert.match(h.elements['progress-time'].textContent,/1 分 5 秒/);
+    assert.equal(h.elements['progress-stages'].children.length,2);
+    assert.equal(h.elements.quit.disabled,true);
+    assert(h.calls.every(c=>c.path==='/api/status'&&!c.options.method));
+    assert(!JSON.stringify(h.elements).includes('fixture-private-log'));
+  }
+});
+
+test('poll failure preserves evidence, retries read-only and shows the failed stage',async()=>{
+  const h=await harness();h.setFailure();await h.tick(3000);
+  assert.match(h.elements.status.textContent,/无法获取.*3 秒后重试/);
+  assert.equal(h.elements.quit.disabled,true);
+  assert.equal(h.elements['progress-title'].textContent,running.stage_label);
+  h.setJob({...running,state:'attention',message:'在安装系统依赖阶段未完成：服务器响应超时。不要重复安装。',
+    stages:[{label:running.stage_label,elapsed_seconds:65,state:'attention'}]});
+  await h.tick(3000);
+  assert.equal(h.elements.quit.disabled,false);
+  assert.match(h.elements.status.textContent,/服务器响应超时/);
+  assert.equal(h.elements['progress-stages'].children[0].dataset.state,'attention');
+  assert(h.calls.every(c=>!c.options.method));
+});
+
+test('a stalled status request times out and retries without submitting an install',async()=>{
+  const h=await harness();h.setHang();await h.tick(3000);await h.tick(15000);
+  assert.match(h.elements.status.textContent,/无法获取本地任务状态/);
+  h.setJob(running);await h.tick(3000);
+  assert.equal(h.elements['progress-title'].textContent,running.stage_label);
+  assert(h.calls.every(c=>c.path==='/api/status'));
+});
+
+test('verified completion and quit clear the delivery and progress',async()=>{
+  const h=await harness({...running,state:'done',delivery:{dashboard_url:'https://example.test/',temp_password:'test-initial-only'}});
+  assert.equal(h.elements['initial-password'].value,'test-initial-only');
+  assert.equal(h.elements.quit.disabled,false);
+  await h.elements.quit.onclick();
+  assert.equal(h.elements['initial-password'].value,'');
+  assert.equal(h.elements.delivery.hidden,true);
+  assert.equal(h.elements.progress.hidden,true);
+  assert.equal(h.calls.at(-1).path,'/api/quit');
+  assert.equal(h.timers.size,0);
+});
+
+test('a late in-flight status response cannot restore credentials after quitting',async()=>{
+  for(const ok of [true,false]) {
+    const h=await harness({...running,state:'done',delivery:{dashboard_url:'https://example.test/',temp_password:'fixture-secret'}});
+    h.holdNextStatus();await h.tick(3000);
+    await h.elements.quit.onclick();
+    h.releaseStatus(ok);await h.settle();
+    assert.equal(h.elements['initial-password'].value,'');
+    assert.equal(h.elements.delivery.hidden,true);
+    assert.equal(h.elements.progress.hidden,true);
+    assert.match(h.elements.status.textContent,/本地服务已关闭/);
+    assert.equal(h.timers.size,0);
+  }
+});

@@ -5,16 +5,19 @@ Run explicitly with: python3 tests/first_login_caddy_smoke.py
 No host data, ports, real credentials or network are used.
 """
 import base64
+import argparse
 import io
 from pathlib import Path
 import subprocess
 import tarfile
 
 ROOT = Path(__file__).resolve().parents[1]
-image = 'ownline-caddy-smoke:final'
+parser = argparse.ArgumentParser()
+parser.add_argument('--image', default='ownline-caddy-smoke:final')
+image = parser.parse_args().image
 buffer = io.BytesIO()
 with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
-    for path in [ROOT / 'server/admin.py', ROOT / 'server/reset_admin_password.py',
+    for path in [*sorted((ROOT / 'server').glob('*.py')),
                  ROOT / 'server/nodekit', ROOT / 'server/providers']:
         archive.add(path, arcname=path.relative_to(ROOT / 'server'),
                     filter=lambda info: None if '__pycache__' in info.name else info)
@@ -29,6 +32,7 @@ printf '<html>VPN-OwnLine</html>' >/opt/web/index.html
 printf '[{"name":"test","health":"ok","role":"exit","source":"builtin","host":"198.51.100.1","port":443,"uuid":"11111111-1111-4111-8111-111111111111","pbk":"PUB","sid":"abcd1234","sni":"www.example.com"}]' >/opt/web-data/nodes.json
 printf '{"sub_token":"1234567890abcdef"}' >/opt/web-data/settings.json
 printf '{}' >/opt/web-data/status.json
+chmod 700 /opt/web-data
 printf '#!/bin/sh\nexec caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile\n' >/tmp/testbin/systemctl
 chmod +x /tmp/testbin/systemctl
 export PATH="/tmp/testbin:$PATH"
@@ -44,7 +48,23 @@ Path('/opt/web-data/.initial-password-required').touch()
 INNER
 python3 /opt/web/admin.py >/tmp/admin-log 2>&1 &
 export ADMIN_PID=$!
-caddy start --config /etc/caddy/Caddyfile --adapter caddyfile >/tmp/caddy-log 2>&1
+python3 - <<'READY'
+import http.client,time
+for attempt in range(50):
+    try:
+        conn=http.client.HTTPConnection('127.0.0.1',8099,timeout=1)
+        conn.request('GET','/password/state')
+        response=conn.getresponse();response.read();conn.close()
+        if response.status==200:break
+    except OSError:
+        pass
+    time.sleep(.1)
+else:
+    from pathlib import Path
+    raise SystemExit(Path('/tmp/admin-log').read_text())
+READY
+install -d -o caddy -g caddy /tmp/caddy-home
+runuser -u caddy -- env HOME=/tmp/caddy-home caddy start --config /etc/caddy/Caddyfile --adapter caddyfile >/tmp/caddy-log 2>&1
 python3 - <<'INNER'
 import base64,concurrent.futures,http.client,json,socket,ssl
 ctx = ssl._create_unverified_context()
@@ -61,7 +81,7 @@ def call(path, password='test-old-password-only', method='GET', body=None):
     return status,location,data
 
 assert call('/',None)[0] == 401
-for path in ('/', '/api/nodes', '/api/backup', '/status.json'):
+for path in ('/', '/api/nodes', '/api/backup', '/status.json', '/api/status.json'):
     result=call(path); assert result[:2] == (303,'/change-password'), (path,result[:2])
 assert call('/change-password')[0] == 200
 assert call('/api/password/state')[0] == 200
@@ -80,6 +100,12 @@ assert results.count(200) == 1 and any(x in (401,403,409) for x in results), res
 assert call('/',password='test-old-password-only')[0] == 401
 assert call('/',password='test-new-password-only')[0] == 200
 assert call('/status.json',password='test-new-password-only')[0] == 200
+assert call('/api/status.json',password='test-new-password-only')[0] == 200
+for path in ('/status.json', '/api/status.json'):
+    assert call(path,password=None)[0] == 401
+    assert call(path,password='test-new-password-only')[0] == 200
+from pathlib import Path
+assert Path('/opt/web-data').stat().st_mode & 0o777 == 0o700
 assert call('/api/nodes',password='test-new-password-only')[0] == 200
 import importlib.util,os,signal,subprocess,time
 from pathlib import Path
@@ -96,9 +122,9 @@ assert call('/',password='test-crash-password-only')[:2] == (303,'/change-passwo
 recovery={'current':'test-crash-password-only','new':'test-recovered-password-only','confirm':'test-recovered-password-only'}
 assert call('/api/password/change',password='test-crash-password-only',method='POST',body=recovery)[0] == 200
 assert call('/',password='test-recovered-password-only')[0] == 200
-print('PASS: real Caddy gate, origin/bypass, subscription, concurrency and crash recovery')
+print('PASS: unprivileged Caddy, root-only snapshots, gate, origin, subscription and crash recovery')
 INNER
 '''.replace('PAYLOAD', payload)
-result = subprocess.run(['docker', 'run', '--rm', '-i', '--network', 'none', '--entrypoint',
+result = subprocess.run(['docker', 'run', '--rm', '--pull=never', '-i', '--network', 'none', '--entrypoint',
                          'bash', image], input=script, text=True, check=False)
 raise SystemExit(result.returncode)

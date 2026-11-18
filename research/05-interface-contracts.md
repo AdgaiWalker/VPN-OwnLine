@@ -359,3 +359,19 @@ rules:
 POST `/api/check` 接收 `host/username/ssh_port/password/private_key/passphrase/fingerprint`；首次指纹需人工核对。返回只读 `result`，满足空白首装条件时附加 `check_token`（600 秒一次性内存能力）。POST `/api/install` 接收 `{check_token,confirm:true}`，不接受替换目标，消费票据后返回 202；安装前重新检查身份与条件。单个进程只允许一个安装任务，失败不能重放。
 
 GET `/api/status` 返回 `idle/running/attention/done`。只有目标本地双协议代理出网、服务状态以及 Mac 到目标的可信 HTTPS、登录、订阅均通过，才返回 `done` 和 `delivery`（standalone dashboard_url、username、temp_password、direct_sub_url）。目标侧代理测试不代表 Mac/手机客户端网络路径已验收。未知异常返回固定安全提示，不转发安装原始日志。POST `/api/quit` 仅在非 running 时退出服务；退出丢失内存任务和交付信息，不自动恢复/重装。
+
+### 4.16 状态快照与本地安装阶段（ADR-021） `[STATUS: IMPLEMENTED]`
+
+**状态快照**：admin 新增 GET `/status.json`、`/servers.json`、`/usage.json`、`/quota.json`，以及各自的 `/api/*` 前缀。响应保持文件原有 JSON 结构与 `Cache-Control: no-store`；不存在返回 404，读取或解析失败返回 503，首次改密尚未完成返回 403。对外网关仍负责管理员认证与首次改密跳转。接口不是通用文件读取器，不开放 settings、nodes、tc 或任意路径。目录继续为 0700；新装网关的旧 JSON 路径转发 admin，新页面通过 API 读取，已有网关不自动改写。
+
+**安装消息**：使用 `--setup-stdin` 的 install.sh 在实际步骤开始前，向 stdout 写入完整行 `__OWNLINE_STAGE_V1__:<stage>\n`。远端允许的阶段依次为 `preflight/dependencies/core/deploy/address/config/tuning/firewall/gateway/services/selfcheck`。消息最长 128 字节，支持 SSH 分片；其他输出、未知阶段、缺少换行或过长行不进入用户状态。会话忽略重复或逆序阶段，不假设消息等于代理已验收。
+
+**本地 GET `/api/status`**：沿用 4.15 的会话保护及 `idle/running/attention/done`。开始后增加：
+
+```json
+{"state":"running","stage":"dependencies","stage_label":"安装系统依赖和管理网关","elapsed_seconds":83,"stage_elapsed_seconds":65,"stages":[{"code":"upload","label":"传输安装程序","elapsed_seconds":18,"state":"done"},{"code":"dependencies","label":"安装系统依赖和管理网关","elapsed_seconds":65,"state":"running"}]}
+```
+
+本地阶段还包括 `recheck/connect/upload/server_verify/delivery_verify/cleanup`。历史只含实际报告的阶段，最多 17 项；示例仅节选。耗时为本机单调时钟的非负整秒，终态冻结。`attention` 的最后阶段状态为 attention，同时返回固定安全的 `message/error_code`；SSH_TIMEOUT、SSH_UNAVAILABLE、SSH_AUTH_FAILED、HOST_KEY_CHANGED 为已知原因，其余为 INSTALL_FAILED，均不转发异常原文。只有全部验收与临时文件清理完成后返回 done 和原交付字段。失败清理不得覆盖原失败阶段。
+
+**页面等待**：状态及普通本地请求上限 15 秒，连接检查上限 90 秒；状态轮询约 3 秒，超时后提示并只读重试，不提交第二次安装。关闭服务后，已在途的状态响应不得恢复密码和交付区。页面重载继续读取同一进程的阶段历史；退出进程仍丢失内存状态，不声称支持任务重启恢复。

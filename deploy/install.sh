@@ -69,6 +69,7 @@ ok()   { printf '  \033[32m✓\033[0m %s\n' "$*"; }
 warn() { printf '  \033[33m!\033[0m %s\n' "$*"; }
 die()  { printf '\n\033[31m✗ %s\033[0m\n' "$*" >&2; exit 1; }
 run()  { if [ "$DRY_RUN" = 1 ]; then echo "  [dry-run] $*"; else "$@"; fi; }
+progress() { if [ -n "$SETUP_JOB" ]; then printf '\n__OWNLINE_STAGE_V1__:%s\n' "$1"; fi; }
 
 # Only fixed official release URLs and pinned hashes are passed here. Never
 # execute the response until it passes the independent checksum in this script.
@@ -135,6 +136,7 @@ installation_conflict() {
 # FIRST INSTALL CONFLICT CHECK END
 
 # ---------- 0. 前置检查 ----------
+progress preflight
 say "0/10 预检运行环境"
 [ "$(id -u)" = "0" ] || die "必须使用 root 权限运行: sudo $0"
 [ -d /run/systemd/system ] || die "系统缺少 systemd 支持"
@@ -190,6 +192,7 @@ ok "源码目录确认: $SRC_SERVER"
 [ "$DRY_RUN" = 1 ] && warn "当前处于 dry-run 模式：只打印，不执行实际系统变更"
 
 # ---------- 1. 系统依赖 ----------
+progress dependencies
 say "1/10 安装系统依赖 (python3 / curl / openssl / qrencode / sshpass / caddy)"
 APT_PACKAGES=(curl openssl ca-certificates python3 python3-pip gnupg debian-keyring debian-archive-keyring apt-transport-https qrencode sshpass openssh-client)
 APT_NET=(-o 'Acquire::Retries=0' -o 'Acquire::http::Timeout=10' -o 'Acquire::https::Timeout=10')
@@ -286,6 +289,7 @@ if [ "$DRY_RUN" = 0 ]; then
 fi
 
 # ---------- 2. sing-box 安装与校验 ----------
+progress core
 say "2/10 安装并校验 sing-box $SINGBOX_VERSION"
 run mkdir -p /opt/sing-box /opt/sing-box/pkg
 if [ "$DRY_RUN" = 0 ]; then
@@ -331,6 +335,7 @@ if [ "$DRY_RUN" = 0 ]; then
 fi
 
 # ---------- 3. 代码与数据目录部署 ----------
+progress deploy
 say "3/10 部署代码到 /opt/web 与 /opt/web-data"
 run mkdir -p /opt/web /opt/web-data
 run chmod 700 /opt/web-data
@@ -380,6 +385,7 @@ fi
 ok "代码与脚本部署完成"
 
 # ---------- 4. 确定公网 IP 与域名 ----------
+progress address
 say "4/10 确定公网 IP 与服务域名"
 PUB_IP=""
 if [ "$DRY_RUN" = 0 ]; then
@@ -410,6 +416,7 @@ for _label in "${_domain_labels[@]}"; do
 done
 
 # ---------- 5. 生成本机双协议出口节点 (Reality + Hysteria2) ----------
+progress config
 say "5/10 生成并校验本机出口节点配置"
 SINGBOX_BIN="/opt/sing-box/sing-box"
 
@@ -472,6 +479,7 @@ PYSEED
 fi
 
 # ---------- 6. 开启 BBR 拥塞控制 ----------
+progress tuning
 say "6/10 开启系统 BBR 拥塞控制"
 if modprobe tcp_bbr 2>/dev/null; then
   if [ "$DRY_RUN" = 0 ]; then
@@ -488,6 +496,7 @@ else
 fi
 
 # ---------- 7. 防火墙端口放行 ----------
+progress firewall
 say "7/10 本机防火墙放行端口 (80/tcp, 443/tcp, 443/udp, 8443/tcp)"
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
   run ufw allow 80/tcp >/dev/null 2>&1 || true
@@ -503,6 +512,7 @@ if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewa
 fi
 
 # ---------- 8. 写入 settings.json 与 Caddyfile ----------
+progress gateway
 say "8/10 渲染 settings.json 与 Caddyfile"
 TOKEN=""
 PANEL_PASS=""
@@ -622,8 +632,7 @@ PY
 			uri /password-gate
 		}
 		header Cache-Control "no-store"
-		root * /opt/web-data
-		file_server
+		reverse_proxy 127.0.0.1:8099
 	}
 
 	handle {
@@ -675,6 +684,7 @@ PY
 fi
 
 # ---------- 9. 启动 systemd 服务 ----------
+progress services
 say "9/10 安装并启动系统服务"
 if [ -d "$SRC_DEPLOY/systemd" ]; then
   run cp "$SRC_DEPLOY"/systemd/*.service "$SRC_DEPLOY"/systemd/*.timer /etc/systemd/system/ 2>/dev/null || true
@@ -724,6 +734,7 @@ delivery_dns_matches() {
 # DELIVERY VERIFICATION FUNCTIONS END
 
 # ---------- 10. 部署自检 ----------
+progress selfcheck
 say "10/10 部署自检"
 DELIVERY_READY=0
 if [ "$DRY_RUN" = 0 ]; then

@@ -478,6 +478,18 @@ class H(BaseHTTPRequestHandler):
         if INITIAL_PASSWORD_MARKER.exists() and not path.startswith('/s/'):
             return self._json(403, {'ok': False, 'error': '请先修改初始管理密码'})
 
+        # Caddy runs as an unprivileged user and cannot traverse DATA (0700).
+        # Serve only this fixed public snapshot set after the password gate.
+        if norm_path in ('/status.json', '/servers.json', '/usage.json', '/quota.json'):
+            try:
+                with open(os.path.join(DATA, norm_path[1:]), encoding='utf-8') as source:
+                    snapshot = json.load(source)
+            except FileNotFoundError:
+                return self._json(404, {'ok': False, 'error': '状态快照尚未生成'})
+            except (OSError, ValueError):
+                return self._json(503, {'ok': False, 'error': '状态快照暂不可用'})
+            return self._json(200, snapshot)
+
         # 订阅路由：仅放行携带合法高熵 token 的 /s/<token>[/clash|/sr]，拒绝裸 /sub 与空 token
         token = get_sub_token()
         client_ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "").split(",")[0].strip()

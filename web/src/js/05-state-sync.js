@@ -244,12 +244,16 @@
           document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
         }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
       }
-      jsonRequest("/status.json?_t=" + Date.now(), { signal: signal }).then(function (st) {
+      jsonRequest("/api/status.json?_t=" + Date.now(), { signal: signal }).then(function (st) {
         if (signal && signal.aborted) return;
         if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
         STATUS = st || {};
         paintStatus();
-      }).catch(function () {});
+      }).catch(function () {
+        if (signal && signal.aborted) return;
+        STATUS = { _unavailable: true };
+        paintStatus();
+      });
       STATE.csrfToken = setup && typeof setup.csrf_token === "string" ? setup.csrf_token : "";
       STATE.tencentConfigured = !!(settings && settings.tencent_configured === true);
       var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true) || STATE.tencentConfigured;

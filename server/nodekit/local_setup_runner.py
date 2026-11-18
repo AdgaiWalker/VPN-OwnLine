@@ -7,6 +7,7 @@ import bcrypt
 
 from .installations import InstallError, emit_bundle, verify_delivery
 from .sshcheck.transport import SSH, normalize, credentials
+from .local_setup_progress import StageReader
 
 
 VERIFY = r'''
@@ -21,9 +22,11 @@ print(json.dumps({'ok':services and len(results)>=2 and all(r.get('health')=='ok
 '''
 
 
-def install(checked, source):
+def install(checked, source, on_progress=None):
     """No SSH credentials leave process memory or enter remote command text."""
     login, identity = checked['login'], checked['identity']
+    report = on_progress or (lambda stage: None)
+    report('connect')
     ssh = SSH(normalize(login), credentials(login))
     jid = secrets.token_hex(16)
     directory = '/tmp/ownline-local-' + jid
@@ -38,7 +41,9 @@ mkdir /run/ownline-local-install.lock
         code, _, _ = ssh.run(command)
         if code:
             raise InstallError('目标身份变化或已有安装任务，未安装')
+        result = None
         try:
+            report('upload')
             stream = io.BytesIO()
             emit_bundle(source / 'server', stream)
             code, _, _ = ssh.run("umask 077; mkdir '%s' && tar xzf - -C '%s'" % (directory, directory), stream.getvalue(), timeout=120)
@@ -58,16 +63,28 @@ for s in caddy sing-box admin; do
 done
 '''
             payload = '\n'.join((jid, token, bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(), domain, identity[0])) + '\n'
+            report('preflight')
             code, _, _ = ssh.run(guard + "\nbash '%s/deploy/install.sh' --setup-stdin" % directory,
-                                  payload.encode(), timeout=1800)
+                                  payload.encode(), timeout=1800, on_stdout=StageReader(report))
             if code:
                 raise InstallError('目标安装未完成，请检查原服务器状态')
+            report('server_verify')
             if ssh.python(VERIFY, timeout=180).get('ok') is not True:
                 raise InstallError('服务端代理验收未通过')
+            report('delivery_verify')
             delivery = verify_delivery({'domain': domain, 'sub_token': token}, identity[0], password)
-            return {'verified': True, 'delivery': delivery}
+            result = {'verified': True, 'delivery': delivery}
         finally:
             # Only this invocation's staging directory and lock are removed.
-            ssh.run("rm -rf '%s'; rmdir /run/ownline-local-install.lock" % directory, timeout=20)
+            if result is not None:
+                report('cleanup')
+            try:
+                code, _, _ = ssh.run("rm -rf '%s'; rmdir /run/ownline-local-install.lock" % directory, timeout=20)
+                if code:
+                    raise InstallError('临时安装文件清理未完成')
+            except Exception:
+                if result is not None:
+                    raise
+        return result
     finally:
         ssh.close()

@@ -158,7 +158,7 @@ class SSH:
     def close(self):
         self.client.close()
 
-    def run(self, command, data=b"", timeout=30):
+    def run(self, command, data=b"", timeout=30, on_stdout=None):
         channel = self.client.get_transport().open_session(timeout=10)
         channel.settimeout(1)
         try:
@@ -170,7 +170,10 @@ class SSH:
             deadline = time.monotonic() + timeout
             while True:
                 if channel.recv_ready():
-                    out.extend(channel.recv(65536))
+                    chunk = channel.recv(65536)
+                    out.extend(chunk)
+                    if on_stdout is not None:
+                        on_stdout(chunk)
                 if channel.recv_stderr_ready():
                     err.extend(channel.recv_stderr(65536))
                 if len(out) + len(err) > 2_000_000:

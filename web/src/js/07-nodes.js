@@ -33,7 +33,7 @@
         if (s) s.textContent = zh ? "国内直连不通 · 疑似被墙" : "Blocked in China";
         return;
       }
-      var isHealthy = (st && st.ok === true) || n.health === "ok";
+      var isHealthy = (st && st.ok === true) || (!STATUS._unavailable && n.health === "ok");
       if (isHealthy) {
         okCount++;
         if (d) d.className = "dot ok";
@@ -63,7 +63,7 @@
         if (s) s.innerHTML = pingHtml + exitNotice;
         return;
       }
-      var h = n.health;
+      var h = STATUS._unavailable ? "unknown" : n.health;
       if (h && h !== "unknown") {
         badCount++;
         if (d) d.className = "dot bad";
@@ -79,15 +79,19 @@
       if (total === 0) {
         pill.className = "pill-preview";
         pillText.textContent = zh ? "未连接节点" : "No Nodes Connected";
+      } else if (STATUS._unavailable) {
+        pill.className = "pill-preview warn";
+        pillText.textContent = zh ? "探活数据不可用 · 可手动测速" : "Probe data unavailable · Run Speedtest";
       } else if (badCount > 0) {
         pill.className = "pill-preview warn";
         pillText.textContent = zh ? (badCount + " 个节点异常") : (badCount + (badCount > 1 ? " Nodes Degraded" : " Node Degraded"));
-      } else if (okCount > 0) {
+      } else if (okCount === total) {
         pill.className = "pill-preview ok";
         pillText.textContent = zh ? "运行正常" : "All Nodes Operational";
       } else {
         pill.className = "pill-preview";
-        pillText.textContent = zh ? "检测中..." : "Checking…";
+        var unknownCount = total - okCount;
+        pillText.textContent = zh ? (unknownCount + " 个节点待验证") : (unknownCount + " Nodes Unverified");
       }
     }
     if (typeof updateContextualAwakening === "function") {
@@ -889,7 +893,7 @@
         add(false, "订阅拉取失败", "订阅令牌已撤销或管理端离线");
       }));
     }
-    tasks.push(jsonRequest("/status.json").then(function (s) {
+    tasks.push(jsonRequest("/api/status.json").then(function (s) {
       NODES.forEach(function (n) {
         var st = s[n.name];
         var isHealthy = !!(st && st.ok && st.cn_ok !== false && (n.health === "ok" || !n.health));
@@ -943,7 +947,7 @@
     if (btn) { btn.textContent = "正在生成..."; btn.disabled = true; }
     Promise.all([
       jsonRequest("/api/nodes").catch(function () { return []; }),
-      jsonRequest("/status.json").catch(function () { return {}; }),
+      jsonRequest("/api/status.json").catch(function () { return {}; }),
       jsonRequest("/api/logs?limit=30").catch(function () { return {logs: []}; })
     ]).then(function (res) {
       var ns = res[0] || [], st = res[1] || {}, lg = (res[2] && res[2].logs) || [];
@@ -1451,7 +1455,7 @@
       paintStatus();
       if (btn) btn.classList.remove("refreshing");
     }).catch(function () {
-      jsonRequest("/status.json?_t=" + Date.now()).then(function (st) {
+      jsonRequest("/api/status.json?_t=" + Date.now()).then(function (st) {
         STATUS = st || {};
         paintStatus();
         if (btn) btn.classList.remove("refreshing");

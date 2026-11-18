@@ -11,6 +11,7 @@
 <label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
 <button id="check" type="submit">连接检查</button></form>
 <section id="confirmation" hidden><h2>服务器检查通过</h2><p id="target"></p><label class="consent"><input id="consent" type="checkbox">确认在这台空白服务器上安装代理服务和独立管理后台</label><button id="install" disabled>开始安装</button></section>
+<section id="progress" hidden aria-labelledby="progress-title"><h2 id="progress-title">安装进度</h2><p id="progress-time"></p><p>以下阶段来自实际安装任务；等待时间不代表完成比例。请保持 Mac 和启动窗口运行。</p><ol id="progress-stages"></ol></section>
 <section id="delivery" hidden><h2>安装与服务端验收通过</h2><p>Mac 已验证管理入口的 HTTPS、登录和订阅；目标服务器已验证代理出网。手机或桌面客户端导入仍需你实际确认。</p><p><a id="dashboard" target="_blank" rel="noreferrer">打开管理后台</a></p><p>账号：admin</p><label>初始密码<input id="initial-password" type="password" readonly></label><button id="reveal">显示 / 隐藏初始密码</button><p>请保存密码并在管理后台完成首次改密。关闭本地服务后，本页交付信息会失效。</p></section>
 <p id="status" role="status" aria-live="polite">准备连接。安装期间请保持启动窗口运行。</p>
 <footer><button id="quit" type="button">关闭本地服务</button></footer></main><script>/* {{SCRIPT}} */</script></body></html>

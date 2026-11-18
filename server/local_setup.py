@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def create_server(port=0, session=None):
-    session = session or LocalSetupSession(check, lambda checked: install(checked, ROOT))
+    session = session or LocalSetupSession(check, lambda checked, report: install(checked, ROOT, on_progress=report))
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):

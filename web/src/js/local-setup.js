@@ -5,10 +5,33 @@
   const status = text => { $('status').textContent = text; };
   async function request(path, body) {
     const options = body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'};
-    const response = await fetch(path, options);
-    const data = await response.json();
-    if (!response.ok) { const error = new Error(data.message || '操作未完成。'); error.data = data; throw error; }
-    return data;
+    const controller = new AbortController();
+    options.signal = controller.signal;
+    const timeout = setTimeout(() => controller.abort(), path === '/api/check' ? 90000 : 15000);
+    try {
+      const response = await fetch(path, options);
+      const data = await response.json();
+      if (!response.ok) { const error = new Error(data.message || '操作未完成。'); error.data = data; throw error; }
+      return data;
+    } finally { clearTimeout(timeout); }
+  }
+  function duration(seconds) {
+    const value = Math.max(0, Math.floor(Number(seconds) || 0));
+    return value >= 60 ? `${Math.floor(value / 60)} 分 ${value % 60} 秒` : `${value} 秒`;
+  }
+  function renderProgress(job) {
+    if (!job.stage) return;
+    $('progress').hidden = false;
+    $('progress-title').textContent = job.state === 'running' ? job.stage_label : (job.state === 'done' ? '安装阶段已完成' : '安装需要检查');
+    $('progress-time').textContent = `总耗时 ${duration(job.elapsed_seconds)} · 当前阶段 ${duration(job.stage_elapsed_seconds)}`;
+    const rows = (job.stages || []).map(step => {
+      const row = document.createElement('li');
+      row.dataset.state = step.state;
+      const state = step.state === 'done' ? '已完成' : (step.state === 'attention' ? '未完成' : '进行中');
+      row.textContent = `${step.label} · ${state} · ${duration(step.elapsed_seconds)}`;
+      return row;
+    });
+    $('progress-stages').replaceChildren(...rows);
   }
   function clearSecrets() { for (const name of ['password','private_key','passphrase']) $('connection').elements[name].value = ''; }
   function invalidate() { ticket = ''; $('confirmation').hidden = true; $('consent').checked = false; $('install').disabled = true; }
@@ -47,13 +70,15 @@
     if (timer) clearTimeout(timer);
     try {
       const job = await request('/api/status');
-      if (job.state === 'running') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = true; status('正在安装和验收，可能需要数分钟。请保持 Mac 和启动窗口运行。'); }
+      if (stopped) return;
+      renderProgress(job);
+      if (job.state === 'running') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = true; status(`正在${job.stage_label || '安装和验收'}。状态每 3 秒更新，请勿重复安装。`); }
       if (job.state === 'done') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = false; $('delivery').hidden = false; const url = new URL(job.delivery.dashboard_url); if (url.protocol !== 'https:') throw new Error('交付地址无效'); $('dashboard').href = url.href; $('initial-password').value = job.delivery.temp_password; status('安装与服务端验收通过。'); }
       if (job.state === 'attention') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = false; status(job.message); }
-    } catch (_) { status('无法获取本地任务状态。请检查启动窗口，安装可能仍在运行，不要重复安装。'); }
+    } catch (_) { if (stopped) return; status('无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。'); }
     if (!stopped) timer = setTimeout(poll, 3000);
   }
   $('reveal').onclick = () => { $('initial-password').type = $('initial-password').type === 'password' ? 'text' : 'password'; };
-  $('quit').onclick = async () => { try { await request('/api/quit', {}); stopped = true; clearTimeout(timer); clearSecrets(); $('initial-password').value = ''; $('delivery').hidden = true; status('本地服务已关闭，可以关闭此页面和启动窗口。'); } catch (error) { status(error.message); } };
+  $('quit').onclick = async () => { try { await request('/api/quit', {}); stopped = true; clearTimeout(timer); clearSecrets(); $('initial-password').value = ''; $('delivery').hidden = true; $('progress').hidden = true; status('本地服务已关闭，可以关闭此页面和启动窗口。'); } catch (error) { status(error.message); } };
   poll();
 })();
