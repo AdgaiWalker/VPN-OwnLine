@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 function element() {
-  return {hidden:false,disabled:false,value:'',textContent:'',type:'password',dataset:{},
+  return {hidden:false,open:false,disabled:false,value:'',textContent:'',type:'password',dataset:{},
     children:[],addEventListener(){},replaceChildren(...rows){this.children=rows;}};
 }
 const running = {state:'running',stage:'dependencies',stage_label:'安装系统依赖和管理网关',elapsed_seconds:83,
@@ -12,7 +12,10 @@ const running = {state:'running',stage:'dependencies',stage_label:'安装系统�
     {code:'dependencies',label:'安装系统依赖和管理网关',elapsed_seconds:65,state:'running'}],log:['fixture-private-log']};
 
 async function harness(job = running) {
-  const elements = Object.fromEntries([...fs.readFileSync('web/src/html/local-setup.html','utf8').matchAll(/id="([^"]+)"/g)].map(m=>[m[1],element()]));
+  const html = fs.readFileSync('web/src/html/local-setup.html','utf8');
+  const elements = Object.fromEntries([...html.matchAll(/<[^>]+id="([^"]+)"[^>]*>/g)].map(m=>[
+    m[1], {...element(),hidden:/\bhidden\b/.test(m[0]),open:/\bopen\b/.test(m[0])}
+  ]));
   elements.connection.elements=Object.fromEntries(['password','private_key','passphrase'].map(k=>[k,element()]));
   const timers=new Map(), calls=[];let id=0, current=job, fail=false, hang=false, hold=false, release;
   const context={AbortController,URL,document:{getElementById:k=>elements[k],createElement:element},
@@ -38,10 +41,27 @@ test('reload resumes the same actual stage and elapsed time using GET only',asyn
     assert.match(h.elements['progress-time'].textContent,/1 分 23 秒/);
     assert.match(h.elements['progress-time'].textContent,/1 分 5 秒/);
     assert.equal(h.elements['progress-stages'].children.length,2);
+    assert.equal(h.elements['progress-details'].open,false);
     assert.equal(h.elements.quit.disabled,true);
     assert(h.calls.every(c=>c.path==='/api/status'&&!c.options.method));
     assert(!JSON.stringify(h.elements).includes('fixture-private-log'));
   }
+});
+
+test('idle keeps requirements collapsed and shows no install history while still polling',async()=>{
+  const h=await harness({state:'idle'});
+  assert.equal(h.elements['connection-intro'].hidden,false);
+  assert.equal(h.elements.progress.hidden,true);
+  assert.equal(h.elements['progress-details'].hidden,true);
+  assert.equal(h.elements.status.textContent,'');
+  h.setJob(running);
+  await h.tick(3000);
+  assert.equal(h.elements['connection-intro'].hidden,true);
+  assert.equal(h.elements['progress-details'].hidden,false);
+  assert.equal(h.elements['progress-details'].open,false);
+  h.elements['progress-details'].open=true;
+  await h.tick(3000);
+  assert.equal(h.elements['progress-details'].open,true);
 });
 
 test('poll failure preserves evidence, retries read-only and shows the failed stage',async()=>{
@@ -54,6 +74,8 @@ test('poll failure preserves evidence, retries read-only and shows the failed st
   await h.tick(3000);
   assert.equal(h.elements.quit.disabled,false);
   assert.match(h.elements.status.textContent,/服务器响应超时/);
+  assert.equal(h.elements['progress-keep-open'].hidden,true);
+  assert.equal(h.elements['progress-details'].open,false);
   assert.equal(h.elements['progress-stages'].children[0].dataset.state,'attention');
   assert(h.calls.every(c=>!c.options.method));
 });
@@ -70,10 +92,14 @@ test('verified completion and quit clear the delivery and progress',async()=>{
   const h=await harness({...running,state:'done',delivery:{dashboard_url:'https://example.test/',temp_password:'test-initial-only'}});
   assert.equal(h.elements['initial-password'].value,'test-initial-only');
   assert.equal(h.elements.quit.disabled,false);
+  assert.equal(h.elements.progress.hidden,true);
+  assert.equal(h.elements['progress-details'].hidden,false);
+  assert.match(h.elements['progress-summary'].textContent,/总耗时/);
   await h.elements.quit.onclick();
   assert.equal(h.elements['initial-password'].value,'');
   assert.equal(h.elements.delivery.hidden,true);
   assert.equal(h.elements.progress.hidden,true);
+  assert.equal(h.elements['progress-details'].hidden,true);
   assert.equal(h.calls.at(-1).path,'/api/quit');
   assert.equal(h.timers.size,0);
 });

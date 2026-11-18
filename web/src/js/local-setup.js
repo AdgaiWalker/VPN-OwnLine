@@ -2,7 +2,10 @@
 (() => {
   const $ = id => document.getElementById(id);
   let ticket = '', busy = false, timer = null, stopped = false;
-  const status = text => { $('status').textContent = text; };
+  const status = text => {
+    const element = $('status');
+    if (element.textContent !== text) element.textContent = text;
+  };
   async function request(path, body) {
     const options = body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'};
     const controller = new AbortController();
@@ -20,10 +23,16 @@
     return value >= 60 ? `${Math.floor(value / 60)} 分 ${value % 60} 秒` : `${value} 秒`;
   }
   function renderProgress(job) {
-    if (!job.stage) return;
-    $('progress').hidden = false;
-    $('progress-title').textContent = job.state === 'running' ? job.stage_label : (job.state === 'done' ? '安装阶段已完成' : '安装需要检查');
-    $('progress-time').textContent = `总耗时 ${duration(job.elapsed_seconds)} · 当前阶段 ${duration(job.stage_elapsed_seconds)}`;
+    const running = job.state === 'running';
+    const done = job.state === 'done';
+    $('progress').hidden = done;
+    $('progress-keep-open').hidden = !running;
+    const title = running ? job.stage_label || '正在安装' : '安装需要检查';
+    if ($('progress-title').textContent !== title) $('progress-title').textContent = title;
+    $('progress-time').textContent = job.stage
+      ? `总耗时 ${duration(job.elapsed_seconds)} · ${running ? '当前阶段' : '失败阶段'} ${duration(job.stage_elapsed_seconds)}`
+      : '';
+    $('progress-summary').textContent = done ? `查看安装记录 · 总耗时 ${duration(job.elapsed_seconds)}` : '查看安装记录';
     const rows = (job.stages || []).map(step => {
       const row = document.createElement('li');
       row.dataset.state = step.state;
@@ -31,6 +40,7 @@
       row.textContent = `${step.label} · ${state} · ${duration(step.elapsed_seconds)}`;
       return row;
     });
+    $('progress-details').hidden = rows.length === 0;
     $('progress-stages').replaceChildren(...rows);
   }
   function clearSecrets() { for (const name of ['password','private_key','passphrase']) $('connection').elements[name].value = ''; }
@@ -71,14 +81,38 @@
     try {
       const job = await request('/api/status');
       if (stopped) return;
+      if (job.state === 'idle') return;
+      $('connection-intro').hidden = true;
+      $('connection').hidden = $('confirmation').hidden = true;
       renderProgress(job);
-      if (job.state === 'running') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = true; status(`正在${job.stage_label || '安装和验收'}。状态每 3 秒更新，请勿重复安装。`); }
-      if (job.state === 'done') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = false; $('delivery').hidden = false; const url = new URL(job.delivery.dashboard_url); if (url.protocol !== 'https:') throw new Error('交付地址无效'); $('dashboard').href = url.href; $('initial-password').value = job.delivery.temp_password; status('安装与服务端验收通过。'); }
-      if (job.state === 'attention') { $('connection').hidden = $('confirmation').hidden = true; $('quit').disabled = false; status(job.message); }
-    } catch (_) { if (stopped) return; status('无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。'); }
-    if (!stopped) timer = setTimeout(poll, 3000);
+      $('quit').disabled = job.state === 'running';
+      if (job.state === 'done') {
+        const url = new URL(job.delivery.dashboard_url);
+        if (url.protocol !== 'https:') throw new Error('交付地址无效');
+        $('dashboard').href = url.href;
+        $('initial-password').value = job.delivery.temp_password;
+        $('delivery').hidden = false;
+      }
+      status(job.state === 'attention' ? job.message : '');
+    } catch (_) {
+      if (!stopped) status('无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。');
+    } finally {
+      if (!stopped) timer = setTimeout(poll, 3000);
+    }
   }
   $('reveal').onclick = () => { $('initial-password').type = $('initial-password').type === 'password' ? 'text' : 'password'; };
-  $('quit').onclick = async () => { try { await request('/api/quit', {}); stopped = true; clearTimeout(timer); clearSecrets(); $('initial-password').value = ''; $('delivery').hidden = true; $('progress').hidden = true; status('本地服务已关闭，可以关闭此页面和启动窗口。'); } catch (error) { status(error.message); } };
+  $('quit').onclick = async () => {
+    try {
+      await request('/api/quit', {});
+      stopped = true;
+      clearTimeout(timer);
+      clearSecrets();
+      $('initial-password').value = '';
+      for (const id of ['connection-intro', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'quit']) {
+        $(id).hidden = true;
+      }
+      status('本地服务已关闭，可以关闭此页面和启动窗口。');
+    } catch (error) { status(error.message); }
+  };
   poll();
 })();
