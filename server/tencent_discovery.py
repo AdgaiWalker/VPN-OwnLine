@@ -1,10 +1,19 @@
-"""Read-only, one-shot Lighthouse discovery; credentials are never persisted."""
+"""Read-only, one-shot Tencent Cloud discovery. Credentials stay in memory."""
 
 import ipaddress
 import re
+import time
 from concurrent.futures import ThreadPoolExecutor
 
-from providers import tc3
+if __package__:
+    from .providers import tc3
+else:
+    from providers import tc3
+
+PRODUCTS = {
+    "lighthouse": ("轻量应用服务器", "PublicAddresses"),
+    "cvm": ("云服务器 CVM", "PublicIpAddresses"),
+}
 
 class Problem(Exception):
     def __init__(self, code, message, status=400):
@@ -12,9 +21,9 @@ class Problem(Exception):
         self.code, self.message, self.status = code, message, status
 
 
-def _response(action, payload, secret_id, secret_key, region):
+def _response(action, payload, secret_id, secret_key, region, **options):
     try:
-        response = tc3.call(action, payload, secret_id, secret_key, region)["Response"]
+        response = tc3.call(action, payload, secret_id, secret_key, region, **options)["Response"]
         if not isinstance(response, dict):
             raise ValueError("invalid response")
         if "Error" in response:
@@ -36,7 +45,7 @@ def _response(action, payload, secret_id, secret_key, region):
         ) from None
 
 
-def discover(secret_id, secret_key):
+def _credentials(secret_id, secret_key):
     if not isinstance(secret_id, str) or not isinstance(secret_key, str):
         raise Problem(
             "TENCENT_CREDENTIALS_REQUIRED", "请输入腾讯云 SecretId 和 SecretKey。"
@@ -46,7 +55,29 @@ def discover(secret_id, secret_key):
         raise Problem(
             "TENCENT_CREDENTIALS_REQUIRED", "请输入有效的腾讯云 SecretId 和 SecretKey。"
         )
-    response = _response("DescribeRegions", {}, secret_id, secret_key, "ap-singapore")
+    return secret_id, secret_key
+
+
+def discover(secret_id, secret_key, *, product="lighthouse", deadline=None):
+    """The existing two-argument entry point still queries Lighthouse."""
+    secret_id, secret_key = _credentials(secret_id, secret_key)
+    _, address_field = PRODUCTS[product]
+
+    def query(action, payload, region, service):
+        options = {} if service == "lighthouse" and deadline is None else {
+            "service": service, "direct": deadline is not None,
+        }
+        return _response(action, payload, secret_id, secret_key, region, **options)
+
+    if product == "cvm":
+        try:
+            response = query("DescribeRegions", {"Product": "cvm"}, None, "region")
+        except Problem:
+            if deadline is not None and time.monotonic() >= deadline:
+                raise
+            response = query("DescribeRegions", {}, None, "cvm")
+    else:
+        response = query("DescribeRegions", {}, "ap-singapore", product)
     entries = response.get("RegionSet")
     if not isinstance(entries, list) or len(entries) > 64:
         raise Problem(
@@ -70,12 +101,13 @@ def discover(secret_id, secret_key):
         found = []
         try:
             for page in range(20):
-                body = _response(
+                if deadline is not None and time.monotonic() >= deadline:
+                    return found, label
+                body = query(
                     "DescribeInstances",
                     {"Limit": 50, "Offset": page * 50},
-                    secret_id,
-                    secret_key,
                     region,
+                    product,
                 )
                 instances = body.get("InstanceSet")
                 if not isinstance(instances, list):
@@ -83,7 +115,7 @@ def discover(secret_id, secret_key):
                 for instance in instances:
                     if not isinstance(instance, dict):
                         raise ValueError("invalid instance")
-                    ips = instance.get("PublicAddresses") or []
+                    ips = instance.get(address_field) or []
                     if not isinstance(ips, list):
                         raise ValueError("invalid addresses")
                     address = ""
@@ -116,14 +148,15 @@ def discover(secret_id, secret_key):
                             "firewall_ready": True,
                         }
                     )
-                if len(instances) < 50:
+                total = body.get("TotalCount")
+                if not instances or (type(total) is int and page * 50 + len(instances) >= total) or len(instances) < 50:
                     return found, None
             return (
                 found,
                 label,
             )  # A hard limit must never be presented as a complete list.
         except (Problem, TypeError, ValueError):
-            return [], label
+            return (found if deadline is not None else []), label
 
     with ThreadPoolExecutor(max_workers=6) as pool:
         results = list(pool.map(region_instances, regions))
@@ -135,4 +168,32 @@ def discover(secret_id, secret_key):
         "instances": servers,
         "incomplete_regions": failed,
     }
+
+
+def discover_for_local_setup(secret_id, secret_key):
+    """Combine the supported product lists and keep successful partial results."""
+    secret_id, secret_key = _credentials(secret_id, secret_key)
+    deadline = time.monotonic() + 60
+    instances, incomplete, errors = [], [], []
+    with ThreadPoolExecutor(max_workers=len(PRODUCTS)) as pool:
+        jobs = {product: pool.submit(discover, secret_id, secret_key, product=product, deadline=deadline)
+                for product in PRODUCTS}
+        for product, job in jobs.items():
+            label, _ = PRODUCTS[product]
+            try:
+                result = job.result()
+            except Problem as error:
+                errors.append(error)
+                incomplete.append(label)
+                continue
+            incomplete.extend(f"{label} · {region}" for region in result["incomplete_regions"])
+            for item in result["instances"]:
+                if item["ip"]:
+                    instances.append({key: item[key] for key in ("id", "name", "ip", "region", "os", "state")}
+                                     | {"product": label})
+    if len(errors) == len(PRODUCTS):
+        if all(error.code == "TENCENT_AUTH_FAILED" for error in errors):
+            raise errors[0]
+        raise Problem("TENCENT_UNAVAILABLE", "无法读取腾讯云实例，请检查网络和只读权限后重试。", 502)
+    return {"instances": instances, "incomplete_regions": incomplete}
 

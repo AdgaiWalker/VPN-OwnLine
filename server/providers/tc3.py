@@ -7,30 +7,47 @@ HOST = "lighthouse.tencentcloudapi.com"
 SERVICE = "lighthouse"
 VERSION = "2020-03-24"
 REGIONS = {"ap-singapore": "新加坡", "na-siliconvalley": "硅谷"}
+API_SERVICES = {
+    SERVICE: (HOST, VERSION),
+    "cvm": ("cvm.tencentcloudapi.com", "2017-03-12"),
+    "region": ("region.tencentcloudapi.com", "2022-06-27"),
+}
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 def _sign(k, msg):
     return hmac.new(k, msg.encode(), hashlib.sha256).digest()
 
-def call(action, payload, secret_id, secret_key, region):
+def call(action, payload, secret_id, secret_key, region, *, service=SERVICE, direct=False):
+    host, version = API_SERVICES[service]
     body = json.dumps(payload, separators=(",", ":"))
     ts = int(time.time())
     date = time.strftime("%Y-%m-%d", time.gmtime(ts))
     ct = "application/json; charset=utf-8"
-    canonical = "POST\n/\n\ncontent-type:%s\nhost:%s\n\ncontent-type;host\n%s" % (ct, HOST, hashlib.sha256(body.encode()).hexdigest())
-    scope = "%s/%s/tc3_request" % (date, SERVICE)
+    canonical = "POST\n/\n\ncontent-type:%s\nhost:%s\n\ncontent-type;host\n%s" % (ct, host, hashlib.sha256(body.encode()).hexdigest())
+    scope = "%s/%s/tc3_request" % (date, service)
     sts = "TC3-HMAC-SHA256\n%d\n%s\n%s" % (ts, scope, hashlib.sha256(canonical.encode()).hexdigest())
     kd = _sign(("TC3" + secret_key).encode(), date)
-    ks = _sign(kd, SERVICE)
+    ks = _sign(kd, service)
     kg = _sign(ks, "tc3_request")
     sig = hmac.new(kg, sts.encode(), hashlib.sha256).hexdigest()
     auth = "TC3-HMAC-SHA256 Credential=%s/%s, SignedHeaders=content-type;host, Signature=%s" % (secret_id, scope, sig)
     req = urllib.request.Request(
-        "https://" + HOST, data=body.encode(),
-        headers={"Authorization": auth, "Content-Type": ct, "Host": HOST,
-                 "X-TC-Action": action, "X-TC-Version": VERSION, "X-TC-Region": region,
+        "https://" + host, data=body.encode(),
+        headers={"Authorization": auth, "Content-Type": ct, "Host": host,
+                 "X-TC-Action": action, "X-TC-Version": version,
                  "X-TC-Timestamp": str(ts)},
         method="POST")
-    with urllib.request.urlopen(req, timeout=20) as r:
+    if region:
+        req.add_header("X-TC-Region", region)
+    open_request = urllib.request.urlopen
+    if direct:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), NoRedirect())
+        open_request = opener.open
+    with open_request(req, timeout=20) as r:
         return json.loads(r.read().decode())
 
 def main():

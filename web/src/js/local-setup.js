@@ -3,6 +3,7 @@
   const $ = id => document.getElementById(id);
   let ticket = '', busy = false, timer = null, stopped = false;
   let readingStatus = false, jobStarted = false;
+  let sshAuth = 'password';
   const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
   const status = text => {
     const element = $('status');
@@ -12,7 +13,8 @@
     const options = body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'};
     const controller = new AbortController();
     options.signal = controller.signal;
-    const timeout = setTimeout(() => controller.abort(), path === '/api/check' ? 90000 : 15000);
+    const timeout = setTimeout(() => controller.abort(),
+      path === '/api/check' || path === '/api/tencent/instances' ? 90000 : 15000);
     try {
       const response = await fetch(path, options);
       const data = await response.json();
@@ -55,17 +57,110 @@
   }
   $('connection').addEventListener('input', invalidate);
   $('ssh-options').addEventListener('invalid', () => { $('ssh-options').open = true; }, true);
-  $('auth').onchange = () => {
-    clearSecrets();
-    invalidate();
-    const useKey = $('auth').value === 'private_key';
+  function showSSHCredentials() {
+    const useKey = sshAuth === 'private_key';
     const fields = $('connection').elements;
+    $('auth').value = sshAuth;
     $('password-label').hidden = useKey;
     $('key-label').hidden = $('phrase-label').hidden = !useKey;
     fields.password.disabled = fields.private_key.required = useKey;
     fields.password.required = fields.private_key.disabled = fields.passphrase.disabled = !useKey;
-    (useKey ? fields.private_key : fields.password).focus();
+    return useKey ? fields.private_key : fields.password;
+  }
+  function clearTencentKeys() {
+    $('tencent-secret-id').value = $('tencent-secret-key').value = '';
+  }
+  function resetTencentResults() {
+    $('tencent-credentials').hidden = false;
+    $('tencent-results').hidden = $('tencent-retry').hidden = true;
+    $('tencent-instances').replaceChildren();
+  }
+  function leaveTencent() {
+    clearTencentKeys();
+    resetTencentResults();
+    $('tencent').hidden = true;
+  }
+  function returnToSSH() {
+    leaveTencent();
+    $('connection-intro').hidden = $('connection').hidden = false;
+    return showSSHCredentials();
+  }
+  $('auth').onchange = () => {
+    clearSecrets();
+    invalidate();
+    if ($('auth').value === 'tencent') {
+      $('connection-intro').hidden = $('connection').hidden = true;
+      $('tencent').hidden = false;
+      status('');
+      $('tencent-title').focus();
+      return;
+    }
+    sshAuth = $('auth').value;
+    showSSHCredentials().focus();
   };
+  $('tencent-back').onclick = () => {
+    if (busy || jobStarted || stopped) return;
+    returnToSSH();
+    status('');
+    $('connection').elements.host.focus();
+  };
+  $('tencent-retry').onclick = () => {
+    resetTencentResults();
+    status('');
+    $('tencent-secret-id').focus();
+  };
+  $('tencent-credentials').onsubmit = async event => {
+    event.preventDefault();
+    if (busy || jobStarted || stopped) return;
+    const credentials = Object.fromEntries(new FormData($('tencent-credentials')));
+    clearTencentKeys();
+    busy = true;
+    $('tencent-fields').disabled = $('tencent-back').disabled = $('quit').disabled = true;
+    status('正在读取腾讯云实例…');
+    try {
+      const data = await request('/api/tencent/instances', credentials);
+      if (jobStarted || stopped) return;
+      const instances = data.instances || [];
+      const incomplete = data.incomplete_regions && data.incomplete_regions.length > 0;
+      if (!instances.length) {
+        status(incomplete
+          ? '部分实例未能读取。请检查腾讯云只读权限，或手动填写地址。'
+          : '未找到有公网 IPv4 的实例。请检查实例网络，或手动填写地址。');
+        return;
+      }
+      const rows = instances.map(instance => {
+        const row = document.createElement('li');
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'secondary';
+        button.textContent = `${instance.name} · ${instance.ip} · ${instance.region} · ${instance.product}`;
+        button.onclick = () => selectTencentInstance(instance.ip);
+        row.appendChild(button);
+        return row;
+      });
+      $('tencent-instances').replaceChildren(...rows);
+      $('tencent-credentials').hidden = true;
+      $('tencent-results').hidden = $('tencent-retry').hidden = false;
+      status(incomplete ? '部分实例未能读取。可以选择已读取的实例，或检查权限后重新读取。' : '');
+      $('tencent-results-title').focus();
+    } catch (error) {
+      if (!jobStarted && !stopped) status(error.data ? error.message : '读取实例超时或连接中断。请重试，或手动填写地址。');
+    } finally {
+      credentials.secret_id = credentials.secret_key = '';
+      busy = false;
+      $('tencent-fields').disabled = $('tencent-back').disabled = false;
+      if (!jobStarted && !stopped) $('quit').disabled = false;
+    }
+  };
+  function selectTencentInstance(address) {
+    if (!address || busy || jobStarted || stopped) return;
+    clearSecrets();
+    const credentialField = returnToSSH();
+    $('connection').elements.host.value = address;
+    invalidate();
+    status('已填入腾讯云实例地址。请提供服务器的 SSH 登录凭据。');
+    credentialField.focus();
+  }
   $('connection').onsubmit = async event => {
     event.preventDefault();
     if (busy || jobStarted || stopped) return;
@@ -135,6 +230,7 @@
   };
   function renderJob(job) {
     jobStarted = true;
+    if (!$('tencent').hidden) leaveTencent();
     $('connection-intro').hidden = $('connection').hidden = $('confirmation').hidden = true;
     renderProgress(job);
     $('quit').disabled = job.state === 'running' || busy;
@@ -173,6 +269,7 @@
       stopped = true;
       clearTimeout(timer);
       clearSecrets();
+      leaveTencent();
       $('initial-password').value = '';
       for (const id of ['connection-intro', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'quit']) {
         $(id).hidden = true;

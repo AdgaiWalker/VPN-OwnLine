@@ -5,7 +5,8 @@ const vm = require('node:vm');
 
 function element() {
   return {hidden:false,open:false,disabled:false,value:'',textContent:'',type:'password',dataset:{},
-    children:[],events:{},addEventListener(name,handler){this.events[name]=handler;},focus(){this.focused=true;},replaceChildren(...rows){this.children=rows;}};
+    children:[],events:{},addEventListener(name,handler){this.events[name]=handler;},focus(){this.focused=true;},
+    appendChild(child){this.children.push(child);},replaceChildren(...rows){this.children=rows;}};
 }
 const running = {state:'running',stage:'dependencies',stage_label:'安装系统依赖和管理网关',elapsed_seconds:83,
   stage_elapsed_seconds:65,stages:[{code:'upload',label:'传输安装程序',elapsed_seconds:18,state:'done'},
@@ -20,6 +21,9 @@ async function harness(job = running, responses = {}) {
     host:'198.51.100.2',username:'root',ssh_port:'22',password:'local-fixture',private_key:'',passphrase:''
   }).map(([k,value])=>[k,{...element(),value,disabled:['private_key','passphrase'].includes(k)}]));
   elements.auth.value='password';
+  elements['tencent-credentials'].elements={
+    secret_id:elements['tencent-secret-id'],secret_key:elements['tencent-secret-key']
+  };
   const timers=new Map(), calls=[];let id=0, current=job, fail=false, hang=false, hold=false, release;
   const context={AbortController,URL,FormData:function(form) {
     return Object.entries(form.elements).filter(([,field])=>!field.disabled).map(([k,field])=>[k,field.value]);
@@ -95,6 +99,50 @@ test('switching to key login removes the password field from the request',async(
   assert.equal(body.private_key,'key-fixture');
   assert.equal(body.passphrase,'passphrase-fixture');
   assert.equal(fields.passphrase.value,'');
+});
+
+test('Tencent lookup clears keys and selection fills only the SSH address',async()=>{
+  const h=await harness({state:'idle'},{
+    '/api/tencent/instances':()=>({instances:[{name:'<b>fixture</b>',ip:'8.8.8.8',region:'东京',product:'云服务器 CVM'}],
+      incomplete_regions:['轻量应用服务器']}),
+    '/api/check':()=>checked,
+  });
+  h.elements.auth.value='tencent';
+  h.elements.auth.onchange();
+  assert.equal(h.elements.connection.hidden,true);
+  assert.equal(h.elements.tencent.hidden,false);
+  h.elements['tencent-secret-id'].value='fixture-id';
+  h.elements['tencent-secret-key'].value='fixture-key';
+  await h.elements['tencent-credentials'].onsubmit(submit);
+  assert.equal(h.elements['tencent-secret-id'].value,'');
+  assert.equal(h.elements['tencent-secret-key'].value,'');
+  assert.equal(h.elements['tencent-credentials'].hidden,true);
+  assert.match(h.elements.status.textContent,/部分实例未能读取/);
+  const choice=h.elements['tencent-instances'].children[0].children[0];
+  assert.match(choice.textContent,/<b>fixture<\/b>/);
+  choice.onclick();
+  assert.equal(h.elements.tencent.hidden,true);
+  assert.equal(h.elements.connection.hidden,false);
+  assert.equal(h.elements.connection.elements.host.value,'8.8.8.8');
+  assert.equal(h.elements.connection.elements.password.focused,true);
+  assert.deepEqual(h.calls.filter(c=>c.options.method==='POST').map(c=>c.path),['/api/tencent/instances']);
+  h.elements.connection.elements.password.value='new-ssh-password';
+  await h.elements.connection.onsubmit(submit);
+  const body=JSON.parse(h.calls.find(c=>c.path==='/api/check').options.body);
+  assert.deepEqual(body,{host:'8.8.8.8',username:'root',ssh_port:22,password:'new-ssh-password'});
+});
+
+test('empty Tencent results leave a working manual SSH path',async()=>{
+  const h=await harness({state:'idle'},{'/api/tencent/instances':()=>({instances:[],incomplete_regions:[]})});
+  h.elements.auth.value='tencent';
+  h.elements.auth.onchange();
+  await h.elements['tencent-credentials'].onsubmit(submit);
+  assert.match(h.elements.status.textContent,/未找到有公网 IPv4/);
+  h.elements['tencent-back'].onclick();
+  assert.equal(h.elements.connection.hidden,false);
+  assert.equal(h.elements.tencent.hidden,true);
+  assert.equal(h.elements.auth.value,'password');
+  assert.equal(h.elements.connection.elements.host.focused,true);
 });
 
 test('reload resumes the same actual stage and elapsed time using GET only',async()=>{

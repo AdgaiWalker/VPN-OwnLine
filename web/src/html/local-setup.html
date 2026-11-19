@@ -13,10 +13,31 @@
 <label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off" disabled></label>
 <details id="ssh-options"><summary>SSH 登录选项</summary>
 <div class="row"><label>SSH 用户名<input name="username" value="root" required autocomplete="off"></label><label>SSH 端口<input name="ssh_port" type="number" min="1" max="65535" value="22" required></label></div>
-<label>登录方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option></select></label>
+<label>登录方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option><option value="tencent">腾讯云 API · 选择实例</option></select></label>
 </details>
 <button id="check" type="submit">检查连接</button>
 </fieldset></form>
+<section id="tencent" hidden aria-labelledby="tencent-title">
+<h1 id="tencent-title" tabindex="-1">选择腾讯云服务器</h1>
+<p>使用腾讯云只读 API 密钥读取实例。选中后，使用该服务器的 SSH 密码或私钥连接。</p>
+<form id="tencent-credentials" method="post">
+<fieldset id="tencent-fields" aria-label="腾讯云 API 密钥">
+<div class="row">
+<label>SecretId<input id="tencent-secret-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
+<label>SecretKey<input id="tencent-secret-key" name="secret_key" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
+</div>
+<button type="submit">读取实例</button>
+</fieldset>
+</form>
+<section id="tencent-results" hidden aria-labelledby="tencent-results-title">
+<h2 id="tencent-results-title" tabindex="-1">选择实例</h2>
+<ul id="tencent-instances"></ul>
+</section>
+<div class="actions tencent-actions">
+<button id="tencent-back" class="secondary" type="button">手动填写地址</button>
+<button id="tencent-retry" class="secondary" type="button" hidden>重新读取</button>
+</div>
+</section>
 <section id="confirmation" hidden aria-labelledby="confirmation-title">
 <h1 id="confirmation-title" tabindex="-1">确认安装到这台服务器</h1>
 <p id="target"></p>

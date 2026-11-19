@@ -1,4 +1,4 @@
-"""Loopback-only Mac installation entry. No cloud account or telemetry."""
+"""Loopback-only Mac installation entry. Optional read-only cloud discovery."""
 import argparse
 import json
 from http.cookies import SimpleCookie, CookieError
@@ -13,6 +13,7 @@ from server.nodekit.local_setup_session import LocalSetupSession
 from server.nodekit.local_setup_runner import install
 from server.nodekit.sshcheck.first_check import check
 from server.nodekit.sshcheck.problem import Problem
+from server import tencent_discovery
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -72,6 +73,11 @@ def create_server(port=0, session=None):
                     raise ValueError()
                 if self.path == '/api/check':
                     self.send(200, session.check(body))
+                elif self.path == '/api/tencent/instances':
+                    if session.status()['state'] != 'idle':
+                        raise InstallError('已有安装任务，请查看原任务状态')
+                    self.send(200, tencent_discovery.discover_for_local_setup(
+                        body.get('secret_id'), body.get('secret_key')))
                 elif self.path == '/api/install':
                     if body.get('confirm') is not True:
                         raise InstallError('请先确认安装目标')
@@ -84,6 +90,8 @@ def create_server(port=0, session=None):
                     threading.Thread(target=self.server.shutdown, daemon=True).start()
                 else:
                     self.send(404, {'message': '接口不存在。'})
+            except tencent_discovery.Problem as exc:
+                self.send(exc.status, {'code': exc.code, 'message': exc.message})
             except Problem as exc:
                 response = {'code': exc.code, 'message': exc.message}
                 if exc.code == 'HOST_KEY_CONFIRMATION':

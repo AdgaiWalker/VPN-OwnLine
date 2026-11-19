@@ -375,3 +375,13 @@ GET `/api/status` 返回 `idle/running/attention/done`。只有目标本地双�
 本地阶段还包括 `recheck/connect/upload/server_verify/delivery_verify/cleanup`。历史只含实际报告的阶段，最多 17 项；示例仅节选。耗时为本机单调时钟的非负整秒，终态冻结。`attention` 的最后阶段状态为 attention，同时返回固定安全的 `message/error_code`；SSH_TIMEOUT、SSH_UNAVAILABLE、SSH_AUTH_FAILED、HOST_KEY_CHANGED 为已知原因，其余为 INSTALL_FAILED，均不转发异常原文。只有全部验收与临时文件清理完成后返回 done 和原交付字段。失败清理不得覆盖原失败阶段。
 
 **页面等待**：状态及普通本地请求上限 15 秒，连接检查上限 90 秒；状态轮询约 3 秒，超时后提示并只读重试，不提交第二次安装。关闭服务后，已在途的状态响应不得恢复密码和交付区。页面重载继续读取同一进程的阶段历史；退出进程仍丢失内存状态，不声称支持任务重启恢复。
+
+### 4.17 Mac 首装的腾讯云实例发现（ADR-022） `[STATUS: IMPLEMENTED]`
+
+本地 POST `/api/tencent/instances` 接收 `{secret_id, secret_key}`，使用与本地连接检查相同的 loopback、Host、Origin 和会话 Cookie 校验，要求 JSON 请求和空闲任务。密钥字段为非空字符串，各自最多 256 字符。响应使用 `Cache-Control: no-store`。
+
+成功返回 `{instances, incomplete_regions}`。实例字段为 `id/name/ip/region/os/state/product`，只包含可用于此入口的公网 IPv4 实例。`incomplete_regions` 列出未完成的产品或地域。全部查询失败返回固定错误码及提示，云端异常文本和凭据不进入响应。
+
+读取仅发起腾讯云 `DescribeRegions` 和 `DescribeInstances`。CVM 优先使用地域管理接口，失败后尝试 CVM 地域接口。轻量应用服务器沿用原地域查询。Mac 在 60 秒查询预算内排入请求，单次 HTTPS 连接超时 20 秒。API 密钥不进入 SSH 检查和安装票据。页面点击实例只填充 `host`，后续沿用 4.15 的 SSH 凭据、指纹检查和安装确认。
+
+[CVM 实例清单](https://cloud.tencent.com/document/product/213/15728) · [轻量实例清单](https://cloud.tencent.com/document/product/1207/47573) · [腾讯云地域管理接口](https://cloud.tencent.com/document/api/1596/77930)
