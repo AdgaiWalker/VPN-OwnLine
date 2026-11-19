@@ -390,4 +390,4 @@ GET `/api/status` 返回 `idle/running/attention/done`。只有目标本地双�
 
 本地 POST `/api/tencent/instances` 在 4.17 的基础上接受可选 `product`。非空取值为 `cvm` 或 `lighthouse`，只查询对应产品。省略或传 `null` 时查询两种产品。其他值返回 HTTP 400 和 `TENCENT_PRODUCT_UNSUPPORTED`。会话检查、凭据处理和响应字段沿用 4.17。
 
-Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选中实例后切回「SSH 直连」，回填 `host`。两个入口共用 4.15 的 SSH 检查和安装确认。
+Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前方式内回填 `host`，复用 4.15 的 SSH 检查和安装确认。完整结果只有一台时可直接带入，部分结果仍须用户选择。

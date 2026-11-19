@@ -1,145 +1,287 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>:root{color-scheme:light;font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;color:#20251f;background:#f6f5f0}*{box-sizing:border-box}body{margin:0}main{max-width:720px;margin:40px auto;padding:24px}header{display:flex;justify-content:space-between;border-bottom:1px solid #d6d7cd;padding-bottom:20px;gap:16px}small,header span{font-size:13px;color:#626a60}h1{font-size:30px;margin:32px 0 8px}h2{font-size:22px}p{color:#626a60}label{display:block;margin:16px 0}input,textarea,select{display:block;width:100%;padding:12px;border:1px solid #cacdc2;border-radius:8px;background:white;font:inherit;color:inherit}.row{display:flex;gap:16px}.row label{flex:1;min-width:0}.notice{background:#eceee5;padding:16px;border-radius:8px;font-size:14px}button{cursor:pointer;padding:11px 20px;border:0;border-radius:7px;background:#173451;color:white;font:inherit}button:disabled{opacity:.45;cursor:default}section{margin-top:24px;border-top:1px solid #ccc;padding-top:16px}.consent{display:flex;align-items:flex-start;gap:10px}.consent input{width:20px;margin-top:6px;flex:none}footer{border-top:1px solid #ccc;margin-top:30px;padding-top:20px}footer button,#reveal{background:#e6e8df;color:#20251f}[hidden]{display:none!important}#status{white-space:pre-wrap}a{color:#173451}@media(max-width:500px){main{margin:0;padding:20px}.row{display:block}header{flex-wrap:wrap}}
-#progress-stages{padding-left:24px;color:#626a60}#progress-stages li{padding:5px 0}#progress-stages [data-state="running"]{color:#173451;font-weight:600}#progress-stages [data-state="attention"]{color:#9a4427;font-weight:600}#progress-time{font-variant-numeric:tabular-nums}
-#tencent, #confirmation, #progress, #delivery {
-  border-top: 0;
-  padding-top: 0;
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>:root {
+  color-scheme: light;
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #202822;
+  background: #f6f6f0;
+  --muted: #535f55;
+  --line: #cfd5c9;
+  --soft: #eaece3;
+  --accent: #203f35;
+  --accent-hover: #162e26;
 }
-#connection-fields, #tencent-fields {
-  border: 0;
-  margin: 0;
-  min-inline-size: 0;
-  padding: 0;
-}
-#ssh-options {
-  margin: 0 0 20px;
-}
-#ssh-key-status:not(:empty) {
-  display: block;
-  margin: -8px 0 16px;
-  color: #173451;
-  font-size: 14px;
-}
-#ssh-help { margin-top: 16px; font-size: 14px; }
-#copy-ssh-prompt { margin-left: 8px; padding: 5px 10px; }
-#ssh-prompt {
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  padding: 12px;
-  background: #eceee5;
-  border-radius: 8px;
-}
-.actions {
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+main { max-inline-size: 640px; margin-inline: auto; padding: 44px 24px 32px; }
+header {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
 }
-button.secondary {
-  background: #e6e8df;
-  color: #20251f;
+header span, small { color: var(--muted); font-size: 13px; }
+header strong { white-space: nowrap; }
+h1 {
+  font-size: clamp(30px, 5vw, 38px);
+  line-height: 1.16;
+  letter-spacing: -.025em;
+  margin: 36px 0 12px;
 }
+h2 { font-size: 20px; margin: 0 0 12px; }
+p { margin: 0 0 16px; color: var(--muted); }
+a { color: var(--accent); text-underline-offset: 3px; }
+fieldset { border: 0; margin: 0; min-inline-size: 0; padding: 0; }
+label { display: block; font-size: 14px; font-weight: 600; }
+input {
+  display: block;
+  inline-size: 100%;
+  min-block-size: 48px;
+  border: 1px solid #aab4a7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+}
+input::placeholder { color: #626d62; }
+:where(button, a, input, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+button, .primary-link {
+  min-block-size: 44px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.primary-link { display: inline-flex; align-items: center; text-decoration: none; }
+button:hover:not(:disabled), .primary-link:hover { background: var(--accent-hover); }
+button:disabled { cursor: default; opacity: .55; }
+button.secondary { background: var(--soft); color: #202822; }
+button.secondary:hover:not(:disabled) { background: #e0e5d9; }
+button.text-button {
+  background: transparent;
+  color: var(--accent);
+  padding: 6px 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+button.text-button:hover:not(:disabled) { background: transparent; color: var(--accent-hover); }
+summary { cursor: pointer; color: var(--accent); }
+details { font-size: 14px; }
+details > p { margin: 12px 0; }
+.row, .actions, .help-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.row label { flex: 1 1 140px; min-inline-size: 0; }
+.actions { margin-top: 24px; }
+.help-links { align-items: center; column-gap: 16px; }
+.field-note { font-size: 14px; }
+.notice { background: var(--soft); padding: 14px 16px; border-radius: 8px; }
+
 #connection-methods {
   display: inline-flex;
   gap: 4px;
+  margin: 8px 0 24px;
   padding: 4px;
-  border: 1px solid #d6d7cd;
-  border-radius: 8px;
-  background: #eceee5;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
 }
-#connection-methods button { padding: 7px 16px; }
-#connection-methods button[aria-pressed="false"] { background: transparent; color: #173451; }
-#tencent { margin-top: 16px; }
-#tencent-retry { margin-top: 16px; }
-#tencent-results { border: 0; padding: 0; }
+#connection-methods button { background: transparent; color: var(--muted); }
+#connection-methods button[aria-pressed="true"] {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--accent);
+}
+#connection-methods button:hover:not(:disabled) { color: #14291f; }
+#connection-fields > label + label { margin-top: 16px; }
+#connection-fields .target-card + label { margin-top: 16px; }
+#ssh-options { margin-top: 12px; }
+#ssh-options summary, footer summary { padding: 8px 0; }
+#ssh-options > label, #ssh-options .row { margin-top: 12px; }
+#ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
+#check, #tencent-read { display: block; margin-top: 20px; inline-size: 100%; }
+#tencent-results { margin-bottom: 8px; }
+#tencent-instances, #progress-stages, #setup-events { padding-inline-start: 20px; color: var(--muted); }
 #tencent-instances {
   list-style: none;
   padding: 0;
   margin: 0;
-  max-height: 22rem;
+  max-block-size: 22rem;
   overflow: auto;
 }
 #tencent-instances li + li { margin-top: 8px; }
-#tencent-instances button { width: 100%; text-align: left; overflow-wrap: anywhere; }
-details.notice { margin: 16px 0; }
-details.notice p { margin-bottom: 0; }
-summary {
-  cursor: pointer;
-  color: #173451;
+#tencent-instances button, .target-card {
+  overflow-wrap: anywhere;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #202822;
+  padding: 12px 14px;
 }
-summary:focus-visible {
-  outline: 2px solid #173451;
-  outline-offset: 4px;
+#tencent-instances button { display: block; inline-size: 100%; text-align: left; }
+#tencent-instances button:hover:not(:disabled) { background: var(--soft); }
+.target-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.target-card div { min-inline-size: 0; }
+#selected-address { display: block; color: var(--muted); font-size: 14px; }
+#change-instance { flex: none; }
+#progress-stage { font-weight: 600; color: var(--accent); }
+#progress-time { font-variant-numeric: tabular-nums; }
+#progress-time:empty, #progress-stage:empty { margin: 0; }
+#progress-stages li, #setup-events li { padding-block: 4px; }
+#progress-stages [data-state="running"] { color: var(--accent); font-weight: 600; }
+#progress-stages [data-state="attention"] { color: #85391d; font-weight: 600; }
+#progress-details, #setup-diagnostics { margin-top: 12px; }
+#status { white-space: pre-wrap; margin-top: 16px; }
+#status:empty { margin: 0; }
+#status[data-kind="error"] {
+  border-inline-start: 3px solid #9b4c2a;
+  padding: 10px 12px;
+  border-radius: 3px;
+  color: #702d15;
+  background: #fbefe6;
 }
-#progress-details summary { padding: 8px 0; }
-#status:empty, #progress-time:empty { margin: 0; }
+.delivery-credentials { border-block: 1px solid var(--line); margin: 20px 0; padding: 16px 0 0; }
+.delivery-credentials input { max-inline-size: 25rem; }
+#ssh-prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+}
+footer {
+  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  padding-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+}
 footer:has(#quit[hidden]) { display: none; }
+footer details { flex: 1; min-inline-size: 0; }
+#quit { color: var(--muted); text-decoration: none; font-weight: 400; flex: none; }
+#quit:hover:not(:disabled) { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  main { padding: 24px 16px; }
+  h1 { margin-top: 28px; }
+  .row label { flex-basis: 100%; }
+  footer { gap: 10px; }
+}
 </style></head>
 <body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>Mac 本地安装</span></header>
 <div id="connection-intro">
-<h1>连接你的服务器</h1><p>从这台 Mac 直接连接你的 Linux 服务器。登录信息仅在本机内存中使用。</p>
-<details class="notice"><summary>服务器要求和端口</summary><p>使用空白 Ubuntu 22.04+ / Debian 12+ 服务器和 root 账号。请先在云控制台放行 SSH 端口，以及 80/TCP、8443/TCP、443/TCP 和 443/UDP。</p></details>
+<h1>创建节点</h1><p>用一台空白 Linux 服务器，从这台 Mac 完成配置。</p>
 </div>
-<p id="startup-fallback" role="status">安装页面尚未就绪。如果此提示持续显示，请启用 JavaScript，再从 Mac 的启动入口打开。</p>
+<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再从仓库双击「启动安装.command」。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
 <button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection">SSH 直连</button>
-<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent">腾讯云 CVM</button>
+<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection">腾讯云 CVM</button>
 </div>
 <form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
-<label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label id="server-address">服务器地址<input name="host" required placeholder="公网 IPv4 或域名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<div id="selected-instance" class="target-card" hidden>
+<div><strong id="selected-name"></strong><span id="selected-address"></span></div>
+<button id="change-instance" class="text-button" type="button">更换实例</button>
+</div>
 <label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
 <span id="ssh-key-status" role="status"></span>
-<details id="ssh-options"><summary>连接设置（默认 root · 22）</summary>
+<details id="ssh-options"><summary>连接设置</summary>
 <div class="row"><label>用户名<input name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
 <label>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
 </details>
 <button id="check" type="submit">测试连接</button>
-<details id="ssh-help"><summary>安装指引与 Agent 任务书</summary>
-<p>填写服务器地址，把密码或完整私钥粘贴到同一输入框。测试连接后核对 SSH 指纹，再确认安装。</p>
-<a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
-<button class="secondary" id="copy-ssh-prompt" type="button">复制 Agent 任务书</button>
-<span id="ssh-copy-status" role="status"></span>
-<pre id="ssh-prompt" hidden>请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器完成首装。
-1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
-2. 在「SSH 直连」中填写服务器公网地址。请让我本人在本地页面输入服务器密码或粘贴私钥。若测试失败，按页面提示检查账号、端口和云安全组。
-3. 测试连接，提示我通过云控制台核对 SSH 指纹。检查通过后，让我在页面核实目标并主动点击「确认安装」。
-4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
-</details>
 </fieldset></form>
 <section id="tencent" hidden aria-label="选择腾讯云 CVM 实例">
-<p>用腾讯云只读 API 密钥读取 CVM 实例。选中实例后，使用服务器的 SSH 密码或私钥连接。</p>
 <form id="tencent-credentials" method="post">
 <fieldset id="tencent-fields" aria-label="腾讯云 API 密钥">
+<p class="field-note">用只读 API 密钥查找你的 CVM 实例。</p>
 <div class="row">
 <label>SecretId<input id="tencent-secret-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
 <label>SecretKey<input id="tencent-secret-key" name="secret_key" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
 </div>
-<button type="submit">读取实例</button>
+<button id="tencent-read" type="submit">读取实例</button>
 </fieldset>
 </form>
 <section id="tencent-results" hidden aria-labelledby="tencent-results-title">
 <h2 id="tencent-results-title" tabindex="-1">选择实例</h2>
 <ul id="tencent-instances"></ul>
 </section>
-<button id="tencent-retry" class="secondary" type="button" hidden>重新读取</button>
+<button id="tencent-retry" class="text-button" type="button" hidden>重新读取</button>
+</section>
+<section id="fingerprint" hidden aria-labelledby="fingerprint-title">
+<h1 id="fingerprint-title" tabindex="-1">核对服务器指纹</h1>
+<p>在云控制台或其他可信渠道核对这台服务器的 SSH 指纹。</p>
+<code id="fingerprint-value" class="target-card"></code>
+<div class="actions">
+<button id="trust-host" type="button" aria-describedby="fingerprint-value">一致，继续检查</button>
+<button id="reject-host" class="secondary" type="button">返回修改</button>
+</div>
 </section>
 <section id="confirmation" hidden aria-labelledby="confirmation-title">
-<h1 id="confirmation-title" tabindex="-1">确认安装到这台服务器</h1>
-<p id="target"></p>
-<p id="install-scope">连接检查已通过。确认后会在这台服务器上配置代理、管理后台和所需端口。</p>
+<h1 id="confirmation-title" tabindex="-1">确认创建节点</h1>
+<p id="target" class="target-card"></p>
+<p id="install-scope">将在这台服务器上配置代理、管理后台和所需端口。</p>
 <div class="actions">
-<button id="install" type="button" aria-describedby="target install-scope" disabled>确认安装</button>
+<button id="install" type="button" aria-describedby="target install-scope" disabled>确认创建</button>
 <button id="edit-connection" class="secondary" type="button">修改连接</button>
 </div>
 </section>
 <section id="progress" hidden aria-labelledby="progress-title">
-<h1 id="progress-title" aria-live="polite">安装进度</h1>
+<h1 id="progress-title" tabindex="-1">正在创建节点</h1>
+<p id="progress-stage" role="status"></p>
 <p id="progress-time"></p>
 <p id="progress-keep-open">安装期间请保持 Mac 和启动窗口运行。</p>
 </section>
-<section id="delivery" hidden><h1>安装与服务端验收通过</h1><p>Mac 已验证管理入口的 HTTPS、登录和订阅；目标服务器已验证代理出网。手机或桌面客户端导入仍需你实际确认。</p><p><a id="dashboard" target="_blank" rel="noreferrer">打开管理后台</a></p><p>账号：admin</p><label>初始密码<input id="initial-password" type="password" readonly></label><button id="reveal">显示 / 隐藏初始密码</button><p>请保存密码并在管理后台完成首次改密。关闭本地服务后，本页交付信息会失效。</p></section>
+<section id="delivery" hidden aria-labelledby="delivery-title">
+<h1 id="delivery-title" tabindex="-1">节点已创建</h1>
+<p>服务端验收已通过。登录后台改密，再导入客户端。</p>
+<div class="delivery-credentials">
+<p>账号 <strong>admin</strong></p>
+<label>初始密码<input id="initial-password" type="password" readonly></label>
+<button id="reveal" class="text-button" type="button" aria-controls="initial-password" aria-pressed="false">显示密码</button>
+<p class="field-note">请先保存密码，关闭本地服务后本页将清除交付信息。</p>
+</div>
+<a id="dashboard" class="primary-link" target="_blank" rel="noreferrer">打开管理后台</a>
+</section>
 <p id="status" role="status" aria-live="polite"></p>
+<details id="setup-diagnostics" hidden><summary>查看连接诊断</summary><ol id="setup-events"></ol></details>
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
-<footer><button id="quit" type="button" hidden>关闭本地服务</button></footer></main><script>function hasSSHPrivateKeyHeader(text) {
+<footer>
+<details id="ssh-help" hidden><summary>安装帮助</summary>
+<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、80/TCP、8443/TCP、443/TCP 和 443/UDP。</p>
+<p>凭据仅在这台 Mac 内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
+<div class="help-links">
+<a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
+<button id="copy-ssh-prompt" class="text-button" type="button">复制 Agent 任务书</button>
+</div>
+<span id="ssh-copy-status" role="status"></span>
+<pre id="ssh-prompt" hidden>请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器创建首个节点。
+1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
+2. 在「SSH 直连」中填写服务器公网地址。请让我本人在本地页面输入服务器密码或粘贴私钥。若测试失败，按页面提示检查账号、端口和云安全组。
+3. 测试连接，提示我通过云控制台核对 SSH 指纹。检查通过后，让我核实目标并主动点击「确认创建」。
+4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
+<p class="field-note">本地安装器随仓库更新。更新仓库后重新打开启动入口。已安装的服务可在管理后台的偏好设置检查更新。</p>
+<a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noreferrer">查看版本发布</a>
+</details>
+<button id="quit" class="text-button" type="button" hidden>关闭本地服务</button>
+</footer></main><script>function hasSSHPrivateKeyHeader(text) {
   return /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(text);
 }
 
@@ -183,14 +325,29 @@ async function copySetupText(text) {
   let ticket = '', busy = false, timer = null, stopped = false;
   let readingStatus = false, jobStarted = false;
   let privateKey = '';
+  let cvmActive = false, selectedInstance = null, manualHost = '', cloudLookup = null;
+  let answerFingerprint = null;
+  const diagnostics = [];
+  let lastDiagnostic = '';
   const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
-  const status = text => {
+  const status = (text, kind = '') => {
     const element = $('status');
     if (element.textContent !== text) element.textContent = text;
+    element.dataset.kind = kind;
   };
-  async function request(path, body) {
+  function record(label, attention = false) {
+    if (label !== lastDiagnostic) {
+      const row = document.createElement('li');
+      row.textContent = `${new Date().toLocaleTimeString('zh-CN', {hour12:false})} · ${label}`;
+      diagnostics.unshift(row);
+      if (diagnostics.length > 12) diagnostics.pop();
+      $('setup-events').replaceChildren(...diagnostics);
+      lastDiagnostic = label;
+    }
+    if (attention) $('setup-diagnostics').hidden = false;
+  }
+  async function request(path, body, controller = new AbortController()) {
     const options = body ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)} : {cache:'no-store'};
-    const controller = new AbortController();
     options.signal = controller.signal;
     const timeout = setTimeout(() => controller.abort(),
       path === '/api/check' || path === '/api/tencent/instances' ? 90000 : 15000);
@@ -210,8 +367,10 @@ async function copySetupText(text) {
     const done = job.state === 'done';
     $('progress').hidden = done;
     $('progress-keep-open').hidden = !running;
-    const title = running ? job.stage_label || '正在安装' : '安装需要检查';
+    const title = running ? '正在创建节点' : '创建未完成';
     if ($('progress-title').textContent !== title) $('progress-title').textContent = title;
+    const stage = job.stage_label || '';
+    if ($('progress-stage').textContent !== stage) $('progress-stage').textContent = stage;
     $('progress-time').textContent = job.stage
       ? `总耗时 ${duration(job.elapsed_seconds)} · ${running ? '当前阶段' : '失败阶段'} ${duration(job.stage_elapsed_seconds)}`
       : '';
@@ -262,31 +421,51 @@ async function copySetupText(text) {
     $('tencent-instances').replaceChildren();
   }
   function leaveTencent() {
+    if (cloudLookup) cloudLookup.abort();
+    cloudLookup = null;
+    selectedInstance = null;
+    $('tencent-fields').disabled = false;
     clearTencentKeys();
     resetTencentResults();
     $('tencent').hidden = true;
   }
   function showConnectionMethod(cvm) {
+    cvmActive = cvm;
+    const selected = cvm && Boolean(selectedInstance);
     $('method-ssh').setAttribute('aria-pressed', String(!cvm));
     $('method-cvm').setAttribute('aria-pressed', String(cvm));
-    $('connection').hidden = cvm;
-    $('tencent').hidden = !cvm;
+    sshForm.hidden = cvm && !selected;
+    $('tencent').hidden = !cvm || selected;
+    $('server-address').hidden = selected;
+    $('selected-instance').hidden = !selected;
   }
   function lockConnectionMethods(locked) {
     $('method-ssh').disabled = $('method-cvm').disabled = locked;
   }
   $('method-cvm').onclick = () => {
-    if (busy || jobStarted || stopped || !$('tencent').hidden) return;
+    if (busy || jobStarted || stopped || cvmActive) return;
+    manualHost = sshForm.elements.host.value;
     clearSecrets();
     invalidate();
     showConnectionMethod(true);
     status('');
   };
   $('method-ssh').onclick = () => {
-    if (busy || jobStarted || stopped || $('tencent').hidden) return;
+    if (busy || jobStarted || stopped || !cvmActive) return;
+    clearSecrets();
     leaveTencent();
+    sshForm.elements.host.value = manualHost;
     showConnectionMethod(false);
     status('');
+  };
+  $('change-instance').onclick = () => {
+    if (busy || jobStarted || stopped || !selectedInstance) return;
+    selectedInstance = null;
+    clearSecrets();
+    invalidate();
+    showConnectionMethod(true);
+    status('');
+    $('tencent-results-title').focus();
   };
   $('tencent-retry').onclick = () => {
     resetTencentResults();
@@ -295,65 +474,98 @@ async function copySetupText(text) {
   };
   $('tencent-credentials').onsubmit = async event => {
     event.preventDefault();
-    if (busy || jobStarted || stopped) return;
+    if (busy || cloudLookup || jobStarted || stopped || !cvmActive) return;
     const credentials = Object.fromEntries(new FormData($('tencent-credentials')));
+    const controller = new AbortController();
+    cloudLookup = controller;
     credentials.product = 'cvm';
     clearTencentKeys();
-    busy = true;
-    lockConnectionMethods(true);
-    $('tencent-fields').disabled = $('quit').disabled = true;
+    $('tencent-fields').disabled = true;
     status('正在读取 CVM 实例…');
+    record('开始读取腾讯云实例');
     try {
-      const data = await request('/api/tencent/instances', credentials);
-      if (jobStarted || stopped) return;
+      const data = await request('/api/tencent/instances', credentials, controller);
+      if (cloudLookup !== controller || jobStarted || stopped) return;
       const instances = data.instances || [];
       const incomplete = data.incomplete_regions && data.incomplete_regions.length > 0;
       if (!instances.length) {
+        record(incomplete ? '部分腾讯云实例未读取' : '没有可连接的腾讯云实例', true);
         status(incomplete
-          ? '部分实例未能读取。请检查腾讯云只读权限，或手动填写地址。'
-          : '未找到有公网 IPv4 的实例。请检查实例网络，或手动填写地址。');
+          ? '部分实例未能读取。请检查腾讯云只读权限，或改用 SSH 直连。'
+          : '未找到带公网 IPv4 的实例。可检查实例网络，或改用 SSH 直连。', 'error');
         return;
       }
       const rows = instances.map(instance => {
         const row = document.createElement('li');
         const button = document.createElement('button');
         button.type = 'button';
-        button.className = 'secondary';
         button.textContent = `${instance.name} · ${instance.ip} · ${instance.region}`;
-        button.onclick = () => selectTencentInstance(instance.ip);
+        button.onclick = () => selectTencentInstance(instance);
         row.appendChild(button);
         return row;
       });
       $('tencent-instances').replaceChildren(...rows);
       $('tencent-credentials').hidden = true;
       $('tencent-results').hidden = $('tencent-retry').hidden = false;
-      status(incomplete ? '部分实例未能读取。可以选择已读取的实例，或检查权限后重新读取。' : '');
-      $('tencent-results-title').focus();
+      record(incomplete ? '部分腾讯云实例未读取' : '腾讯云实例读取完成', incomplete);
+      if (!incomplete && instances.length === 1) {
+        selectTencentInstance(instances[0]);
+      } else {
+        status(incomplete ? '列表可能不完整。可选择已读取的实例，或检查权限后重新读取。' : '', incomplete ? 'error' : '');
+        $('tencent-results-title').focus();
+      }
     } catch (error) {
-      if (!jobStarted && !stopped) status(error.data ? error.message : '读取实例超时或连接中断。请重试，或手动填写地址。');
+      if (cloudLookup === controller && !jobStarted && !stopped) {
+        record('腾讯云实例读取失败', true);
+        status(error.data ? error.message : '读取实例超时或连接中断。可重试，或改用 SSH 直连。', 'error');
+      }
     } finally {
       credentials.secret_id = credentials.secret_key = '';
-      busy = false;
-      lockConnectionMethods(false);
-      $('tencent-fields').disabled = false;
-      if (!jobStarted && !stopped) $('quit').disabled = false;
+      if (cloudLookup === controller) {
+        cloudLookup = null;
+        $('tencent-fields').disabled = false;
+      }
     }
   };
-  function selectTencentInstance(address) {
-    if (!address || busy || jobStarted || stopped) return;
+  function selectTencentInstance(instance) {
+    if (!instance.ip || !cvmActive || busy || jobStarted || stopped) return;
     clearSecrets();
-    leaveTencent();
-    showConnectionMethod(false);
-    $('connection').elements.host.value = address;
+    selectedInstance = instance;
+    $('selected-name').textContent = instance.name;
+    $('selected-address').textContent = `${instance.ip} · ${instance.region}`;
+    sshForm.elements.host.value = instance.ip;
+    showConnectionMethod(true);
     invalidate();
-    status('已填入 CVM 实例地址。请输入服务器的 SSH 登录凭据。');
+    status('');
     sshCredential.focus();
   }
+  function showConnectionStep(show) {
+    $('connection-intro').hidden = $('connection-methods').hidden = !show;
+    if (show) showConnectionMethod(cvmActive);
+    else sshForm.hidden = $('tencent').hidden = true;
+  }
+  function confirmFingerprint(fingerprint) {
+    showConnectionStep(false);
+    $('fingerprint-value').textContent = fingerprint;
+    $('fingerprint').hidden = false;
+    $('fingerprint-title').focus();
+    status('');
+    return new Promise(resolve => {
+      answerFingerprint = accepted => {
+        answerFingerprint = null;
+        $('fingerprint').hidden = true;
+        $('fingerprint-value').textContent = '';
+        resolve(accepted);
+      };
+    });
+  }
+  $('trust-host').onclick = () => answerFingerprint?.(true);
+  $('reject-host').onclick = () => answerFingerprint?.(false);
   sshForm.onsubmit = async event => {
     event.preventDefault();
     if (busy || jobStarted || stopped) return;
     if (!privateKey && hasSSHPrivateKeyHeader(sshCredential.value)) {
-      status('请在凭据栏粘贴完整的 SSH 私钥。');
+      status('请在凭据栏粘贴完整的 SSH 私钥。', 'error');
       sshCredential.focus();
       return;
     }
@@ -372,6 +584,8 @@ async function copySetupText(text) {
     $('quit').disabled = true;
     clearSecrets();
     status('正在检查连接和服务器条件…');
+    record('开始测试 SSH 连接');
+    let focusCredential = false;
     try {
       let data;
       try { data = await request('/api/check', values); }
@@ -379,33 +593,52 @@ async function copySetupText(text) {
         const fingerprint = error.data && error.data.fingerprint;
         if (!error.data || error.data.code !== 'HOST_KEY_CONFIRMATION' || !/^SHA256:[A-Za-z0-9+/]{43}$/.test(fingerprint || '')) throw error;
         if (jobStarted || stopped) return;
-        if (!window.confirm('请通过云控制台等可信渠道核对 SSH 指纹。\n\n' + fingerprint + '\n\n确认一致后继续？')) { status('请核对服务器指纹后重新检查连接。'); return; }
+        const accepted = await confirmFingerprint(fingerprint);
+        if (jobStarted || stopped) return;
+        showConnectionStep(true);
+        focusCredential = true;
+        if (!accepted) {
+          record('取消 SSH 指纹确认', true);
+          status('请核对服务器指纹后重新测试连接。', 'error');
+          return;
+        }
+        status('正在检查连接和服务器条件…');
         values.fingerprint = fingerprint; data = await request('/api/check', values);
       }
       if (jobStarted || stopped) return;
-      if (!data.check_token) { status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : '')); return; }
+      if (!data.check_token) {
+        record('服务器条件检查未通过', true);
+        status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : ''), 'error');
+        return;
+      }
+      record('SSH 连接检查通过');
       ticket = data.check_token;
       $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
-      $('connection-intro').hidden = $('connection-methods').hidden = $('connection').hidden = true;
+      showConnectionStep(false);
+      $('setup-diagnostics').hidden = true;
       $('confirmation').hidden = $('install').disabled = false;
       status('');
       $('confirmation-title').focus();
     } catch (error) {
-      if (!jobStarted && !stopped) status(error.message);
+      if (!jobStarted && !stopped) {
+        record('SSH 连接检查失败', true);
+        status(error.data ? error.message : '连接检查超时或中断。请检查服务器地址和 SSH 端口后重试。', 'error');
+      }
     } finally {
       values.password = values.private_key = values.passphrase = '';
       busy = false;
       lockConnectionMethods(false);
       $('connection-fields').disabled = false;
       if (!jobStarted && !stopped) $('quit').disabled = false;
+      if (focusCredential && !$('connection').hidden) sshCredential.focus();
     }
   };
   $('edit-connection').onclick = () => {
     if (busy || jobStarted || stopped) return;
     invalidate();
-    $('connection-intro').hidden = $('connection-methods').hidden = $('connection').hidden = false;
+    showConnectionStep(true);
     status('');
-    $('connection').elements.host.focus();
+    (selectedInstance ? sshCredential : sshForm.elements.host).focus();
   };
   $('install').onclick = async () => {
     if (busy || !ticket || jobStarted || stopped) return;
@@ -419,9 +652,10 @@ async function copySetupText(text) {
       if (!jobStarted && !stopped) renderJob({state:'running'});
     } catch (error) {
       if (!jobStarted && !stopped) {
+        record('创建请求未确认', true);
         status(error.data
           ? error.message + '\n请查看任务状态，或修改连接后重新检查。'
-          : '暂时无法确认安装请求是否送达。页面会继续读取任务状态，请勿重复提交。');
+          : '暂时无法确认安装请求是否送达。页面会继续读取任务状态，请勿重复提交。', 'error');
       }
     } finally {
       busy = false;
@@ -430,10 +664,14 @@ async function copySetupText(text) {
     }
   };
   function renderJob(job) {
+    const firstRender = !jobStarted;
     jobStarted = true;
-    if (!$('tencent').hidden) leaveTencent();
+    answerFingerprint?.(false);
+    if (cvmActive && firstRender) leaveTencent();
     clearSecrets();
-    $('connection-intro').hidden = $('connection-methods').hidden = $('connection').hidden = $('confirmation').hidden = true;
+    showConnectionStep(false);
+    $('confirmation').hidden = true;
+    $('setup-diagnostics').hidden = true;
     renderProgress(job);
     $('quit').disabled = job.state === 'running' || busy;
     if (job.state === 'done') {
@@ -441,9 +679,14 @@ async function copySetupText(text) {
       if (url.protocol !== 'https:') throw new Error('交付地址无效');
       $('dashboard').href = url.href;
       $('initial-password').value = job.delivery.temp_password;
-      $('delivery').hidden = false;
+      if ($('delivery').hidden) {
+        $('delivery').hidden = false;
+        $('delivery-title').focus();
+      }
+    } else if (firstRender) {
+      $('progress-title').focus();
     }
-    status(job.state === 'attention' ? job.message : '');
+    status(job.state === 'attention' ? job.message : '', job.state === 'attention' ? 'error' : '');
   }
   async function poll() {
     if (stopped || readingStatus) return;
@@ -458,29 +701,41 @@ async function copySetupText(text) {
       }
       renderJob(job);
     } catch (_) {
-      if (!stopped && !busy) status(statusUnavailable);
+      if (!stopped && !busy && !cloudLookup) {
+        record('任务状态读取异常', true);
+        status(statusUnavailable, 'error');
+      }
     } finally {
       readingStatus = false;
       if (!stopped) timer = setTimeout(poll, 3000);
     }
   }
-  $('reveal').onclick = () => { $('initial-password').type = $('initial-password').type === 'password' ? 'text' : 'password'; };
+  $('reveal').onclick = () => {
+    const field = $('initial-password');
+    const show = field.type === 'password';
+    field.type = show ? 'text' : 'password';
+    $('reveal').textContent = show ? '隐藏密码' : '显示密码';
+    $('reveal').setAttribute('aria-pressed', String(show));
+  };
   $('quit').onclick = async () => {
     try {
       await request('/api/quit', {});
       stopped = true;
       clearTimeout(timer);
+      answerFingerprint?.(false);
       clearSecrets();
       leaveTencent();
       $('initial-password').value = '';
-      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'quit']) {
+      diagnostics.length = 0;
+      $('setup-events').replaceChildren();
+      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit']) {
         $(id).hidden = true;
       }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
   };
   $('startup-fallback').hidden = true;
-  $('connection-methods').hidden = $('connection').hidden = $('quit').hidden = false;
+  $('connection-methods').hidden = $('connection').hidden = $('ssh-help').hidden = $('quit').hidden = false;
   poll();
 })();
 </script></body></html>

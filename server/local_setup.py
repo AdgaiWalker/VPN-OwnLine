@@ -1,5 +1,6 @@
 """Loopback-only Mac installation entry. Optional read-only cloud discovery."""
 import argparse
+from contextlib import suppress
 import json
 from http.cookies import SimpleCookie, CookieError
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -36,8 +37,9 @@ def create_server(port=0, session=None):
             self.send_header('Content-Security-Policy', "default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'")
             if cookie:
                 self.send_header('Set-Cookie', 'ownline_setup=' + self.server.guard.token + '; HttpOnly; SameSite=Strict; Path=/')
-            self.end_headers()
-            self.wfile.write(data)
+            with suppress(BrokenPipeError, ConnectionResetError):
+                self.end_headers()
+                self.wfile.write(data)
 
         def authorized(self, mutation=False, protected=False):
             token = ''

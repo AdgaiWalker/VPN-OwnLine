@@ -2,6 +2,8 @@ import http.client
 import json
 import threading
 import unittest
+from contextlib import closing
+from socketserver import _SocketWriter
 from unittest.mock import patch
 
 from server.local_setup import create_server
@@ -48,6 +50,16 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(self.request('GET', '/api/status')[0], 403)
         self.assertEqual(self.request('GET', '/api/status', {'Cookie': self.cookie})[0], 200)
         self.assertEqual(self.request('GET', '/', {'Host': 'evil.example'})[0], 403)
+
+    def test_disconnected_client_does_not_trigger_a_second_response(self):
+        headers = {'Cookie': self.cookie, 'Origin': self.server.guard.origin, 'Content-Type': 'application/json'}
+        with patch.object(_SocketWriter, 'write', side_effect=BrokenPipeError) as write:
+            with closing(http.client.HTTPConnection('127.0.0.1', self.server.server_port)) as connection:
+                connection.request('POST', '/api/check', body='{}', headers=headers)
+                with self.assertRaises(http.client.RemoteDisconnected):
+                    connection.getresponse()
+            write.assert_called_once()
+        self.assertTrue(self.session.checked)
 
     def test_cross_origin_never_reaches_ssh_check(self):
         headers = {'Cookie': self.cookie, 'Origin': 'https://evil.example', 'Content-Type': 'application/json'}
