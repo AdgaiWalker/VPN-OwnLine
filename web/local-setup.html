@@ -280,8 +280,9 @@ footer:has(#quit[hidden]) { display: none; }
 <section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
 <div class="help-heading">
 <h2 id="ssh-help-title">安装帮助</h2>
-<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-copy-status">复制 Agent 任务书</button>
+<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status">复制 Agent 任务书</button>
 </div>
+<p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 WorkBuddy、Muse、Codex、Claude 或 Cursor。密码和私钥请在本页填写。</p>
 <p id="ssh-copy-status" class="field-note" role="status"></p>
 <pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器创建首个节点。
 1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
