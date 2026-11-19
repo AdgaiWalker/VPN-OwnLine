@@ -5,7 +5,8 @@ const vm = require('node:vm');
 
 function element() {
   return {hidden:false,open:false,disabled:false,value:'',textContent:'',type:'password',dataset:{},
-    children:[],events:{},addEventListener(name,handler){this.events[name]=handler;},focus(){this.focused=true;},
+    children:[],events:{},attributes:{},setAttribute(name,value){this.attributes[name]=value;},
+    addEventListener(name,handler){this.events[name]=handler;},focus(){this.focused=true;},
     appendChild(child){this.children.push(child);},replaceChildren(...rows){this.children=rows;}};
 }
 const running = {state:'running',stage:'dependencies',stage_label:'安装系统依赖和管理网关',elapsed_seconds:83,
@@ -56,9 +57,11 @@ test('a checked server gets one explicit installation action and one POST',async
   assert.equal(h.elements['ssh-options'].open,true);
   const checking=h.elements.connection.onsubmit(submit);
   assert.equal(h.elements['connection-fields'].disabled,true);
+  assert.equal(h.elements['method-cvm'].disabled,true);
   await checking;
   assert.equal(h.elements['connection-fields'].disabled,false);
   assert.equal(h.elements.connection.hidden,true);
+  assert.equal(h.elements['connection-methods'].hidden,true);
   assert.equal(h.elements.confirmation.hidden,false);
   assert.match(h.elements.target.textContent,/root@198\.51\.100\.2:22/);
   assert.equal(h.elements.connection.elements.password.value,'');
@@ -76,6 +79,7 @@ test('returning to edit removes the old confirmation and preserves the address',
   await h.elements.connection.onsubmit(submit);
   h.elements['edit-connection'].onclick();
   assert.equal(h.elements.connection.hidden,false);
+  assert.equal(h.elements['connection-methods'].hidden,false);
   assert.equal(h.elements.confirmation.hidden,true);
   assert.equal(h.elements.connection.elements.host.value,'198.51.100.2');
   assert.equal(h.elements.connection.elements.host.focused,true);
@@ -101,19 +105,27 @@ test('switching to key login removes the password field from the request',async(
   assert.equal(fields.passphrase.value,'');
 });
 
-test('Tencent lookup clears keys and selection fills only the SSH address',async()=>{
+test('the CVM entry queries CVM only and selection fills only the SSH address',async()=>{
   const h=await harness({state:'idle'},{
     '/api/tencent/instances':()=>({instances:[{name:'<b>fixture</b>',ip:'8.8.8.8',region:'东京',product:'云服务器 CVM'}],
-      incomplete_regions:['轻量应用服务器']}),
+      incomplete_regions:['云服务器 CVM · ap-singapore']}),
     '/api/check':()=>checked,
   });
-  h.elements.auth.value='tencent';
-  h.elements.auth.onchange();
+  assert.equal(h.elements['connection-methods'].hidden,false);
+  assert.equal(h.elements.connection.hidden,false);
+  h.elements['method-cvm'].onclick();
+  assert.equal(h.elements['method-cvm'].attributes['aria-pressed'],'true');
+  assert.equal(h.elements['method-ssh'].attributes['aria-pressed'],'false');
+  assert.equal(h.elements.auth.value,'password');
+  assert.equal(h.elements.connection.elements.password.value,'');
   assert.equal(h.elements.connection.hidden,true);
   assert.equal(h.elements.tencent.hidden,false);
   h.elements['tencent-secret-id'].value='fixture-id';
   h.elements['tencent-secret-key'].value='fixture-key';
-  await h.elements['tencent-credentials'].onsubmit(submit);
+  const lookup=h.elements['tencent-credentials'].onsubmit(submit);
+  assert.equal(h.elements['method-ssh'].disabled,true);
+  await lookup;
+  assert.equal(h.elements['method-ssh'].disabled,false);
   assert.equal(h.elements['tencent-secret-id'].value,'');
   assert.equal(h.elements['tencent-secret-key'].value,'');
   assert.equal(h.elements['tencent-credentials'].hidden,true);
@@ -121,11 +133,16 @@ test('Tencent lookup clears keys and selection fills only the SSH address',async
   const choice=h.elements['tencent-instances'].children[0].children[0];
   assert.match(choice.textContent,/<b>fixture<\/b>/);
   choice.onclick();
+  assert.equal(h.elements['method-ssh'].attributes['aria-pressed'],'true');
+  assert.equal(h.elements['method-cvm'].attributes['aria-pressed'],'false');
   assert.equal(h.elements.tencent.hidden,true);
   assert.equal(h.elements.connection.hidden,false);
   assert.equal(h.elements.connection.elements.host.value,'8.8.8.8');
   assert.equal(h.elements.connection.elements.password.focused,true);
   assert.deepEqual(h.calls.filter(c=>c.options.method==='POST').map(c=>c.path),['/api/tencent/instances']);
+  assert.deepEqual(JSON.parse(h.calls.find(c=>c.path==='/api/tencent/instances').options.body),{
+    secret_id:'fixture-id',secret_key:'fixture-key',product:'cvm'
+  });
   h.elements.connection.elements.password.value='new-ssh-password';
   await h.elements.connection.onsubmit(submit);
   const body=JSON.parse(h.calls.find(c=>c.path==='/api/check').options.body);
@@ -134,15 +151,14 @@ test('Tencent lookup clears keys and selection fills only the SSH address',async
 
 test('empty Tencent results leave a working manual SSH path',async()=>{
   const h=await harness({state:'idle'},{'/api/tencent/instances':()=>({instances:[],incomplete_regions:[]})});
-  h.elements.auth.value='tencent';
-  h.elements.auth.onchange();
+  h.elements['method-cvm'].onclick();
   await h.elements['tencent-credentials'].onsubmit(submit);
   assert.match(h.elements.status.textContent,/未找到有公网 IPv4/);
-  h.elements['tencent-back'].onclick();
+  h.elements['method-ssh'].onclick();
   assert.equal(h.elements.connection.hidden,false);
   assert.equal(h.elements.tencent.hidden,true);
   assert.equal(h.elements.auth.value,'password');
-  assert.equal(h.elements.connection.elements.host.focused,true);
+  assert.equal(h.elements.connection.elements.host.value,'198.51.100.2');
 });
 
 test('reload resumes the same actual stage and elapsed time using GET only',async()=>{
@@ -168,6 +184,7 @@ test('idle keeps requirements collapsed and shows no install history while still
   h.setJob(running);
   await h.tick(3000);
   assert.equal(h.elements['connection-intro'].hidden,true);
+  assert.equal(h.elements['connection-methods'].hidden,true);
   assert.equal(h.elements['progress-details'].hidden,false);
   assert.equal(h.elements['progress-details'].open,false);
   h.elements['progress-details'].open=true;

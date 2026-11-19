@@ -170,16 +170,19 @@ def discover(secret_id, secret_key, *, product="lighthouse", deadline=None):
     }
 
 
-def discover_for_local_setup(secret_id, secret_key):
-    """Combine the supported product lists and keep successful partial results."""
+def discover_for_local_setup(secret_id, secret_key, *, product=None):
+    """Read the requested product or combine both lists, keeping partial results."""
+    if product is not None and (not isinstance(product, str) or product not in PRODUCTS):
+        raise Problem("TENCENT_PRODUCT_UNSUPPORTED", "请选择支持的腾讯云服务器类型。")
     secret_id, secret_key = _credentials(secret_id, secret_key)
+    products = tuple(PRODUCTS) if product is None else (product,)
     deadline = time.monotonic() + 60
     instances, incomplete, errors = [], [], []
-    with ThreadPoolExecutor(max_workers=len(PRODUCTS)) as pool:
-        jobs = {product: pool.submit(discover, secret_id, secret_key, product=product, deadline=deadline)
-                for product in PRODUCTS}
-        for product, job in jobs.items():
-            label, _ = PRODUCTS[product]
+    with ThreadPoolExecutor(max_workers=len(products)) as pool:
+        jobs = {kind: pool.submit(discover, secret_id, secret_key, product=kind, deadline=deadline)
+                for kind in products}
+        for kind, job in jobs.items():
+            label, _ = PRODUCTS[kind]
             try:
                 result = job.result()
             except Problem as error:
@@ -191,7 +194,7 @@ def discover_for_local_setup(secret_id, secret_key):
                 if item["ip"]:
                     instances.append({key: item[key] for key in ("id", "name", "ip", "region", "os", "state")}
                                      | {"product": label})
-    if len(errors) == len(PRODUCTS):
+    if len(errors) == len(products):
         if all(error.code == "TENCENT_AUTH_FAILED" for error in errors):
             raise errors[0]
         raise Problem("TENCENT_UNAVAILABLE", "无法读取腾讯云实例，请检查网络和只读权限后重试。", 502)

@@ -3,7 +3,6 @@
   const $ = id => document.getElementById(id);
   let ticket = '', busy = false, timer = null, stopped = false;
   let readingStatus = false, jobStarted = false;
-  let sshAuth = 'password';
   const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
   const status = text => {
     const element = $('status');
@@ -58,9 +57,8 @@
   $('connection').addEventListener('input', invalidate);
   $('ssh-options').addEventListener('invalid', () => { $('ssh-options').open = true; }, true);
   function showSSHCredentials() {
-    const useKey = sshAuth === 'private_key';
+    const useKey = $('auth').value === 'private_key';
     const fields = $('connection').elements;
-    $('auth').value = sshAuth;
     $('password-label').hidden = useKey;
     $('key-label').hidden = $('phrase-label').hidden = !useKey;
     fields.password.disabled = fields.private_key.required = useKey;
@@ -80,29 +78,32 @@
     resetTencentResults();
     $('tencent').hidden = true;
   }
-  function returnToSSH() {
-    leaveTencent();
-    $('connection-intro').hidden = $('connection').hidden = false;
-    return showSSHCredentials();
+  function showConnectionMethod(cvm) {
+    $('method-ssh').setAttribute('aria-pressed', String(!cvm));
+    $('method-cvm').setAttribute('aria-pressed', String(cvm));
+    $('connection').hidden = cvm;
+    $('tencent').hidden = !cvm;
+  }
+  function lockConnectionMethods(locked) {
+    $('method-ssh').disabled = $('method-cvm').disabled = locked;
   }
   $('auth').onchange = () => {
     clearSecrets();
     invalidate();
-    if ($('auth').value === 'tencent') {
-      $('connection-intro').hidden = $('connection').hidden = true;
-      $('tencent').hidden = false;
-      status('');
-      $('tencent-title').focus();
-      return;
-    }
-    sshAuth = $('auth').value;
     showSSHCredentials().focus();
   };
-  $('tencent-back').onclick = () => {
-    if (busy || jobStarted || stopped) return;
-    returnToSSH();
+  $('method-cvm').onclick = () => {
+    if (busy || jobStarted || stopped || !$('tencent').hidden) return;
+    clearSecrets();
+    invalidate();
+    showConnectionMethod(true);
     status('');
-    $('connection').elements.host.focus();
+  };
+  $('method-ssh').onclick = () => {
+    if (busy || jobStarted || stopped || $('tencent').hidden) return;
+    leaveTencent();
+    showConnectionMethod(false);
+    status('');
   };
   $('tencent-retry').onclick = () => {
     resetTencentResults();
@@ -113,10 +114,12 @@
     event.preventDefault();
     if (busy || jobStarted || stopped) return;
     const credentials = Object.fromEntries(new FormData($('tencent-credentials')));
+    credentials.product = 'cvm';
     clearTencentKeys();
     busy = true;
-    $('tencent-fields').disabled = $('tencent-back').disabled = $('quit').disabled = true;
-    status('正在读取腾讯云实例…');
+    lockConnectionMethods(true);
+    $('tencent-fields').disabled = $('quit').disabled = true;
+    status('正在读取 CVM 实例…');
     try {
       const data = await request('/api/tencent/instances', credentials);
       if (jobStarted || stopped) return;
@@ -133,7 +136,7 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = 'secondary';
-        button.textContent = `${instance.name} · ${instance.ip} · ${instance.region} · ${instance.product}`;
+        button.textContent = `${instance.name} · ${instance.ip} · ${instance.region}`;
         button.onclick = () => selectTencentInstance(instance.ip);
         row.appendChild(button);
         return row;
@@ -148,18 +151,20 @@
     } finally {
       credentials.secret_id = credentials.secret_key = '';
       busy = false;
-      $('tencent-fields').disabled = $('tencent-back').disabled = false;
+      lockConnectionMethods(false);
+      $('tencent-fields').disabled = false;
       if (!jobStarted && !stopped) $('quit').disabled = false;
     }
   };
   function selectTencentInstance(address) {
     if (!address || busy || jobStarted || stopped) return;
     clearSecrets();
-    const credentialField = returnToSSH();
+    leaveTencent();
+    showConnectionMethod(false);
     $('connection').elements.host.value = address;
     invalidate();
-    status('已填入腾讯云实例地址。请提供服务器的 SSH 登录凭据。');
-    credentialField.focus();
+    status('已填入 CVM 实例地址。请输入服务器的 SSH 登录凭据。');
+    showSSHCredentials().focus();
   }
   $('connection').onsubmit = async event => {
     event.preventDefault();
@@ -168,6 +173,7 @@
     values.ssh_port = Number(values.ssh_port);
     busy = true;
     invalidate();
+    lockConnectionMethods(true);
     $('connection-fields').disabled = true;
     $('quit').disabled = true;
     clearSecrets();
@@ -186,7 +192,7 @@
       if (!data.check_token) { status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : '')); return; }
       ticket = data.check_token;
       $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
-      $('connection-intro').hidden = $('connection').hidden = true;
+      $('connection-intro').hidden = $('connection-methods').hidden = $('connection').hidden = true;
       $('confirmation').hidden = $('install').disabled = false;
       status('');
       $('confirmation-title').focus();
@@ -195,6 +201,7 @@
     } finally {
       values.password = values.private_key = values.passphrase = '';
       busy = false;
+      lockConnectionMethods(false);
       $('connection-fields').disabled = false;
       if (!jobStarted && !stopped) $('quit').disabled = false;
     }
@@ -202,7 +209,7 @@
   $('edit-connection').onclick = () => {
     if (busy || jobStarted || stopped) return;
     invalidate();
-    $('connection-intro').hidden = $('connection').hidden = false;
+    $('connection-intro').hidden = $('connection-methods').hidden = $('connection').hidden = false;
     status('');
     $('connection').elements.host.focus();
   };
@@ -231,7 +238,8 @@
   function renderJob(job) {
     jobStarted = true;
     if (!$('tencent').hidden) leaveTencent();
-    $('connection-intro').hidden = $('connection').hidden = $('confirmation').hidden = true;
+    clearSecrets();
+    $('connection-intro').hidden = $('connection-methods').hidden = $('connection').hidden = $('confirmation').hidden = true;
     renderProgress(job);
     $('quit').disabled = job.state === 'running' || busy;
     if (job.state === 'done') {
@@ -271,13 +279,13 @@
       clearSecrets();
       leaveTencent();
       $('initial-password').value = '';
-      for (const id of ['connection-intro', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'quit']) {
+      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'quit']) {
         $(id).hidden = true;
       }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
   };
   $('startup-fallback').hidden = true;
-  $('connection').hidden = $('quit').hidden = false;
+  $('connection-methods').hidden = $('connection').hidden = $('quit').hidden = false;
   poll();
 })();

@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 807 Passed](https://img.shields.io/badge/Tests-807%20Passed%20(100%25)-success.svg)]()
+[![Tests: 809 Passed](https://img.shields.io/badge/Tests-809%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/06-trusted-delivery-plan.md)
 [![Mac Install: Tested](https://img.shields.io/badge/Mac%20Install-Tested-success.svg)](research/07-mac-install-acceptance.md)
@@ -55,13 +55,13 @@ flowchart LR
 
 在仓库根目录双击 **`启动安装.command`**，自动打开只监听本机的安装页面。需要 Python 3.10+，首次启动会按 `requirements.lock` 安装本地依赖。输入服务器地址和密码，点击“检查连接”，按提示核对 SSH 指纹。检查通过后，核对显示的服务器和安装影响，再点击“确认安装”。自定义端口或使用私钥时，展开“SSH 登录选项”。
 
-腾讯云用户可在“SSH 登录选项 → 登录方式”选择“腾讯云 API · 选择实例”。输入只读 SecretId 和 SecretKey，读取轻量应用服务器及云服务器 CVM，点选实例后自动填入公网 IPv4。Mac 直接请求腾讯云接口，密钥查询后清除。继续连接时使用该服务器原有的 SSH 密码或私钥。[腾讯云轻量查询](https://cloud.tencent.com/document/product/1207/47573) · [CVM 查询](https://cloud.tencent.com/document/product/213/15728)
+安装页默认使用「SSH 直连」。也可以切换到「腾讯云 CVM」，用只读 SecretId 和 SecretKey 查询有公网 IPv4 的 CVM 实例。选中实例后，页面返回 SSH 表单并填入地址，再使用该服务器的 SSH 密码或私钥检查连接。Mac 直接请求腾讯云接口，查询后清空密钥。轻量应用服务器可通过 SSH 直连填写公网地址。[CVM 查询](https://cloud.tencent.com/document/product/213/15728)
 
 SSH 连接由 Mac 直接发往目标服务器；密码、私钥和私钥口令不写入文件或日志。安装会下载目标依赖并申请 HTTPS 证书，需要云安全组放通 SSH、80/TCP、8443/TCP、443/TCP、443/UDP。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器，不接管已有服务。
 
 安装期间保持 Mac 和启动窗口运行。页面显示实际阶段和耗时，点击“查看安装记录”可展开完整记录，刷新后继续读取当前任务。失败时页面会直接显示原因和下一步。安装与验收通过后，页面优先显示管理入口和初始密码。保存密码后，可关闭本地服务，内存中的任务和交付信息随之清除。
 
-此入口已完成 Mac → 空白 Debian 12 云机的网页首装、首次改密、客户端导入和 Reality/HY2 独立出网验证。后续修复了状态读取，增加安装进度，并简化连接与确认流程。新增的腾讯云实例选择已通过隔离浏览器验证，807 项离线检查通过。真实腾讯云账号查询和更新后的云机首装待复验。[验收记录](research/07-mac-install-acceptance.md)
+此入口已完成 Mac → 空白 Debian 12 云机的网页首装、首次改密、客户端导入和 Reality/HY2 独立出网验证。后续增加了安装进度、精简了确认流程，并将 SSH 直连和 CVM 选择放到表单顶部。真实腾讯云账号查询和更新后的云机首装待复验。[验收记录](research/07-mac-install-acceptance.md)
 
 ### 方式 1：交给本地 AI Agent 全自动装配（⭐ 最推荐 · 小白首选）
 不用打开云服务器黑框终端，不用学任何 Linux 命令。  

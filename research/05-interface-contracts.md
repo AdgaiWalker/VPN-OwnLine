@@ -385,3 +385,9 @@ GET `/api/status` 返回 `idle/running/attention/done`。只有目标本地双�
 读取仅发起腾讯云 `DescribeRegions` 和 `DescribeInstances`。CVM 优先使用地域管理接口，失败后尝试 CVM 地域接口。轻量应用服务器沿用原地域查询。Mac 在 60 秒查询预算内排入请求，单次 HTTPS 连接超时 20 秒。API 密钥不进入 SSH 检查和安装票据。页面点击实例只填充 `host`，后续沿用 4.15 的 SSH 凭据、指纹检查和安装确认。
 
 [CVM 实例清单](https://cloud.tencent.com/document/product/213/15728) · [轻量实例清单](https://cloud.tencent.com/document/product/1207/47573) · [腾讯云地域管理接口](https://cloud.tencent.com/document/api/1596/77930)
+
+### 4.18 Mac 首装按产品发现云实例（ADR-023） `[STATUS: IMPLEMENTED]`
+
+本地 POST `/api/tencent/instances` 在 4.17 的基础上接受可选 `product`。非空取值为 `cvm` 或 `lighthouse`，只查询对应产品。省略或传 `null` 时查询两种产品。其他值返回 HTTP 400 和 `TENCENT_PRODUCT_UNSUPPORTED`。会话检查、凭据处理和响应字段沿用 4.17。
+
+Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选中实例后切回「SSH 直连」，回填 `host`。两个入口共用 4.15 的 SSH 检查和安装确认。

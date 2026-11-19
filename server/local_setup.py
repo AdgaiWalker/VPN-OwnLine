@@ -77,7 +77,7 @@ def create_server(port=0, session=None):
                     if session.status()['state'] != 'idle':
                         raise InstallError('已有安装任务，请查看原任务状态')
                     self.send(200, tencent_discovery.discover_for_local_setup(
-                        body.get('secret_id'), body.get('secret_key')))
+                        body.get('secret_id'), body.get('secret_key'), product=body.get('product')))
                 elif self.path == '/api/install':
                     if body.get('confirm') is not True:
                         raise InstallError('请先确认安装目标')

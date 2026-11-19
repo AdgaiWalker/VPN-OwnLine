@@ -6,6 +6,10 @@
 <details class="notice"><summary>服务器要求和端口</summary><p>使用空白 Ubuntu 22.04+ / Debian 12+ 服务器和 root 账号。请先在云控制台放行 SSH 端口，以及 80/TCP、8443/TCP、443/TCP 和 443/UDP。</p></details>
 </div>
 <p id="startup-fallback" role="status">安装页面尚未就绪。如果此提示持续显示，请启用 JavaScript，再从 Mac 的启动入口打开。</p>
+<div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
+<button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection">SSH 直连</button>
+<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent">腾讯云 CVM</button>
+</div>
 <form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
 <label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off"></label>
 <label id="password-label">服务器密码<input name="password" type="password" required autocomplete="off"></label>
@@ -13,13 +17,12 @@
 <label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off" disabled></label>
 <details id="ssh-options"><summary>SSH 登录选项</summary>
 <div class="row"><label>SSH 用户名<input name="username" value="root" required autocomplete="off"></label><label>SSH 端口<input name="ssh_port" type="number" min="1" max="65535" value="22" required></label></div>
-<label>登录方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option><option value="tencent">腾讯云 API · 选择实例</option></select></label>
+<label>SSH 认证方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option></select></label>
 </details>
 <button id="check" type="submit">检查连接</button>
 </fieldset></form>
-<section id="tencent" hidden aria-labelledby="tencent-title">
-<h1 id="tencent-title" tabindex="-1">选择腾讯云服务器</h1>
-<p>使用腾讯云只读 API 密钥读取实例。选中后，使用该服务器的 SSH 密码或私钥连接。</p>
+<section id="tencent" hidden aria-label="选择腾讯云 CVM 实例">
+<p>用腾讯云只读 API 密钥读取 CVM 实例。选中实例后，使用服务器的 SSH 密码或私钥连接。</p>
 <form id="tencent-credentials" method="post">
 <fieldset id="tencent-fields" aria-label="腾讯云 API 密钥">
 <div class="row">
@@ -33,10 +36,7 @@
 <h2 id="tencent-results-title" tabindex="-1">选择实例</h2>
 <ul id="tencent-instances"></ul>
 </section>
-<div class="actions tencent-actions">
-<button id="tencent-back" class="secondary" type="button">手动填写地址</button>
 <button id="tencent-retry" class="secondary" type="button" hidden>重新读取</button>
-</div>
 </section>
 <section id="confirmation" hidden aria-labelledby="confirmation-title">
 <h1 id="confirmation-title" tabindex="-1">确认安装到这台服务器</h1>

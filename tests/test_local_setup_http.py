@@ -65,7 +65,7 @@ class HTTPTests(unittest.TestCase):
     def test_tencent_query_uses_local_session_and_does_not_return_keys(self):
         endpoint = '/api/tencent/instances'
         headers = {'Origin': self.server.guard.origin, 'Content-Type': 'application/json'}
-        body = json.dumps({'secret_id': 'fixture-id', 'secret_key': 'fixture-key'})
+        body = json.dumps({'secret_id': 'fixture-id', 'secret_key': 'fixture-key', 'product': 'cvm'})
         result = {'instances': [{'ip': '8.8.8.8'}], 'incomplete_regions': []}
         with patch.object(tencent_discovery, 'discover_for_local_setup', return_value=result) as discover:
             self.assertEqual(self.request('POST', endpoint, headers, body)[0], 403)
@@ -78,7 +78,7 @@ class HTTPTests(unittest.TestCase):
             self.assertEqual(status, 200)
             self.assertEqual(dict(response_headers)['Cache-Control'], 'no-store')
             self.assertEqual(json.loads(response), result)
-            discover.assert_called_once_with('fixture-id', 'fixture-key')
+            discover.assert_called_once_with('fixture-id', 'fixture-key', product='cvm')
         self.assertFalse(self.session.checked)
         self.assertEqual(json.loads(self.request('GET', '/api/status', headers)[2]), {'state': 'idle'})
 
@@ -90,6 +90,15 @@ class HTTPTests(unittest.TestCase):
         self.assertEqual(json.loads(body)['code'], 'TENCENT_CREDENTIALS_REQUIRED')
         self.assertNotIn(b'fixture-id', body)
         cloud.assert_not_called()
+
+    def test_tencent_query_rejects_an_unsupported_product_before_network_access(self):
+        headers = {'Cookie': self.cookie, 'Origin': self.server.guard.origin, 'Content-Type': 'application/json'}
+        with patch.object(tencent_discovery.tc3, 'call') as cloud:
+            payload = json.dumps({'secret_id': 'fixture-id', 'secret_key': 'fixture-key', 'product': ['cvm']})
+            code, _, body = self.request('POST', '/api/tencent/instances', headers, payload)
+            self.assertEqual(code, 400)
+            self.assertEqual(json.loads(body)['code'], 'TENCENT_PRODUCT_UNSUPPORTED')
+            cloud.assert_not_called()
 
 
 if __name__ == '__main__':

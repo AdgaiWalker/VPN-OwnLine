@@ -33,6 +33,17 @@ class TencentDiscoveryTests(unittest.TestCase):
         self.assertEqual(result['incomplete_regions'], [])
         self.assertNotIn('fixture-key', json.dumps(result))
 
+    def test_cvm_filter_does_not_call_lighthouse(self):
+        responses = [
+            {'Response': {'RegionSet': [{'Region': 'ap-tokyo'}]}},
+            {'Response': {'InstanceSet': [{'InstanceId': 'ins-fixture', 'PublicIpAddresses': ['8.8.8.8']}]}},
+        ]
+        with patch.object(tc3, 'call', side_effect=responses) as query:
+            result = tencent_discovery.discover_for_local_setup('fixture-id', 'fixture-key', product='cvm')
+        self.assertEqual([call.kwargs['service'] for call in query.call_args_list], ['region', 'cvm'])
+        self.assertEqual([item['id'] for item in result['instances']], ['ins-fixture'])
+        self.assertEqual(result['incomplete_regions'], [])
+
     def test_missing_product_permissions_keep_the_other_products_results(self):
         def query(action, payload, secret_id, secret_key, region, *, service, direct):
             if service != 'lighthouse':

@@ -22,7 +22,18 @@ button.secondary {
   background: #e6e8df;
   color: #20251f;
 }
-.tencent-actions { margin-top: 16px; }
+#connection-methods {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid #d6d7cd;
+  border-radius: 8px;
+  background: #eceee5;
+}
+#connection-methods button { padding: 7px 16px; }
+#connection-methods button[aria-pressed="false"] { background: transparent; color: #173451; }
+#tencent { margin-top: 16px; }
+#tencent-retry { margin-top: 16px; }
 #tencent-results { border: 0; padding: 0; }
 #tencent-instances {
   list-style: none;
