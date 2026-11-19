@@ -5,14 +5,27 @@
 <h1>连接你的服务器</h1><p>从这台 Mac 直接连接你的 Linux 服务器。登录信息仅在本机内存中使用。</p>
 <details class="notice"><summary>服务器要求和端口</summary><p>使用空白 Ubuntu 22.04+ / Debian 12+ 服务器和 root 账号。请先在云控制台放行 SSH 端口，以及 80/TCP、8443/TCP、443/TCP 和 443/UDP。</p></details>
 </div>
-<form id="connection"><label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off" placeholder="例如 你的服务器公网 IP"></label>
+<p id="startup-fallback" role="status">安装页面尚未就绪。如果此提示持续显示，请启用 JavaScript，再从 Mac 的启动入口打开。</p>
+<form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
+<label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off"></label>
+<label id="password-label">服务器密码<input name="password" type="password" required autocomplete="off"></label>
+<label id="key-label" hidden>SSH 私钥<textarea name="private_key" rows="5" autocomplete="off" spellcheck="false" disabled></textarea></label>
+<label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off" disabled></label>
+<details id="ssh-options"><summary>SSH 登录选项</summary>
 <div class="row"><label>SSH 用户名<input name="username" value="root" required autocomplete="off"></label><label>SSH 端口<input name="ssh_port" type="number" min="1" max="65535" value="22" required></label></div>
 <label>登录方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option></select></label>
-<label id="password-label">服务器密码<input name="password" type="password" autocomplete="off"></label>
-<label id="key-label" hidden>SSH 私钥<textarea name="private_key" rows="5" autocomplete="off" spellcheck="false"></textarea></label>
-<label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
-<button id="check" type="submit">连接检查</button></form>
-<section id="confirmation" hidden><h2>服务器检查通过</h2><p id="target"></p><label class="consent"><input id="consent" type="checkbox">确认在这台空白服务器上安装代理服务和独立管理后台</label><button id="install" disabled>开始安装</button></section>
+</details>
+<button id="check" type="submit">检查连接</button>
+</fieldset></form>
+<section id="confirmation" hidden aria-labelledby="confirmation-title">
+<h1 id="confirmation-title" tabindex="-1">确认安装到这台服务器</h1>
+<p id="target"></p>
+<p id="install-scope">连接检查已通过。确认后会在这台服务器上配置代理、管理后台和所需端口。</p>
+<div class="actions">
+<button id="install" type="button" aria-describedby="target install-scope" disabled>确认安装</button>
+<button id="edit-connection" class="secondary" type="button">修改连接</button>
+</div>
+</section>
 <section id="progress" hidden aria-labelledby="progress-title">
 <h1 id="progress-title" aria-live="polite">安装进度</h1>
 <p id="progress-time"></p>
@@ -21,4 +34,4 @@
 <section id="delivery" hidden><h1>安装与服务端验收通过</h1><p>Mac 已验证管理入口的 HTTPS、登录和订阅；目标服务器已验证代理出网。手机或桌面客户端导入仍需你实际确认。</p><p><a id="dashboard" target="_blank" rel="noreferrer">打开管理后台</a></p><p>账号：admin</p><label>初始密码<input id="initial-password" type="password" readonly></label><button id="reveal">显示 / 隐藏初始密码</button><p>请保存密码并在管理后台完成首次改密。关闭本地服务后，本页交付信息会失效。</p></section>
 <p id="status" role="status" aria-live="polite"></p>
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
-<footer><button id="quit" type="button">关闭本地服务</button></footer></main><script>/* {{SCRIPT}} */</script></body></html>
+<footer><button id="quit" type="button" hidden>关闭本地服务</button></footer></main><script>/* {{SCRIPT}} */</script></body></html>

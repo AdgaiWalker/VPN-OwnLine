@@ -5,26 +5,32 @@ const vm = require('node:vm');
 
 function element() {
   return {hidden:false,open:false,disabled:false,value:'',textContent:'',type:'password',dataset:{},
-    children:[],addEventListener(){},replaceChildren(...rows){this.children=rows;}};
+    children:[],events:{},addEventListener(name,handler){this.events[name]=handler;},focus(){this.focused=true;},replaceChildren(...rows){this.children=rows;}};
 }
 const running = {state:'running',stage:'dependencies',stage_label:'安装系统依赖和管理网关',elapsed_seconds:83,
   stage_elapsed_seconds:65,stages:[{code:'upload',label:'传输安装程序',elapsed_seconds:18,state:'done'},
     {code:'dependencies',label:'安装系统依赖和管理网关',elapsed_seconds:65,state:'running'}],log:['fixture-private-log']};
 
-async function harness(job = running) {
+async function harness(job = running, responses = {}) {
   const html = fs.readFileSync('web/src/html/local-setup.html','utf8');
   const elements = Object.fromEntries([...html.matchAll(/<[^>]+id="([^"]+)"[^>]*>/g)].map(m=>[
-    m[1], {...element(),hidden:/\bhidden\b/.test(m[0]),open:/\bopen\b/.test(m[0])}
+    m[1], {...element(),hidden:/\bhidden\b/.test(m[0]),open:/\bopen\b/.test(m[0]),disabled:/\bdisabled\b/.test(m[0])}
   ]));
-  elements.connection.elements=Object.fromEntries(['password','private_key','passphrase'].map(k=>[k,element()]));
+  elements.connection.elements=Object.fromEntries(Object.entries({
+    host:'198.51.100.2',username:'root',ssh_port:'22',password:'local-fixture',private_key:'',passphrase:''
+  }).map(([k,value])=>[k,{...element(),value,disabled:['private_key','passphrase'].includes(k)}]));
+  elements.auth.value='password';
   const timers=new Map(), calls=[];let id=0, current=job, fail=false, hang=false, hold=false, release;
-  const context={AbortController,URL,document:{getElementById:k=>elements[k],createElement:element},
+  const context={AbortController,URL,FormData:function(form) {
+    return Object.entries(form.elements).filter(([,field])=>!field.disabled).map(([k,field])=>[k,field.value]);
+  },document:{getElementById:k=>elements[k],createElement:element},
     setTimeout(fn,ms){timers.set(++id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
     fetch:async (path,options)=>{
       calls.push({path,options});
       if (hang) return new Promise((resolve,reject)=>options.signal.addEventListener('abort',()=>reject(new Error('timeout'))));
       if (fail) throw new Error('fixture network failure');
       if (hold && path==='/api/status') return new Promise(resolve=>{release=ok=>resolve({ok,json:async()=>current});});
+      if (responses[path]) return {ok:true,json:responses[path]};
       return {ok:true,json:async()=>path==='/api/status'?current:{}};
     }};
   vm.createContext(context);vm.runInContext(fs.readFileSync('web/src/js/local-setup.js','utf8'),context);
@@ -33,6 +39,63 @@ async function harness(job = running) {
     holdNextStatus(){hold=true;},releaseStatus(ok=true){release(ok);},
     async tick(ms){const entry=[...timers].find(([,v])=>v.ms===ms);assert(entry,`timer ${ms}`);timers.delete(entry[0]);entry[1].fn();await settle();}};
 }
+
+const checked = {check_token:'fixture-ticket',result:{
+  username:'root',address:'198.51.100.2',ssh_port:22,os:'debian',version:'12'
+}};
+const submit = {preventDefault(){}};
+
+test('a checked server gets one explicit installation action and one POST',async()=>{
+  const h=await harness({state:'idle'},{'/api/check':()=>checked});
+  assert.equal(h.elements['ssh-options'].open,false);
+  h.elements['ssh-options'].events.invalid();
+  assert.equal(h.elements['ssh-options'].open,true);
+  const checking=h.elements.connection.onsubmit(submit);
+  assert.equal(h.elements['connection-fields'].disabled,true);
+  await checking;
+  assert.equal(h.elements['connection-fields'].disabled,false);
+  assert.equal(h.elements.connection.hidden,true);
+  assert.equal(h.elements.confirmation.hidden,false);
+  assert.match(h.elements.target.textContent,/root@198\.51\.100\.2:22/);
+  assert.equal(h.elements.connection.elements.password.value,'');
+  assert.equal(h.elements.install.disabled,false);
+  await Promise.all([h.elements.install.onclick(),h.elements.install.onclick()]);
+  assert.deepEqual(h.calls.filter(c=>c.path==='/api/install').map(c=>JSON.parse(c.options.body)),[
+    {check_token:'fixture-ticket',confirm:true}
+  ]);
+  assert.equal(h.elements.confirmation.hidden,true);
+  assert.equal(h.elements['progress-title'].textContent,'正在安装');
+});
+
+test('returning to edit removes the old confirmation and preserves the address',async()=>{
+  const h=await harness({state:'idle'},{'/api/check':()=>checked});
+  await h.elements.connection.onsubmit(submit);
+  h.elements['edit-connection'].onclick();
+  assert.equal(h.elements.connection.hidden,false);
+  assert.equal(h.elements.confirmation.hidden,true);
+  assert.equal(h.elements.connection.elements.host.value,'198.51.100.2');
+  assert.equal(h.elements.connection.elements.host.focused,true);
+  await h.elements.install.onclick();
+  assert(h.calls.every(c=>c.path!=='/api/install'));
+});
+
+test('switching to key login removes the password field from the request',async()=>{
+  const h=await harness({state:'idle'},{'/api/check':()=>checked});
+  h.elements.auth.value='private_key';
+  h.elements.auth.onchange();
+  const fields=h.elements.connection.elements;
+  assert.equal(fields.password.value,'');
+  assert.equal(fields.private_key.required,true);
+  assert.equal(fields.private_key.focused,true);
+  fields.private_key.value='key-fixture';
+  fields.passphrase.value='passphrase-fixture';
+  await h.elements.connection.onsubmit(submit);
+  const body=JSON.parse(h.calls.find(c=>c.path==='/api/check').options.body);
+  assert.equal(body.password,undefined);
+  assert.equal(body.private_key,'key-fixture');
+  assert.equal(body.passphrase,'passphrase-fixture');
+  assert.equal(fields.passphrase.value,'');
+});
 
 test('reload resumes the same actual stage and elapsed time using GET only',async()=>{
   const a=await harness(),b=await harness();

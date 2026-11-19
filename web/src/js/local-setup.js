@@ -2,6 +2,8 @@
 (() => {
   const $ = id => document.getElementById(id);
   let ticket = '', busy = false, timer = null, stopped = false;
+  let readingStatus = false, jobStarted = false;
+  const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
   const status = text => {
     const element = $('status');
     if (element.textContent !== text) element.textContent = text;
@@ -43,60 +45,124 @@
     $('progress-details').hidden = rows.length === 0;
     $('progress-stages').replaceChildren(...rows);
   }
-  function clearSecrets() { for (const name of ['password','private_key','passphrase']) $('connection').elements[name].value = ''; }
-  function invalidate() { ticket = ''; $('confirmation').hidden = true; $('consent').checked = false; $('install').disabled = true; }
+  function clearSecrets() {
+    for (const name of ['password', 'private_key', 'passphrase']) $('connection').elements[name].value = '';
+  }
+  function invalidate() {
+    ticket = '';
+    $('confirmation').hidden = true;
+    $('install').disabled = true;
+  }
   $('connection').addEventListener('input', invalidate);
-  $('auth').onchange = () => { clearSecrets(); invalidate(); $('password-label').hidden = $('auth').value !== 'password'; $('key-label').hidden = $('phrase-label').hidden = $('auth').value !== 'private_key'; };
+  $('ssh-options').addEventListener('invalid', () => { $('ssh-options').open = true; }, true);
+  $('auth').onchange = () => {
+    clearSecrets();
+    invalidate();
+    const useKey = $('auth').value === 'private_key';
+    const fields = $('connection').elements;
+    $('password-label').hidden = useKey;
+    $('key-label').hidden = $('phrase-label').hidden = !useKey;
+    fields.password.disabled = fields.private_key.required = useKey;
+    fields.password.required = fields.private_key.disabled = fields.passphrase.disabled = !useKey;
+    (useKey ? fields.private_key : fields.password).focus();
+  };
   $('connection').onsubmit = async event => {
-    event.preventDefault(); if (busy) return; busy = true; invalidate(); $('check').disabled = true;
-    const values = Object.fromEntries(new FormData($('connection'))); values.ssh_port = Number(values.ssh_port);
-    if ($('auth').value === 'password') { values.private_key = ''; values.passphrase = ''; } else values.password = '';
-    clearSecrets(); status('正在只读检查连接和服务器条件…');
+    event.preventDefault();
+    if (busy || jobStarted || stopped) return;
+    const values = Object.fromEntries(new FormData($('connection')));
+    values.ssh_port = Number(values.ssh_port);
+    busy = true;
+    invalidate();
+    $('connection-fields').disabled = true;
+    $('quit').disabled = true;
+    clearSecrets();
+    status('正在检查连接和服务器条件…');
     try {
       let data;
       try { data = await request('/api/check', values); }
       catch (error) {
         const fingerprint = error.data && error.data.fingerprint;
         if (!error.data || error.data.code !== 'HOST_KEY_CONFIRMATION' || !/^SHA256:[A-Za-z0-9+/]{43}$/.test(fingerprint || '')) throw error;
-        if (!window.confirm('请通过云控制台等可信渠道核对 SSH 指纹：\n\n' + fingerprint + '\n\n确认一致后继续？')) { status('未确认服务器指纹，已停止。'); return; }
+        if (jobStarted || stopped) return;
+        if (!window.confirm('请通过云控制台等可信渠道核对 SSH 指纹。\n\n' + fingerprint + '\n\n确认一致后继续？')) { status('请核对服务器指纹后重新检查连接。'); return; }
         values.fingerprint = fingerprint; data = await request('/api/check', values);
       }
+      if (jobStarted || stopped) return;
       if (!data.check_token) { status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : '')); return; }
-      ticket = data.check_token; $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
-      $('confirmation').hidden = false; status('连接检查通过；尚未安装。');
-    } catch (error) { status(error.message); }
-    finally { values.password = values.private_key = values.passphrase = ''; busy = false; $('check').disabled = false; }
+      ticket = data.check_token;
+      $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
+      $('connection-intro').hidden = $('connection').hidden = true;
+      $('confirmation').hidden = $('install').disabled = false;
+      status('');
+      $('confirmation-title').focus();
+    } catch (error) {
+      if (!jobStarted && !stopped) status(error.message);
+    } finally {
+      values.password = values.private_key = values.passphrase = '';
+      busy = false;
+      $('connection-fields').disabled = false;
+      if (!jobStarted && !stopped) $('quit').disabled = false;
+    }
   };
-  $('consent').onchange = () => { $('install').disabled = !$('consent').checked || !ticket; };
+  $('edit-connection').onclick = () => {
+    if (busy || jobStarted || stopped) return;
+    invalidate();
+    $('connection-intro').hidden = $('connection').hidden = false;
+    status('');
+    $('connection').elements.host.focus();
+  };
   $('install').onclick = async () => {
-    if (busy || !ticket || !$('consent').checked) return;
-    busy = true; $('install').disabled = true; $('check').disabled = true;
-    try { await request('/api/install', {check_token:ticket,confirm:true}); ticket = ''; }
-    catch (error) { status(error.message + '\n请刷新状态确认原任务，勿重复提交。'); }
-    finally { busy = false; poll(); }
+    if (busy || !ticket || jobStarted || stopped) return;
+    busy = true;
+    const checkToken = ticket;
+    ticket = '';
+    $('install').disabled = $('edit-connection').disabled = $('quit').disabled = true;
+    status('正在提交安装请求…');
+    try {
+      await request('/api/install', {check_token:checkToken, confirm:true});
+      if (!jobStarted && !stopped) renderJob({state:'running'});
+    } catch (error) {
+      if (!jobStarted && !stopped) {
+        status(error.data
+          ? error.message + '\n请查看任务状态，或修改连接后重新检查。'
+          : '暂时无法确认安装请求是否送达。页面会继续读取任务状态，请勿重复提交。');
+      }
+    } finally {
+      busy = false;
+      if (!jobStarted && !stopped) $('edit-connection').disabled = $('quit').disabled = false;
+      poll();
+    }
   };
+  function renderJob(job) {
+    jobStarted = true;
+    $('connection-intro').hidden = $('connection').hidden = $('confirmation').hidden = true;
+    renderProgress(job);
+    $('quit').disabled = job.state === 'running' || busy;
+    if (job.state === 'done') {
+      const url = new URL(job.delivery.dashboard_url);
+      if (url.protocol !== 'https:') throw new Error('交付地址无效');
+      $('dashboard').href = url.href;
+      $('initial-password').value = job.delivery.temp_password;
+      $('delivery').hidden = false;
+    }
+    status(job.state === 'attention' ? job.message : '');
+  }
   async function poll() {
-    if (stopped) return;
+    if (stopped || readingStatus) return;
+    readingStatus = true;
     if (timer) clearTimeout(timer);
     try {
       const job = await request('/api/status');
       if (stopped) return;
-      if (job.state === 'idle') return;
-      $('connection-intro').hidden = true;
-      $('connection').hidden = $('confirmation').hidden = true;
-      renderProgress(job);
-      $('quit').disabled = job.state === 'running';
-      if (job.state === 'done') {
-        const url = new URL(job.delivery.dashboard_url);
-        if (url.protocol !== 'https:') throw new Error('交付地址无效');
-        $('dashboard').href = url.href;
-        $('initial-password').value = job.delivery.temp_password;
-        $('delivery').hidden = false;
+      if (job.state === 'idle') {
+        if ($('status').textContent === statusUnavailable) status('');
+        return;
       }
-      status(job.state === 'attention' ? job.message : '');
+      renderJob(job);
     } catch (_) {
-      if (!stopped) status('无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。');
+      if (!stopped && !busy) status(statusUnavailable);
     } finally {
+      readingStatus = false;
       if (!stopped) timer = setTimeout(poll, 3000);
     }
   }
@@ -114,5 +180,7 @@
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
   };
+  $('startup-fallback').hidden = true;
+  $('connection').hidden = $('quit').hidden = false;
   poll();
 })();

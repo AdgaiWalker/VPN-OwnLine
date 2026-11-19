@@ -1,9 +1,27 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>:root{color-scheme:light;font:16px/1.6 -apple-system,BlinkMacSystemFont,sans-serif;color:#20251f;background:#f6f5f0}*{box-sizing:border-box}body{margin:0}main{max-width:720px;margin:40px auto;padding:24px}header{display:flex;justify-content:space-between;border-bottom:1px solid #d6d7cd;padding-bottom:20px;gap:16px}small,header span{font-size:13px;color:#626a60}h1{font-size:30px;margin:32px 0 8px}h2{font-size:22px}p{color:#626a60}label{display:block;margin:16px 0}input,textarea,select{display:block;width:100%;padding:12px;border:1px solid #cacdc2;border-radius:8px;background:white;font:inherit;color:inherit}.row{display:flex;gap:16px}.row label{flex:1;min-width:0}.notice{background:#eceee5;padding:16px;border-radius:8px;font-size:14px}button{cursor:pointer;padding:11px 20px;border:0;border-radius:7px;background:#173451;color:white;font:inherit}button:disabled{opacity:.45;cursor:default}section{margin-top:24px;border-top:1px solid #ccc;padding-top:16px}.consent{display:flex;align-items:flex-start;gap:10px}.consent input{width:20px;margin-top:6px;flex:none}footer{border-top:1px solid #ccc;margin-top:30px;padding-top:20px}footer button,#reveal{background:#e6e8df;color:#20251f}[hidden]{display:none!important}#status{white-space:pre-wrap}a{color:#173451}@media(max-width:500px){main{margin:0;padding:20px}.row{display:block}header{flex-wrap:wrap}}
 #progress-stages{padding-left:24px;color:#626a60}#progress-stages li{padding:5px 0}#progress-stages [data-state="running"]{color:#173451;font-weight:600}#progress-stages [data-state="attention"]{color:#9a4427;font-weight:600}#progress-time{font-variant-numeric:tabular-nums}
-#progress, #delivery {
+#confirmation, #progress, #delivery {
   border-top: 0;
   padding-top: 0;
+}
+#connection-fields {
+  border: 0;
+  margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+#ssh-options {
+  margin: 0 0 20px;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+button.secondary {
+  background: #e6e8df;
+  color: #20251f;
 }
 details.notice { margin: 16px 0; }
 details.notice p { margin-bottom: 0; }
@@ -24,14 +42,27 @@ footer:has(#quit[hidden]) { display: none; }
 <h1>连接你的服务器</h1><p>从这台 Mac 直接连接你的 Linux 服务器。登录信息仅在本机内存中使用。</p>
 <details class="notice"><summary>服务器要求和端口</summary><p>使用空白 Ubuntu 22.04+ / Debian 12+ 服务器和 root 账号。请先在云控制台放行 SSH 端口，以及 80/TCP、8443/TCP、443/TCP 和 443/UDP。</p></details>
 </div>
-<form id="connection"><label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off" placeholder="例如 你的服务器公网 IP"></label>
+<p id="startup-fallback" role="status">安装页面尚未就绪。如果此提示持续显示，请启用 JavaScript，再从 Mac 的启动入口打开。</p>
+<form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
+<label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off"></label>
+<label id="password-label">服务器密码<input name="password" type="password" required autocomplete="off"></label>
+<label id="key-label" hidden>SSH 私钥<textarea name="private_key" rows="5" autocomplete="off" spellcheck="false" disabled></textarea></label>
+<label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off" disabled></label>
+<details id="ssh-options"><summary>SSH 登录选项</summary>
 <div class="row"><label>SSH 用户名<input name="username" value="root" required autocomplete="off"></label><label>SSH 端口<input name="ssh_port" type="number" min="1" max="65535" value="22" required></label></div>
 <label>登录方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option></select></label>
-<label id="password-label">服务器密码<input name="password" type="password" autocomplete="off"></label>
-<label id="key-label" hidden>SSH 私钥<textarea name="private_key" rows="5" autocomplete="off" spellcheck="false"></textarea></label>
-<label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
-<button id="check" type="submit">连接检查</button></form>
-<section id="confirmation" hidden><h2>服务器检查通过</h2><p id="target"></p><label class="consent"><input id="consent" type="checkbox">确认在这台空白服务器上安装代理服务和独立管理后台</label><button id="install" disabled>开始安装</button></section>
+</details>
+<button id="check" type="submit">检查连接</button>
+</fieldset></form>
+<section id="confirmation" hidden aria-labelledby="confirmation-title">
+<h1 id="confirmation-title" tabindex="-1">确认安装到这台服务器</h1>
+<p id="target"></p>
+<p id="install-scope">连接检查已通过。确认后会在这台服务器上配置代理、管理后台和所需端口。</p>
+<div class="actions">
+<button id="install" type="button" aria-describedby="target install-scope" disabled>确认安装</button>
+<button id="edit-connection" class="secondary" type="button">修改连接</button>
+</div>
+</section>
 <section id="progress" hidden aria-labelledby="progress-title">
 <h1 id="progress-title" aria-live="polite">安装进度</h1>
 <p id="progress-time"></p>
@@ -40,10 +71,12 @@ footer:has(#quit[hidden]) { display: none; }
 <section id="delivery" hidden><h1>安装与服务端验收通过</h1><p>Mac 已验证管理入口的 HTTPS、登录和订阅；目标服务器已验证代理出网。手机或桌面客户端导入仍需你实际确认。</p><p><a id="dashboard" target="_blank" rel="noreferrer">打开管理后台</a></p><p>账号：admin</p><label>初始密码<input id="initial-password" type="password" readonly></label><button id="reveal">显示 / 隐藏初始密码</button><p>请保存密码并在管理后台完成首次改密。关闭本地服务后，本页交付信息会失效。</p></section>
 <p id="status" role="status" aria-live="polite"></p>
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
-<footer><button id="quit" type="button">关闭本地服务</button></footer></main><script>'use strict';
+<footer><button id="quit" type="button" hidden>关闭本地服务</button></footer></main><script>'use strict';
 (() => {
   const $ = id => document.getElementById(id);
   let ticket = '', busy = false, timer = null, stopped = false;
+  let readingStatus = false, jobStarted = false;
+  const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
   const status = text => {
     const element = $('status');
     if (element.textContent !== text) element.textContent = text;
@@ -85,60 +118,124 @@ footer:has(#quit[hidden]) { display: none; }
     $('progress-details').hidden = rows.length === 0;
     $('progress-stages').replaceChildren(...rows);
   }
-  function clearSecrets() { for (const name of ['password','private_key','passphrase']) $('connection').elements[name].value = ''; }
-  function invalidate() { ticket = ''; $('confirmation').hidden = true; $('consent').checked = false; $('install').disabled = true; }
+  function clearSecrets() {
+    for (const name of ['password', 'private_key', 'passphrase']) $('connection').elements[name].value = '';
+  }
+  function invalidate() {
+    ticket = '';
+    $('confirmation').hidden = true;
+    $('install').disabled = true;
+  }
   $('connection').addEventListener('input', invalidate);
-  $('auth').onchange = () => { clearSecrets(); invalidate(); $('password-label').hidden = $('auth').value !== 'password'; $('key-label').hidden = $('phrase-label').hidden = $('auth').value !== 'private_key'; };
+  $('ssh-options').addEventListener('invalid', () => { $('ssh-options').open = true; }, true);
+  $('auth').onchange = () => {
+    clearSecrets();
+    invalidate();
+    const useKey = $('auth').value === 'private_key';
+    const fields = $('connection').elements;
+    $('password-label').hidden = useKey;
+    $('key-label').hidden = $('phrase-label').hidden = !useKey;
+    fields.password.disabled = fields.private_key.required = useKey;
+    fields.password.required = fields.private_key.disabled = fields.passphrase.disabled = !useKey;
+    (useKey ? fields.private_key : fields.password).focus();
+  };
   $('connection').onsubmit = async event => {
-    event.preventDefault(); if (busy) return; busy = true; invalidate(); $('check').disabled = true;
-    const values = Object.fromEntries(new FormData($('connection'))); values.ssh_port = Number(values.ssh_port);
-    if ($('auth').value === 'password') { values.private_key = ''; values.passphrase = ''; } else values.password = '';
-    clearSecrets(); status('正在只读检查连接和服务器条件…');
+    event.preventDefault();
+    if (busy || jobStarted || stopped) return;
+    const values = Object.fromEntries(new FormData($('connection')));
+    values.ssh_port = Number(values.ssh_port);
+    busy = true;
+    invalidate();
+    $('connection-fields').disabled = true;
+    $('quit').disabled = true;
+    clearSecrets();
+    status('正在检查连接和服务器条件…');
     try {
       let data;
       try { data = await request('/api/check', values); }
       catch (error) {
         const fingerprint = error.data && error.data.fingerprint;
         if (!error.data || error.data.code !== 'HOST_KEY_CONFIRMATION' || !/^SHA256:[A-Za-z0-9+/]{43}$/.test(fingerprint || '')) throw error;
-        if (!window.confirm('请通过云控制台等可信渠道核对 SSH 指纹：\n\n' + fingerprint + '\n\n确认一致后继续？')) { status('未确认服务器指纹，已停止。'); return; }
+        if (jobStarted || stopped) return;
+        if (!window.confirm('请通过云控制台等可信渠道核对 SSH 指纹。\n\n' + fingerprint + '\n\n确认一致后继续？')) { status('请核对服务器指纹后重新检查连接。'); return; }
         values.fingerprint = fingerprint; data = await request('/api/check', values);
       }
+      if (jobStarted || stopped) return;
       if (!data.check_token) { status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : '')); return; }
-      ticket = data.check_token; $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
-      $('confirmation').hidden = false; status('连接检查通过；尚未安装。');
-    } catch (error) { status(error.message); }
-    finally { values.password = values.private_key = values.passphrase = ''; busy = false; $('check').disabled = false; }
+      ticket = data.check_token;
+      $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
+      $('connection-intro').hidden = $('connection').hidden = true;
+      $('confirmation').hidden = $('install').disabled = false;
+      status('');
+      $('confirmation-title').focus();
+    } catch (error) {
+      if (!jobStarted && !stopped) status(error.message);
+    } finally {
+      values.password = values.private_key = values.passphrase = '';
+      busy = false;
+      $('connection-fields').disabled = false;
+      if (!jobStarted && !stopped) $('quit').disabled = false;
+    }
   };
-  $('consent').onchange = () => { $('install').disabled = !$('consent').checked || !ticket; };
+  $('edit-connection').onclick = () => {
+    if (busy || jobStarted || stopped) return;
+    invalidate();
+    $('connection-intro').hidden = $('connection').hidden = false;
+    status('');
+    $('connection').elements.host.focus();
+  };
   $('install').onclick = async () => {
-    if (busy || !ticket || !$('consent').checked) return;
-    busy = true; $('install').disabled = true; $('check').disabled = true;
-    try { await request('/api/install', {check_token:ticket,confirm:true}); ticket = ''; }
-    catch (error) { status(error.message + '\n请刷新状态确认原任务，勿重复提交。'); }
-    finally { busy = false; poll(); }
+    if (busy || !ticket || jobStarted || stopped) return;
+    busy = true;
+    const checkToken = ticket;
+    ticket = '';
+    $('install').disabled = $('edit-connection').disabled = $('quit').disabled = true;
+    status('正在提交安装请求…');
+    try {
+      await request('/api/install', {check_token:checkToken, confirm:true});
+      if (!jobStarted && !stopped) renderJob({state:'running'});
+    } catch (error) {
+      if (!jobStarted && !stopped) {
+        status(error.data
+          ? error.message + '\n请查看任务状态，或修改连接后重新检查。'
+          : '暂时无法确认安装请求是否送达。页面会继续读取任务状态，请勿重复提交。');
+      }
+    } finally {
+      busy = false;
+      if (!jobStarted && !stopped) $('edit-connection').disabled = $('quit').disabled = false;
+      poll();
+    }
   };
+  function renderJob(job) {
+    jobStarted = true;
+    $('connection-intro').hidden = $('connection').hidden = $('confirmation').hidden = true;
+    renderProgress(job);
+    $('quit').disabled = job.state === 'running' || busy;
+    if (job.state === 'done') {
+      const url = new URL(job.delivery.dashboard_url);
+      if (url.protocol !== 'https:') throw new Error('交付地址无效');
+      $('dashboard').href = url.href;
+      $('initial-password').value = job.delivery.temp_password;
+      $('delivery').hidden = false;
+    }
+    status(job.state === 'attention' ? job.message : '');
+  }
   async function poll() {
-    if (stopped) return;
+    if (stopped || readingStatus) return;
+    readingStatus = true;
     if (timer) clearTimeout(timer);
     try {
       const job = await request('/api/status');
       if (stopped) return;
-      if (job.state === 'idle') return;
-      $('connection-intro').hidden = true;
-      $('connection').hidden = $('confirmation').hidden = true;
-      renderProgress(job);
-      $('quit').disabled = job.state === 'running';
-      if (job.state === 'done') {
-        const url = new URL(job.delivery.dashboard_url);
-        if (url.protocol !== 'https:') throw new Error('交付地址无效');
-        $('dashboard').href = url.href;
-        $('initial-password').value = job.delivery.temp_password;
-        $('delivery').hidden = false;
+      if (job.state === 'idle') {
+        if ($('status').textContent === statusUnavailable) status('');
+        return;
       }
-      status(job.state === 'attention' ? job.message : '');
+      renderJob(job);
     } catch (_) {
-      if (!stopped) status('无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。');
+      if (!stopped && !busy) status(statusUnavailable);
     } finally {
+      readingStatus = false;
       if (!stopped) timer = setTimeout(poll, 3000);
     }
   }
@@ -156,6 +253,8 @@ footer:has(#quit[hidden]) { display: none; }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
   };
+  $('startup-fallback').hidden = true;
+  $('connection').hidden = $('quit').hidden = false;
   poll();
 })();
 </script></body></html>
