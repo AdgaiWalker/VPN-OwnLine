@@ -320,35 +320,14 @@
       var pre = document.getElementById(preId);
       if (!btn || !pre) return;
 
-      btn.onclick = function () {
+      btn.onclick = async function () {
         var text = pre.textContent || "";
         var zh = (typeof isZh === "function") ? isZh() : true;
-        var copiedText = zh ? "已复制" : "Copied";
         var orig = btn.textContent;
-        var onCopied = function () {
-          btn.textContent = copiedText;
-          setTimeout(function () { btn.textContent = orig; }, 2500);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(onCopied).catch(function () {
-            copyFallback(text, onCopied);
-          });
-        } else {
-          copyFallback(text, onCopied);
-        }
+        var copied = await copySetupText(text);
+        btn.textContent = copied ? (zh ? "已复制" : "Copied") : (zh ? "复制失败" : "Copy failed");
+        setTimeout(function () { btn.textContent = orig; }, 2500);
       };
-    }
-
-    function copyFallback(text, cb) {
-      var ta = document.createElement("textarea");
-      ta.value = text;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.select();
-      try { document.execCommand("copy"); } catch (e) {}
-      document.body.removeChild(ta);
-      if (cb) cb();
     }
 
     bindPromptCopy("btn-copy-ai-prompt", "ai-prompt-text");
@@ -406,20 +385,10 @@
     ["other-ip", "other-user", "other-ssh-port", "other-passphrase"].forEach(function (id) {
       document.getElementById(id).addEventListener("input", invalidateCheck);
     });
-    input.addEventListener("paste", function (event) {
-      var pasted = event.clipboardData && event.clipboardData.getData("text/plain");
-      if (pasted && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(pasted)) {
-        event.preventDefault();
-        otherPrivateKey = pasted;
-        input.value = "";
-        input.removeAttribute("aria-invalid");
-        keyStatus.textContent = "已粘贴 SSH 私钥";
-        invalidateCheck();
-      }
-    });
-    input.addEventListener("input", function () {
-      otherPrivateKey = "";
-      keyStatus.textContent = "";
+    bindSSHKeyPaste(input, function (key) {
+      otherPrivateKey = key;
+      input.removeAttribute("aria-invalid");
+      keyStatus.textContent = key ? "已粘贴 SSH 私钥" : "";
       invalidateCheck();
     });
     button.onclick = async function () {
@@ -441,7 +410,7 @@
         fieldError("other-credential", zh ? "请输入服务器密码，或粘贴完整的 SSH 私钥。" : "Enter the server password or paste the complete SSH private key.");
         return;
       }
-      if (!otherPrivateKey && /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(password)) {
+      if (!otherPrivateKey && hasSSHPrivateKeyHeader(password)) {
         fieldError("other-credential", zh ? "请粘贴完整的 SSH 私钥。" : "Paste the complete SSH private key.");
         return;
       }

@@ -65,11 +65,11 @@ test('ssh ai prompt: setupAiPrompt binds copy handler for ssh prompt button', as
   vm.createContext(sandbox);
 
   const connSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/03-connection.js'), 'utf8');
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../web/src/js/00-setup-input.js'), 'utf8'), sandbox);
   vm.runInContext(connSrc + '; if (typeof setupAiPrompt === "function") setupAiPrompt();', sandbox);
 
   assert.equal(typeof mockBtn.onclick, 'function', 'onclick handler should be attached');
-  mockBtn.onclick();
-  await new Promise((resolve) => setTimeout(resolve, 5));
+  await mockBtn.onclick();
   assert.equal(copiedText, mockPre.textContent, 'clipboard should receive prompt text');
   assert.equal(mockBtn.textContent, '已复制', 'button text should temporarily switch to 已复制');
 });

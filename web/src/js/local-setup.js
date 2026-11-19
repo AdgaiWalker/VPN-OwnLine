@@ -1,8 +1,11 @@
-'use strict';
 (() => {
+  'use strict';
   const $ = id => document.getElementById(id);
+  const sshForm = $('connection');
+  const sshCredential = $('ssh-credential');
   let ticket = '', busy = false, timer = null, stopped = false;
   let readingStatus = false, jobStarted = false;
+  let privateKey = '';
   const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
   const status = text => {
     const element = $('status');
@@ -47,24 +50,32 @@
     $('progress-stages').replaceChildren(...rows);
   }
   function clearSecrets() {
-    for (const name of ['password', 'private_key', 'passphrase']) $('connection').elements[name].value = '';
+    sshCredential.value = sshForm.elements.passphrase.value = '';
+    setSSHKey('');
   }
   function invalidate() {
     ticket = '';
     $('confirmation').hidden = true;
     $('install').disabled = true;
   }
-  $('connection').addEventListener('input', invalidate);
+  sshForm.addEventListener('input', invalidate);
   $('ssh-options').addEventListener('invalid', () => { $('ssh-options').open = true; }, true);
-  function showSSHCredentials() {
-    const useKey = $('auth').value === 'private_key';
-    const fields = $('connection').elements;
-    $('password-label').hidden = useKey;
-    $('key-label').hidden = $('phrase-label').hidden = !useKey;
-    fields.password.disabled = fields.private_key.required = useKey;
-    fields.password.required = fields.private_key.disabled = fields.passphrase.disabled = !useKey;
-    return useKey ? fields.private_key : fields.password;
+  function setSSHKey(key) {
+    if (privateKey && key !== privateKey) sshForm.elements.passphrase.value = '';
+    privateKey = key;
+    sshCredential.required = !key;
+    $('ssh-key-status').textContent = key ? '已粘贴 SSH 私钥' : '';
   }
+  bindSSHKeyPaste(sshCredential, key => {
+    setSSHKey(key);
+    invalidate();
+  });
+  $('copy-ssh-prompt').onclick = async () => {
+    const prompt = $('ssh-prompt');
+    const copied = await copySetupText(prompt.textContent);
+    prompt.hidden = copied;
+    $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择下方任务书复制。';
+  };
   function clearTencentKeys() {
     $('tencent-secret-id').value = $('tencent-secret-key').value = '';
   }
@@ -87,11 +98,6 @@
   function lockConnectionMethods(locked) {
     $('method-ssh').disabled = $('method-cvm').disabled = locked;
   }
-  $('auth').onchange = () => {
-    clearSecrets();
-    invalidate();
-    showSSHCredentials().focus();
-  };
   $('method-cvm').onclick = () => {
     if (busy || jobStarted || stopped || !$('tencent').hidden) return;
     clearSecrets();
@@ -164,12 +170,23 @@
     $('connection').elements.host.value = address;
     invalidate();
     status('已填入 CVM 实例地址。请输入服务器的 SSH 登录凭据。');
-    showSSHCredentials().focus();
+    sshCredential.focus();
   }
-  $('connection').onsubmit = async event => {
+  sshForm.onsubmit = async event => {
     event.preventDefault();
     if (busy || jobStarted || stopped) return;
-    const values = Object.fromEntries(new FormData($('connection')));
+    if (!privateKey && hasSSHPrivateKeyHeader(sshCredential.value)) {
+      status('请在凭据栏粘贴完整的 SSH 私钥。');
+      sshCredential.focus();
+      return;
+    }
+    const values = Object.fromEntries(new FormData(sshForm));
+    if (privateKey) {
+      values.private_key = privateKey;
+      delete values.password;
+    } else {
+      delete values.passphrase;
+    }
     values.ssh_port = Number(values.ssh_port);
     busy = true;
     invalidate();

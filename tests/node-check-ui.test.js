@@ -47,7 +47,7 @@ function createUI(fetchImpl, confirm = () => true) {
   vm.createContext(context);
   const a = html.indexOf('  function setOtherCheckBusy('), b = html.indexOf('  function esc(', a);
   const c = html.indexOf('  function initOtherConnection()'), d = html.indexOf('  function detectClient()', c);
-  vm.runInContext(html.slice(a,b) + html.slice(c,d), context);
+  vm.runInContext(fs.readFileSync('web/src/js/00-setup-input.js','utf8') + html.slice(a,b) + html.slice(c,d), context);
   context.initOtherConnection();
   return {elements, context, storage};
 }

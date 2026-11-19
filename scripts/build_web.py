@@ -46,7 +46,8 @@ def main():
     check_mode = "--check" in sys.argv
     local = read_file(SRC_DIR / 'html/local-setup.html')
     local = local.replace('/* {{STYLE}} */', read_file(SRC_DIR / 'css/local-setup.css'))
-    local = local.replace('/* {{SCRIPT}} */', read_file(SRC_DIR / 'js/local-setup.js'))
+    local_scripts = ('00-setup-input.js', 'local-setup.js')
+    local = local.replace('/* {{SCRIPT}} */', '\n'.join(read_file(SRC_DIR / 'js' / name) for name in local_scripts))
     outputs = {TARGET: build(), ROOT / 'web/local-setup.html': local}
 
     if check_mode:

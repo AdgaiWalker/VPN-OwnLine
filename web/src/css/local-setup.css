@@ -13,6 +13,21 @@
 #ssh-options {
   margin: 0 0 20px;
 }
+#ssh-key-status:not(:empty) {
+  display: block;
+  margin: -8px 0 16px;
+  color: #173451;
+  font-size: 14px;
+}
+#ssh-help { margin-top: 16px; font-size: 14px; }
+#copy-ssh-prompt { margin-left: 8px; padding: 5px 10px; }
+#ssh-prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #eceee5;
+  border-radius: 8px;
+}
 .actions {
   display: flex;
   flex-wrap: wrap;

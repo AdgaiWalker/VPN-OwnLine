@@ -13,22 +13,27 @@ const running = {state:'running',stage:'dependencies',stage_label:'安装系统�
   stage_elapsed_seconds:65,stages:[{code:'upload',label:'传输安装程序',elapsed_seconds:18,state:'done'},
     {code:'dependencies',label:'安装系统依赖和管理网关',elapsed_seconds:65,state:'running'}],log:['fixture-private-log']};
 
-async function harness(job = running, responses = {}) {
+async function harness(job = running, responses = {}, copy = async () => {}) {
   const html = fs.readFileSync('web/src/html/local-setup.html','utf8');
   const elements = Object.fromEntries([...html.matchAll(/<[^>]+id="([^"]+)"[^>]*>/g)].map(m=>[
     m[1], {...element(),hidden:/\bhidden\b/.test(m[0]),open:/\bopen\b/.test(m[0]),disabled:/\bdisabled\b/.test(m[0])}
   ]));
-  elements.connection.elements=Object.fromEntries(Object.entries({
-    host:'198.51.100.2',username:'root',ssh_port:'22',password:'local-fixture',private_key:'',passphrase:''
-  }).map(([k,value])=>[k,{...element(),value,disabled:['private_key','passphrase'].includes(k)}]));
-  elements.auth.value='password';
+  elements['ssh-credential'].value='local-fixture';
+  elements['ssh-credential'].required=true;
+  elements['ssh-prompt'].textContent=html.match(/<pre id="ssh-prompt" hidden>([\s\S]*?)<\/pre>/)[1];
+  elements.connection.elements={
+    host:{...element(),value:'198.51.100.2'},username:{...element(),value:'root'},
+    ssh_port:{...element(),value:'22'},password:elements['ssh-credential'],passphrase:element(),
+  };
   elements['tencent-credentials'].elements={
     secret_id:elements['tencent-secret-id'],secret_key:elements['tencent-secret-key']
   };
   const timers=new Map(), calls=[];let id=0, current=job, fail=false, hang=false, hold=false, release;
   const context={AbortController,URL,FormData:function(form) {
     return Object.entries(form.elements).filter(([,field])=>!field.disabled).map(([k,field])=>[k,field.value]);
-  },document:{getElementById:k=>elements[k],createElement:element},
+  },navigator:{clipboard:{writeText:copy}},
+    document:{getElementById:k=>elements[k],body:{appendChild(){}},execCommand:()=>false,
+      createElement:()=>({...element(),style:{},select(){},remove(){}})},
     setTimeout(fn,ms){timers.set(++id,{fn,ms});return id;},clearTimeout(id){timers.delete(id);},
     fetch:async (path,options)=>{
       calls.push({path,options});
@@ -38,7 +43,8 @@ async function harness(job = running, responses = {}) {
       if (responses[path]) return {ok:true,json:responses[path]};
       return {ok:true,json:async()=>path==='/api/status'?current:{}};
     }};
-  vm.createContext(context);vm.runInContext(fs.readFileSync('web/src/js/local-setup.js','utf8'),context);
+  vm.createContext(context);
+  for (const file of ['00-setup-input.js','local-setup.js']) vm.runInContext(fs.readFileSync('web/src/js/'+file,'utf8'),context);
   const settle=()=>new Promise(r=>setImmediate(r));await settle();
   return {elements,calls,timers,settle,setJob(value){current=value;fail=hang=false;},setFailure(){fail=true;},setHang(){hang=true;},
     holdNextStatus(){hold=true;},releaseStatus(ok=true){release(ok);},
@@ -87,22 +93,64 @@ test('returning to edit removes the old confirmation and preserves the address',
   assert(h.calls.every(c=>c.path!=='/api/install'));
 });
 
-test('switching to key login removes the password field from the request',async()=>{
+test('pasting a multiline key uses the one credential field and sends only the key and its passphrase',async()=>{
   const h=await harness({state:'idle'},{'/api/check':()=>checked});
-  h.elements.auth.value='private_key';
-  h.elements.auth.onchange();
+  const credential=h.elements['ssh-credential'];
+  const key='-----BEGIN OPENSSH PRIVATE KEY-----\nkey-fixture\n-----END OPENSSH PRIVATE KEY-----';
+  let prevented=false;
+  credential.events.paste({clipboardData:{getData:()=>key},preventDefault(){prevented=true;}});
+  assert.equal(prevented,true);
+  assert.equal(credential.value,'');
+  assert.equal(credential.required,false);
+  assert.equal(h.elements['ssh-key-status'].textContent,'已粘贴 SSH 私钥');
   const fields=h.elements.connection.elements;
-  assert.equal(fields.password.value,'');
-  assert.equal(fields.private_key.required,true);
-  assert.equal(fields.private_key.focused,true);
-  fields.private_key.value='key-fixture';
   fields.passphrase.value='passphrase-fixture';
   await h.elements.connection.onsubmit(submit);
   const body=JSON.parse(h.calls.find(c=>c.path==='/api/check').options.body);
   assert.equal(body.password,undefined);
-  assert.equal(body.private_key,'key-fixture');
+  assert.equal(body.private_key,key);
   assert.equal(body.passphrase,'passphrase-fixture');
   assert.equal(fields.passphrase.value,'');
+  assert.equal(credential.required,true);
+  assert.equal(h.elements['ssh-key-status'].textContent,'');
+});
+
+test('typing a password replaces a pasted key and drops its passphrase',async()=>{
+  const h=await harness({state:'idle'},{'/api/check':()=>checked});
+  const credential=h.elements['ssh-credential'];
+  credential.events.paste({clipboardData:{getData:()=>'-----BEGIN OPENSSH PRIVATE KEY-----\nfixture'},preventDefault(){}});
+  h.elements.connection.elements.passphrase.value='discarded-phrase';
+  credential.value='fixture-password';
+  credential.events.input();
+  assert.equal(h.elements['ssh-key-status'].textContent,'');
+  credential.value='-----BEGIN OPENSSH PRIVATE KEY-----truncated';
+  await h.elements.connection.onsubmit(submit);
+  assert.equal(h.calls.some(c=>c.path==='/api/check'),false);
+  assert.match(h.elements.status.textContent,/粘贴完整的 SSH 私钥/);
+  credential.value='fixture-password';
+  await h.elements.connection.onsubmit(submit);
+  assert.deepEqual(JSON.parse(h.calls.find(c=>c.path==='/api/check').options.body),{
+    host:'198.51.100.2',username:'root',ssh_port:22,password:'fixture-password',
+  });
+});
+
+test('copying the Mac task brief uses only static text and reveals it for manual copy on failure',async()=>{
+  let copied='', blockCopy=false;
+  const h=await harness({state:'idle'},{},async text=>{
+    if (blockCopy) throw new Error('clipboard disabled');
+    copied=text;
+  });
+  assert.equal(h.elements['ssh-help'].open,false);
+  await h.elements['copy-ssh-prompt'].onclick();
+  assert.match(copied,/启动安装\.command/);
+  assert.match(copied,/本人在本地页面输入/);
+  assert.doesNotMatch(copied,/local-fixture/);
+  assert.equal(h.elements['ssh-prompt'].hidden,true);
+  assert.equal(h.elements['ssh-copy-status'].textContent,'已复制');
+  blockCopy=true;
+  await h.elements['copy-ssh-prompt'].onclick();
+  assert.equal(h.elements['ssh-prompt'].hidden,false);
+  assert.match(h.elements['ssh-copy-status'].textContent,/手动/);
 });
 
 test('the CVM entry queries CVM only and selection fills only the SSH address',async()=>{
@@ -116,7 +164,6 @@ test('the CVM entry queries CVM only and selection fills only the SSH address',a
   h.elements['method-cvm'].onclick();
   assert.equal(h.elements['method-cvm'].attributes['aria-pressed'],'true');
   assert.equal(h.elements['method-ssh'].attributes['aria-pressed'],'false');
-  assert.equal(h.elements.auth.value,'password');
   assert.equal(h.elements.connection.elements.password.value,'');
   assert.equal(h.elements.connection.hidden,true);
   assert.equal(h.elements.tencent.hidden,false);
@@ -157,7 +204,6 @@ test('empty Tencent results leave a working manual SSH path',async()=>{
   h.elements['method-ssh'].onclick();
   assert.equal(h.elements.connection.hidden,false);
   assert.equal(h.elements.tencent.hidden,true);
-  assert.equal(h.elements.auth.value,'password');
   assert.equal(h.elements.connection.elements.host.value,'198.51.100.2');
 });
 

@@ -14,6 +14,21 @@
 #ssh-options {
   margin: 0 0 20px;
 }
+#ssh-key-status:not(:empty) {
+  display: block;
+  margin: -8px 0 16px;
+  color: #173451;
+  font-size: 14px;
+}
+#ssh-help { margin-top: 16px; font-size: 14px; }
+#copy-ssh-prompt { margin-left: 8px; padding: 5px 10px; }
+#ssh-prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 12px;
+  background: #eceee5;
+  border-radius: 8px;
+}
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -70,15 +85,25 @@ footer:has(#quit[hidden]) { display: none; }
 <button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent">腾讯云 CVM</button>
 </div>
 <form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
-<label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off"></label>
-<label id="password-label">服务器密码<input name="password" type="password" required autocomplete="off"></label>
-<label id="key-label" hidden>SSH 私钥<textarea name="private_key" rows="5" autocomplete="off" spellcheck="false" disabled></textarea></label>
-<label id="phrase-label" hidden>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off" disabled></label>
-<details id="ssh-options"><summary>SSH 登录选项</summary>
-<div class="row"><label>SSH 用户名<input name="username" value="root" required autocomplete="off"></label><label>SSH 端口<input name="ssh_port" type="number" min="1" max="65535" value="22" required></label></div>
-<label>SSH 认证方式<select id="auth"><option value="password">密码</option><option value="private_key">SSH 私钥</option></select></label>
+<label>服务器公网 IPv4 或域名<input name="host" required autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
+<span id="ssh-key-status" role="status"></span>
+<details id="ssh-options"><summary>连接设置（默认 root · 22）</summary>
+<div class="row"><label>用户名<input name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
+<label>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
 </details>
-<button id="check" type="submit">检查连接</button>
+<button id="check" type="submit">测试连接</button>
+<details id="ssh-help"><summary>安装指引与 Agent 任务书</summary>
+<p>填写服务器地址，把密码或完整私钥粘贴到同一输入框。测试连接后核对 SSH 指纹，再确认安装。</p>
+<a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
+<button class="secondary" id="copy-ssh-prompt" type="button">复制 Agent 任务书</button>
+<span id="ssh-copy-status" role="status"></span>
+<pre id="ssh-prompt" hidden>请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器完成首装。
+1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
+2. 在「SSH 直连」中填写服务器公网地址。请让我本人在本地页面输入服务器密码或粘贴私钥。若测试失败，按页面提示检查账号、端口和云安全组。
+3. 测试连接，提示我通过云控制台核对 SSH 指纹。检查通过后，让我在页面核实目标并主动点击「确认安装」。
+4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
+</details>
 </fieldset></form>
 <section id="tencent" hidden aria-label="选择腾讯云 CVM 实例">
 <p>用腾讯云只读 API 密钥读取 CVM 实例。选中实例后，使用服务器的 SSH 密码或私钥连接。</p>
@@ -114,11 +139,50 @@ footer:has(#quit[hidden]) { display: none; }
 <section id="delivery" hidden><h1>安装与服务端验收通过</h1><p>Mac 已验证管理入口的 HTTPS、登录和订阅；目标服务器已验证代理出网。手机或桌面客户端导入仍需你实际确认。</p><p><a id="dashboard" target="_blank" rel="noreferrer">打开管理后台</a></p><p>账号：admin</p><label>初始密码<input id="initial-password" type="password" readonly></label><button id="reveal">显示 / 隐藏初始密码</button><p>请保存密码并在管理后台完成首次改密。关闭本地服务后，本页交付信息会失效。</p></section>
 <p id="status" role="status" aria-live="polite"></p>
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
-<footer><button id="quit" type="button" hidden>关闭本地服务</button></footer></main><script>'use strict';
+<footer><button id="quit" type="button" hidden>关闭本地服务</button></footer></main><script>function hasSSHPrivateKeyHeader(text) {
+  return /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(text);
+}
+
+function bindSSHKeyPaste(input, onKeyChange) {
+  input.addEventListener("paste", function (event) {
+    const text = event.clipboardData && event.clipboardData.getData("text/plain");
+    if (!text || !hasSSHPrivateKeyHeader(text)) return;
+    event.preventDefault();
+    input.value = "";
+    onKeyChange(text);
+  });
+  input.addEventListener("input", function () { onKeyChange(""); });
+}
+
+async function copySetupText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_) {
+    const input = document.createElement("textarea");
+    input.value = text;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    try {
+      input.select();
+      return document.execCommand("copy");
+    } catch (_) {
+      return false;
+    } finally {
+      input.remove();
+    }
+  }
+}
+
 (() => {
+  'use strict';
   const $ = id => document.getElementById(id);
+  const sshForm = $('connection');
+  const sshCredential = $('ssh-credential');
   let ticket = '', busy = false, timer = null, stopped = false;
   let readingStatus = false, jobStarted = false;
+  let privateKey = '';
   const statusUnavailable = '无法获取本地任务状态，页面将在 3 秒后重试。请检查启动窗口，安装可能仍在运行，不要重复安装。';
   const status = text => {
     const element = $('status');
@@ -163,24 +227,32 @@ footer:has(#quit[hidden]) { display: none; }
     $('progress-stages').replaceChildren(...rows);
   }
   function clearSecrets() {
-    for (const name of ['password', 'private_key', 'passphrase']) $('connection').elements[name].value = '';
+    sshCredential.value = sshForm.elements.passphrase.value = '';
+    setSSHKey('');
   }
   function invalidate() {
     ticket = '';
     $('confirmation').hidden = true;
     $('install').disabled = true;
   }
-  $('connection').addEventListener('input', invalidate);
+  sshForm.addEventListener('input', invalidate);
   $('ssh-options').addEventListener('invalid', () => { $('ssh-options').open = true; }, true);
-  function showSSHCredentials() {
-    const useKey = $('auth').value === 'private_key';
-    const fields = $('connection').elements;
-    $('password-label').hidden = useKey;
-    $('key-label').hidden = $('phrase-label').hidden = !useKey;
-    fields.password.disabled = fields.private_key.required = useKey;
-    fields.password.required = fields.private_key.disabled = fields.passphrase.disabled = !useKey;
-    return useKey ? fields.private_key : fields.password;
+  function setSSHKey(key) {
+    if (privateKey && key !== privateKey) sshForm.elements.passphrase.value = '';
+    privateKey = key;
+    sshCredential.required = !key;
+    $('ssh-key-status').textContent = key ? '已粘贴 SSH 私钥' : '';
   }
+  bindSSHKeyPaste(sshCredential, key => {
+    setSSHKey(key);
+    invalidate();
+  });
+  $('copy-ssh-prompt').onclick = async () => {
+    const prompt = $('ssh-prompt');
+    const copied = await copySetupText(prompt.textContent);
+    prompt.hidden = copied;
+    $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择下方任务书复制。';
+  };
   function clearTencentKeys() {
     $('tencent-secret-id').value = $('tencent-secret-key').value = '';
   }
@@ -203,11 +275,6 @@ footer:has(#quit[hidden]) { display: none; }
   function lockConnectionMethods(locked) {
     $('method-ssh').disabled = $('method-cvm').disabled = locked;
   }
-  $('auth').onchange = () => {
-    clearSecrets();
-    invalidate();
-    showSSHCredentials().focus();
-  };
   $('method-cvm').onclick = () => {
     if (busy || jobStarted || stopped || !$('tencent').hidden) return;
     clearSecrets();
@@ -280,12 +347,23 @@ footer:has(#quit[hidden]) { display: none; }
     $('connection').elements.host.value = address;
     invalidate();
     status('已填入 CVM 实例地址。请输入服务器的 SSH 登录凭据。');
-    showSSHCredentials().focus();
+    sshCredential.focus();
   }
-  $('connection').onsubmit = async event => {
+  sshForm.onsubmit = async event => {
     event.preventDefault();
     if (busy || jobStarted || stopped) return;
-    const values = Object.fromEntries(new FormData($('connection')));
+    if (!privateKey && hasSSHPrivateKeyHeader(sshCredential.value)) {
+      status('请在凭据栏粘贴完整的 SSH 私钥。');
+      sshCredential.focus();
+      return;
+    }
+    const values = Object.fromEntries(new FormData(sshForm));
+    if (privateKey) {
+      values.private_key = privateKey;
+      delete values.password;
+    } else {
+      delete values.passphrase;
+    }
     values.ssh_port = Number(values.ssh_port);
     busy = true;
     invalidate();
