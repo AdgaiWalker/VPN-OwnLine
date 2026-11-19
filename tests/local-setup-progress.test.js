@@ -20,7 +20,7 @@ async function harness(job = running, responses = {}, copy = async () => {}) {
   ]));
   elements['ssh-credential'].value='local-fixture';
   elements['ssh-credential'].required=true;
-  elements['ssh-prompt'].textContent=html.match(/<pre id="ssh-prompt" hidden>([\s\S]*?)<\/pre>/)[1];
+  elements['ssh-prompt'].textContent=html.match(/<pre id="ssh-prompt"[^>]*>([\s\S]*?)<\/pre>/)[1];
   elements.connection.elements={
     host:{...element(),value:'198.51.100.2'},username:{...element(),value:'root'},
     ssh_port:{...element(),value:'22'},password:elements['ssh-credential'],passphrase:element(),
@@ -71,6 +71,7 @@ test('a checked server gets one explicit installation action and one POST',async
   assert.equal(h.elements['connection-fields'].disabled,false);
   assert.equal(h.elements.connection.hidden,true);
   assert.equal(h.elements['connection-methods'].hidden,true);
+  assert.equal(h.elements['ssh-help'].hidden,true);
   assert.equal(h.elements.confirmation.hidden,false);
   assert.match(h.elements.target.textContent,/root@198\.51\.100\.2:22/);
   assert.equal(h.elements.connection.elements.password.value,'');
@@ -89,6 +90,7 @@ test('returning to edit removes the old confirmation and preserves the address',
   h.elements['edit-connection'].onclick();
   assert.equal(h.elements.connection.hidden,false);
   assert.equal(h.elements['connection-methods'].hidden,false);
+  assert.equal(h.elements['ssh-help'].hidden,false);
   assert.equal(h.elements.confirmation.hidden,true);
   assert.equal(h.elements.connection.elements.host.value,'198.51.100.2');
   assert.equal(h.elements.connection.elements.host.focused,true);
@@ -163,23 +165,35 @@ test('typing a password replaces a pasted key and drops its passphrase',async()=
   });
 });
 
-test('copying the Mac task brief uses only static text and reveals it for manual copy on failure',async()=>{
+test('the visible Mac task brief copies only static text and stays available for manual copy on failure',async()=>{
   let copied='', blockCopy=false;
   const h=await harness({state:'idle'},{},async text=>{
     if (blockCopy) throw new Error('clipboard disabled');
     copied=text;
   });
-  assert.equal(h.elements['ssh-help'].open,false);
+  assert.equal(h.elements['ssh-help'].hidden,false);
+  assert.equal(h.elements['ssh-prompt'].hidden,false);
   await h.elements['copy-ssh-prompt'].onclick();
   assert.match(copied,/启动安装\.command/);
   assert.match(copied,/本人在本地页面输入/);
   assert.doesNotMatch(copied,/local-fixture/);
-  assert.equal(h.elements['ssh-prompt'].hidden,true);
+  assert.equal(h.elements['ssh-prompt'].hidden,false);
   assert.equal(h.elements['ssh-copy-status'].textContent,'已复制');
   blockCopy=true;
   await h.elements['copy-ssh-prompt'].onclick();
   assert.equal(h.elements['ssh-prompt'].hidden,false);
   assert.match(h.elements['ssh-copy-status'].textContent,/手动/);
+});
+
+test('connection help stays open for both connection methods',async()=>{
+  const html = fs.readFileSync('web/src/html/local-setup.html','utf8');
+  assert.match(html,/<section id="ssh-help"/);
+  const h=await harness({state:'idle'});
+  h.elements['method-cvm'].onclick();
+  assert.equal(h.elements['ssh-help'].hidden,false);
+  assert.equal(h.elements['ssh-prompt'].hidden,false);
+  h.elements['method-ssh'].onclick();
+  assert.equal(h.elements['ssh-help'].hidden,false);
 });
 
 test('partial CVM results require a selection and retain the CVM context and result list',async()=>{

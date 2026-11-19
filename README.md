@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 816 Passed](https://img.shields.io/badge/Tests-816%20Passed%20(100%25)-success.svg)]()
+[![Tests: 817 Passed](https://img.shields.io/badge/Tests-817%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/06-trusted-delivery-plan.md)
 [![Mac Install: Tested](https://img.shields.io/badge/Mac%20Install-Tested-success.svg)](research/07-mac-install-acceptance.md)
@@ -53,7 +53,7 @@ flowchart LR
 
 ### Mac 本地网页安装
 
-在仓库根目录双击 **`启动安装.command`**，打开只监听本机的「创建节点」页面。需要 Python 3.10+，首次启动会按 `requirements.lock` 安装本地依赖。填入服务器地址，在同一栏输入密码或粘贴完整的 SSH 私钥，再点击「测试连接」并按提示核对 SSH 指纹。修改默认账号 root、端口 22 或填写私钥密码时，展开「连接设置」。检查通过后核对目标，再点击「确认创建」。端口要求、选购建议、Agent 任务书和版本入口在「安装帮助」中。
+在仓库根目录双击 **`启动安装.command`**，打开只监听本机的「创建节点」页面。需要 Python 3.10+，首次启动会按 `requirements.lock` 安装本地依赖。填入服务器地址，在同一栏输入密码或粘贴完整的 SSH 私钥，再点击「测试连接」并按提示核对 SSH 指纹。修改默认账号 root、端口 22 或填写私钥密码时，展开「连接设置」。检查通过后核对目标，再点击「确认创建」。表单下方直接展示安装帮助、Agent 任务书及复制按钮。
 
 安装页默认使用「SSH 直连」。切到「腾讯云 CVM」，可用只读 SecretId 和 SecretKey 查询有公网 IPv4 的 CVM 实例。结果完整且只有一台时自动带入，多台或结果不完整时从列表选择。选定后输入该服务器的 SSH 凭据即可测试连接，更换实例可回到已有列表。Mac 直接请求腾讯云接口，查询后清空密钥。轻量应用服务器可通过 SSH 直连填写公网地址。[CVM 查询](https://cloud.tencent.com/document/product/213/15728)
 

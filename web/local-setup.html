@@ -110,7 +110,7 @@ details > p { margin: 12px 0; }
 #connection-fields > label + label { margin-top: 16px; }
 #connection-fields .target-card + label { margin-top: 16px; }
 #ssh-options { margin-top: 12px; }
-#ssh-options summary, footer summary { padding: 8px 0; }
+#ssh-options summary { padding: 8px 0; }
 #ssh-options > label, #ssh-options .row { margin-top: 12px; }
 #ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
 #check, #tencent-read { display: block; margin-top: 20px; inline-size: 100%; }
@@ -156,6 +156,23 @@ details > p { margin: 12px 0; }
 }
 .delivery-credentials { border-block: 1px solid var(--line); margin: 20px 0; padding: 16px 0 0; }
 .delivery-credentials input { max-inline-size: 25rem; }
+#ssh-help {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 14px;
+}
+.help-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.help-heading h2 { margin: 0; }
+#copy-ssh-prompt { border-color: var(--line); }
+#ssh-copy-status:empty { display: none; }
 #ssh-prompt {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -164,17 +181,15 @@ details > p { margin: 12px 0; }
   padding: 12px;
   font: inherit;
 }
+.update-note { margin: 8px 0 0; }
 footer {
   border-top: 1px solid var(--line);
   margin-top: 32px;
   padding-top: 8px;
   display: flex;
-  justify-content: space-between;
-  align-items: start;
-  gap: 16px;
+  justify-content: flex-end;
 }
 footer:has(#quit[hidden]) { display: none; }
-footer details { flex: 1; min-inline-size: 0; }
 #quit { color: var(--muted); text-decoration: none; font-weight: 400; flex: none; }
 #quit:hover:not(:disabled) { text-decoration: underline; }
 
@@ -182,7 +197,6 @@ footer details { flex: 1; min-inline-size: 0; }
   main { padding: 24px 16px; }
   h1 { margin-top: 28px; }
   .row label { flex-basis: 100%; }
-  footer { gap: 10px; }
 }
 </style></head>
 <body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>Mac 本地安装</span></header>
@@ -263,23 +277,26 @@ footer details { flex: 1; min-inline-size: 0; }
 <p id="status" role="status" aria-live="polite"></p>
 <details id="setup-diagnostics" hidden><summary>查看连接诊断</summary><ol id="setup-events"></ol></details>
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
-<footer>
-<details id="ssh-help" hidden><summary>安装帮助</summary>
-<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、80/TCP、8443/TCP、443/TCP 和 443/UDP。</p>
-<p>凭据仅在这台 Mac 内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
-<div class="help-links">
-<a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
-<button id="copy-ssh-prompt" class="text-button" type="button">复制 Agent 任务书</button>
+<section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
+<div class="help-heading">
+<h2 id="ssh-help-title">安装帮助</h2>
+<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-copy-status">复制 Agent 任务书</button>
 </div>
-<span id="ssh-copy-status" role="status"></span>
-<pre id="ssh-prompt" hidden>请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器创建首个节点。
+<p id="ssh-copy-status" class="field-note" role="status"></p>
+<pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器创建首个节点。
 1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
 2. 在「SSH 直连」中填写服务器公网地址。请让我本人在本地页面输入服务器密码或粘贴私钥。若测试失败，按页面提示检查账号、端口和云安全组。
 3. 测试连接，提示我通过云控制台核对 SSH 指纹。检查通过后，让我核实目标并主动点击「确认创建」。
 4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
-<p class="field-note">本地安装器随仓库更新。更新仓库后重新打开启动入口。已安装的服务可在管理后台的偏好设置检查更新。</p>
+<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、80/TCP、8443/TCP、443/TCP 和 443/UDP。</p>
+<p>凭据仅在这台 Mac 内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
+<div class="help-links">
+<a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noreferrer">查看版本发布</a>
-</details>
+</div>
+<p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
+</section>
+<footer>
 <button id="quit" class="text-button" type="button" hidden>关闭本地服务</button>
 </footer></main><script>function hasSSHPrivateKeyHeader(text) {
   return /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(text);
@@ -409,8 +426,7 @@ async function copySetupText(text) {
   $('copy-ssh-prompt').onclick = async () => {
     const prompt = $('ssh-prompt');
     const copied = await copySetupText(prompt.textContent);
-    prompt.hidden = copied;
-    $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择下方任务书复制。';
+    $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择任务书文字复制。';
   };
   function clearTencentKeys() {
     $('tencent-secret-id').value = $('tencent-secret-key').value = '';
@@ -540,7 +556,7 @@ async function copySetupText(text) {
     sshCredential.focus();
   }
   function showConnectionStep(show) {
-    $('connection-intro').hidden = $('connection-methods').hidden = !show;
+    $('connection-intro').hidden = $('connection-methods').hidden = $('ssh-help').hidden = !show;
     if (show) showConnectionMethod(cvmActive);
     else sshForm.hidden = $('tencent').hidden = true;
   }
@@ -735,7 +751,8 @@ async function copySetupText(text) {
     } catch (error) { status(error.message); }
   };
   $('startup-fallback').hidden = true;
-  $('connection-methods').hidden = $('connection').hidden = $('ssh-help').hidden = $('quit').hidden = false;
+  showConnectionStep(true);
+  $('quit').hidden = false;
   poll();
 })();
 </script></body></html>

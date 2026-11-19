@@ -90,8 +90,7 @@
   $('copy-ssh-prompt').onclick = async () => {
     const prompt = $('ssh-prompt');
     const copied = await copySetupText(prompt.textContent);
-    prompt.hidden = copied;
-    $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择下方任务书复制。';
+    $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择任务书文字复制。';
   };
   function clearTencentKeys() {
     $('tencent-secret-id').value = $('tencent-secret-key').value = '';
@@ -221,7 +220,7 @@
     sshCredential.focus();
   }
   function showConnectionStep(show) {
-    $('connection-intro').hidden = $('connection-methods').hidden = !show;
+    $('connection-intro').hidden = $('connection-methods').hidden = $('ssh-help').hidden = !show;
     if (show) showConnectionMethod(cvmActive);
     else sshForm.hidden = $('tencent').hidden = true;
   }
@@ -416,6 +415,7 @@
     } catch (error) { status(error.message); }
   };
   $('startup-fallback').hidden = true;
-  $('connection-methods').hidden = $('connection').hidden = $('ssh-help').hidden = $('quit').hidden = false;
+  showConnectionStep(true);
+  $('quit').hidden = false;
   poll();
 })();
