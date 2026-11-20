@@ -4,7 +4,7 @@
 > 💡 **核心成本**：搭建普通节点每年仅需 **0 ~ 99 元**（服务器可完全白嫖），在此基础上只需再加 **85 元/年**（12 美元）挂载美国家宽 IP，即可升级为彻底防封的家庭住宅节点。  
 > 资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，2 分钟全自动装配，一个私有网页多端同步。
 
-[![Release: v0.6.1](https://img.shields.io/badge/Release-v0.6.1-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.6.1)
+[![Release: v0.7.0](https://img.shields.io/badge/Release-v0.7.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.7.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
@@ -53,7 +53,7 @@ flowchart LR
 
 ### Mac 本地网页安装
 
-在仓库根目录双击 **`启动安装.command`**，打开只监听本机的「创建节点」页面。需要 Python 3.10+，首次启动会按 `requirements.lock` 安装本地依赖。填入服务器地址，在同一栏输入密码或粘贴完整的 SSH 私钥，再点击「测试连接」并按提示核对 SSH 指纹。修改默认账号 root、端口 22 或填写私钥密码时，展开「连接设置」。检查通过后核对目标，再点击「确认创建」。表单下方直接展示安装帮助、Agent 任务书及复制按钮。
+解压 [v0.7.0 发布包](https://github.com/AdgaiWalker/VPN-OwnLine/releases/download/v0.7.0/vpn-ownline-v0.7.0.tar.gz)，或使用仓库副本。双击根目录的 **`启动安装.command`**，打开只监听本机的「创建节点」页面。需要 Python 3.10+，首次启动会按 `requirements.lock` 安装本地依赖。填入服务器地址，在同一栏输入密码或粘贴完整的 SSH 私钥，再点击「测试连接」并按提示核对 SSH 指纹。修改默认账号 root、端口 22 或填写私钥密码时，展开「连接设置」。检查通过后核对目标，再点击「确认创建」。表单下方直接展示安装帮助、Agent 任务书及复制按钮。
 
 需要协助时，把任务书复制到本地使用的 Agent，例如 WorkBuddy、Muse、Codex、Claude 或 Cursor。密码和私钥在安装页填写。
 
