@@ -115,11 +115,26 @@ def main():
         "49.233.210.101": {
             "used": 2.1, "total": 500.0, "start": "2026-10-24", "end": "2026-11-24", "region": "北京"
         },
+        "43.163.4.104": {
+            "used": 10.0, "total": 1024.0, "start": "2026-10-30", "end": "2026-11-30", "region": "新加坡"
+        },
         "_ts": "2026-11-21T06:00:00Z"
     }
-    agg = T.aggregate_all_traffic_stats(mock_usage, history, now=t3)
-    check("全网聚合包含多节点统计", len(agg["nodes"]) == 2)
-    check("总消耗包含日/周/月/年指标", agg["total"]["this_month_gb"] == 293.6 and "guidance" in agg["total"])
+    # 7a: 未指定 active_nodes 时包含全部
+    agg_all = T.aggregate_all_traffic_stats(mock_usage, history, now=t3)
+    check("未指定 active_nodes 时包含全部节点", len(agg_all["nodes"]) == 3)
+
+    # 7b: 传入 active_nodes 时过滤非活动节点（排除新加坡），并仅按活动出口节点统计总配额
+    active_cluster = [
+        {"name": "硅谷", "host": "43.153.56.137", "role": "exit"},
+        {"name": "北京", "host": "49.233.210.101", "role": "relay"}
+    ]
+    agg = T.aggregate_all_traffic_stats(mock_usage, history, now=t3, active_nodes=active_cluster)
+    check("正确根据 active_nodes 过滤废弃实例", len(agg["nodes"]) == 2 and "43.163.4.104" not in agg["nodes"])
+    check("出海总额度仅绑定出口落地节点", agg["total"]["total_quota_gb"] == 512.0)
+    check("出海月度用量仅绑定出口落地节点", agg["total"]["this_month_gb"] == 291.5)
+    check("行动指引剩余量与总额度绝对对齐(SSOT)", agg["total"]["guidance"]["remaining_gb"] == 220.5)
+    check("行动指引包含动态偏差比率", "pacing_ratio" in agg["total"]["guidance"])
 
     print(f"\n通过 {passed} 项")
 

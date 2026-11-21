@@ -100,7 +100,7 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None, warp=None
                                      hy2["obfs_password"], hy2.get("sni", sni)))
     if isp:
         outbounds = [_isp_outbound(isp), {"type": "direct", "tag": "direct"}]
-        route = {"rules": [{"outbound": "isp-out"}]}
+        route = {"rules": [{"outbound": "isp-out"}], "final": "isp-out"}
         return {
             "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
             "inbounds": inbounds,

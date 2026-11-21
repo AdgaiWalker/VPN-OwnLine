@@ -5324,6 +5324,9 @@ async function copySetupText(text) {
       '<p class="small muted" style="margin-bottom:12px;line-height:1.5">' +
       '所有经由此节点的流量将通过静态住宅代理出网，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
       '</p>' +
+      '<div style="margin-bottom:12px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.15);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
+        '<b>防泄漏提示：</b>挂载住宅代理后，在小火箭/Clash 中请务必将全局路由切换为<b>「全部代理 / 全局」</b>，避免客户端本地分流规则直连导致原生机房 IP 暴露。' +
+      '</div>' +
       currentDesc +
       '<div style="margin-bottom:12px">' +
         '<label for="isp-input-url" style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">代理连接串</label>' +

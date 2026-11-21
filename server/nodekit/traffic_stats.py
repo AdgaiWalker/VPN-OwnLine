@@ -207,6 +207,8 @@ def generate_usage_guidance(used_gb: float, total_gb: float,
         "days_remaining": days_remaining,
         "remaining_gb": remaining_gb,
         "daily_budget_gb": daily_budget_gb,
+        "today_used_gb": today_used_gb,
+        "pacing_ratio": round(ratio, 2),
         "pace": pace,
         "badge": badge,
         "text": advice_text,
@@ -287,10 +289,29 @@ def compute_node_stats(host: str, usage_item: Dict[str, Any],
 
 def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
                                 history: Dict[str, Any],
-                                now: Optional[datetime.datetime] = None) -> Dict[str, Any]:
-    """全系统多节点流量透视聚合报表。"""
+                                now: Optional[datetime.datetime] = None,
+                                active_nodes: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+    """全系统多节点流量透视聚合报表。
+
+    支持根据 active_nodes 过滤废弃或非活跃云实例，仅将出海落地主力节点纳管入配额基准，
+    保证控制台顶部进度条与行动指引单一真理源（SSOT）一致。
+    """
     if now is None:
         now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)
+
+    active_hosts = set()
+    egress_hosts = set()
+    if active_nodes is not None:
+        for n in active_nodes:
+            h = n.get("host") or n.get("ip")
+            if h:
+                active_hosts.add(h)
+                if n.get("role") not in ("relay", "standalone"):
+                    egress_hosts.add(h)
+
+    use_filter = bool(active_hosts)
+    if not egress_hosts:
+        egress_hosts = set(active_hosts)
 
     nodes_stats = {}
     tot_today = 0.0
@@ -301,26 +322,68 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
     tot_total = 0.0
 
     primary_guidance = None
+    primary_candidate = None
 
     for k, v in usage_dict.items():
         if k.startswith("_") or not isinstance(v, dict):
             continue
+        if use_filter and k not in active_hosts:
+            continue
+
         stats = compute_node_stats(k, v, history, now=now)
         nodes_stats[k] = stats
-        tot_today += stats["today_gb"]
-        tot_yesterday += stats["yesterday_gb"]
-        tot_week += stats["this_week_gb"]
-        tot_month += stats["this_month_gb"]
-        tot_year += stats["this_year_gb"]
-        tot_total += stats["total_gb"]
 
-        # 优先使用主力节点（用量最大或总额度最大）的行动指引
-        if primary_guidance is None or stats["total_gb"] > primary_guidance.get("total_gb", 0):
-            primary_guidance = dict(stats["guidance"])
-            primary_guidance["total_gb"] = stats["total_gb"]
+        is_egress = (k in egress_hosts) if use_filter else True
+        if is_egress:
+            tot_today += stats["today_gb"]
+            tot_yesterday += stats["yesterday_gb"]
+            tot_week += stats["this_week_gb"]
+            tot_month += stats["this_month_gb"]
+            tot_year += stats["this_year_gb"]
+            tot_total += stats["total_gb"]
+
+            if primary_candidate is None or stats["total_gb"] > primary_candidate.get("total_gb", 0):
+                primary_candidate = stats
+                primary_guidance = dict(stats["guidance"])
+                primary_guidance["total_gb"] = stats["total_gb"]
 
     if primary_guidance is None:
-        primary_guidance = generate_usage_guidance(tot_month, tot_total, "", "", tot_today, now=now)
+        if nodes_stats:
+            first_stat = next(iter(nodes_stats.values()))
+            primary_guidance = dict(first_stat["guidance"])
+            primary_guidance["total_gb"] = first_stat["total_gb"]
+        else:
+            primary_guidance = generate_usage_guidance(tot_month, tot_total, "", "", tot_today, now=now)
+
+    # 关键闭环：修正 primary_guidance 中的 remaining_gb 与 daily_budget_gb，
+    # 确保与聚合的 tot_total 和 tot_month 绝对一致（SSOT 对齐）
+    if primary_guidance and tot_total > 0:
+        actual_remaining = max(0.0, round(tot_total - tot_month, 2))
+        primary_guidance["remaining_gb"] = actual_remaining
+        days_rem = primary_guidance.get("days_remaining", 30)
+        daily_budget = round(actual_remaining / days_rem, 2) if days_rem > 0 else 0.0
+        primary_guidance["daily_budget_gb"] = daily_budget
+        primary_guidance["total_gb"] = round(tot_total, 2)
+        ratio = (tot_today / daily_budget) if daily_budget > 0 else 0.0
+        primary_guidance["pacing_ratio"] = round(ratio, 2)
+        primary_guidance["today_used_gb"] = round(tot_today, 2)
+
+        if (tot_month / tot_total) >= 0.90:
+            primary_guidance["pace"] = "critical"
+            primary_guidance["badge"] = "紧急预警"
+            primary_guidance["text"] = f"月度流量仅剩 {actual_remaining} GB（已用 {round(tot_month/tot_total*100, 1)}%），请注意控制大流量消耗或调高保护阈值。"
+        elif daily_budget > 0 and ratio > 1.2:
+            primary_guidance["pace"] = "heavy"
+            primary_guidance["badge"] = "今日消耗偏快"
+            primary_guidance["text"] = f"今日已用 {round(tot_today, 2)} GB，略超出建议日均配额（{daily_budget} GB/天），建议留意视频画质或后台下载。"
+        elif daily_budget > 0 and ratio < 0.5:
+            primary_guidance["pace"] = "abundant"
+            primary_guidance["badge"] = "余量极其充裕"
+            primary_guidance["text"] = f"离重置还有 {days_rem} 天，剩余 {actual_remaining} GB。日均可用 {daily_budget} GB/天，可随心看高清/测速。"
+        else:
+            primary_guidance["pace"] = "normal"
+            primary_guidance["badge"] = "用量健康稳定"
+            primary_guidance["text"] = f"离重置还有 {days_rem} 天，日均建议配额 {daily_budget} GB/天，使用节奏良好。"
 
     return {
         "total": {

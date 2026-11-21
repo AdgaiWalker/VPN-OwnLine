@@ -78,16 +78,27 @@ def main():
                 if not host.startswith("_") and isinstance(item, dict):
                     traffic_stats.record_history_snapshot(history, item, host)
             write_json(hist_file, history)
-            stats_report = traffic_stats.aggregate_all_traffic_stats(out, history)
+
+            nodes_file = os.path.join(DATA, "nodes.json")
+            active_nodes = None
+            if os.path.exists(nodes_file):
+                try:
+                    active_nodes = json.load(open(nodes_file, encoding="utf-8"))
+                except Exception:
+                    active_nodes = None
+
+            stats_report = traffic_stats.aggregate_all_traffic_stats(out, history, active_nodes=active_nodes)
             write_json(os.path.join(DATA, "traffic_stats.json"), stats_report)
         except Exception as e:
             errs.append("traffic_stats: %s" % str(e)[:80])
 
         # 流量 85% 水位物理断流与自愈守护
         try:
-            nodes_file = os.path.join(DATA, "nodes.json")
-            if os.path.exists(nodes_file):
-                nodes = json.load(open(nodes_file, encoding="utf-8"))
+            if active_nodes is not None:
+                nodes = active_nodes
+            else:
+                nodes_file = os.path.join(DATA, "nodes.json")
+                nodes = json.load(open(nodes_file, encoding="utf-8")) if os.path.exists(nodes_file) else []
                 from nodekit import quota_guard
                 actions = quota_guard.enforce_quota(nodes, out)
                 if actions:

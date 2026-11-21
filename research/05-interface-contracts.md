@@ -435,3 +435,15 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
 ```
 
 接口纯函数计算，优先消费 `vnstat --json`（若宿主环境安装了 vnstat），并以 `usage_refresh.py` 记录的时序快照（`traffic_history.json`）作为高可靠通用保底，支持计费周期清零重置检测。前端出海总流量仪表盘通过此接口直出四维使用量与行动指南。
+
+### 4.20 流量传感器单一真理源对齐与住宅出口断路器协议（ADR-025） `[STATUS: IMPLEMENTED]`
+
+1. **传感器单一真理源（SSOT）聚合协议**：
+   `aggregate_all_traffic_stats(usage, history, active_nodes=...)` 接收可选的 `active_nodes`。
+   - 过滤 `nodes.json` 之外的无效或历史云实例；
+   - 总额度 `total_quota_gb`、月度用量 `this_month_gb` 以及 `guidance` 仅计算角色非 `relay` 的活动出海落地机；
+   - `guidance.remaining_gb` 严格等于 `total_quota_gb - this_month_gb`，与控制台顶部进度条 100% 像素级对齐；
+   - `guidance` 新增 `today_used_gb` 与 `pacing_ratio`（今日偏差比率）字段，用于动态阻尼调节。
+
+2. **住宅代理出口断路路由**：
+   sing-box 落地机模板在挂载 `isp` 住宅出站时，`route` 显式设置 `"final": "isp-out"` 与 `[{"outbound": "isp-out"}]`，防止在网络异常或规则未命中时流量静默降级走宿主机原生公网 IP。

@@ -725,7 +725,7 @@ class H(BaseHTTPRequestHandler):
             from nodekit import traffic_stats as traffic_stats_mod
             usage = _load_json("usage.json", {})
             history = _load_json("traffic_history.json", {})
-            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history)
+            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=load_nodes())
             return self._json(200, report)
         if norm_path == "/quota/guard":
             usage = _load_json("usage.json", {})
