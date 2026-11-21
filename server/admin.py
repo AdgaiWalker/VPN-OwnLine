@@ -480,7 +480,7 @@ class H(BaseHTTPRequestHandler):
 
         # Caddy runs as an unprivileged user and cannot traverse DATA (0700).
         # Serve only this fixed public snapshot set after the password gate.
-        if norm_path in ('/status.json', '/servers.json', '/usage.json', '/quota.json'):
+        if norm_path in ('/status.json', '/servers.json', '/usage.json', '/quota.json', '/traffic_stats.json'):
             try:
                 with open(os.path.join(DATA, norm_path[1:]), encoding='utf-8') as source:
                     snapshot = json.load(source)
@@ -721,6 +721,12 @@ class H(BaseHTTPRequestHandler):
                 "active_target": active_target,
                 "auto_failover": bool(primary_cfg and fallback_cfg),
             })
+        if norm_path == "/traffic/stats":
+            from nodekit import traffic_stats as traffic_stats_mod
+            usage = _load_json("usage.json", {})
+            history = _load_json("traffic_history.json", {})
+            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history)
+            return self._json(200, report)
         if norm_path == "/quota/guard":
             usage = _load_json("usage.json", {})
             eval_res = quota_mod.evaluate_all(usage)

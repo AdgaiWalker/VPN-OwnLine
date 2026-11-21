@@ -63,6 +63,26 @@ def main():
     if out:
         out["_ts"] = ts
         write_json(os.path.join(DATA, "usage.json"), out)
+
+        # 多维度流量时序与日/周/月/年消耗统计
+        try:
+            from nodekit import traffic_stats
+            hist_file = os.path.join(DATA, "traffic_history.json")
+            history = {}
+            if os.path.exists(hist_file):
+                try:
+                    history = json.load(open(hist_file, encoding="utf-8"))
+                except Exception:
+                    history = {}
+            for host, item in out.items():
+                if not host.startswith("_") and isinstance(item, dict):
+                    traffic_stats.record_history_snapshot(history, item, host)
+            write_json(hist_file, history)
+            stats_report = traffic_stats.aggregate_all_traffic_stats(out, history)
+            write_json(os.path.join(DATA, "traffic_stats.json"), stats_report)
+        except Exception as e:
+            errs.append("traffic_stats: %s" % str(e)[:80])
+
         # 流量 85% 水位物理断流与自愈守护
         try:
             nodes_file = os.path.join(DATA, "nodes.json")

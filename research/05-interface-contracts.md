@@ -391,3 +391,47 @@ GET `/api/status` 返回 `idle/running/attention/done`。只有目标本地双�
 本地 POST `/api/tencent/instances` 在 4.17 的基础上接受可选 `product`。非空取值为 `cvm` 或 `lighthouse`，只查询对应产品。省略或传 `null` 时查询两种产品。其他值返回 HTTP 400 和 `TENCENT_PRODUCT_UNSUPPORTED`。会话检查、凭据处理和响应字段沿用 4.17。
 
 Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前方式内回填 `host`，复用 4.15 的 SSH 检查和安装确认。完整结果只有一台时可直接带入，部分结果仍须用户选择。
+
+### 4.19 多维度流量时序与智能使用规划接口（ADR-024） `[STATUS: IMPLEMENTED]`
+
+管理后台新增 GET `/api/traffic/stats` 与 `/traffic/stats`（支持 Caddy `handle_path` 双前缀归一化）。响应包含 `Cache-Control: no-store` 与当前聚合流量状态：
+
+```json
+{
+  "total": {
+    "today_gb": 1.25,
+    "yesterday_gb": 4.50,
+    "this_week_gb": 18.30,
+    "this_month_gb": 291.50,
+    "this_year_gb": 291.50,
+    "total_quota_gb": 512.0,
+    "guidance": {
+      "days_remaining": 2,
+      "remaining_gb": 220.5,
+      "daily_budget_gb": 110.25,
+      "pace": "abundant",
+      "badge": "余量极其充裕",
+      "text": "离重置还有 2 天，剩余 220.5 GB。日均可用 110.25 GB/天，可随心看高清/测速。"
+    }
+  },
+  "nodes": {
+    "43.153.56.137": {
+      "host": "43.153.56.137",
+      "region": "硅谷",
+      "used_gb": 291.5,
+      "total_gb": 512.0,
+      "start": "2026-10-23",
+      "end": "2026-11-23",
+      "today_gb": 1.25,
+      "yesterday_gb": 4.50,
+      "this_week_gb": 18.30,
+      "this_month_gb": 291.50,
+      "this_year_gb": 291.50,
+      "guidance": { ... }
+    }
+  },
+  "updated_at": "2026-11-21T06:30:00Z"
+}
+```
+
+接口纯函数计算，优先消费 `vnstat --json`（若宿主环境安装了 vnstat），并以 `usage_refresh.py` 记录的时序快照（`traffic_history.json`）作为高可靠通用保底，支持计费周期清零重置检测。前端出海总流量仪表盘通过此接口直出四维使用量与行动指南。

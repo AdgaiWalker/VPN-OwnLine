@@ -56,6 +56,35 @@
           <span><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
           <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
         </div>
+
+        <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
+        <div id="traffic-breakdown-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--apple-line,rgba(0,0,0,0.08));text-align:center">
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">今日已用</div>
+            <div id="traffic-stat-today" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">昨日已用</div>
+            <div id="traffic-stat-yesterday" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">本周累计</div>
+            <div id="traffic-stat-week" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">年度消耗</div>
+            <div id="traffic-stat-year" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+        </div>
+
+        <!-- Intelligent Pacing Guidance Box -->
+        <div id="traffic-guidance-box" style="margin-top:10px;padding:8px 10px;background:var(--surface-soft,rgba(0,0,0,0.03));border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="traffic-guidance-badge" class="tag ok" style="font-size:10.5px;padding:1px 5px">节奏充裕</span>
+            <span id="traffic-guidance-text" style="color:var(--apple-fg)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
+          </div>
+          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:11px;color:var(--apple-muted)"></span>
+        </div>
       </div>
 
       <!-- Apple Client Hub Dialog (Action Sheet) -->

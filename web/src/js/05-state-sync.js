@@ -1,8 +1,34 @@
   function jsonRequest(path, options) {
-    return fetch(safeUrl(path), options || {cache: "no-store"}).then(function (r) {
+    options = options || {cache: "no-store"};
+    if (!options.credentials) options.credentials = "same-origin";
+    return fetch(safeUrl(path), options).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     });
+  }
+
+  function renderTrafficBreakdown(report) {
+    if (!report) return;
+    var tot = report.total || {};
+    var todayEl = document.getElementById("traffic-stat-today");
+    var yestEl = document.getElementById("traffic-stat-yesterday");
+    var weekEl = document.getElementById("traffic-stat-week");
+    var yearEl = document.getElementById("traffic-stat-year");
+    if (todayEl && tot.today_gb != null) todayEl.textContent = tot.today_gb + " GB";
+    if (yestEl && tot.yesterday_gb != null) yestEl.textContent = tot.yesterday_gb + " GB";
+    if (weekEl && tot.this_week_gb != null) weekEl.textContent = tot.this_week_gb + " GB";
+    if (yearEl && tot.this_year_gb != null) yearEl.textContent = tot.this_year_gb + " GB";
+
+    var guide = tot.guidance || {};
+    var gBadge = document.getElementById("traffic-guidance-badge");
+    var gText = document.getElementById("traffic-guidance-text");
+    if (gBadge && guide.badge) {
+      gBadge.textContent = guide.badge;
+      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : (guide.pace === "heavy" ? "warn" : "ok"));
+    }
+    if (gText && guide.text) {
+      gText.textContent = guide.text;
+    }
   }
 
   function setQuotaMessage(box, message) {
@@ -254,6 +280,10 @@
         STATUS = { _unavailable: true };
         paintStatus();
       });
+      jsonRequest("/api/traffic/stats", { signal: signal }).then(function (ts) {
+        if (signal && signal.aborted) return;
+        renderTrafficBreakdown(ts);
+      }).catch(function () {});
       STATE.csrfToken = setup && typeof setup.csrf_token === "string" ? setup.csrf_token : "";
       STATE.tencentConfigured = !!(settings && settings.tencent_configured === true);
       var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true) || STATE.tencentConfigured;

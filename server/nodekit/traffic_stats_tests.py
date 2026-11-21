@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""traffic_stats_tests.py: 多维度流量统计与使用配额规划引擎单元测试。"""
+import datetime
+import json
+import os
+import sys
+
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from nodekit import traffic_stats as T  # noqa: E402
+
+passed = 0
+
+
+def check(name, cond, detail=""):
+    global passed
+    if cond:
+        passed += 1
+        print(f"  OK {name}")
+    else:
+        print(f"  FAIL: {name} {detail}", file=sys.stderr)
+        sys.exit(1)
+
+
+MOCK_VNSTAT_JSON = """{
+  "vnstatversion": "2.10",
+  "jsonversion": "2",
+  "interfaces": [
+    {
+      "name": "eth0",
+      "traffic": {
+        "day": [
+          {"id": 0, "date": {"year": 2026, "month": 11, "day": 21}, "rx": 1048576, "tx": 2097152},
+          {"id": 1, "date": {"year": 2026, "month": 11, "day": 20}, "rx": 2097152, "tx": 4194304},
+          {"id": 2, "date": {"year": 2026, "month": 11, "day": 19}, "rx": 1048576, "tx": 1048576}
+        ],
+        "month": [
+          {"id": 0, "date": {"year": 2026, "month": 11}, "rx": 10485760, "tx": 20971520}
+        ],
+        "year": [
+          {"id": 0, "date": {"year": 2026}, "rx": 52428800, "tx": 52428800}
+        ]
+      }
+    }
+  ]
+}"""
+
+
+def main():
+    # 1. 测试 vnStat JSON 解析 (KiB 换算为 GB)
+    # day[0]: (1048576 + 2097152) KiB = 3145728 KiB = 3.0 GiB
+    # day[1]: (2097152 + 4194304) KiB = 6291456 KiB = 6.0 GiB
+    # 7 天累计: 3 + 6 + 2 = 11.0 GiB
+    # month[0]: 30 GiB
+    # year[0]: 100 GiB
+    vn_parsed = T.parse_vnstat_json(MOCK_VNSTAT_JSON)
+    check("正确解析 vnStat 今日流量", vn_parsed.get("today_gb") == 3.0, str(vn_parsed))
+    check("正确解析 vnStat 昨日流量", vn_parsed.get("yesterday_gb") == 6.0, str(vn_parsed))
+    check("正确统计 vnStat 本周流量", vn_parsed.get("this_week_gb") == 11.0, str(vn_parsed))
+    check("正确解析 vnStat 本月流量", vn_parsed.get("this_month_gb") == 30.0, str(vn_parsed))
+    check("正确解析 vnStat 年度流量", vn_parsed.get("this_year_gb") == 100.0, str(vn_parsed))
+
+    # 2. 异常/空数据保底
+    check("空数据保底不崩溃", T.parse_vnstat_json("") == {})
+    check("非法数据保底不崩溃", T.parse_vnstat_json({"unknown": 123}) == {})
+
+    # 3. 测试时序快照记录与增量计算
+    history = {}
+    base_time = datetime.datetime(2026, 11, 21, 10, 0, 0, tzinfo=datetime.timezone.utc)
+    host = "43.153.56.137"
+
+    # 首次采样 (290.0 GB)
+    history = T.record_history_snapshot(history, {"used": 290.0, "total": 512.0}, host, now=base_time)
+    node_h = history["nodes"][host]
+    check("首次采样今日增量为 0", node_h["daily_totals"]["2026-11-21"] == 0.0)
+
+    # 10 分钟后第二次采样 (291.5 GB，增长 1.5 GB)
+    t2 = base_time + datetime.timedelta(minutes=10)
+    history = T.record_history_snapshot(history, {"used": 291.5, "total": 512.0}, host, now=t2)
+    check("第二次采样正确累加增量 1.5GB", node_h["daily_totals"]["2026-11-21"] == 1.5)
+
+    # 4. 测试跨月/账单清零重置场景 (从 512GB 重置到 2.0GB)
+    t3 = base_time + datetime.timedelta(minutes=20)
+    history = T.record_history_snapshot(history, {"used": 2.0, "total": 512.0}, host, now=t3)
+    check("月度清零后正向递增新周期用量 2.0GB", node_h["daily_totals"]["2026-11-21"] == 3.5)
+
+    # 5. 测试行动指南生成（充足配额场景）
+    guidance = T.generate_usage_guidance(
+        used_gb=100.0,
+        total_gb=500.0,
+        start_str="2026-11-01",
+        end_str="2026-11-30",
+        today_used_gb=2.0,
+        now=datetime.datetime(2026, 11, 20, 12, 0, 0, tzinfo=datetime.timezone.utc)
+    )
+    # 剩余天数: 10 天，剩余流量: 400 GB，日均建议配额: 40 GB/天，今日仅用 2GB (5%) -> pace="abundant"
+    check("充足场景正确计算剩余天数与日均配额", guidance["days_remaining"] == 10 and guidance["daily_budget_gb"] == 40.0)
+    check("充足场景判定为 abundant 状态", guidance["pace"] == "abundant" and "充裕" in guidance["badge"])
+
+    # 6. 测试行动指南生成（严重超支/濒临熔断场景）
+    guidance_crit = T.generate_usage_guidance(
+        used_gb=490.0,
+        total_gb=500.0,
+        start_str="2026-11-01",
+        end_str="2026-11-30",
+        today_used_gb=25.0,
+        now=datetime.datetime(2026, 11, 20, 12, 0, 0, tzinfo=datetime.timezone.utc)
+    )
+    check("濒临耗尽场景判定为 critical 预警", guidance_crit["pace"] == "critical" and "预警" in guidance_crit["badge"])
+
+    # 7. 全系统聚合汇总报表
+    mock_usage = {
+        "43.153.56.137": {
+            "used": 291.5, "total": 512.0, "start": "2026-10-23", "end": "2026-11-23", "region": "硅谷"
+        },
+        "49.233.210.101": {
+            "used": 2.1, "total": 500.0, "start": "2026-10-24", "end": "2026-11-24", "region": "北京"
+        },
+        "_ts": "2026-11-21T06:00:00Z"
+    }
+    agg = T.aggregate_all_traffic_stats(mock_usage, history, now=t3)
+    check("全网聚合包含多节点统计", len(agg["nodes"]) == 2)
+    check("总消耗包含日/周/月/年指标", agg["total"]["this_month_gb"] == 293.6 and "guidance" in agg["total"])
+
+    print(f"\n通过 {passed} 项")
+
+
+if __name__ == "__main__":
+    main()

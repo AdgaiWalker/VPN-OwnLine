@@ -1826,6 +1826,35 @@ footer.site-footer {
           <span><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
           <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
         </div>
+
+        <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
+        <div id="traffic-breakdown-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--apple-line,rgba(0,0,0,0.08));text-align:center">
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">今日已用</div>
+            <div id="traffic-stat-today" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">昨日已用</div>
+            <div id="traffic-stat-yesterday" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">本周累计</div>
+            <div id="traffic-stat-week" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
+            <div class="small muted" style="font-size:11px">年度消耗</div>
+            <div id="traffic-stat-year" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          </div>
+        </div>
+
+        <!-- Intelligent Pacing Guidance Box -->
+        <div id="traffic-guidance-box" style="margin-top:10px;padding:8px 10px;background:var(--surface-soft,rgba(0,0,0,0.03));border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="traffic-guidance-badge" class="tag ok" style="font-size:10.5px;padding:1px 5px">节奏充裕</span>
+            <span id="traffic-guidance-text" style="color:var(--apple-fg)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
+          </div>
+          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:11px;color:var(--apple-muted)"></span>
+        </div>
       </div>
 
       <!-- Apple Client Hub Dialog (Action Sheet) -->
@@ -4192,10 +4221,36 @@ async function copySetupText(text) {
   }
 
   function jsonRequest(path, options) {
-    return fetch(safeUrl(path), options || {cache: "no-store"}).then(function (r) {
+    options = options || {cache: "no-store"};
+    if (!options.credentials) options.credentials = "same-origin";
+    return fetch(safeUrl(path), options).then(function (r) {
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
     });
+  }
+
+  function renderTrafficBreakdown(report) {
+    if (!report) return;
+    var tot = report.total || {};
+    var todayEl = document.getElementById("traffic-stat-today");
+    var yestEl = document.getElementById("traffic-stat-yesterday");
+    var weekEl = document.getElementById("traffic-stat-week");
+    var yearEl = document.getElementById("traffic-stat-year");
+    if (todayEl && tot.today_gb != null) todayEl.textContent = tot.today_gb + " GB";
+    if (yestEl && tot.yesterday_gb != null) yestEl.textContent = tot.yesterday_gb + " GB";
+    if (weekEl && tot.this_week_gb != null) weekEl.textContent = tot.this_week_gb + " GB";
+    if (yearEl && tot.this_year_gb != null) yearEl.textContent = tot.this_year_gb + " GB";
+
+    var guide = tot.guidance || {};
+    var gBadge = document.getElementById("traffic-guidance-badge");
+    var gText = document.getElementById("traffic-guidance-text");
+    if (gBadge && guide.badge) {
+      gBadge.textContent = guide.badge;
+      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : (guide.pace === "heavy" ? "warn" : "ok"));
+    }
+    if (gText && guide.text) {
+      gText.textContent = guide.text;
+    }
   }
 
   function setQuotaMessage(box, message) {
@@ -4447,6 +4502,10 @@ async function copySetupText(text) {
         STATUS = { _unavailable: true };
         paintStatus();
       });
+      jsonRequest("/api/traffic/stats", { signal: signal }).then(function (ts) {
+        if (signal && signal.aborted) return;
+        renderTrafficBreakdown(ts);
+      }).catch(function () {});
       STATE.csrfToken = setup && typeof setup.csrf_token === "string" ? setup.csrf_token : "";
       STATE.tencentConfigured = !!(settings && settings.tencent_configured === true);
       var canDiscover = !!STATE.csrfToken || !!(settings && settings.tencent_discovery === true) || STATE.tencentConfigured;

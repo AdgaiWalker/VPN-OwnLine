@@ -51,7 +51,8 @@ for f in \
   server/nodekit/system_updater_tests.py \
   server/nodekit/join_token_tests.py \
   server/nodekit/warp_client_tests.py \
-  server/nodekit/ai_feedback_tests.py
+  server/nodekit/ai_feedback_tests.py \
+  server/nodekit/traffic_stats_tests.py
 do
   if out="$("$PYTHON_BIN" "$f" 2>&1)"; then
     n="$(printf '%s\n' "$out" | sed -n -e 's/^通过 \([0-9][0-9]*\) 项$/\1/p' -e 's/^Ran \([0-9][0-9]*\) test.*/\1/p' | tail -1)"
