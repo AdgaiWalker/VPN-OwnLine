@@ -24,6 +24,9 @@
 - [ADR-016：WARP 真实数据面闭环与反向自举中转配对协议 (WARP Data-Plane Closed-Loop & Reverse-Join Relay Pairing)](#adr-016)
 - [ADR-017：反向入网与升级状态的安全边界](#adr-017)
 - [ADR-024：多维度流量时序聚合与智能使用规划引擎](#adr-024)
+- [ADR-025：流量传感器单一真理源对齐与住宅出口安全断路器](#adr-025)
+- [ADR-026：链路木桶短板感知与计费重置语义消除歧义](#adr-026)
+- [ADR-027：Webshare 静态住宅 IP 深度适配与智能解析器升级](#adr-027)
 
 ---
 
@@ -425,3 +428,20 @@ SSH 认证方式里隐藏云实例入口，用户需要先打开登录选项才�
 1. **彻底消除重置语义歧义**：将节点卡片标签规范化为明确的「每月 X 号重置」，消除相对倒计时与绝对日期的混淆。
 2. **拓扑木桶短板分析 (Bottleneck Theory)**：在 `aggregate_all_traffic_stats` 中引入专线跳板配额对比逻辑，当中转机剩余量低于落地机时，自动发出「跳板短板预警」，并将链路有效可用量锚定在短板跳板。
 3. **周期临界安全缓冲保护**：当剩余天数 $\le 2$ 天时，指引文案转为提示「账单周期即将切换，建议保留安全余量避免超量计费」，消除非理性突发用量诱导。
+
+### <a id="adr-027"></a>ADR-027 · Webshare 静态住宅 IP 深度适配与智能解析器升级 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率最高的供应商。然而此前系统的住宅代理挂载交互存在显著心智割裂：
+1. **输入契约不匹配**：后端 `parse_isp_proxy` 仅接受严格以 `socks5://` 或 `http://` 开头的单一 URL 串，当用户粘贴 Webshare 控制台主流给出的 curl 命令（`curl --proxy "http://user:pass@ip:port/" ...`）或列表导出四段式（`ip:port:user:pass`）时，系统直接抛出 `LinkError` 报错拒绝。
+2. **表单隐藏与认知负荷**：Webshare 控制台核心表格直出 `Proxy Address`、`Port`、`Username`、`Password` 4 项字段，而此前界面的手工输入项被折叠在 `<details>` 内部，且无智能识别与自动回填能力。
+
+#### 2. 裁决结论 (Decision)
+1. **全场景智能多格式解析引擎**：
+   - 前端引入 `parseWebshareProxy` 实时解析器，并在控制台节点管理控制器中公开导出；
+   - 后端重构 `server/nodekit/links.py:parse_isp_proxy`，通过正则表达式与字符串切片自适应剥除外层引号、提取 `--proxy / -x` 参数、解析四段式冒号序列（`ip:port:user:pass`）及裸端口白名单模式；
+   - 协议类型自适应适配 SOCKS5 与 HTTP。
+2. **交互心智模型 1:1 对齐 Webshare**：
+   - 住宅 IP 弹窗展开直出 Webshare 标准 4 字段（`Proxy Address`、`Port`、`Username`、`Password`）与 `SOCKS5 / HTTP` 单选组；
+   - 顶部提供智能粘贴输入区（Textarea），在用户输入/粘贴时毫秒级提供「✓ 已识别 Webshare 代理：IP:PORT」绿灯徽标反馈，并自动将解析结果双向回填至下方参数表单中；
+   - 维持防泄漏提示与解绑/保存动作的一致性。

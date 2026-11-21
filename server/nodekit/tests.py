@@ -84,7 +84,7 @@ for broken, keyword in [
     except links.LinkError as e:
         ok("报错含关键词 " + keyword, keyword in str(e), str(e))
 
-# ---------- links: parse_isp_proxy (3x-ui 兼容) ----------
+# ---------- links: parse_isp_proxy (3x-ui / Webshare 兼容) ----------
 isp_socks = links.parse_isp_proxy("socks5://user1:pass2@residential.isp.net:10808")
 ok("解析 socks5 ISP host", isp_socks["server"] == "residential.isp.net")
 ok("解析 socks5 ISP port", isp_socks["server_port"] == 10808)
@@ -97,6 +97,31 @@ ok("解析 http ISP host", isp_http["server"] == "198.51.100.99")
 ok("解析 http ISP port", isp_http["server_port"] == 8080)
 ok("解析 http ISP type", isp_http["type"] == "http")
 ok("解析 http ISP 无账号", "username" not in isp_http)
+
+# Webshare 格式适配测试
+isp_ws_curl = links.parse_isp_proxy('curl --proxy "http://dora2026:pass999@168.158.185.30:6297/" https://ipv4.webshare.io/')
+ok("Webshare curl 命令解析 host", isp_ws_curl["server"] == "168.158.185.30")
+ok("Webshare curl 命令解析 port", isp_ws_curl["server_port"] == 6297)
+ok("Webshare curl 命令解析 user", isp_ws_curl["username"] == "dora2026")
+ok("Webshare curl 命令解析 pass", isp_ws_curl["password"] == "pass999")
+ok("Webshare curl 命令解析 type", isp_ws_curl["type"] == "http")
+
+isp_ws_4part = links.parse_isp_proxy("168.158.185.30:6297:dora2026:pass999")
+ok("Webshare 4段式解析 host", isp_ws_4part["server"] == "168.158.185.30")
+ok("Webshare 4段式解析 port", isp_ws_4part["server_port"] == 6297)
+ok("Webshare 4段式解析 user", isp_ws_4part["username"] == "dora2026")
+ok("Webshare 4段式解析 pass", isp_ws_4part["password"] == "pass999")
+ok("Webshare 4段式解析 type", isp_ws_4part["type"] == "socks")
+
+isp_ws_auth = links.parse_isp_proxy("dora2026:pass999@168.158.185.30:6297")
+ok("Webshare 凭据式解析 host", isp_ws_auth["server"] == "168.158.185.30")
+ok("Webshare 凭据式解析 port", isp_ws_auth["server_port"] == 6297)
+
+isp_ws_bare = links.parse_isp_proxy("168.158.185.30:6297")
+ok("Webshare IP白名单裸端口解析", isp_ws_bare["server"] == "168.158.185.30" and isp_ws_bare["server_port"] == 6297)
+
+isp_ws_quoted = links.parse_isp_proxy('"socks5://dora2026:pass999@168.158.185.30:6297"')
+ok("Webshare 外层双引号解析", isp_ws_quoted["server"] == "168.158.185.30" and isp_ws_quoted["username"] == "dora2026")
 
 try:
     links.parse_isp_proxy("ftp://1.2.3.4:21")

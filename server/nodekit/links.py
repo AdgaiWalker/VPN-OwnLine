@@ -96,16 +96,68 @@ def build_link(node, name=None):
 
 def parse_isp_proxy(url):
     """解析 SOCKS5 或 HTTP 代理 URL 为 dict（3x-ui 兼容格式）。
-    支持：
-      socks5://user:pass@127.0.0.1:1080
-      socks5://127.0.0.1:1080
-      http://user:pass@127.0.0.1:8080
+    全面适配 Webshare 常见导出格式：
+      1. curl 快速测试命令：
+         curl --proxy "http://user:pass@ip:port/" ...
+         curl -x "socks5://user:pass@ip:port" ...
+      2. 导出列表四段式：
+         ip:port:user:pass
+      3. 用户凭据串：
+         user:pass@ip:port
+      4. 简易地址端口：
+         ip:port
+      5. 标准代理 URL（带或不带双引号）：
+         socks5://user:pass@ip:port
+         http://user:pass@ip:port
     """
-    if not url or not url.strip():
+    if not url or not str(url).strip():
         raise LinkError("代理链接为空")
-    url = url.strip()
+    import re
+    text = str(url).strip()
+    if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
+        text = text[1:-1].strip()
+
+    if "curl " in text or text.startswith("curl"):
+        m_curl = re.search(r'(?:--proxy|-x)\s+["\']?([^"\'\s]+)["\']?', text)
+        if m_curl:
+            text = m_curl.group(1).strip()
+        else:
+            raise LinkError("无法从 curl 命令中解析出代理参数（--proxy 或 -x）")
+
+    text = text.rstrip("/")
+
+    parts = text.split(":")
+    if len(parts) >= 4 and parts[1].isdigit():
+        ip, port_str, user, password = parts[0].strip(), parts[1].strip(), parts[2].strip(), ":".join(parts[3:]).strip()
+        port = int(port_str)
+        if not (0 < port < 65536):
+            raise LinkError("代理端口不合法（必须是 1-65535）")
+        return {
+            "type": "socks",
+            "server": ip,
+            "server_port": port,
+            "username": user,
+            "password": password
+        }
+
+    if len(parts) == 2 and parts[1].isdigit() and not ("//" in text or "@" in text):
+        ip, port_str = parts[0].strip(), parts[1].strip()
+        port = int(port_str)
+        if not (0 < port < 65536):
+            raise LinkError("代理端口不合法（必须是 1-65535）")
+        return {
+            "type": "socks",
+            "server": ip,
+            "server_port": port
+        }
+
+    if "://" not in text:
+        target_url = "socks5://" + text
+    else:
+        target_url = text
+
     try:
-        u = urllib.parse.urlparse(url)
+        u = urllib.parse.urlparse(target_url)
     except Exception:
         raise LinkError("代理链接格式不正确")
     scheme = (u.scheme or "").lower()

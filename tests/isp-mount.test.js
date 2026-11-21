@@ -85,3 +85,70 @@ test('mountIsp dialog contains Webshare recommendation link', () => {
   assert.match(html, /https:\/\/www\.webshare\.io/);
   assert.match(html, /选择「Static Residential」/);
 });
+
+test('mountIsp dialog contains Webshare smart input and structured parameter fields', () => {
+  assert.match(html, /id="isp-smart-input"/);
+  assert.match(html, /id="isp-manual-host"/);
+  assert.match(html, /id="isp-manual-port"/);
+  assert.match(html, /id="isp-manual-user"/);
+  assert.match(html, /id="isp-manual-pass"/);
+  assert.match(html, /name="isp-proto"/);
+  assert.match(html, /已深度适配 Webshare/);
+});
+
+test('parseWebshareProxy parses curl command, 4-colon list, and credentials correctly', () => {
+  const match = html.match(/function parseWebshareProxy\(raw\)\s*\{[\s\S]*?^\s*return null;\s*\}/m);
+  assert(match, 'parseWebshareProxy function must be present');
+  const fnStr = match[0];
+  const parseWebshareProxy = new Function('raw', `${fnStr}; return parseWebshareProxy(raw);`);
+
+  // 1. Webshare curl quickstart
+  const curlRes = parseWebshareProxy('curl --proxy "http://dora2026:secretpass@168.158.185.30:6297/" https://ipv4.webshare.io/');
+  assert.deepEqual(curlRes, {
+    type: 'http',
+    server: '168.158.185.30',
+    server_port: 6297,
+    username: 'dora2026',
+    password: 'secretpass'
+  });
+
+  // 2. Webshare 4-colon download format
+  const colonRes = parseWebshareProxy('168.158.185.30:6297:dora2026:secretpass');
+  assert.deepEqual(colonRes, {
+    type: 'socks',
+    server: '168.158.185.30',
+    server_port: 6297,
+    username: 'dora2026',
+    password: 'secretpass'
+  });
+
+  // 3. socks5 URL
+  const socksRes = parseWebshareProxy('socks5://dora2026:secretpass@168.158.185.30:6297');
+  assert.deepEqual(socksRes, {
+    type: 'socks',
+    server: '168.158.185.30',
+    server_port: 6297,
+    username: 'dora2026',
+    password: 'secretpass'
+  });
+
+  // 4. bare IP:Port
+  const bareRes = parseWebshareProxy('168.158.185.30:6297');
+  assert.deepEqual(bareRes, {
+    type: 'socks',
+    server: '168.158.185.30',
+    server_port: 6297,
+    username: '',
+    password: ''
+  });
+
+  // 5. user:pass@ip:port
+  const authRes = parseWebshareProxy('dora2026:secretpass@168.158.185.30:6297');
+  assert.deepEqual(authRes, {
+    type: 'socks',
+    server: '168.158.185.30',
+    server_port: 6297,
+    username: 'dora2026',
+    password: 'secretpass'
+  });
+});

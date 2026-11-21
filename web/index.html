@@ -5307,43 +5307,121 @@ async function copySetupText(text) {
     }).catch(function (e) { dialog({title: "操作失败", message: String(e), cancelText: null, confirmText: "确定"}); });
   }
 
+  function parseWebshareProxy(raw) {
+    if (!raw || !String(raw).trim()) return null;
+    var t = String(raw).trim();
+    if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
+      t = t.slice(1, -1).trim();
+    }
+    if (t.indexOf("curl") >= 0) {
+      var mCurl = t.match(/(?:--proxy|-x)\s+["']?([^"'\s]+)["']?/i);
+      if (mCurl) {
+        t = mCurl[1].trim();
+      }
+    }
+    t = t.replace(/\/+$/, "");
+
+    var parts = t.split(":");
+    if (parts.length >= 4 && /^\d+$/.test(parts[1])) {
+      var p4 = parseInt(parts[1], 10);
+      if (p4 > 0 && p4 < 65536) {
+        return {
+          type: "socks",
+          server: parts[0].trim(),
+          server_port: p4,
+          username: parts[2].trim(),
+          password: parts.slice(3).join(":").trim()
+        };
+      }
+    }
+
+    if (parts.length === 2 && /^\d+$/.test(parts[1]) && t.indexOf("//") === -1 && t.indexOf("@") === -1) {
+      var p2 = parseInt(parts[1], 10);
+      if (p2 > 0 && p2 < 65536) {
+        return {
+          type: "socks",
+          server: parts[0].trim(),
+          server_port: p2,
+          username: "",
+          password: ""
+        };
+      }
+    }
+
+    var m = t.match(/^(?:(socks5?|https?):\/\/)?(?:([^:@\s]+)(?::([^@\s]+))?@)?([a-zA-Z0-9.-]+):(\d+)$/i);
+    if (m) {
+      var pNum = parseInt(m[5], 10);
+      if (pNum > 0 && pNum < 65536) {
+        var proto = m[1] && m[1].toLowerCase().indexOf("http") >= 0 ? "http" : "socks";
+        return {
+          type: proto,
+          server: m[4].trim(),
+          server_port: pNum,
+          username: m[2] ? decodeURIComponent(m[2]) : "",
+          password: m[3] ? decodeURIComponent(m[3]) : ""
+        };
+      }
+    }
+    return null;
+  }
+
   function mountIsp(i) {
     var n = NODES[i];
     if (!n) return;
     var currentIsp = n.isp || null;
     var currentDesc = "";
     if (currentIsp) {
-      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:12.5px">' +
-        '<b>当前住宅出口：</b><br>' +
-        '<code style="font-size:12px;color:var(--accent);word-break:break-all">' +
+      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:12px">' +
+        '<div style="display:flex;justify-content:space-between;margin-bottom:2px">' +
+          '<b>当前住宅出口：</b>' +
+          '<span style="font-weight:600;color:var(--accent)">' + (esc(currentIsp.type || 'socks')).toUpperCase() + '</span>' +
+        '</div>' +
+        '<code style="font-size:11.5px;color:var(--accent);word-break:break-all">' +
         esc((currentIsp.type || 'socks') + '://' + (currentIsp.username ? (currentIsp.username + '@') : '') + currentIsp.server + ':' + currentIsp.server_port) +
         '</code></div>';
     }
 
-    var content = '<h2>住宅 IP 出口 · "' + esc(n.name) + '"</h2>' +
+    var content = '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">' +
+        '<div>' +
+          '<h2 style="margin:0 0 4px;font-size:18px;font-weight:600;color:var(--ink)">住宅 IP 出口 · "' + esc(n.name) + '"</h2>' +
+          '<div style="display:flex;align-items:center;gap:6px">' +
+            '<span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(0,122,255,0.2)">已深度适配 Webshare</span>' +
+            '<span class="small muted">降低 AI 与流媒体风控拦截</span>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
       '<p class="small muted" style="margin-bottom:12px;line-height:1.5">' +
-      '所有经由此节点的流量将通过静态住宅代理出网，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
+      '所有经由此节点的流量将通过静态住宅代理出网，具备高纯净度属地标签，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
       '</p>' +
-      '<div style="margin-bottom:12px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.15);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
+      '<div style="margin-bottom:12px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
         '<b>防泄漏提示：</b>挂载住宅代理后，在小火箭/Clash 中请务必将全局路由切换为<b>「全部代理 / 全局」</b>，避免客户端本地分流规则直连导致原生机房 IP 暴露。' +
       '</div>' +
       currentDesc +
       '<div style="margin-bottom:12px">' +
-        '<label for="isp-input-url" style="display:block;font-size:13px;font-weight:600;margin-bottom:4px">代理连接串</label>' +
-        '<input id="isp-input-url" type="text" placeholder="例如 socks5://user:pass@198.51.100.99:1080 或 http://..." style="width:100%;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:4px;font-size:13px">' +
-        '<div class="small muted" style="margin-top:6px;line-height:1.4">需要静态住宅 IP？可前往 <a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="color:var(--apple-blue);text-decoration:underline">Webshare</a>（选择「Static Residential」静态住宅）。</div>' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">' +
+          '<label for="isp-smart-input" style="display:block;font-size:12.5px;font-weight:600">Webshare 智能识别与导入</label>' +
+          '<a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--apple-blue);text-decoration:underline">前往 Webshare（选择「Static Residential」静态住宅）</a>' +
+        '</div>' +
+        '<textarea id="isp-smart-input" rows="2" placeholder="直接粘贴 Webshare 复制的任意内容：&#10;• curl 测试命令 (curl --proxy http://user:pass@ip:port ...)&#10;• 列表导出文本 (ip:port:user:pass)&#10;• 标准代理连接串 (socks5://user:pass@ip:port)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
+        '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:#248a3d;line-height:1.4"></div>' +
       '</div>' +
-      '<details style="margin-bottom:14px;font-size:12.5px;color:var(--muted)">' +
-        '<summary style="cursor:pointer;margin-bottom:8px">手动填写服务器与端口</summary>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
-          '<div><label style="display:block;font-size:11px;margin-bottom:2px">服务器地址 / IP</label><input id="isp-manual-host" type="text" value="' + esc((currentIsp && currentIsp.server) || "") + '" placeholder="例如 198.51.100.99" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
-          '<div><label style="display:block;font-size:11px;margin-bottom:2px">端口</label><input id="isp-manual-port" type="number" value="' + esc((currentIsp && currentIsp.server_port) || "") + '" placeholder="例如 10808" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
+      '<div style="margin-bottom:12px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+          '<span style="font-size:12px;font-weight:600;color:var(--ink)">Webshare 代理参数</span>' +
+          '<div style="font-size:11px;display:flex;gap:10px;align-items:center">' +
+            '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="socks" id="isp-proto-socks"' + ((!currentIsp || currentIsp.type !== 'http') ? ' checked' : '') + '> SOCKS5 (推荐)</label>' +
+            '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="http" id="isp-proto-http"' + ((currentIsp && currentIsp.type === 'http') ? ' checked' : '') + '> HTTP</label>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:3fr 2fr;gap:8px;margin-bottom:6px">' +
+          '<div><label for="isp-manual-host" style="display:block;font-size:11px;margin-bottom:2px" class="muted">Proxy Address (地址 / IP)</label><input id="isp-manual-host" type="text" value="' + esc((currentIsp && currentIsp.server) || "") + '" placeholder="例如 168.158.185.30" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card);border-radius:4px;font-size:12px"></div>' +
+          '<div><label for="isp-manual-port" style="display:block;font-size:11px;margin-bottom:2px" class="muted">Port (端口)</label><input id="isp-manual-port" type="number" value="' + esc((currentIsp && currentIsp.server_port) || "") + '" placeholder="例如 6297" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card);border-radius:4px;font-size:12px"></div>' +
         '</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-          '<div><label style="display:block;font-size:11px;margin-bottom:2px">账号</label><input id="isp-manual-user" type="text" value="' + esc((currentIsp && currentIsp.username) || "") + '" placeholder="选填" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
-          '<div><label style="display:block;font-size:11px;margin-bottom:2px">密码</label><input id="isp-manual-pass" type="password" value="' + esc((currentIsp && currentIsp.password) || "") + '" placeholder="选填" style="width:100%;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card)"></div>' +
+          '<div><label for="isp-manual-user" style="display:block;font-size:11px;margin-bottom:2px" class="muted">Username (账号，选填)</label><input id="isp-manual-user" type="text" value="' + esc((currentIsp && currentIsp.username) || "") + '" placeholder="Webshare 账号" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card);border-radius:4px;font-size:12px"></div>' +
+          '<div><label for="isp-manual-pass" style="display:block;font-size:11px;margin-bottom:2px" class="muted">Password (密码，选填)</label><input id="isp-manual-pass" type="password" value="' + esc((currentIsp && currentIsp.password) || "") + '" placeholder="Webshare 密码" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid var(--line);background:var(--surface-card);border-radius:4px;font-size:12px"></div>' +
         '</div>' +
-      '</details>' +
+      '</div>' +
       '<div id="isp-err" class="small" style="color:var(--bad);display:none;margin-bottom:8px"></div>' +
       '<div class="sheetbtns" style="margin-top:14px">' +
         '<button type="button" class="sbtn cancel">取消</button>' +
@@ -5352,7 +5430,7 @@ async function copySetupText(text) {
       '</div>';
 
     new Promise(function (resolve) {
-      var close = mountSheet(content, resolve, "#isp-input-url");
+      var close = mountSheet(content, resolve, "#isp-smart-input");
       var active = document.querySelector("dialog.sheet[open]");
       if (!active) return;
       var cancelBtn = active.querySelector(".sbtn.cancel");
@@ -5366,42 +5444,91 @@ async function copySetupText(text) {
       }
 
       var saveBtn = active.querySelector("#isp-save-btn");
+      var smartInput = active.querySelector("#isp-smart-input");
+      var hostInput = active.querySelector("#isp-manual-host");
+      var portInput = active.querySelector("#isp-manual-port");
+      var userInput = active.querySelector("#isp-manual-user");
+      var passInput = active.querySelector("#isp-manual-pass");
+      var parseChip = active.querySelector("#isp-parse-chip");
       var errDiv = active.querySelector("#isp-err");
+
       function showErr(msg) {
         if (!errDiv) return;
         errDiv.textContent = msg;
         errDiv.style.display = "";
       }
 
+      function handleSmartInput() {
+        var raw = (smartInput && smartInput.value ? smartInput.value : "").trim();
+        if (!raw) {
+          if (parseChip) parseChip.style.display = "none";
+          return;
+        }
+        var p = parseWebshareProxy(raw);
+        if (p) {
+          if (hostInput) hostInput.value = p.server;
+          if (portInput) portInput.value = p.server_port;
+          if (userInput) userInput.value = p.username || "";
+          if (passInput) passInput.value = p.password || "";
+          var protoRadio = active.querySelector('input[name="isp-proto"][value="' + (p.type === "http" ? "http" : "socks") + '"]');
+          if (protoRadio) protoRadio.checked = true;
+          if (parseChip) {
+            parseChip.innerHTML = "<b>✓ 已识别 Webshare 代理：</b>" + esc(p.server) + ":" + p.server_port + " (" + (p.type === "http" ? "HTTP" : "SOCKS5") + (p.username ? "，账号: " + esc(p.username) : "，IP授权模式") + ")";
+            parseChip.style.display = "block";
+          }
+          if (errDiv) errDiv.style.display = "none";
+        } else {
+          if (parseChip) parseChip.style.display = "none";
+        }
+      }
+
+      if (smartInput) {
+        smartInput.addEventListener("input", handleSmartInput);
+        smartInput.addEventListener("paste", function () { setTimeout(handleSmartInput, 20); });
+      }
+
       if (saveBtn) {
         saveBtn.addEventListener("click", function () {
-          var url = (active.querySelector("#isp-input-url").value || "").trim();
-          var host = (active.querySelector("#isp-manual-host").value || "").trim();
-          var port = (active.querySelector("#isp-manual-port").value || "").trim();
-          var user = (active.querySelector("#isp-manual-user").value || "").trim();
-          var pass = (active.querySelector("#isp-manual-pass").value || "").trim();
+          var host = (hostInput && hostInput.value ? hostInput.value : "").trim();
+          var port = (portInput && portInput.value ? portInput.value : "").trim();
+          var user = (userInput && userInput.value ? userInput.value : "").trim();
+          var pass = (passInput && passInput.value ? passInput.value : "").trim();
+          var checkedProto = active.querySelector('input[name="isp-proto"]:checked');
+          var proto = checkedProto ? checkedProto.value : "socks";
 
-          if (url) {
-            close({url: url});
-            return;
-          }
-          if (host && port) {
-            var pNum = parseInt(port, 10);
-            if (isNaN(pNum) || pNum < 1 || pNum > 65535) {
-              showErr("端口必须是 1 到 65535 之间的整数");
-              return;
+          if (!host || !port) {
+            var smartVal = (smartInput && smartInput.value ? smartInput.value : "").trim();
+            if (smartVal) {
+              var p = parseWebshareProxy(smartVal);
+              if (p) {
+                host = p.server;
+                port = String(p.server_port);
+                if (p.username) user = p.username;
+                if (p.password) pass = p.password;
+                if (p.type) proto = p.type;
+              }
             }
-            var ispObj = {
-              type: "socks",
-              server: host,
-              server_port: pNum
-            };
-            if (user) ispObj.username = user;
-            if (pass) ispObj.password = pass;
-            close({isp: ispObj});
+          }
+
+          if (!host || !port) {
+            showErr("请在上方粘贴 Webshare 代理信息，或在下方填写服务器地址与端口");
             return;
           }
-          showErr("请粘贴代理连接串，或在下方填写服务器地址与端口");
+
+          var pNum = parseInt(port, 10);
+          if (isNaN(pNum) || pNum < 1 || pNum > 65535) {
+            showErr("端口必须是 1 到 65535 之间的整数");
+            return;
+          }
+
+          var ispObj = {
+            type: proto === "http" ? "http" : "socks",
+            server: host,
+            server_port: pNum
+          };
+          if (user) ispObj.username = user;
+          if (pass) ispObj.password = pass;
+          close({isp: ispObj});
         });
       }
     }).then(function (result) {
@@ -5413,26 +5540,7 @@ async function copySetupText(text) {
           dialog({title: "解绑成功", message: "已恢复为机房原生直连出网（本地演示模拟）。", cancelText: null, confirmText: "确定"});
           return;
         }
-        var mockIsp = result.isp;
-        if (result.url) {
-          try {
-            var m = result.url.match(/^(?:(socks5?|https?):\/\/)?(?:([^:@]+)(?::([^@]+))?@)?([^:\/]+):(\d+)/i);
-            if (m) {
-              mockIsp = {
-                type: m[1] && m[1].toLowerCase().indexOf("http") >= 0 ? "http" : "socks",
-                server: m[4],
-                server_port: parseInt(m[5], 10)
-              };
-              if (m[2]) mockIsp.username = decodeURIComponent(m[2]);
-              if (m[3]) mockIsp.password = decodeURIComponent(m[3]);
-            } else {
-              mockIsp = {type: "socks", server: "198.51.100.88", server_port: 10808};
-            }
-          } catch (e) {
-            mockIsp = {type: "socks", server: "198.51.100.88", server_port: 10808};
-          }
-        }
-        n.isp = mockIsp;
+        n.isp = result.isp;
         renderNodes(NODES, STATUS);
         dialog({title: "挂载成功", message: "静态住宅 IP 出口已生效（本地演示模拟）。\n经由此节点的流量将通过住宅代理出网。", cancelText: null, confirmText: "确定"});
         return;
@@ -6382,6 +6490,7 @@ async function copySetupText(text) {
     toggleDrawer: toggleNodeDrawer,
     openMenu: nodeMenu,
     mountIsp: mountIsp,
+    parseWebshareProxy: parseWebshareProxy,
     delNode: delNode,
     rotateKey: rotateKey,
     editNode: editNode,

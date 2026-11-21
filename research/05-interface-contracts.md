@@ -144,19 +144,34 @@
 ```
 
 ### 3.3 住宅原生 IP 落地挂载模块（L3 - ISP Mount）：`POST /api/editnode`
-* **物理符号实现**：`server/nodekit/node_service.py` ｜ 测试：`tests/isp-mount.test.js`
+* **物理符号实现**：`server/nodekit/links.py:parse_isp_proxy`、`server/nodekit/node_manager.py` ｜ 测试：`tests/isp-mount.test.js`、`server/nodekit/tests.py`
 ```json
-// Request
+// Request (支持标准 URL 串、Webshare curl 命令、四段式导出 ip:port:user:pass 或已结构化对象)
 {
   "name": "硅谷出海-01",
-  "isp_proxy": "socks5://user:pass@residential.isp.provider:1080"
+  "isp": {
+    "type": "socks",
+    "server": "168.158.185.30",
+    "server_port": 6297,
+    "username": "dora2026",
+    "password": "secretpassword"
+  }
 }
+// 或传入 Webshare 原始导出文本：
+// { "name": "硅谷出海-01", "isp": "168.158.185.30:6297:dora2026:secretpassword" }
+// { "name": "硅谷出海-01", "isp": "curl --proxy \"http://dora2026:pass@168.158.185.30:6297/\" https://ipv4.webshare.io/" }
+
 // Response 200 OK
 {
   "ok": true,
   "node": {
     "name": "硅谷出海-01",
-    "isp_proxy": "socks5://user:pass@residential.isp.provider:1080"
+    "isp": {
+      "type": "socks",
+      "server": "168.158.185.30",
+      "server_port": 6297,
+      "username": "dora2026"
+    }
   }
 }
 ```
