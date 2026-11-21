@@ -447,3 +447,20 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
 
 2. **住宅代理出口断路路由**：
    sing-box 落地机模板在挂载 `isp` 住宅出站时，`route` 显式设置 `"final": "isp-out"` 与 `[{"outbound": "isp-out"}]`，防止在网络异常或规则未命中时流量静默降级走宿主机原生公网 IP。
+
+### 4.21 链路木桶短板感知与重置语义协议（ADR-026） `[STATUS: IMPLEMENTED]`
+
+1. **节点重置标签规范**：
+   节点卡片将 `reset_day` 渲染为 `每月 X 号重置`，与顶栏相对倒计时 `离重置还有 X 天` 形成正交的语义隔离，禁止使用易引起倒计时误读的 `X日重置`。
+
+2. **拓扑木桶短板反馈对象**：
+   当链路上存在 `relay` 专线中转机且其中转机剩余配额低于落地机可用余量时，`guidance` 注入 `bottleneck` 对象并触发 `跳板短板预警`：
+   ```json
+   {
+     "is_relay_bottleneck": true,
+     "relay_name": "北京",
+     "relay_remaining_gb": 10.5,
+     "egress_remaining_gb": 213.72
+   }
+   ```
+   提示使用者优先防范跳板熔断。当 `days_remaining <= 2` 时，指引文案强制转为周期切换安全余量警告。

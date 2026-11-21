@@ -51,7 +51,7 @@ test('node card displays reset_day and removes redundant 剩余 xxx GB in Chines
   c.renderNodes(nodes, {}, quota);
 
   assert.match(innerHtmlContent, /<strong>180\.2<\/strong> \/ 512 GB/);
-  assert.match(innerHtmlContent, /23日重置/);
+  assert.match(innerHtmlContent, /每月 23 号重置/);
   assert.equal(innerHtmlContent.includes('剩余'), false, 'Should not contain redundant 剩余');
 });
 

@@ -136,6 +136,31 @@ def main():
     check("行动指引剩余量与总额度绝对对齐(SSOT)", agg["total"]["guidance"]["remaining_gb"] == 220.5)
     check("行动指引包含动态偏差比率", "pacing_ratio" in agg["total"]["guidance"])
 
+    # 7c: 周期即将结束（<=2天）时提供安全余量保护文案
+    guidance_near_end = T.generate_usage_guidance(
+        used_gb=200.0,
+        total_gb=500.0,
+        start_str="2026-10-23",
+        end_str="2026-11-23",
+        today_used_gb=1.0,
+        now=datetime.datetime(2026, 11, 21, 12, 0, 0, tzinfo=datetime.timezone.utc)
+    )
+    check("周期临近结束时提示安全余量避免超量计费", "账单周期即将切换" in guidance_near_end["text"] and guidance_near_end["days_remaining"] == 2)
+
+    # 7d: 专线中转跳板木桶短板感知 (Bottleneck Theory)
+    mock_bottleneck_usage = {
+        "43.153.56.137": {
+            "used": 100.0, "total": 512.0, "start": "2026-10-23", "end": "2026-11-23", "region": "硅谷"  # 剩余 412 GB
+        },
+        "49.233.210.101": {
+            "used": 490.0, "total": 500.0, "start": "2026-10-24", "end": "2026-11-24", "region": "北京"  # 剩余仅 10 GB
+        },
+        "_ts": "2026-11-21T06:00:00Z"
+    }
+    agg_bottle = T.aggregate_all_traffic_stats(mock_bottleneck_usage, history, now=t3, active_nodes=active_cluster)
+    check("识别专线跳板为木桶瓶颈", agg_bottle["total"]["guidance"].get("bottleneck", {}).get("is_relay_bottleneck") is True)
+    check("短板场景发出跳板短板预警", agg_bottle["total"]["guidance"]["badge"] == "跳板短板预警" and "北京" in agg_bottle["total"]["guidance"]["text"])
+
     print(f"\n通过 {passed} 项")
 
 

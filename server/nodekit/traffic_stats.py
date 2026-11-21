@@ -197,7 +197,10 @@ def generate_usage_guidance(used_gb: float, total_gb: float,
     elif daily_budget_gb > 0 and ratio < 0.5:
         pace = "abundant"
         badge = "余量极其充裕"
-        advice_text = f"离重置还有 {days_remaining} 天，剩余 {remaining_gb} GB。日均可用 {daily_budget_gb} GB/天，可随心看高清/测速。"
+        if days_remaining <= 2:
+            advice_text = f"离重置还有 {days_remaining} 天，剩余 {remaining_gb} GB。日均可用 {daily_budget_gb} GB/天，账单周期即将切换，建议保留安全余量避免超量计费。"
+        else:
+            advice_text = f"离重置还有 {days_remaining} 天，剩余 {remaining_gb} GB。日均可用 {daily_budget_gb} GB/天，可随心看高清/测速。"
     else:
         pace = "normal"
         badge = "用量健康稳定"
@@ -379,11 +382,44 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
         elif daily_budget > 0 and ratio < 0.5:
             primary_guidance["pace"] = "abundant"
             primary_guidance["badge"] = "余量极其充裕"
-            primary_guidance["text"] = f"离重置还有 {days_rem} 天，剩余 {actual_remaining} GB。日均可用 {daily_budget} GB/天，可随心看高清/测速。"
+            if days_rem <= 2:
+                primary_guidance["text"] = f"离重置还有 {days_rem} 天，剩余 {actual_remaining} GB。日均可用 {daily_budget} GB/天，账单周期即将切换，建议保留安全余量避免超量计费。"
+            else:
+                primary_guidance["text"] = f"离重置还有 {days_rem} 天，剩余 {actual_remaining} GB。日均可用 {daily_budget} GB/天，可随心看高清/测速。"
         else:
             primary_guidance["pace"] = "normal"
             primary_guidance["badge"] = "用量健康稳定"
             primary_guidance["text"] = f"离重置还有 {days_rem} 天，日均建议配额 {daily_budget} GB/天，使用节奏良好。"
+
+    # 拓扑木桶短板分析 (Bottleneck Theory):
+    # 检查是否存在专线中转机（relay），其中转剩余配额低于落地机实际可用配额
+    min_relay_remaining = None
+    bottleneck_relay_name = None
+    if active_nodes is not None:
+        for n in active_nodes:
+            if n.get("role") == "relay":
+                h = n.get("host") or n.get("ip")
+                if h and h in nodes_stats:
+                    relay_rem = nodes_stats[h]["guidance"].get("remaining_gb", 0.0)
+                    if min_relay_remaining is None or relay_rem < min_relay_remaining:
+                        min_relay_remaining = relay_rem
+                        bottleneck_relay_name = n.get("name") or h
+
+    if primary_guidance and min_relay_remaining is not None:
+        cur_rem = primary_guidance.get("remaining_gb", float("inf"))
+        if min_relay_remaining < cur_rem:
+            primary_guidance["bottleneck"] = {
+                "is_relay_bottleneck": True,
+                "relay_name": bottleneck_relay_name,
+                "relay_remaining_gb": min_relay_remaining,
+                "egress_remaining_gb": cur_rem,
+            }
+            primary_guidance["pace"] = "warn"
+            primary_guidance["badge"] = "跳板短板预警"
+            primary_guidance["text"] = (
+                f"链路受中转跳板「{bottleneck_relay_name}」配额限制，实际有效可用仅剩 {min_relay_remaining} GB "
+                f"（落地机尚余 {cur_rem} GB），请优先留意跳板流量。"
+            )
 
     return {
         "total": {

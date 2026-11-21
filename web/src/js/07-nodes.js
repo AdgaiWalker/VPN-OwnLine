@@ -340,7 +340,7 @@
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
         var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
-        var resetTip = resetDay ? (' · ' + (zh ? (resetDay + '日重置') : ('Resets on ' + resetDay))) : '';
+        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + resetDay))) : '';
 
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
@@ -352,7 +352,7 @@
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
-        var resetTip = resetDay ? (' · ' + (zh ? (resetDay + '日重置') : ('Resets on ' + resetDay))) : '';
+        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + resetDay))) : '';
         quotaRow = '<div class="node-quota-row">' +
           '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong>' + resetTip + ' <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
         '</div>';
