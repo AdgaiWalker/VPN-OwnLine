@@ -93,7 +93,7 @@ if [ -f "scripts/build_web.py" ]; then
 fi
 if command -v node >/dev/null 2>&1; then
   if out="$(node --test tests/*.test.js 2>&1)"; then
-    n="$(printf '%s\n' "$out" | sed -n 's/^ℹ pass \([0-9][0-9]*\)$/\1/p' | tail -1)"
+    n="$(printf '%s\n' "$out" | sed -n -E 's/^(ℹ|#) pass ([0-9]+)$/\2/p' | tail -1)"
     n="${n:-0}"
     total=$((total + n))
     printf '  ✅ %-40s %s 项通过\n' "tests/*.test.js" "$n"

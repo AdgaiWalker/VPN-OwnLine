@@ -195,10 +195,13 @@ class Phase2SecurityTests(unittest.TestCase):
                     limiter.reset()
                     self.assertEqual(req("GET", "/s/wrong-token")[0], 404)
 
-                    # Exhaust concurrency semaphore directly and verify 503 fail-closed response
-                    for _ in range(server.max_concurrent_requests):
-                        self.assertTrue(server._concurrency_sem.acquire(blocking=False))
+                    # Exhaust concurrency semaphore directly and verify 503 fail-closed response.
+                    # Allow just-completed request threads brief time to finish releasing in finally.
+                    acquired = 0
                     try:
+                        for _ in range(server.max_concurrent_requests):
+                            self.assertTrue(server._concurrency_sem.acquire(timeout=2.0))
+                            acquired += 1
                         s_client, s_srv = socket.socketpair()
                         try:
                             server.process_request(s_srv, ("127.0.0.1", 9999))
@@ -207,7 +210,7 @@ class Phase2SecurityTests(unittest.TestCase):
                         finally:
                             s_client.close()
                     finally:
-                        for _ in range(server.max_concurrent_requests):
+                        for _ in range(acquired):
                             server._concurrency_sem.release()
                 finally:
                     server.shutdown()
