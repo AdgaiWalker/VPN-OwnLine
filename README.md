@@ -4,7 +4,7 @@
 > 💡 **核心成本**：搭建普通节点每年仅需 **0 ~ 99 元**（服务器可完全白嫖），在此基础上只需再加 **85 元/年**（12 美元）挂载美国家宽 IP，即可升级为彻底防封的家庭住宅节点。  
 > 资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，2 分钟全自动装配，一个私有网页多端同步。
 
-[![Release: v0.7.0](https://img.shields.io/badge/Release-v0.7.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.7.0)
+[![Release: v0.8.0](https://img.shields.io/badge/Release-v0.8.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.8.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
@@ -65,7 +65,7 @@ flowchart LR
 
 ### 方式 2：无 Agent 兜底 · 本机图形安装页（全平台）
 
-解压 [v0.7.0 发布包](https://github.com/AdgaiWalker/VPN-OwnLine/releases/download/v0.7.0/vpn-ownline-v0.7.0.tar.gz) 或克隆仓库（需 Python 3.10+，首次启动自动按 `requirements.lock` 校验安装依赖）：
+解压 [v0.8.0 发布包](https://github.com/AdgaiWalker/VPN-OwnLine/releases/download/v0.8.0/vpn-ownline-v0.8.0.tar.gz) 或克隆仓库（需 Python 3.10+，首次启动自动按 `requirements.lock` 校验安装依赖）：
 
 - **macOS**：双击根目录 **`启动安装.command`**
 - **Windows**：双击根目录 **`启动安装.bat`**

@@ -12,7 +12,7 @@ import unittest
 from unittest.mock import patch
 
 from server import local_setup, ownline_cli, tencent_discovery
-from server.nodekit import installations, local_diag, local_setup_progress
+from server.nodekit import installations, local_diag, local_setup_progress, system_updater
 from server.nodekit.local_vault import BlindVault, VaultError
 from server.nodekit.sshcheck.problem import Problem
 
@@ -386,7 +386,7 @@ class S1HttpAndCliIntegrationTests(unittest.TestCase):
             )
             data = json.loads(proc.stdout)
             self.assertTrue(data["ok"])
-            self.assertEqual(data["version"], "v0.7.0")
+            self.assertEqual(data["version"], system_updater.CURRENT_VERSION)
 
 
 class S1CrossPlatformAndPolicyTests(unittest.TestCase):
