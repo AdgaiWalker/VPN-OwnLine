@@ -477,3 +477,23 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
 2. **证书生命周期收敛与后端抗突发**：HY2 自签证书默认有效期统一缩减至 `365` 天；`http_utils.py` 与 `admin.py` 上线 `HardenedThreadingHTTPServer`（`request_queue_size=64`、`daemon_threads=True`、`BoundedSemaphore(32)` 超限快返 `503`）及 `SlidingWindowRateLimiter`（公开路由每 IP 60 次/分，超限 `429`）。
 3. **systemd 最小权限沙箱与跨脚本权限对齐**：将 `sing-box` 迁移至非特权 `sing-box:sing-box`（仅保留 `CAP_NET_BIND_SERVICE`、`ProtectSystem=strict`、`SystemCallFilter=~@privileged ...`），将 `caddy` 迁移至非特权 `caddy:caddy`（PKI 迁至 `/var/lib/caddy/.local/share/caddy/pki`），对 `admin.service` 启用 `ProtectSystem=strict`、`StateDirectory=ownline`、受限能力集与系统调用白名单（保留 `chown` 以支持密码重置与配置分组授权），并同步更新 `remote_config._build_apply_script`、`install.sh` 与 `addnode.sh` 在存在 `sing-box` 组时授予配置与私钥 `0640 root:sing-box`。
 4. **配额熔断真机激活**：部署含 `ConditionPathExists=!/var/lib/ownline/quota-paused` 的 `sing-box.service`，经 `provenance.verify_target` 验签通过后通过 `NodeManager` 为现网双节点开启 `quota_control_managed=true` 与固定 `provenance_id`。
+
+### <a id="adr-030"></a>ADR-030 · 声明式状态收敛引擎、反向接入边界定界与冗余分支清理 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+前序 Phase 1/2 解决了数据面正确性与服务面最小权限加固，但控制面与生命周期边界仍存在三类架构债：
+1. **声明式收敛缺失**：`nodes.json`（期望状态）与远端 `/opt/sing-box/config.json`（运行态）之间缺少统一的只读比对与原子收敛闭环；原 `scripts/drift.py` 未完整覆盖 HY2/ISP/DoH/WARP 等实际配置段落，且控制面无按节点归集并触发 `verify` 验真后自动回滚的状态收敛入口。
+2. **`reverse_join` 与外部节点边界含糊**：反向免密自举节点（`source == "reverse_join"`）虽未向主控交出 SSH 凭据，但此前部分后端调用点及前端交互仍混合出现远端修复、配额停机与参数推送按钮；同时 `join_token.py` 为反向入网机生成的 `sing-box.service` 仍以默认 `root` 运行。
+3. **冗余遗留路径与未实机验证分支**：`server/admin.py` 保留了历史遗留的无实效 `render()` 与内联远端补丁辅助函数（`_b64`、`_py_patch`、`_ps_patch`、`patch_remote`），`deploy/install.sh` 等文件仍残留 `subconverter` 引用；`remote_config.py` 与 `repair.py` 中面向 Windows 的 PowerShell 远端管控分支缺乏真机闭环验证却可通过参数绕过保护。
+
+#### 2. 裁决结论 (Decision)
+1. **建立声明式状态收敛引擎（`server/nodekit/reconcile.py` + `NodeManager.reconcile_node` + `/api/reconcile/*`）**：
+   - 以 `reconcile.node_capability(node)` 作为全系统唯一的节点可控能力真值源（区分 `managed`、`external`、`reverse_join`、`windows_frozen`、`cleanup_pending`）；
+   - 通过 `build_desired_config`、`diff_configs`（默认对 `private_key`、`public_key`、`password`、`obfs_password`、`uuid`、`short_id` 自动脱敏）与 `inspect_cluster_drift` 执行只读漂移核验；
+   - `reconcile_node(..., apply=True)` 通过 `remote_config.apply_config`（依赖 `provenance.verify_target`）下发并立即运行 `verify.run`，探活非 `"ok"` 时自动调用 `rollback_config`；同步将 `scripts/drift.py` 升级支持多特性配置往返校验及 `--nodes` / `--reconcile` / `--json` 双路径运行时进口。
+2. **显式固化 `reverse_join` 与 Windows 只读观测边界，并加固反向接入单元权限**：
+   - 在 `remote_config.check_controllable`、`repair.repair_node`、`quota_guard.supports_quota_control`、`reconcile.node_capability` 及前端节点卡片/菜单（`web/src/js/07-nodes.js`、`01-i18n.js`）一致执行 Fail-Closed 边界：`reverse_join` 仅提供订阅分发、连通探测与本机运维提示，不发起远端 SSH/配额停机调用；
+   - `join_token.generate_install_script` 将 `sing-box.service` 收敛为 `User=sing-box`、`ProtectSystem=strict`、`CAP_NET_BIND_SERVICE` 最小权限单元，并对 `/opt/sing-box` 设置 `0750 root:sing-box`、对 `config.json` 与 `hy2.key` 设置 `0640 root:sing-box`（仅对 Linux 工具链严格执行，不降级静默放行）。
+3. **代码做减法（清理死分支与冻结未验真路径）**：
+   - 将 `admin.py:render()` 收敛为显式 no-op 并移除 `_b64`、`_py_patch`、`_ps_patch`、`patch_remote` 与 `subconverter` 历史配置字段；
+   - 无条件移除 `remote_config.py`（含 `allow_windows` 覆盖参数及 PowerShell 脚本构造）与 `repair.py` 中的 Windows 远端执行路径，确保 Windows 节点永不触发远端命令。

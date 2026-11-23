@@ -389,7 +389,7 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
 
     names = [format_display_name(n, now_ts=now_ts) for n in valid]
     lines = [
-        "# 由 admin.py 原生内置订阅生成（无需 subconverter 外部服务）",
+        "# 由 admin.py 原生内置订阅动态生成与分发",
         f"# 客群适配模式: {profile.upper()}",
         "mixed-port: 7890",
         "allow-lan: false",

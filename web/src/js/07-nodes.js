@@ -116,6 +116,11 @@
     var st = (status && status[n.name]) || {};
     var isBad = (n.health && n.health !== "ok" && n.health !== "unknown") || (st && (st.ok === false || st.cn_ok === false));
 
+    var cap = n.capability || null;
+    var isReverseJoin = n.source === "reverse_join" || (cap && cap.mode === "reverse_join");
+    var isWindowsFrozen = n.os === "windows" || n.ssh_user === "Administrator" || (cap && cap.mode === "windows_frozen");
+    var canRemoteMutate = cap ? (cap.controllable === true) : (n.source !== "external" && !isReverseJoin && !isWindowsFrozen && !n.cleanup_pending);
+
     var lc = n.lifecycle || {};
     var expBadge = "";
     if (lc.state === "draining") {
@@ -159,7 +164,7 @@
     }
 
     var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
-    var isCongested = isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
+    var isCongested = canRemoteMutate && isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
 
     return {
       host: host,
@@ -173,7 +178,10 @@
       targetText: targetText,
       qInfo: qInfo,
       ms: ms,
-      isCongested: isCongested
+      isCongested: isCongested,
+      isReverseJoin: isReverseJoin,
+      isWindowsFrozen: isWindowsFrozen,
+      canRemoteMutate: canRemoteMutate
     };
   }
   if (typeof window !== "undefined") window.deriveNodeState = deriveNodeState;
@@ -202,6 +210,10 @@
       var host = n.host || n.ip;
       var st = (status && status[n.name]) || {};
       var isBad = (n.health && n.health !== "ok" && n.health !== "unknown") || (st && (st.ok === false || st.cn_ok === false));
+      var cap = n.capability || null;
+      var isReverseJoin = n.source === "reverse_join" || (cap && cap.mode === "reverse_join");
+      var isWindowsFrozen = n.os === "windows" || n.ssh_user === "Administrator" || (cap && cap.mode === "windows_frozen");
+      var canRemoteMutate = cap ? (cap.controllable === true) : (n.source !== "external" && !isReverseJoin && !isWindowsFrozen && !n.cleanup_pending);
       var lc = n.lifecycle || {};
       var expBadge = "";
       if (lc.state === "draining") {
@@ -241,7 +253,7 @@
         qInfo.reset_day = n.reset_day;
       }
       var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
-      var isCongested = isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
+      var isCongested = canRemoteMutate && isOverseasExit && hasHy2 && !isHy2Active && (st.cn_ok === false || (ms != null && ms >= 220) || st.ok === false);
       return {
         host: host,
         st: st,
@@ -254,7 +266,10 @@
         targetText: targetText,
         qInfo: qInfo,
         ms: ms,
-        isCongested: isCongested
+        isCongested: isCongested,
+        isReverseJoin: isReverseJoin,
+        isWindowsFrozen: isWindowsFrozen,
+        canRemoteMutate: canRemoteMutate
       };
     }
 
@@ -286,9 +301,17 @@
       var isDomestic = m.isDomestic;
       var isBondedRelay = m.isBondedRelay;
       var targetText = m.targetText;
+      var canRemoteMutate = m.canRemoteMutate;
 
       var protoBadges = "";
-      if (hasHy2) {
+      if (!canRemoteMutate) {
+        if (hasHy2 && isHy2Active) {
+          protoBadges += '<span class="tag">' + (zh ? 'HY2 极速' : 'HY2 Turbo') + '</span>';
+        }
+        if (!isDomestic) {
+          protoBadges += '<span class="tag">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+        }
+      } else if (hasHy2) {
         protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       } else if (!isDomestic && n.source !== "external") {
         protoBadges = '<span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
@@ -300,8 +323,12 @@
 
       if (isBondedRelay) {
         displayName = (zh ? n.name + "专线 ➔ " : n.name + " Relay ➔ ") + targetText;
-        relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
-          '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
+        if (canRemoteMutate) {
+          relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
+            '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
+        } else {
+          relayPill = '<span class="tag">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>';
+        }
         detailLine = '<div class="relay-pipeline">' +
           '<span class="pipeline-hop">' + (zh ? '入口 ' : 'Entry ') + '<b>' + esc(n.host || n.ip) + '</b></span>' +
           '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg> ' + (zh ? '专线跳板' : 'Relay Hop') + '</span>' +
@@ -310,22 +337,26 @@
         '</div>';
       } else if (isDomestic) {
         displayName = n.name;
-        var isVantage = (st && st.self_probe);
-        var vantageBtn = isVantage
-          ? ('<span class="tag ok" style="cursor:pointer;margin-left:6px" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</span>')
-          : ('<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:2px 7px;height:24px" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
-        var exitCandidates = (nodes || []).filter(function (x) {
-          var xHost = x.host || x.ip;
-          var xIsDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN" || xHost === (n.host || n.ip));
-          return !xIsDom && x.type !== "hysteria2";
-        });
-        var primaryExit = exitCandidates.length > 0 ? exitCandidates[0] : null;
-        var autoPairBtn = "";
-        if (primaryExit) {
-          autoPairBtn = '<button class="btn tiny primary" style="margin-left:6px;font-size:11px;padding:2px 8px;height:24px" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
+        if (canRemoteMutate) {
+          var isVantage = (st && st.self_probe);
+          var vantageBtn = isVantage
+            ? ('<span class="tag ok" style="cursor:pointer;margin-left:6px" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</span>')
+            : ('<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:2px 7px;height:24px" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
+          var exitCandidates = (nodes || []).filter(function (x) {
+            var xHost = x.host || x.ip;
+            var xIsDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN" || xHost === (n.host || n.ip));
+            return !xIsDom && x.type !== "hysteria2";
+          });
+          var primaryExit = exitCandidates.length > 0 ? exitCandidates[0] : null;
+          var autoPairBtn = "";
+          if (primaryExit) {
+            autoPairBtn = '<button class="btn tiny primary" style="margin-left:6px;font-size:11px;padding:2px 8px;height:24px" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
+          }
+          relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
+            (autoPairBtn || ('<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
+        } else {
+          relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>';
         }
-        relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
-          (autoPairBtn || ('<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');
       } else {
         detailLine = esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>';
@@ -334,8 +365,12 @@
       var ispPill = "";
       if (n.isp) {
         var ispHost = esc(n.isp.server) + ":" + (n.isp.server_port || "");
-        ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
-      } else if (n.role !== "relay") {
+        if (canRemoteMutate) {
+          ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
+        } else {
+          ispPill = '<span class="tag"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
+        }
+      } else if (n.role !== "relay" && canRemoteMutate) {
         ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
       }
 
@@ -386,10 +421,10 @@
           advCls = "adv error warn";
           advTitle = zh ? "国内直连不通 · 疑似被墙" : "Blocked in China";
           advReason = zh ? "国内网络握手被阻断。建议绑定国内专线中转跳板，或切换为 HY2 极速通道。" : "Handshake from China blocked. Recommend binding to a domestic relay or enabling HY2.";
-          if (!isDomestic && hasDomesticRelay) {
+          if (canRemoteMutate && !isDomestic && hasDomesticRelay) {
             advBtns.push('<button type="button" class="adv-btn primary" onclick="window.ownlineBindDomesticRelayFor(\'' + esc(n.host || n.ip) + '\')"><svg class="ico" width="11" height="11"><use href="#i-plus"/></svg>' + (zh ? "绑定专线跳板" : "Bind Relay") + '</button>');
           }
-          if (hasHy2 && !isHy2Active) {
+          if (canRemoteMutate && hasHy2 && !isHy2Active) {
             advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineToggleHy2ByIndex(' + i + ', true)">' + (zh ? "开启 HY2 极速" : "Enable HY2") + '</button>');
           }
         } else if (st && st.reason === "port") {
@@ -399,7 +434,7 @@
         } else if (st && st.reason === "tls") {
           advTitle = zh ? "安全握手失败 · 证书异常" : "TLS Handshake Failed";
           advReason = zh ? "TCP 端口已通但 TLS 握手失败。建议重置 Reality 密钥或同步服务器时钟。" : "TCP port reachable but TLS handshake failed. Resetting keys or syncing clock is recommended.";
-          if (n.source !== "external") {
+          if (canRemoteMutate) {
             advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRotateKeyByIndex(' + i + ')">' + (zh ? "重置密钥" : "Reset Key") + '</button>');
           }
         } else {
@@ -422,7 +457,7 @@
 
       var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var warpPill = "";
-      if (!isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
+      if (canRemoteMutate && !isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
         var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
         if (n.isp && isWarp) {
           statusBadges += '<span class="tag" style="font-size:11px;opacity:0.7" title="' + (zh ? '已挂载静态住宅 IP，全量流量优先走住宅出口；解绑后自动恢复 WARP' : 'Residential ISP mounted; WARP standby') + '">' + (zh ? 'WARP 待命' : 'WARP Standby') + '</span>';
@@ -434,15 +469,27 @@
           (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour')) +
           '</button>';
       }
-      var drawerActions = protoBadges + relayPill + warpPill + (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'));
+      var ispDrawerBtn = canRemoteMutate
+        ? (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'))
+        : (n.isp ? ispPill : "");
+      var drawerActions = protoBadges + relayPill + warpPill + ispDrawerBtn;
       if (n.cleanup_pending) {
         drawerActions += '<button class="btn tiny danger" type="button" style="color:var(--err,#dc2626);border-color:currentColor;" onclick="event.stopPropagation();window.ownlineDelNode(' + i + ')">' + (zh ? '彻底删除' : 'Delete Permanently') + '</button>';
+      }
+
+      var capBadge = "";
+      if (n.source === "external") {
+        capBadge = '<span class="tag">' + (zh ? '外部' : 'External') + '</span>';
+      } else if (m.isReverseJoin) {
+        capBadge = '<span class="tag">' + (zh ? '免密接入 · 本机运维' : 'Reverse Join · Local Ops') + '</span>';
+      } else if (m.isWindowsFrozen) {
+        capBadge = '<span class="tag">' + (zh ? 'Windows · 已冻结' : 'Windows · Frozen') + '</span>';
       }
 
       htmlParts.push('<div class="node" id="node-row-' + i + '">' +
         '<div class="node-main" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
           '<span class="dot" id="d' + i + '"></span>' +
-          '<div class="nmeta"><b>' + esc(displayName) + (n.source === "external" ? '<span class="tag">' + (zh ? '外部' : 'External') + '</span>' : "") + expBadge + statusBadges + "</b>" +
+          '<div class="nmeta"><b>' + esc(displayName) + capBadge + expBadge + statusBadges + "</b>" +
           "<small>" + detailLine + "</small>" +
           quotaRow +
           advHtml + "</div>" +
@@ -462,6 +509,10 @@
   function nodeMenu(i) {
     var n = NODES[i], st = STATUS[n.name];
     var zh = (typeof isZh === 'function') ? isZh() : true;
+    var cap = n.capability || null;
+    var isReverseJoin = n.source === "reverse_join" || (cap && cap.mode === "reverse_join");
+    var isWindowsFrozen = n.os === "windows" || n.ssh_user === "Administrator" || (cap && cap.mode === "windows_frozen");
+    var canMutate = cap ? (cap.controllable === true) : (n.source !== "external" && !isReverseJoin && !isWindowsFrozen && !n.cleanup_pending);
     var items = [];
 
     items.push({label: zh ? "修改名称与端口" : "Edit Name & Port", id: "edit"});
@@ -473,30 +524,34 @@
 
     var isDom = (n.role === "relay" || n.role === "standalone" || n.country === "CN");
     var isBonded = (isDom && n.role === "relay" && n.landing && n.landing.host);
-    if (isBonded) {
-      items.push({label: zh ? "解除中转加速（恢复独立）" : "Unbind Relay (Restore Standalone)", id: "unbind_relay"});
-      items.push({label: zh ? "更换中转落地目标" : "Change Egress Target", id: "bind_relay"});
-      items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
-    } else if (isDom) {
-      items.push({label: zh ? "设为中转加速专线" : "Configure as Relay Node", id: "bind_relay"});
-      items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
-    } else {
-      var ispLabel = n.isp
-        ? (zh ? "解绑住宅 IP" : "Unmount Residential IP")
-        : (zh ? "绑定住宅 IP" : "Mount Residential IP");
-      items.push({label: ispLabel, id: "isp"});
+    if (canMutate) {
+      if (isBonded) {
+        items.push({label: zh ? "解除中转加速（恢复独立）" : "Unbind Relay (Restore Standalone)", id: "unbind_relay"});
+        items.push({label: zh ? "更换中转落地目标" : "Change Egress Target", id: "bind_relay"});
+        items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
+      } else if (isDom) {
+        items.push({label: zh ? "设为中转加速专线" : "Configure as Relay Node", id: "bind_relay"});
+        items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
+      } else {
+        var ispLabel = n.isp
+          ? (zh ? "解绑住宅 IP" : "Unmount Residential IP")
+          : (zh ? "绑定住宅 IP" : "Mount Residential IP");
+        items.push({label: ispLabel, id: "isp"});
 
-      if (n.type !== "hysteria2") {
-        var warpLabel = n.warp_enabled
-          ? (zh ? "关闭 WARP 清洁出口" : "Disable WARP Detour")
-          : (zh ? "开启 WARP 清洁出口 (AI 防封)" : "Enable WARP Detour (Anti-Block)");
-        items.push({label: warpLabel, id: "warp"});
+        if (n.type !== "hysteria2") {
+          var warpLabel = n.warp_enabled
+            ? (zh ? "关闭 WARP 清洁出口" : "Disable WARP Detour")
+            : (zh ? "开启 WARP 清洁出口 (AI 防封)" : "Enable WARP Detour (Anti-Block)");
+          items.push({label: warpLabel, id: "warp"});
+        }
       }
+    } else if (isDom) {
+      items.push({label: zh ? "设为国内探测基准锚点" : "Set as Domestic Probe Vantage", id: "set_vantage"});
     }
 
     items.push({label: zh ? "设置到期提醒" : "Set Expiration Notice", id: "lifecycle"});
 
-    if (n.source !== "external") {
+    if (canMutate) {
       items.push({label: zh ? "重置密钥（断开所有设备）" : "Reset Key (Disconnect All Devices)", id: "rotate"});
     }
 
@@ -506,6 +561,10 @@
     var statusSummary = "";
     if (n.source === "external") {
       statusSummary = zh ? "外部订阅节点" : "External Subscription Node";
+    } else if (isReverseJoin) {
+      statusSummary = zh ? "免密反向接入（仅观测与订阅，本机运维）" : "Reverse Join (Observe-Only, Local Ops)";
+    } else if (isWindowsFrozen) {
+      statusSummary = zh ? "Windows 节点（受控分支已冻结）" : "Windows Node (Remote Control Frozen)";
     } else if (st && st.ok === false) {
       statusSummary = zh ? "服务异常 · 端口阻断" : "Offline · Port Blocked";
     } else if (st && st.cn_ok === false) {

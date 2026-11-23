@@ -44,6 +44,7 @@ for f in \
   server/nodekit/quota_guard_tests.py \
   server/nodekit/quota_api_tests.py \
   server/nodekit/remote_config_tests.py \
+  server/nodekit/reconcile_tests.py \
   server/nodekit/host_traffic_tests.py \
   server/nodekit/ports_tests.py \
   server/nodekit/http_utils_tests.py \

@@ -93,34 +93,31 @@ class ServiceOwnershipTests(unittest.TestCase):
                 self.assertFalse((root / "systemctl.log").exists())
                 self.assertFalse(Path(str(cfg) + ".ownline.bak").exists())
 
-    def test_windows_mutations_reject_invalid_ownership_before_dispatch(self):
-        node = {"name": "Windows", "host": "203.0.113.91", "os": "windows"}
+    def test_windows_mutations_frozen_fail_closed_before_dispatch(self):
         cfg = templates.exit_config(443, "11111111-1111-4111-8111-111111111111",
                                     "www.apple.com", "OWNED_PRIVATE", "abcd1234")
-        raw = json.dumps(cfg).encode()
-        for fault in ("missing", "forged", "target", "config"):
-            with self.subTest(fault=fault):
-                manifest = provenance.sign_provenance(node["host"], provenance.compute_config_sha256(raw), self.secret)
-                if fault == "forged":
-                    manifest["signature"] = "0" * 64
-                elif fault == "target":
-                    manifest = provenance.sign_provenance("203.0.113.92", manifest["config_sha256"], self.secret)
-                payload = json.dumps({"config": base64.b64encode(raw + (b" " if fault == "config" else b"")).decode(),
-                                      "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()})
+        for node in (
+            {"name": "Windows", "host": "203.0.113.91", "os": "windows", "role": "exit"},
+            {"name": "WindowsAdmin", "host": "203.0.113.92", "ssh_user": "Administrator", "role": "exit"},
+        ):
+            with self.subTest(node=node["name"]):
                 reads, mutations = [], []
+
                 def execute(n, script, **kwargs):
-                    if "ConvertTo-Json" in script:
-                        reads.append(script)
-                        return subprocess.CompletedProcess([], 1 if fault == "missing" else 0, payload, "")
-                    mutations.append(script)
+                    reads.append(script)
                     return subprocess.CompletedProcess([], 0, "", "")
+
                 def runner(cmd, input=None, **kwargs):
-                    return execute(node, input.decode() if isinstance(input, bytes) else str(input))
-                self.assertFalse(remote_config.apply_config(node, cfg, runner=runner, master_secret=self.secret)[0])
+                    mutations.append((cmd, input))
+                    return subprocess.CompletedProcess([], 0, "", "")
+
+                self.assertFalse(remote_config.apply_config(node, cfg, runner=runner, master_secret=self.secret, allow_windows=True)[0])
                 self.assertFalse(remote_config.rollback_config(node, runner=runner, master_secret=self.secret))
-                self.assertFalse(repair.repair_node(node, execute_remote_fn=execute, master_secret=self.secret)["ok"])
-                self.assertTrue(reads)
-                self.assertTrue(all(provenance.PROVENANCE_PATH_WIN in script for script in reads))
+                self.assertFalse(remote_config.toggle_hy2(node, enabled=True, runner=runner, master_secret=self.secret)["ok"])
+                self.assertFalse(remote_config.sync_isp(node, {"type": "socks", "server": "198.51.100.1", "server_port": 1080}, runner=runner, master_secret=self.secret)["ok"])
+                self.assertFalse(remote_config.toggle_warp(node, enabled=True, runner=runner, master_secret=self.secret)["ok"])
+                self.assertFalse(repair.repair_node(node, execute_remote_fn=execute, runner=runner, master_secret=self.secret)["ok"])
+                self.assertEqual(reads, [])
                 self.assertEqual(mutations, [])
 
     def test_rename_and_signed_pair_rollback_preserve_ownership(self):

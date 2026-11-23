@@ -873,6 +873,49 @@ class NodeManager:
                 "message": f"节点 [{name}] WARP 清洁出网已{state_str}",
             }
 
+    def reconcile_node(self, name: str, apply: bool = False) -> Dict[str, Any]:
+        """检查节点现网与声明式底账的配置漂移；apply=True 时执行受控收敛与出网验真。"""
+        with self._mutation_lock:
+            name = (name or "").strip()
+            if not name:
+                raise NodeValidationError("缺少节点名称 (name)")
+            nodes = self.store.load()
+            target = next((n for n in nodes if n.get("name") == name), None)
+            if not target:
+                raise NodeNotFoundError("没找到这个节点")
+            group = self._group(nodes, target)
+            primary = target
+            if target.get("type") == "hysteria2":
+                primary = next((x for x in group if x.get("type") != "hysteria2"), target)
+            hy2_node = next((x for x in group if x.get("type") == "hysteria2"), None)
+
+            from . import reconcile as reconcile_mod
+            res = reconcile_mod.reconcile_node(
+                primary,
+                hy2_node=hy2_node,
+                apply=apply,
+                remote_cfg_mod=self.remote_cfg,
+            )
+            if apply and res.get("ok") and res.get("changed"):
+                vr = res.get("verify") or {}
+
+                def _update_verified(ns: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+                    for n in ns:
+                        if n.get("name") == primary.get("name"):
+                            n["health"] = "ok"
+                            if vr.get("exit_ip"):
+                                n["exit_ip"] = vr["exit_ip"]
+                            if vr.get("exit_country"):
+                                n["exit_country"] = vr["exit_country"]
+                            if vr.get("detail"):
+                                n["health_detail"] = vr["detail"]
+                    return ns
+
+                self.store.update(_update_verified)
+                self._trigger_on_change()
+                self._log("INFO", "RECONCILE", f"节点 [{primary.get('name')}] 已完成声明式状态收敛")
+            return res
+
     # -----------------------------------------------------------------
     # 通用事务写能力 (任意 Mutation 原子保护)
     # -----------------------------------------------------------------

@@ -1,22 +1,24 @@
 #!/usr/bin/env python3
-"""配置漂移检查：线上配置能不能被模板原样生成？
+"""配置漂移与声明式状态收敛检查工具。
 
 用法：
-    python3 scripts/drift.py <ssh-host-1> [ssh-host-2 ...]
-
-做法是「往返比对」：从线上配置里取出参数，用 templates 重新生成一遍，
-再和线上逐字段比。一样 = 模板覆盖了这台机器的全部现状；不一样 = 有人手改过。
-
-为什么需要它：2026-10-27 之前，硅谷的 HY2 入站不在模板里，
-模板只是「安装那一刻用过一次」，之后所有改动都是手工的。这个脚本就是让漂移可见。
+    1) 现网主机配置模板往返比对：
+       python3 scripts/drift.py <ssh-host-1> [ssh-host-2 ...]
+    2) 控制面底账与现网声明式收敛检查 / 对齐：
+       python3 scripts/drift.py --nodes /opt/web-data/nodes.json [--name <node>] [--reconcile] [--json]
 """
+import argparse
 import json
+import os
 import subprocess
 import sys
-import os
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "server"))
-from nodekit import templates  # noqa: E402
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+for _cand in (os.path.join(_ROOT, "server"), _ROOT):
+    if os.path.isdir(os.path.join(_cand, "nodekit")) and _cand not in sys.path:
+        sys.path.insert(0, _cand)
+from nodekit import reconcile, remote_config, templates  # noqa: E402
+from nodekit.node_manager import FileNodeStore, NodeManager  # noqa: E402
 
 
 def live_config(host):
@@ -29,64 +31,116 @@ def live_config(host):
 
 
 def diff(a, b, path="", acc=None):
-    """返回差异列表（只比 JSON 结构，不看键顺序）。"""
-    acc = [] if acc is None else acc
-    if type(a) is not type(b) and not (isinstance(a, (int, float)) and isinstance(b, (int, float))):
-        acc.append("%s: 类型不同 %s vs %s" % (path or "根", type(a).__name__, type(b).__name__))
+    """返回结构化差异列表（忽略字典键序）。"""
+    result = reconcile.diff_configs(a, b, path=path, redact=True)
+    if acc is not None:
+        acc.extend(result)
         return acc
-    if isinstance(a, dict):
-        for k in sorted(set(a) | set(b)):
-            if k not in a:
-                acc.append("%s.%s: 线上没有" % (path, k))
-            elif k not in b:
-                acc.append("%s.%s: 模板没有" % (path, k))
-            else:
-                diff(a[k], b[k], "%s.%s" % (path, k), acc)
-    elif isinstance(a, list):
-        if len(a) != len(b):
-            acc.append("%s: 元素数不同 线上 %d vs 模板 %d" % (path, len(a), len(b)))
-        for i in range(min(len(a), len(b))):
-            diff(a[i], b[i], "%s[%d]" % (path, i), acc)
-    else:
-        if a != b:
-            acc.append("%s: 线上 %r vs 模板 %r" % (path, a, b))
-    return acc
+    return result
 
 
 def render_from_live(cfg):
-    """从线上配置反推参数，再用模板生成一遍。"""
-    ib = cfg["inbounds"][0]
-    reality = ib["tls"]["reality"]
-    params = dict(
-        port=ib["listen_port"],
-        uuid=ib["users"][0]["uuid"],
-        sni=ib["tls"]["server_name"],
-        private_key=reality["private_key"],
-        sid=reality["short_id"][0],
-    )
-    hy2 = next((i for i in cfg["inbounds"] if i.get("type") == "hysteria2"), None)
-    if hy2:
-        params["hy2"] = {
-            "port": hy2["listen_port"],
-            "password": hy2["users"][0]["password"],
-            "obfs_password": hy2["obfs"]["password"],
-            "sni": hy2["tls"]["server_name"],
-        }
-    landing = next((o for o in cfg["outbounds"] if o.get("tag") == "landing"), None)
+    """从线上 config.json 反推完整参数（含 HY2 / ISP / WARP / Relay），再由模板渲染对比。"""
+    params = remote_config.extract_live_params(cfg)
+    landing = next((o for o in cfg.get("outbounds", []) if o.get("tag") == "landing"), None)
     if landing:
-        lr = landing["tls"]["reality"]
-        params["landing"] = dict(host=landing["server"], port=landing["server_port"],
-                                 uuid=landing["uuid"], sni=landing["tls"]["server_name"],
-                                 pbk=lr["public_key"], sid=lr["short_id"])
-        return templates.relay_config(**params)
-    return templates.exit_config(**params)
+        lr = (landing.get("tls") or {}).get("reality") or {}
+        fallback = next((o for o in cfg.get("outbounds", []) if o.get("tag") == "landing-fallback"), None)
+        fallback_landing = None
+        if fallback:
+            fr = (fallback.get("tls") or {}).get("reality") or {}
+            fallback_landing = dict(
+                host=fallback["server"],
+                port=fallback["server_port"],
+                uuid=fallback["uuid"],
+                sni=(fallback.get("tls") or {}).get("server_name") or fallback["server"],
+                pbk=fr.get("public_key", ""),
+                sid=fr.get("short_id", ""),
+            )
+        return templates.relay_config(
+            port=params["port"],
+            uuid=params["uuid"],
+            sni=params["sni"],
+            private_key=params["private_key"],
+            sid=params["sid"],
+            landing=dict(
+                host=landing["server"],
+                port=landing["server_port"],
+                uuid=landing["uuid"],
+                sni=(landing.get("tls") or {}).get("server_name") or landing["server"],
+                pbk=lr.get("public_key", ""),
+                sid=lr.get("short_id", ""),
+            ),
+            fallback_landing=fallback_landing,
+        )
+    return templates.exit_config(
+        port=params["port"],
+        uuid=params["uuid"],
+        sni=params["sni"],
+        private_key=params["private_key"],
+        sid=params["sid"],
+        hy2=params.get("hy2"),
+        isp=params.get("isp"),
+        warp=params.get("warp"),
+    )
+
+
+def _run_nodes_mode(args):
+    store = FileNodeStore(args.nodes)
+    nodes = store.load()
+    if args.reconcile:
+        nm = NodeManager(store=store, remote_cfg_mod=remote_config)
+        cluster = reconcile.inspect_cluster_drift(nodes, target_name=args.name)
+        results = []
+        for item in cluster["results"]:
+            if item.get("status") == "drifted":
+                results.append(nm.reconcile_node(item["name"], apply=True))
+            else:
+                results.append(item)
+        summary = {
+            "ok": all(r.get("ok") for r in results) and not any(r.get("status") == "drifted" for r in results),
+            "results": results,
+        }
+    else:
+        summary = reconcile.inspect_cluster_drift(nodes, target_name=args.name)
+
+    if args.json:
+        print(json.dumps(summary, ensure_ascii=False, indent=2))
+    else:
+        for r in summary["results"]:
+            st = r.get("status")
+            name = r.get("name") or r.get("host")
+            if st in ("in_sync", "converged"):
+                print("✓ %s (%s): %s" % (name, r.get("host"), st))
+            elif st == "unmanaged":
+                print("- %s (%s): unmanaged [%s]" % (name, r.get("host"), (r.get("capability") or {}).get("mode", "")))
+            elif st == "drifted":
+                print("✗ %s (%s): drifted (%d 处)" % (name, r.get("host"), r.get("diff_count", 0)))
+                for d in (r.get("diffs") or [])[:12]:
+                    print("    " + d)
+            else:
+                print("✗ %s (%s): %s (%s)" % (name, r.get("host"), st, r.get("error") or ""))
+
+    has_bad = any(r.get("status") in ("drifted", "error", "rolled_back") or not r.get("ok") for r in summary["results"])
+    return 1 if has_bad else 0
 
 
 def main():
+    parser = argparse.ArgumentParser(description="检查或收敛 sing-box 配置漂移")
+    parser.add_argument("hosts", nargs="*", help="SSH 主机名列表（往返模板比对）")
+    parser.add_argument("--nodes", help="控制面 nodes.json 路径（声明式漂移比对）")
+    parser.add_argument("--name", help="仅检查或收敛指定名称的节点")
+    parser.add_argument("--reconcile", action="store_true", help="将已产生漂移的受控节点收敛至期望配置")
+    parser.add_argument("--json", action="store_true", help="以 JSON 格式输出结果")
+    args = parser.parse_args()
+
+    if args.nodes:
+        return _run_nodes_mode(args)
+
     env_hosts = [h for h in os.environ.get("LADDER_DRIFT_HOSTS", "").split() if h]
-    hosts = sys.argv[1:] or env_hosts
+    hosts = args.hosts or env_hosts
     if not hosts:
-        print("用法: python3 scripts/drift.py <ssh-host-1> [ssh-host-2 ...]", file=sys.stderr)
+        parser.print_usage(sys.stderr)
         return 2
     bad = 0
     for host in hosts:

@@ -512,3 +512,31 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
 
 4. **systemd 最小权限单元不变式（`deploy/systemd/{sing-box,caddy,admin}.service`）**：
    - `sing-box.service` 以 `sing-box:sing-box` 运行并保留 `ConditionPathExists=!/var/lib/ownline/quota-paused`；`caddy.service` 以 `caddy:caddy` 运行并限定读写 `/var/lib/caddy`；`admin.service` 启用 `ProtectSystem=strict` 与 `StateDirectory=ownline`，全部单元保持与 `maintenance._owned_unit` 完全一致。
+
+### 4.24 声明式状态收敛、节点能力真值源与遗留接口收敛契约（ADR-030） `[STATUS: IMPLEMENTED]`
+
+1. **节点可控能力单一真值源（`server/nodekit/reconcile.py:node_capability` & `GET /api/nodes`）**：
+   - `/api/nodes`（及 `admin.nodes_with_advice()`）中每个节点对象必须携带 `capability` 字段：
+     ```json
+     {
+       "mode": "managed | external | reverse_join | windows_frozen | cleanup_pending | invalid",
+       "controllable": true,
+       "can_reconcile": true,
+       "can_mutate_remote": true,
+       "can_auto_repair": true,
+       "can_quota_stop": true,
+       "reason": ""
+     }
+     ```
+   - `source == "external"`、`source == "reverse_join"`、`provenance.is_windows(node)` 与 `cleanup_pending == True` 四类节点的上述 5 项布尔权限必须全部为 `false`，且不得通过 `allow_windows` 等参数绕过；`remote_config.check_controllable`、`repair.repair_node` 与 `quota_guard.supports_quota_control` 在进入任何远端 SSH/脚本流程前优先拦截。
+
+2. **声明式配置比对与收敛 API（`server/admin.py`, `server/nodekit/node_manager.py`）**：
+   - `GET /api/reconcile/status`（可选查询参数 `?name=<node_name>`）：调用 `reconcile.inspect_cluster_drift` 执行只读漂移核验，返回 `200` 及 `{ok, in_sync_count, drifted_count, unmanaged_count, error_count, results[]}`；每条 `result` 包含 `actual_sha256`、`desired_sha256`（键序无关规范化摘要）与默认已对凭据字段脱敏的 `diffs[]`（替换敏感值为 `[REDACTED]`）。
+   - `POST /api/reconcile/apply`：请求体 `{"name": "<node_name>", "dry_run": true}`；当且仅当显式传入 `"dry_run": false` 时通过 `NodeManager.reconcile_node(..., apply=True)`（内部持锁 `flock`）执行 `apply_config` 下发并在随后立即调用 `verify.run`。若校验未返回 `"ok"`，自动触发 `rollback_config` 并返回 `"status": "rolled_back"`（HTTP `502`）；对不可控节点返回 `"status": "unmanaged"`（HTTP `409`）。
+
+3. **配置漂移检查 CLI 与双布局运行支持（`scripts/drift.py`）**：
+   - 原 SSH 往返校验模式 `drift.py <ssh-host...>` 通过 `extract_live_params` 与 `templates.exit_config` / `relay_config` 比对现网运行配置与模板；新增 `drift.py --nodes <nodes.json> [--name <node>] [--reconcile] [--json]` 支持仓库源码布局与部署布局（`/opt/web`）直接检查与受控收敛，发现 `drifted` / `error` / `rolled_back` 时退出码为 `1`。
+
+4. **反向自举最小权限与遗留路径清理不变式（`server/nodekit/join_token.py`, `server/admin.py`）**：
+   - `join_token.generate_install_script` 生成的 systemd 单元必须以 `User=sing-box`、`ProtectSystem=strict` 与仅含 `CAP_NET_BIND_SERVICE` 运行；目录 `/opt/sing-box` 权限 `0750 root:sing-box`，`/opt/sing-box/config.json` 与 `hy2.key` 权限 `0640 root:sing-box`。
+   - `admin.py` 移除 `_b64`、`_py_patch`、`_ps_patch`、`patch_remote` 死代码，`render()` 保持显式空操作；`deploy/install.sh` 与 `deploy/Caddyfile.example` 不再包含 `subconverter` 配置字段或生效规则。

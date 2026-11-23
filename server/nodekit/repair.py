@@ -26,21 +26,19 @@ BIN = "/opt/sing-box/sing-box"
 
 
 def execute_remote(node: Dict[str, Any], cmd_str: str, runner: Callable = subprocess.run, timeout: int = 30):
-    """在目标机器上执行自愈命令，支持传入 mock runner 供离线单测。"""
+    """在 Linux 目标机器上执行自愈命令，支持传入 mock runner 供离线单测。"""
+    if prov_mod.is_windows(node):
+        raise RuntimeError("Windows 受控分支已冻结，拒绝执行远程命令")
     host = node.get("host", "")
     is_local = node.get("local") is True or host in ("127.0.0.1", "localhost", "198.51.100.12")
     if is_local:
         return runner(["bash", "-c", cmd_str], capture_output=True, text=True, timeout=timeout)
 
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    user = node.get("ssh_user") or ("Administrator" if is_win else "root")
+    user = node.get("ssh_user") or "root"
     base = verify_mod.ssh_cmd(user, host, timeout=timeout, port=node.get("ssh_port") or 22)
-    if is_win:
-        encoded = base64.b64encode(cmd_str.encode("utf-16le")).decode("ascii")
-        full_cmd = base + ["powershell -NoProfile -EncodedCommand " + encoded]
-    else:
-        b64 = base64.b64encode(cmd_str.encode("utf-8")).decode("ascii")
-        full_cmd = base + ["echo %s | base64 -d | bash" % b64]
+    b64 = base64.b64encode(cmd_str.encode("utf-8")).decode("ascii")
+    shell_exec = "bash" if user == "root" else "sudo -n bash"
+    full_cmd = base + ["echo %s | base64 -d | %s" % (b64, shell_exec)]
     return runner(full_cmd, capture_output=True, text=True, timeout=timeout)
 
 
@@ -69,7 +67,7 @@ def repair_node(
     before_health = node.get("health", "unknown")
     steps: List[str] = []
 
-    # 1. 外部节点没有控制权，无法修复
+    # 1. 外部节点 / 免密反向接入 / 冻结的 Windows 分支均无远程控制权，严禁触发远端命令
     if node.get("source") == "external":
         return {
             "name": name,
@@ -81,13 +79,34 @@ def repair_node(
             "steps": ["检查权限：外部节点无控制权限，跳过"],
         }
 
+    if node.get("source") == "reverse_join":
+        return {
+            "name": name,
+            "before": before_health,
+            "after": before_health,
+            "ok": False,
+            "requires_manual": True,
+            "detail": "免密反向接入节点未向主控授权 SSH 控制权，请在目标机人工检查，未执行停止或重启。",
+            "steps": ["检查权限：免密反向接入节点仅支持观测与订阅，跳过远程自愈"],
+        }
+
+    if prov_mod.is_windows(node):
+        return {
+            "name": name,
+            "before": before_health,
+            "after": before_health,
+            "ok": False,
+            "requires_manual": True,
+            "detail": "Windows 受控分支已冻结，请在服务器上人工检查，未执行停止或重启。",
+            "steps": ["目标系统识别: Windows Server（受控分支已冻结，未执行远程命令）"],
+        }
+
     exec_fn = execute_remote_fn or (lambda n, cmd, **kw: execute_remote(n, cmd, runner=runner, **kw))
 
     # 所有变更共享同一归属门禁，名称不参与身份匹配。
     provenance_verified, prov_reason, snapshot = prov_mod.verify_target(node, exec_fn, master_secret)
 
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    steps.append("目标系统识别: %s" % ("Windows Server" if is_win else "Linux"))
+    steps.append("目标系统识别: Linux")
 
     # 3. 未能确认独占性时，保持绝对安全不执行契约
     if not provenance_verified:
@@ -107,71 +126,63 @@ def repair_node(
 
     # 4.1 端口占用与冲突排查
     port = int(node.get("port") or 443)
-    if not is_win:
-        port_check_cmd = f"ss -lptn 'sport = :{port}' 2>/dev/null || netstat -tulpn 2>/dev/null | grep ':{port} ' || true"
-        try:
-            port_res = exec_fn(node, port_check_cmd, timeout=10)
-            port_out = getattr(port_res, "stdout", "") or ""
-            if port_out.strip():
-                # 若端口被占用，检查是否由 sing-box 占用
-                if "sing-box" in port_out:
-                    steps.append(f"端口诊断: 端口 :{port} 由现有 sing-box 进程持有")
-                else:
-                    steps.append(f"端口冲突: 端口 :{port} 被其他外部进程占用")
-                    return {
-                        "name": name,
-                        "before": before_health,
-                        "after": before_health,
-                        "ok": False,
-                        "requires_manual": True,
-                        "detail": f"端口 :{port} 被非 sing-box 进程占用，为防止影响系统其他业务，已安全终止自愈",
-                        "steps": steps,
-                    }
+    port_check_cmd = f"ss -lptn 'sport = :{port}' 2>/dev/null || netstat -tulpn 2>/dev/null | grep ':{port} ' || true"
+    try:
+        port_res = exec_fn(node, port_check_cmd, timeout=10)
+        port_out = getattr(port_res, "stdout", "") or ""
+        if port_out.strip():
+            # 若端口被占用，检查是否由 sing-box 占用
+            if "sing-box" in port_out:
+                steps.append(f"端口诊断: 端口 :{port} 由现有 sing-box 进程持有")
             else:
-                steps.append(f"端口诊断: 端口 :{port} 处于空闲状态")
-        except Exception as e:
-            steps.append(f"端口检测异常: {e}")
+                steps.append(f"端口冲突: 端口 :{port} 被其他外部进程占用")
+                return {
+                    "name": name,
+                    "before": before_health,
+                    "after": before_health,
+                    "ok": False,
+                    "requires_manual": True,
+                    "detail": f"端口 :{port} 被非 sing-box 进程占用，为防止影响系统其他业务，已安全终止自愈",
+                    "steps": steps,
+                }
+        else:
+            steps.append(f"端口诊断: 端口 :{port} 处于空闲状态")
+    except Exception as e:
+        steps.append(f"端口检测异常: {e}")
 
-    # 4.2 语法完整性与配置健康检查 (仅 Linux)
-    if not is_win:
-        cfg = prov_mod.config_path(node)
-        syntax_cmd = f"""
+    # 4.2 语法完整性与配置健康检查
+    cfg = prov_mod.config_path(node)
+    syntax_cmd = f"""
 if [ ! -x {shlex.quote(BIN)} ]; then echo NO_BIN;
 elif [ ! -f {shlex.quote(cfg)} ]; then echo NO_CFG;
 elif ! {shlex.quote(BIN)} check -c {shlex.quote(cfg)}; then echo SYNTAX_ERR;
 else echo SYNTAX_OK; fi
 """
-        try:
-            chk_res = exec_fn(node, syntax_cmd, timeout=12)
-            chk_out = (getattr(chk_res, "stdout", "") or "").strip()
-            if getattr(chk_res, "returncode", -1) != 0 or "SYNTAX_OK" not in chk_out:
-                if "SYNTAX_ERR" in chk_out:
-                    from . import remote_config
-                    restored = remote_config.rollback_config(node, master_secret=master_secret, execute_remote_fn=exec_fn)
-                    if restored:
-                        provenance_verified, prov_reason, snapshot = prov_mod.verify_target(node, exec_fn, master_secret)
-                        if not provenance_verified:
-                            raise ValueError("restored ownership unavailable")
-                        steps.append("已从签名验证通过的配置和存证备份成对恢复")
-                    else:
-                        raise ValueError("no verified backup")
+    try:
+        chk_res = exec_fn(node, syntax_cmd, timeout=12)
+        chk_out = (getattr(chk_res, "stdout", "") or "").strip()
+        if getattr(chk_res, "returncode", -1) != 0 or "SYNTAX_OK" not in chk_out:
+            if "SYNTAX_ERR" in chk_out:
+                from . import remote_config
+                restored = remote_config.rollback_config(node, master_secret=master_secret, execute_remote_fn=exec_fn)
+                if restored:
+                    provenance_verified, prov_reason, snapshot = prov_mod.verify_target(node, exec_fn, master_secret)
+                    if not provenance_verified:
+                        raise ValueError("restored ownership unavailable")
+                    steps.append("已从签名验证通过的配置和存证备份成对恢复")
                 else:
-                    raise ValueError("syntax inspection unavailable")
+                    raise ValueError("no verified backup")
             else:
-                steps.append("配置检查通过: sing-box 配置语法校验无误")
-        except Exception:
-            return {"name": name, "before": before_health, "after": before_health,
-                    "ok": False, "requires_manual": True,
-                    "detail": "无法确认配置及签名备份有效，未盲目执行重启", "steps": steps}
+                raise ValueError("syntax inspection unavailable")
+        else:
+            steps.append("配置检查通过: sing-box 配置语法校验无误")
+    except Exception:
+        return {"name": name, "before": before_health, "after": before_health,
+                "ok": False, "requires_manual": True,
+                "detail": "无法确认配置及签名备份有效，未盲目执行重启", "steps": steps}
 
     # 4.3 安全重启目标服务
-    if is_win:
-        restart_cmd = ("if (Get-Service -Name sing-box -ErrorAction SilentlyContinue) { "
-                       "Restart-Service sing-box -ErrorAction Stop } else { "
-                       "Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue; "
-                       "Start-ScheduledTask -TaskName 'sing-box' -ErrorAction Stop }")
-    else:
-        restart_cmd = "systemctl daemon-reload && systemctl restart sing-box && systemctl is-active sing-box"
+    restart_cmd = "systemctl daemon-reload && systemctl restart sing-box && systemctl is-active sing-box"
 
     steps.append("执行安全重启: 下发系统守护进程复活指令")
     try:

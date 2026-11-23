@@ -1,4 +1,4 @@
-# 原生内置订阅：由 admin.py 统一处理，无需 subconverter 外部服务
+# 原生内置订阅：由 admin.py 动态生成与分发
 {
 	auto_https disable_redirects
 	servers {

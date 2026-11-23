@@ -118,9 +118,12 @@ def parse_reset_day(val):
 
 
 def supports_quota_control(node):
-    # Windows 尚无可核验的配额停启机制，不能视为可安全控制。
-    return (node.get("quota_control_managed") is True and node.get("source") != "external"
-            and node.get("os") != "windows" and node.get("ssh_user") != "Administrator")
+    # 外部节点、免密反向接入节点及已冻结的 Windows 分支不开放自动配额停启。
+    return (
+        node.get("quota_control_managed") is True
+        and node.get("source") not in ("external", "reverse_join")
+        and not prov_mod.is_windows(node)
+    )
 
 
 def controllable_hosts(nodes):

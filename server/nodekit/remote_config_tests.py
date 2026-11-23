@@ -295,45 +295,22 @@ def test_hy2_toggle_cert_verify_and_rollback():
         check("关闭 HY2 后原 ISP 出站仍保留", off_cfg["outbounds"][0]["tag"] == "isp-out")
 
 
-def test_windows_node_support():
-    win_node = {"name": "新加坡", "host": "43.163.4.104", "os": "windows", "role": "exit", "source": "builtin"}
-    check("默认禁止无意控制 Windows", RC.check_controllable(win_node, allow_windows=False)[0] is False)
-    check("显式允许控制 Windows", RC.check_controllable(win_node, allow_windows=True)[0] is True)
+def test_windows_node_frozen_fail_closed():
+    for win_node in (
+        {"name": "新加坡", "host": "43.163.4.104", "os": "windows", "role": "exit", "source": "builtin"},
+        {"name": "新加坡2", "host": "43.163.4.105", "ssh_user": "Administrator", "role": "exit", "source": "builtin"},
+    ):
+        check("冻结 Windows 默认禁止控制", RC.check_controllable(win_node, allow_windows=False)[0] is False)
+        check("即使传 allow_windows=True 仍强制冻结", RC.check_controllable(win_node, allow_windows=True)[0] is False)
 
-    with tempfile.TemporaryDirectory() as td:
-        cfg_path = os.path.join(td, "config.json")
-        init_cfg = templates.exit_config(
-            port=8443,
-            uuid="cea12c3b-ae9a-4ab9-8b0c-378bc738c8a6",
-            sni="www.microsoft.com",
-            private_key="test_pk",
-            sid="02974b90",
-        )
-        Path(cfg_path).write_text(json.dumps(init_cfg), encoding="utf-8")
+        def forbidden_runner(*args, **kwargs):
+            raise AssertionError("冻结 Windows 分支严禁触发远端 SSH/PowerShell 执行")
 
-        def fake_runner(cmd, capture_output=True, text=True, timeout=25, input=None):
-            class R:
-                returncode = 0
-                stdout = json.dumps(init_cfg)
-                stderr = ""
-            result = R()
-            script = input.decode() if isinstance(input, bytes) else str(input or "")
-            if "ConvertTo-Json" in script:
-                manifest = provenance.sign_provenance(win_node["host"], provenance.compute_config_sha256(json.dumps(init_cfg)), SECRET)
-                result.stdout = json.dumps({"config": base64.b64encode(json.dumps(init_cfg).encode()).decode(),
-                                           "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()})
-            return result
-
-        res = RC.toggle_hy2(
-            win_node,
-            enabled=True,
-            runner=fake_runner,
-            master_secret=SECRET,
-            verifier=lambda n: {"health": "ok", "exit_ip": "43.163.4.104", "exit_country": "SG"},
-            cfg_path=cfg_path,
-        )
-        check("Windows 节点成功开启 HY2", res["ok"] is True, res)
-        check("Windows HY2 节点记录标注 os=windows", res.get("hy2_node", {}).get("os") == "windows")
+        res = RC.toggle_hy2(win_node, enabled=True, runner=forbidden_runner, master_secret=SECRET)
+        check("冻结 Windows 拒绝开启 HY2 且零远端调用", res["ok"] is False and "冻结" in res.get("error", ""))
+        check("冻结 Windows 拒绝读取远端配置", RC.read_live_config(win_node, runner=forbidden_runner, allow_windows=True)[0] is False)
+        check("冻结 Windows 拒绝应用远端配置", RC.apply_config(win_node, {}, runner=forbidden_runner, allow_windows=True)[0] is False)
+        check("冻结 Windows 拒绝回滚远端配置", RC.rollback_config(win_node, runner=forbidden_runner) is False)
 
 
 def test_warp_toggle_and_rollback():
@@ -418,8 +395,8 @@ def test_warp_toggle_and_rollback():
 
 def test_boundary_rejections():
     check("拒绝外部节点", RC.check_controllable({"source": "external"})[0] is False)
-    check("拒绝无凭据免密反向自举节点", RC.check_controllable({"source": "reverse_join", "host": "203.0.113.9"})[0] is False)
-    check("允许有密码的反向自举节点", RC.check_controllable({"source": "reverse_join", "host": "203.0.113.9", "ssh_password": "pwd"})[0] is True)
+    check("无条件拒绝免密反向自举节点（无凭据）", RC.check_controllable({"source": "reverse_join", "host": "203.0.113.9"})[0] is False)
+    check("无条件拒绝免密反向自举节点（即使附带凭据字段）", RC.check_controllable({"source": "reverse_join", "host": "203.0.113.9", "ssh_password": "pwd"})[0] is False)
     check("拒绝 Windows 节点", RC.check_controllable({"os": "windows", "host": "203.0.113.9"})[0] is False)
     check("拒绝待清理节点", RC.check_controllable({"cleanup_pending": True, "host": "203.0.113.9"})[0] is False)
 
@@ -427,7 +404,7 @@ def test_boundary_rejections():
 if __name__ == "__main__":
     test_relay_bind_switch_unbind_and_rollback()
     test_hy2_toggle_cert_verify_and_rollback()
-    test_windows_node_support()
+    test_windows_node_frozen_fail_closed()
     test_warp_toggle_and_rollback()
     test_boundary_rejections()
     print(f"通过 {ok} 项")

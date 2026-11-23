@@ -583,8 +583,7 @@ if [ -z "$TOKEN" ]; then
 {
   "sub_token": "$TOKEN",
   "domain": "$DOMAIN",
-  "sub_port": 8443,
-  "sub_backend": "builtin"
+  "sub_port": 8443
 }
 EOF
     chmod 600 /opt/web-data/settings.json

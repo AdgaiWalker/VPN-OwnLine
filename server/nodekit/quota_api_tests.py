@@ -126,7 +126,7 @@ class QuotaAPITests(unittest.TestCase):
     def test_edit_port_or_key_never_patches_unverified_service(self):
         with open(admin.NODES, encoding="utf-8") as f:
             before = f.read()
-        with patch.object(admin, "patch_remote", side_effect=AssertionError("unexpected remote edit")):
+        with patch.object(admin.subprocess, "run", side_effect=AssertionError("unexpected remote edit")):
             for body in ({"name": "受控服务器", "port": 1234}, {"name": "受控服务器", "newkey": True}):
                 self.assertEqual(self.post(body, self.base, "/editnode")[0], 409)
         with open(admin.NODES, encoding="utf-8") as f:

@@ -25,6 +25,10 @@ class JoinScriptSafetyTests(unittest.TestCase):
         self.mock("uname", 'echo x86_64')
         self.mock("pgrep", 'exit 1')
         self.mock("systemctl", 'case "$1" in cat) exit 1;; show) [ "${FAIL_SYSTEMD:-0}" != 1 ];; start) [ "${FAIL_START:-0}" != 1 ];; *) exit 0;; esac')
+        self.mock("getent", 'exit 1')
+        self.mock("groupadd", 'echo "groupadd $*" >> "$USER_LOG"')
+        self.mock("useradd", 'echo "useradd $*" >> "$USER_LOG"')
+        self.mock("chown", 'echo "chown $*" >> "$USER_LOG"')
         self.archive = self.root / "sing-box.tar.gz"
         executable = b'#!/bin/sh\ncase "$1" in version) echo "sing-box version 1.14.4";; generate) printf "PrivateKey: private\\nPublicKey: public\\n";; check) exit "${FAIL_CHECK:-0}";; esac\n'
         with tarfile.open(self.archive, "w:gz") as bundle:
@@ -56,7 +60,8 @@ class JoinScriptSafetyTests(unittest.TestCase):
 
     def run_script(self, **env):
         variables = dict(os.environ, PATH=str(self.bin) + os.pathsep + os.environ["PATH"],
-                         CALL_LOG=str(self.root / "registration"), SBOX_ARCHIVE=str(self.archive), BAD_ARCHIVE=str(self.bad_archive), **env)
+                         CALL_LOG=str(self.root / "registration"), USER_LOG=str(self.root / "user_ops"),
+                         SBOX_ARCHIVE=str(self.archive), BAD_ARCHIVE=str(self.bad_archive), **env)
         return subprocess.run(["bash", str(self.script)], env=variables, capture_output=True, text=True, timeout=20)
 
     def test_existing_assets_are_not_overwritten(self):
@@ -96,13 +101,19 @@ class JoinScriptSafetyTests(unittest.TestCase):
         arguments = (self.root / "registration").read_text()
         self.assertNotIn("-k", arguments.split())
         self.assertIn("--proto =https", arguments)
-        self.assertEqual((self.root / "config/config.json").stat().st_mode & 0o777, 0o600)
+        self.assertEqual((self.root / "config/config.json").stat().st_mode & 0o777, 0o640)
 
     def test_clean_host_succeeds(self):
         result = self.run_script()
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("[SUCCESS]", result.stdout)
-        self.assertEqual((self.root / "config/config.json").stat().st_mode & 0o777, 0o600)
+        self.assertEqual((self.root / "config").stat().st_mode & 0o777, 0o750)
+        self.assertEqual((self.root / "config/config.json").stat().st_mode & 0o777, 0o640)
+        self.assertEqual((self.root / "config/hy2.key").stat().st_mode & 0o777, 0o640)
+        user_ops = (self.root / "user_ops").read_text()
+        self.assertIn("groupadd --system sing-box", user_ops)
+        self.assertIn("useradd --system --gid sing-box", user_ops)
+        self.assertIn("chown root:sing-box", user_ops)
 
     def test_malicious_mirror_never_installs_or_starts(self):
         original = (self.bin / "sing-box").read_bytes()

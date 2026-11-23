@@ -58,53 +58,31 @@ def check_controllable(node, allow_windows=False):
         return False, "节点数据无效"
     if node.get("source") == "external":
         return False, "外部节点无 SSH 控制权限，无法改写远端配置"
-    if node.get("source") == "reverse_join" and not node.get("ssh_password") and not node.get("ssh_key"):
-        return False, "该节点由终端免密接入，控制台未保存 SSH 凭据，无法在线推送改写配置"
+    if node.get("source") == "reverse_join":
+        return False, "免密反向接入节点未向主控授权 SSH 控制权，仅支持订阅分发与连通探测，请在目标机本地维护配置"
     if node.get("cleanup_pending"):
         return False, "节点处于待人工清理状态，无法修改配置"
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    if is_win and not allow_windows:
-        return False, "Windows 节点暂不支持在线原子改写配置，请登录主机人工调整"
+    if prov_mod.is_windows(node):
+        return False, "Windows 受控分支已冻结（未经真机验证），请登录主机人工维护或迁至 Linux 受控节点"
     if not is_local_node(node) and not (node.get("host") or "").strip():
         return False, "节点缺少主机地址"
     return True, ""
 
 
 def run_target(node, script, runner=None, timeout=25):
-    """在目标节点执行脚本（Linux 走 bash/sudo -n；Windows 走 powershell stdin Invoke-Expression）。"""
+    """在 Linux 目标节点执行脚本（本机 bash 或 SSH base64 bash）。"""
     runner = runner or DEFAULT_RUNNER
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
+    if prov_mod.is_windows(node):
+        raise RuntimeError("Windows 受控分支已冻结，拒绝执行远程命令")
     if is_local_node(node):
         return runner(["bash", "-c", script], capture_output=True, text=True, timeout=timeout)
-    user = (node.get("ssh_user") or ("Administrator" if is_win else "root")).strip() or "root"
+    user = (node.get("ssh_user") or "root").strip() or "root"
     port = int(node.get("ssh_port") or 22)
-    if is_win:
-        win_ps = f"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8\n{script}"
-        win_bytes = win_ps.encode("utf-8")
-        cmd = verify_mod.ssh_cmd(user, node["host"], timeout=min(timeout, 15), port=port) + [
-            'powershell -NoProfile -Command "$input | Out-String | Invoke-Expression"'
-        ]
-        try:
-            res = runner(cmd, input=win_bytes, capture_output=True, timeout=timeout)
-        except TypeError:
-            try:
-                res = runner(cmd, input=win_ps, capture_output=True, timeout=timeout)
-            except Exception:
-                res = runner(cmd, capture_output=True, timeout=timeout)
-        if hasattr(res, "stdout") and isinstance(res.stdout, bytes):
-            res.stdout = res.stdout.decode("utf-8", errors="replace")
-        if hasattr(res, "stderr") and isinstance(res.stderr, bytes):
-            res.stderr = res.stderr.decode("utf-8", errors="replace")
-        if hasattr(res, "stderr") and res.stderr:
-            filtered = [ln for ln in res.stderr.splitlines() if not ln.startswith("**") and "openssh.com" not in ln]
-            res.stderr = "\n".join(filtered).strip()
-        return res
-    else:
-        b64 = base64.b64encode(script.encode("utf-8")).decode("ascii")
-        shell_exec = "bash" if user == "root" else "sudo -n bash"
-        remote_cmd = "echo %s | base64 -d | %s" % (b64, shell_exec)
-        cmd = verify_mod.ssh_cmd(user, node["host"], timeout=min(timeout, 12), port=port) + [remote_cmd]
-        return runner(cmd, capture_output=True, text=True, timeout=timeout)
+    b64 = base64.b64encode(script.encode("utf-8")).decode("ascii")
+    shell_exec = "bash" if user == "root" else "sudo -n bash"
+    remote_cmd = "echo %s | base64 -d | %s" % (b64, shell_exec)
+    cmd = verify_mod.ssh_cmd(user, node["host"], timeout=min(timeout, 12), port=port) + [remote_cmd]
+    return runner(cmd, capture_output=True, text=True, timeout=timeout)
 
 
 def extract_live_params(live_cfg, fallback_node=None):
@@ -146,7 +124,7 @@ def extract_live_params(live_cfg, fallback_node=None):
                 "port": int(hy2_ib.get("listen_port") or port),
                 "password": hy2_users[0]["password"],
                 "obfs_password": hy2_obfs["password"],
-                "sni": hy2_tls.get("server_name") or "www.bing.com",
+                "sni": hy2_tls.get("server_name") or "www.apple.com",
             }
 
     outbounds = live_cfg.get("outbounds") or []
@@ -165,6 +143,13 @@ def extract_live_params(live_cfg, fallback_node=None):
             isp_info["username"] = str(isp_ob["username"])
         if isp_ob.get("password"):
             isp_info["password"] = str(isp_ob["password"])
+        route_rules = (live_cfg.get("route") or {}).get("rules") or []
+        has_udp_reject = any(
+            isinstance(r, dict) and r.get("network") == "udp" and r.get("action") == "reject"
+            for r in route_rules
+        )
+        if isp_info["type"] != "http" and live_cfg.get("dns") and not has_udp_reject:
+            isp_info["udp"] = True
 
     endpoints = live_cfg.get("endpoints") or []
     warp_ep = next((ep for ep in endpoints if ep.get("tag") == "warp-out" or ep.get("type") == "wireguard"), None)
@@ -202,16 +187,12 @@ def extract_live_params(live_cfg, fallback_node=None):
 
 
 def read_live_config(node, runner=None, cfg_path=None, allow_windows=False):
-    """读取目标机上的 `config.json` 并解析为 dict（支持 Linux 与 Windows 节点）。"""
-    is_win = (node.get("os") == "windows") or (node.get("ssh_user") == "Administrator")
-    ok, reason = check_controllable(node, allow_windows=allow_windows or is_win)
+    """读取 Linux 目标机上的 `config.json` 并解析为 dict。"""
+    ok, reason = check_controllable(node)
     if not ok:
         return False, reason, None
-    actual_cfg_path = cfg_path or (r"C:\proxy\config.json" if is_win else CFG_PATH)
-    if is_win:
-        script = f"Get-Content -Raw '{actual_cfg_path}'"
-    else:
-        script = "cat %s" % shlex.quote(actual_cfg_path)
+    actual_cfg_path = cfg_path or CFG_PATH
+    script = "cat %s" % shlex.quote(actual_cfg_path)
     try:
         res = run_target(node, script, runner=runner, timeout=15)
     except Exception as exc:
@@ -224,53 +205,6 @@ def read_live_config(node, runner=None, cfg_path=None, allow_windows=False):
     except Exception:
         return False, "节点现网配置不是合法 JSON", None
     return True, "", cfg
-
-
-def _build_windows_apply_script(cfg_json_text, cfg_path=r"C:\proxy\config.json", bin_path=r"C:\proxy\sing-box.exe", ensure_hy2_cert=None, prov_json_text=None, prov_path=None, expected=None):
-    """仅构造锁内事务；调用方必须先取得并复核归属快照。"""
-    cfg, binary = cfg_path.replace("'", "''"), bin_path.replace("'", "''")
-    prov = (prov_path or prov_mod.PROVENANCE_PATH_WIN).replace("'", "''")
-    b64_cfg = base64.b64encode(cfg_json_text.encode()).decode("ascii")
-    b64_prov = base64.b64encode(prov_json_text.encode()).decode("ascii")
-    cert_write = ""
-    if ensure_hy2_cert:
-        crt = (ensure_hy2_cert.get("cert_path") or r"C:\proxy\hy2.crt").replace("'", "''")
-        key = (ensure_hy2_cert.get("key_path") or r"C:\proxy\hy2.key").replace("'", "''")
-        cert_write = f"""
-if (-not (Test-Path '{crt}') -or -not (Test-Path '{key}')) {{
-  [IO.File]::WriteAllBytes('{crt}', [Convert]::FromBase64String('{ensure_hy2_cert['cert_b64']}'))
-  [IO.File]::WriteAllBytes('{key}', [Convert]::FromBase64String('{ensure_hy2_cert['key_b64']}'))
-}}
-netsh advfirewall firewall add rule name="OwnLine-HY2-UDP" dir=in action=allow protocol=UDP localport={int(ensure_hy2_cert.get('port') or 443)} >$null 2>&1
-"""
-    return f"""$ownlineChanged = $false
-try {{
-  Copy-Item -Force '{cfg}' '{cfg}.ownline.bak'
-  Copy-Item -Force '{prov}' '{prov}.ownline.bak'
-{cert_write}
-  [IO.File]::WriteAllBytes('{cfg}.staged', [Convert]::FromBase64String('{b64_cfg}'))
-  [IO.File]::WriteAllBytes('{prov}.staged', [Convert]::FromBase64String('{b64_prov}'))
-  & '{binary}' check -c '{cfg}.staged'
-  if ($LASTEXITCODE -ne 0) {{ throw 'SINGBOX_CHECK_FAILED' }}
-  $ownlineChanged = $true
-  Move-Item -Force '{cfg}.staged' '{cfg}'
-  Move-Item -Force '{prov}.staged' '{prov}'
-  Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
-  Start-ScheduledTask -TaskName 'sing-box'
-}} catch {{
-  if ($ownlineChanged -and
-      (Get-FileHash -Algorithm SHA256 -LiteralPath '{cfg}.ownline.bak').Hash.ToLowerInvariant() -eq '{expected['config_sha256']}' -and
-      (Get-FileHash -Algorithm SHA256 -LiteralPath '{prov}.ownline.bak').Hash.ToLowerInvariant() -eq '{expected['manifest_sha256']}') {{
-    Copy-Item -Force '{cfg}.ownline.bak' '{cfg}'
-    Copy-Item -Force '{prov}.ownline.bak' '{prov}'
-    Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
-    Start-ScheduledTask -TaskName 'sing-box'
-  }}
-  throw
-}} finally {{
-  Remove-Item -Force '{cfg}.staged','{prov}.staged' -ErrorAction SilentlyContinue
-}}
-"""
 
 
 def _build_apply_script(cfg_json_text, cfg_path=CFG_PATH, bin_path=BIN_PATH, ensure_hy2_cert=None, prov_json_text=None, prov_path=None, expected=None):
@@ -365,15 +299,14 @@ def generate_self_signed_cert_pem(sni="www.apple.com"):
 
 def apply_config(node, new_cfg, runner=None, cfg_path=None, bin_path=None, ensure_hy2_cert=None, master_secret=None, allow_windows=False):
     """通过共享归属门禁后，在目标锁内成对更新配置及存证。"""
-    is_win = prov_mod.is_windows(node)
-    ok, reason = check_controllable(node, allow_windows=allow_windows or is_win)
+    ok, reason = check_controllable(node)
     if not ok:
         return False, reason
     errs = templates.validate(new_cfg)
     if errs:
         return False, "配置模板校验未通过：" + "；".join(errs)
-    actual_cfg_path = cfg_path or prov_mod.config_path(node)
-    actual_bin_path = bin_path or (r"C:\proxy\sing-box.exe" if is_win else BIN_PATH)
+    actual_cfg_path = cfg_path or CFG_PATH
+    actual_bin_path = bin_path or BIN_PATH
     execute = lambda n, script, **kw: run_target(n, script, runner=runner, **kw)
     try:
         secret = prov_mod.secret_for_node(node) if master_secret is None else master_secret
@@ -383,23 +316,20 @@ def apply_config(node, new_cfg, runner=None, cfg_path=None, bin_path=None, ensur
     if not ok:
         return False, "服务归属核验失败：" + reason
     new_cfg = json.loads(json.dumps(new_cfg))
-    if is_win and isinstance(new_cfg.get("log"), dict):
-        new_cfg["log"]["output"] = r"C:\proxy\sing-box.log"
     cfg_text = json.dumps(new_cfg, ensure_ascii=False, indent=2) + "\n"
     manifest = prov_mod.sign_provenance(prov_mod.node_identity(node), prov_mod.compute_config_sha256(cfg_text), secret,
                                         installed_at=snapshot["manifest"]["installed_at"])
     cert = dict(ensure_hy2_cert) if ensure_hy2_cert else None
     if cert and not (cert.get("cert_b64") and cert.get("key_b64")):
         try:
-            crt_pem, key_pem = generate_self_signed_cert_pem(cert.get("sni") or "www.bing.com")
+            crt_pem, key_pem = generate_self_signed_cert_pem(cert.get("sni") or "www.apple.com")
             cert.update(cert_b64=base64.b64encode(crt_pem.encode()).decode("ascii"),
                         key_b64=base64.b64encode(key_pem.encode()).decode("ascii"))
         except Exception:
             return False, "无法生成 RSA 2048 HY2 证书，未改写配置"
-    builder = _build_windows_apply_script if is_win else _build_apply_script
-    body = builder(cfg_text, cfg_path=actual_cfg_path, bin_path=actual_bin_path, ensure_hy2_cert=cert,
-                   prov_json_text=json.dumps(manifest, ensure_ascii=False),
-                   prov_path=snapshot["provenance_path"], expected=snapshot)
+    body = _build_apply_script(cfg_text, cfg_path=actual_cfg_path, bin_path=actual_bin_path, ensure_hy2_cert=cert,
+                               prov_json_text=json.dumps(manifest, ensure_ascii=False),
+                               prov_path=snapshot["provenance_path"], expected=snapshot)
     try:
         res = execute(node, prov_mod.guarded_script(node, snapshot, body), timeout=30)
     except Exception:
@@ -411,10 +341,10 @@ def apply_config(node, new_cfg, runner=None, cfg_path=None, bin_path=None, ensur
 
 def rollback_config(node, runner=None, cfg_path=None, master_secret=None, execute_remote_fn=None, bin_path=None):
     """只有现网与备份均具有有效归属时，才成对恢复配置及存证。"""
-    ok, _ = check_controllable(node, allow_windows=True)
+    ok, _ = check_controllable(node)
     if not ok:
         return False
-    actual_cfg_path = cfg_path or prov_mod.config_path(node)
+    actual_cfg_path = cfg_path or CFG_PATH
     execute = execute_remote_fn or (lambda n, script, **kw: run_target(n, script, runner=runner, **kw))
     ok, _, current = prov_mod.verify_target(node, execute, master_secret, cfg_path=actual_cfg_path)
     if not ok:
@@ -423,23 +353,10 @@ def rollback_config(node, runner=None, cfg_path=None, master_secret=None, execut
                                            provenance_path=current["provenance_path"] + ".ownline.bak")
     if not ok:
         return False
-    if prov_mod.is_windows(node):
-        cfg, prov = actual_cfg_path.replace("'", "''"), current["provenance_path"].replace("'", "''")
-        binary = (bin_path or r"C:\proxy\sing-box.exe").replace("'", "''")
-        body = f"""if ((Get-FileHash -Algorithm SHA256 -LiteralPath '{cfg}.ownline.bak').Hash.ToLowerInvariant() -ne '{backup['config_sha256']}' -or
-    (Get-FileHash -Algorithm SHA256 -LiteralPath '{prov}.ownline.bak').Hash.ToLowerInvariant() -ne '{backup['manifest_sha256']}') {{ throw 'BACKUP_CHANGED' }}
-& '{binary}' check -c '{cfg}.ownline.bak'
-if ($LASTEXITCODE -ne 0) {{ throw 'BACKUP_SYNTAX_INVALID' }}
-Copy-Item -Force '{cfg}.ownline.bak' '{cfg}'
-Copy-Item -Force '{prov}.ownline.bak' '{prov}'
-Stop-ScheduledTask -TaskName 'sing-box' -ErrorAction SilentlyContinue
-Start-ScheduledTask -TaskName 'sing-box'
-"""
-    else:
-        cfg, prov = shlex.quote(actual_cfg_path), shlex.quote(current["provenance_path"])
-        bak, prov_bak = shlex.quote(actual_cfg_path + ".ownline.bak"), shlex.quote(current["provenance_path"] + ".ownline.bak")
-        binary = shlex.quote(bin_path or BIN_PATH)
-        body = f"""test "$(sha256sum {bak} | cut -d' ' -f1)" = {backup['config_sha256']}
+    cfg, prov = shlex.quote(actual_cfg_path), shlex.quote(current["provenance_path"])
+    bak, prov_bak = shlex.quote(actual_cfg_path + ".ownline.bak"), shlex.quote(current["provenance_path"] + ".ownline.bak")
+    binary = shlex.quote(bin_path or BIN_PATH)
+    body = f"""test "$(sha256sum {bak} | cut -d' ' -f1)" = {backup['config_sha256']}
 test "$(sha256sum {prov_bak} | cut -d' ' -f1)" = {backup['manifest_sha256']}
 {binary} check -c {bak}
 cp -pf {bak} {cfg}
@@ -633,17 +550,16 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
                cfg_path=None, bin_path=None, master_secret=None):
     """在海外出口机上真实开启或移除 Hysteria2 QUIC 入站，并执行端到端验真。"""
     verifier = verifier or verify_mod.run
-    is_win = (vless_node.get("os") == "windows") or (vless_node.get("ssh_user") == "Administrator")
-    ok, reason = check_controllable(vless_node, allow_windows=True)
+    ok, reason = check_controllable(vless_node)
     if not ok:
         return {"ok": False, "error": reason}
     if vless_node.get("role") in ("relay", "standalone"):
         return {"ok": False, "error": "仅海外出口节点支持开启 Hysteria2 极速通道"}
 
-    actual_cfg_path = cfg_path or (r"C:\proxy\config.json" if is_win else CFG_PATH)
-    actual_bin_path = bin_path or (r"C:\proxy\sing-box.exe" if is_win else BIN_PATH)
+    actual_cfg_path = cfg_path or CFG_PATH
+    actual_bin_path = bin_path or BIN_PATH
 
-    ok_read, err_read, live_cfg = read_live_config(vless_node, runner=runner, cfg_path=actual_cfg_path, allow_windows=True)
+    ok_read, err_read, live_cfg = read_live_config(vless_node, runner=runner, cfg_path=actual_cfg_path)
     if not ok_read:
         return {"ok": False, "error": err_read}
     try:
@@ -660,16 +576,12 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             "port": hy2_port,
             "password": prev.get("password") or secrets.token_hex(12),
             "obfs_password": prev.get("obfs_password") or secrets.token_hex(8),
-            "sni": prev.get("sni") or "www.bing.com",
+            "sni": prev.get("sni") or "www.apple.com",
         }
         firewall_note = ""
-        if is_win:
-            cert_path = r"C:\proxy\hy2.crt"
-            key_path = r"C:\proxy\hy2.key"
-        else:
-            cert_dir = os.path.dirname(actual_cfg_path) or "/opt/sing-box"
-            cert_path = os.path.join(cert_dir, "hy2.crt")
-            key_path = os.path.join(cert_dir, "hy2.key")
+        cert_dir = os.path.dirname(actual_cfg_path) or "/opt/sing-box"
+        cert_path = os.path.join(cert_dir, "hy2.crt")
+        key_path = os.path.join(cert_dir, "hy2.key")
 
         new_cfg = templates.exit_config(
             port=live["port"],
@@ -692,7 +604,6 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             runner=runner,
             cfg_path=actual_cfg_path,
             bin_path=actual_bin_path,
-            allow_windows=True,
             master_secret=master_secret,
             ensure_hy2_cert={
                 "sni": hy2_params["sni"],
@@ -722,15 +633,13 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
             "sni": hy2_params["sni"],
             "role": vless_node.get("role") or "exit",
             "source": vless_node.get("source") or "builtin",
-            "ssh_user": vless_node.get("ssh_user") or ("Administrator" if is_win else "root"),
+            "ssh_user": vless_node.get("ssh_user") or "root",
             "ssh_port": int(vless_node.get("ssh_port") or 22),
             "enabled": True,
         })
         for field in ("control_secret", "provenance_id"):
             if vless_node.get(field):
                 hy2_record[field] = vless_node[field]
-        if is_win:
-            hy2_record["os"] = "windows"
         if vless_node.get("local") is True:
             hy2_record["local"] = True
         if vless_node.get("quota_control_managed") is True:
@@ -784,7 +693,6 @@ def toggle_hy2(vless_node, existing_hy2_node=None, enabled=True,
         runner=runner,
         cfg_path=actual_cfg_path,
         bin_path=actual_bin_path,
-        allow_windows=True,
         master_secret=master_secret,
     )
     if not applied:

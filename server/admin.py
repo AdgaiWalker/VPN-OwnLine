@@ -20,6 +20,7 @@ from nodekit import node_check_bridge  # noqa: E402
 from nodekit import links as links_mod  # noqa: E402
 from nodekit import templates as templates_mod  # noqa: E402
 from nodekit import remote_config as remote_cfg_mod  # noqa: E402
+from nodekit import reconcile as reconcile_mod  # noqa: E402
 from nodekit import http_utils  # noqa: E402
 from nodekit import system_updater as updater_mod  # noqa: E402
 from nodekit import ai_feedback as ai_feedback_mod  # noqa: E402
@@ -119,24 +120,8 @@ def get_sub_token():
     return ""
 
 def render():
-    # 只要 nodes.json 变动，先保证内部数据一致
-    # 若配置为 builtin（原生内置订阅），完全无需正则改写 Caddyfile 或 reload
-    settings = _load_json("settings.json", {})
-    if settings.get("sub_backend", "builtin") == "builtin":
-        return
-    # 兼容过渡阶段：若显式指定 subconverter，保留旧逻辑
-    try:
-        nodes = [n for n in load_nodes() if subs_mod.in_subscription(n)]
-        src = urllib.parse.quote("|".join(links_mod.build_link(n) for n in nodes), safe="")
-        with open(CADDY, encoding="utf-8") as f:
-            txt = f.read()
-        new = re.sub(r"url=[^&\s]+", "url=" + src, txt, count=1)
-        if new != txt:
-            with open(CADDY, "w", encoding="utf-8") as f:
-                f.write(new)
-            subprocess.run(["systemctl", "reload", "caddy"], check=True, capture_output=True)
-    except Exception:
-        pass
+    # Built-in dynamic subscription engine reads nodes.json directly; never mutate Caddyfile.
+    return
 
 def _gen_node():
     """生成一套节点参数（uuid / reality 密钥对 / short_id / hy2 password / obfs）。"""
@@ -273,34 +258,6 @@ def run_job(jid, spec):
         spec.clear()
 
 
-import base64 as _b64
-
-def _py_patch(uuid_new, port_new, cfg="/opt/sing-box/config.json"):
-    parts = ["import json", "p=%r" % cfg, "d=json.load(open(p))"]
-    parts.append("for ib in d.get('inbounds',[]):")
-    parts.append("    if ib.get('type')=='vless' and ib.get('users'):")
-    if uuid_new:
-        parts.append("        ib['users'][0]['uuid']=%r" % uuid_new)
-    if port_new:
-        parts.append("        ib['listen_port']=%d" % port_new)
-    if not uuid_new and not port_new:
-        parts.append("        pass")
-    parts.append("json.dump(d,open(p,'w'),indent=1)")
-    return "\n".join(parts) + "\n"
-
-def _ps_patch(uuid_new, port_new):
-    lines = ["$p='C:\\proxy\\config.json'", "$j = Get-Content $p -Raw | ConvertFrom-Json"]
-    lines.append("$j.inbounds | Where-Object { $_.type -eq 'vless' } | ForEach-Object {")
-    if uuid_new:
-        lines.append("  $_.users[0].uuid = '%s'" % uuid_new)
-    if port_new:
-        lines.append("  $_.listen_port = %d" % port_new)
-    lines.append("}")
-    lines.append("$j | ConvertTo-Json -Depth 12 | Set-Content $p -Encoding utf8")
-    lines.append("Stop-ScheduledTask -TaskName sing-box")
-    lines.append("Start-ScheduledTask -TaskName sing-box")
-    return "; ".join(lines)
-
 def _build_sub_url(settings, host_header):
     token = settings.get("sub_token") or get_sub_token()
     domain = settings.get("domain") or (host_header or "").split(":")[0] or "localhost"
@@ -315,10 +272,6 @@ def _build_sub_url(settings, host_header):
         port_part = ""
     return domain, token, "https://%s%s/s/%s" % (domain, port_part, token)
 
-
-def patch_remote(node, uuid_new=None, port_new=None):
-    # 旧 sing-box 的服务与配置可能被其他业务共用，当前无法可靠证明独占。
-    return False, "无法确认服务由本项目独占，未修改服务器；请人工检查"
 
 import ipaddress as _ip
 
@@ -416,6 +369,7 @@ def nodes_with_advice():
             n["reset_day"] = reset_day
         n["advice"] = advise_mod.advise(n, status.get(n.get("name")), u_data)
         n["lifecycle"] = lifecycle_mod.get_lifecycle_state(n)
+        n["capability"] = reconcile_mod.node_capability(n)
         out.append(n)
     return out
 
@@ -747,6 +701,10 @@ class H(BaseHTTPRequestHandler):
             history = _load_json("traffic_history.json", {})
             report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=load_nodes())
             return self._json(200, report)
+        if norm_path == "/reconcile/status":
+            q = urllib.parse.parse_qs(qs)
+            target_name = (q.get("name") or [""])[0].strip() or None
+            return self._json(200, reconcile_mod.inspect_cluster_drift(load_nodes(), target_name=target_name))
         if norm_path == "/quota/guard":
             usage = _load_json("usage.json", {})
             eval_res = quota_mod.evaluate_all(usage)
@@ -973,6 +931,19 @@ class H(BaseHTTPRequestHandler):
                 return self._json(200, tencent_discovery_mod.discover(sid, skey))
             except tencent_discovery_mod.Problem as e:
                 return self._json(e.status, {"ok": False, "error": e.message})
+
+        if norm_path == "/reconcile/apply":
+            name = (body.get("name") or "").strip()
+            apply_change = body.get("dry_run") is False
+            try:
+                resp = node_manager.reconcile_node(name, apply=apply_change)
+                code = 409 if resp.get("status") == "unmanaged" else (200 if resp.get("ok") else 502)
+                return self._json(code, resp)
+            except NodeManagerError as e:
+                payload = {"ok": False, "error": e.message}
+                if e.data:
+                    payload.update(e.data)
+                return self._json(e.status_code, payload)
 
         if norm_path == "/quota/settings":
             try:

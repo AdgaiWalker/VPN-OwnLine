@@ -251,9 +251,21 @@ if [ -z "$PUBLIC_IP" ]; then
   PUBLIC_IP="$(ip route get 1.1.1.1 2>/dev/null | awk '{{print $7}}' | head -1)"
 fi
 
-echo "==> [4/5] 生成本地 sing-box 配置与 systemd 服务..."
+echo "==> [4/5] 生成本地 sing-box 配置与最小权限 systemd 服务..."
+getent group sing-box >/dev/null || groupadd --system sing-box
+getent passwd sing-box >/dev/null || useradd --system --gid sing-box --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin sing-box
 mkdir -p /opt/sing-box /var/log
+chown root:sing-box /opt/sing-box
+chmod 750 /opt/sing-box
+touch /var/log/sing-box.log
+chown sing-box:sing-box /var/log/sing-box.log
+chmod 640 /var/log/sing-box.log
 {cert_step}
+if [ -f /opt/sing-box/hy2.key ]; then
+  chown root:sing-box /opt/sing-box/hy2.key /opt/sing-box/hy2.crt
+  chmod 640 /opt/sing-box/hy2.key
+  chmod 644 /opt/sing-box/hy2.crt
+fi
 
 cat <<EOF > /opt/sing-box/config.json
 {{
@@ -280,26 +292,49 @@ cat <<EOF > /opt/sing-box/config.json
   "outbounds": {outbounds_json}{route_json}
 }}
 EOF
-chmod 600 /opt/sing-box/config.json
+chown root:sing-box /opt/sing-box/config.json
+chmod 640 /opt/sing-box/config.json
 
 "$BIN" check -c /opt/sing-box/config.json
 
 cat <<EOF > /etc/systemd/system/sing-box.service
 [Unit]
 Description=sing-box service
-After=network.target nss-lookup.target
+After=network-online.target
+Wants=network-online.target
 
 [Service]
-CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_SYS_PTRACE CAP_DAC_READ_SEARCH
-AmbientCapabilities=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
+Type=simple
+User=sing-box
+Group=sing-box
+WorkingDirectory=/opt/sing-box
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadOnlyPaths=/opt/sing-box
+ReadWritePaths=/var/log/sing-box.log
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @reboot @swap @clock @module @raw-io @debug @cpu-emulation @obsolete
+UMask=0077
 ExecStart=$BIN run -c /opt/sing-box/config.json
 Restart=on-failure
 RestartSec=3s
-LimitNOFILE=infinity
+LimitNOFILE=1048576
 
 [Install]
 WantedBy=multi-user.target
 EOF
+chmod 644 /etc/systemd/system/sing-box.service
 
 systemctl daemon-reload
 systemctl enable sing-box >/dev/null 2>&1
