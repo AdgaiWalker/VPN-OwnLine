@@ -305,6 +305,37 @@ def _yaml_string(value):
     )
 
 
+_DOMESTIC_DIRECT_RULES = (
+    "  - DOMAIN-KEYWORD,deepseek,DIRECT",
+    "  - DOMAIN-KEYWORD,moonshot,DIRECT",
+    "  - DOMAIN-KEYWORD,kimi,DIRECT",
+    "  - DOMAIN-KEYWORD,zhipu,DIRECT",
+    "  - DOMAIN-KEYWORD,doubao,DIRECT",
+    "  - DOMAIN-KEYWORD,wechat,DIRECT",
+    "  - DOMAIN-KEYWORD,weixin,DIRECT",
+    "  - DOMAIN-KEYWORD,tencent,DIRECT",
+    "  - DOMAIN-SUFFIX,codebuddy.ai,DIRECT",
+    "  - DOMAIN-SUFFIX,tencent.com,DIRECT",
+    "  - DOMAIN-SUFFIX,qcloud.com,DIRECT",
+    "  - DOMAIN-SUFFIX,myqcloud.com,DIRECT",
+    "  - DOMAIN-SUFFIX,qq.com,DIRECT",
+    "  - DOMAIN-SUFFIX,alicdn.com,DIRECT",
+    "  - DOMAIN-SUFFIX,taobao.com,DIRECT",
+    "  - DOMAIN-SUFFIX,feishu.cn,DIRECT",
+    "  - DOMAIN-SUFFIX,dingtalk.com,DIRECT",
+    "  - DOMAIN-SUFFIX,alipay.com,DIRECT",
+    "  - DOMAIN-SUFFIX,cn,DIRECT",
+)
+
+
+def _isp_allows_udp(isp):
+    if not isinstance(isp, dict) or not isp:
+        return True
+    if str(isp.get("type") or "socks").lower() == "http":
+        return False
+    return bool(isp.get("udp"))
+
+
 def clash_proxy_lines(n, now_ts=None):
     name = format_display_name(n, now_ts=now_ts)
     if n.get("type") == "hysteria2":
@@ -320,6 +351,7 @@ def clash_proxy_lines(n, now_ts=None):
             "    obfs: salamander",
             "    obfs-password: %s" % _yaml_string(n.get("obfs_password") or ""),
         ]
+    udp_enabled = _isp_allows_udp(n.get("isp"))
     return [
         "  - name: %s" % _yaml_string(name),
         "    type: vless",
@@ -327,7 +359,7 @@ def clash_proxy_lines(n, now_ts=None):
         "    port: %s" % int(n["port"]),
         "    uuid: %s" % _yaml_string(n["uuid"]),
         "    network: tcp",
-        "    udp: true",
+        "    udp: %s" % ("true" if udp_enabled else "false"),
         "    tls: true",
         "    flow: xtls-rprx-vision",
         "    servername: %s" % _yaml_string(n.get("sni") or n["host"]),
@@ -367,14 +399,29 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         "",
         "dns:",
         "  enable: true",
+        "  ipv6: false",
         "  enhanced-mode: fake-ip",
         "  fake-ip-range: 198.18.0.1/16",
-        "  nameserver:",
+        "  respect-rules: true",
+        "  default-nameserver:",
         "    - 223.5.5.5",
         "    - 119.29.29.29",
-        "  fallback:",
+        "  proxy-server-nameserver:",
+        "    - 223.5.5.5",
+        "    - 119.29.29.29",
+        "  direct-nameserver:",
+        "    - 223.5.5.5",
+        "    - 119.29.29.29",
+        "  nameserver:",
         "    - https://1.1.1.1/dns-query",
         "    - https://8.8.8.8/dns-query",
+        "  nameserver-policy:",
+        '    "+.cn": [223.5.5.5, 119.29.29.29]',
+        '    "+.qq.com": [223.5.5.5, 119.29.29.29]',
+        '    "+.weixin.qq.com": [223.5.5.5, 119.29.29.29]',
+        '    "+.tencent.com": [223.5.5.5, 119.29.29.29]',
+        '    "+.deepseek.com": [223.5.5.5, 119.29.29.29]',
+        '    "+.codebuddy.ai": [223.5.5.5, 119.29.29.29]',
         "",
         "proxies:",
     ]
@@ -408,21 +455,8 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         ])
         if node_ip_rules:
             lines.extend(node_ip_rules)
+        lines.extend(_DOMESTIC_DIRECT_RULES)
         lines.extend([
-            "  - DOMAIN-KEYWORD,deepseek,DIRECT",
-            "  - DOMAIN-KEYWORD,moonshot,DIRECT",
-            "  - DOMAIN-KEYWORD,kimi,DIRECT",
-            "  - DOMAIN-KEYWORD,zhipu,DIRECT",
-            "  - DOMAIN-KEYWORD,doubao,DIRECT",
-            "  - DOMAIN-KEYWORD,wechat,DIRECT",
-            "  - DOMAIN-KEYWORD,weixin,DIRECT",
-            "  - DOMAIN-KEYWORD,tencent,DIRECT",
-            "  - DOMAIN-SUFFIX,qq.com,DIRECT",
-            "  - DOMAIN-SUFFIX,alicdn.com,DIRECT",
-            "  - DOMAIN-SUFFIX,taobao.com,DIRECT",
-            "  - DOMAIN-SUFFIX,feishu.cn,DIRECT",
-            "  - DOMAIN-SUFFIX,dingtalk.com,DIRECT",
-            "  - DOMAIN-SUFFIX,alipay.com,DIRECT",
             "  - GEOIP,CN,DIRECT",
             '  - MATCH,"🛡️ 安全办公"',
             "",
@@ -442,19 +476,8 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         ])
         if node_ip_rules:
             lines.extend(node_ip_rules)
+        lines.extend(_DOMESTIC_DIRECT_RULES)
         lines.extend([
-            "  - DOMAIN-KEYWORD,deepseek,DIRECT",
-            "  - DOMAIN-KEYWORD,moonshot,DIRECT",
-            "  - DOMAIN-KEYWORD,kimi,DIRECT",
-            "  - DOMAIN-KEYWORD,zhipu,DIRECT",
-            "  - DOMAIN-KEYWORD,doubao,DIRECT",
-            "  - DOMAIN-KEYWORD,wechat,DIRECT",
-            "  - DOMAIN-KEYWORD,weixin,DIRECT",
-            "  - DOMAIN-KEYWORD,tencent,DIRECT",
-            "  - DOMAIN-SUFFIX,qq.com,DIRECT",
-            "  - DOMAIN-SUFFIX,alicdn.com,DIRECT",
-            "  - DOMAIN-SUFFIX,taobao.com,DIRECT",
-            "  - DOMAIN-SUFFIX,alipay.com,DIRECT",
             "  - GEOIP,CN,DIRECT",
             '  - MATCH,"🚀 智能优选"',
             "",
@@ -517,14 +540,8 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
             lines.extend(node_ip_rules)
         lines.extend("  - DOMAIN-KEYWORD,%s,🤖 AI 业务" % keyword for keyword in AI_DOMAIN_KEYWORDS)
         lines.extend("  - DOMAIN-SUFFIX,%s,🤖 AI 业务" % domain for domain in AI_DOMAIN_SUFFIXES)
+        lines.extend(_DOMESTIC_DIRECT_RULES)
         lines.extend([
-            "  - DOMAIN-KEYWORD,deepseek,DIRECT",
-            "  - DOMAIN-KEYWORD,moonshot,DIRECT",
-            "  - DOMAIN-KEYWORD,kimi,DIRECT",
-            "  - DOMAIN-KEYWORD,zhipu,DIRECT",
-            "  - DOMAIN-KEYWORD,doubao,DIRECT",
-            "  - DOMAIN-KEYWORD,wechat,DIRECT",
-            "  - DOMAIN-KEYWORD,weixin,DIRECT",
             "  - GEOIP,CN,DIRECT",
             "  - MATCH,节点选择",
             "",

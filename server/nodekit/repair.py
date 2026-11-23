@@ -204,8 +204,10 @@ else echo SYNTAX_OK; fi
     try:
         vr = verifier(node)
         health_status = vr.get("health") if isinstance(vr, dict) else "unknown"
-        if health_status in ("ok", "proxy") or (isinstance(vr, dict) and vr.get("ok") is True):
-            exit_ip = vr.get("exit_ip") or node.get("host")
+        if health_status == "ok" or (
+            isinstance(vr, dict) and vr.get("ok") is True and health_status in ("ok", "unknown", None, "")
+        ):
+            exit_ip = (vr.get("exit_ip") if isinstance(vr, dict) else None) or node.get("host")
             steps.append(f"真实健康探测通过: 节点连通就绪，落地出口 IP 为 {exit_ip}")
             return {
                 "name": name,
@@ -217,12 +219,13 @@ else echo SYNTAX_OK; fi
                 "steps": steps,
             }
         else:
-            err_msg = vr.get("detail") or vr.get("error") or "健康状态未达标"
+            err_msg = (vr.get("detail") if isinstance(vr, dict) else "") or (vr.get("error") if isinstance(vr, dict) else "") or "健康状态未达标"
             steps.append(f"真实健康探测未达标: {err_msg}")
+            after_health = health_status if health_status and health_status != "unknown" else before_health
             return {
                 "name": name,
                 "before": before_health,
-                "after": before_health,
+                "after": after_health,
                 "ok": False,
                 "requires_manual": True,
                 "detail": f"服务已重启，但节点健康探测未通过: {err_msg}",

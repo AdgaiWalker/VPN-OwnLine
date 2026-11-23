@@ -99,10 +99,34 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None, warp=None
         inbounds.append(_hy2_inbound(hy2.get("port", port), hy2["password"],
                                      hy2["obfs_password"], hy2.get("sni", sni)))
     if isp:
+        isp_type = str(isp.get("type") or "socks").lower()
+        allow_udp = bool(isp.get("udp")) and isp_type != "http"
+        dns_cfg = {
+            "servers": [
+                {
+                    "tag": "isp-dns",
+                    "type": "https",
+                    "server": "1.1.1.1",
+                    "server_port": 443,
+                    "path": "/dns-query",
+                    "detour": "isp-out",
+                }
+            ],
+            "final": "isp-dns",
+            "strategy": "ipv4_only",
+        }
+        rules = [
+            {"action": "sniff"},
+            {"protocol": "dns", "action": "hijack-dns"},
+        ]
+        if not allow_udp:
+            rules.append({"network": "udp", "action": "reject"})
+        rules.append({"outbound": "isp-out"})
         outbounds = [_isp_outbound(isp), {"type": "direct", "tag": "direct"}]
-        route = {"rules": [{"outbound": "isp-out"}], "final": "isp-out"}
+        route = {"rules": rules, "final": "isp-out"}
         return {
             "log": {"level": "warn", "output": "/var/log/sing-box.log", "timestamp": True},
+            "dns": dns_cfg,
             "inbounds": inbounds,
             "outbounds": outbounds,
             "route": route,
@@ -111,10 +135,12 @@ def exit_config(port, uuid, sni, private_key, sid, hy2=None, isp=None, warp=None
         is_socks = warp.get("type") == "socks" or (warp.get("server") and warp.get("server_port") and str(warp.get("server_port")) != "2408")
         route = {
             "rules": [
+                {"action": "sniff"},
                 {"domain_keyword": list(AI_DOMAIN_KEYWORDS), "outbound": "warp-out"},
                 {"domain_suffix": list(AI_DOMAIN_SUFFIXES), "outbound": "warp-out"},
                 {"outbound": "direct"}
-            ]
+            ],
+            "final": "direct",
         }
         if is_socks:
             return {

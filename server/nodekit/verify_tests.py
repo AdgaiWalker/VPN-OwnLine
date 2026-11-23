@@ -147,4 +147,12 @@ with stubbed(tcp_ok=lambda *a, **k: True,
     r = V.run(HY2_NODE)
     check("HY2 密码错/UDP 不通（即便 TCP 443 通）→ proxy", r["health"] == "proxy", r)
 
+ISP_NODE = dict(NODE, isp={"type": "socks", "server": "203.0.113.88", "server_port": 6297})
+with stubbed(tcp_ok=lambda *a, **k: True,
+             tls_ok=lambda *a, **k: True,
+             proxy_exit_ip=lambda *a, **k: NODE["host"],
+             country_of=lambda *a, **k: "US"):
+    r = V.run(ISP_NODE)
+    check("已挂载住宅代理但出口仍为机房 IP → isp_leak", r["health"] == "isp_leak" and "泄漏" in r["detail"], r)
+
 print("通过 %d 项" % ok)

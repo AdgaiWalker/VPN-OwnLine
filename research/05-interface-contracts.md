@@ -479,3 +479,18 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
    }
    ```
    提示使用者优先防范跳板熔断。当 `days_remaining <= 2` 时，指引文案强制转为周期切换安全余量警告。
+
+### 4.22 住宅数据面 DoH/UDP 收敛、零泄漏 Clash DNS 与真实代理探活契约（ADR-028） `[STATUS: IMPLEMENTED]`
+
+1. **sing-box 1.14 住宅出站 DNS 与 UDP 边界（`server/nodekit/templates.py`）**：
+   - `exit_config(..., isp=...)` 必须注入基于 `https` DoH（`server: 1.1.1.1`, `detour: "isp-out"`, `strategy: "ipv4_only"`）的 `dns` 配置，前置 `sniff` 与 `hijack-dns`，并在 `not (bool(isp.get("udp")) and isp_type != "http")` 时显式注入 `{"network": "udp", "action": "reject"}`，末尾保持 `final: "isp-out"`。
+   - `exit_config(..., warp=...)` 在 `route.rules` 前置 `{"action": "sniff"}` 且显式声明 `final: "direct"`。
+
+2. **Clash DNS 防泄漏与 ISP 能力反映（`server/nodekit/subscriptions.py`）**：
+   - `render_clash_yaml` 必须包含 `respect-rules: true`、`proxy-server-nameserver`、`direct-nameserver`，默认 `nameserver` 使用境外 DoH（`https://1.1.1.1/dns-query` 等），并按 `nameserver-policy` 分流国内域名；对挂载非 UDP ISP 的 VLESS 节点渲染 `udp: false`。
+
+3. **真实端到端探活、泄漏拦截与控制面 `/api/ping` 契约（`server/nodekit/verify.py`, `server/probe.py`, `server/admin.py`, `server/nodekit/repair.py`）**：
+   - `verify.proxy_probe(node)` 通过本机临时 `sing-box` 客户端实测出口 IP 与 TTFB（支持 VLESS Reality 与 Hysteria2）；若挂载 `isp` 后测得出口 IP 仍等于 `node["host"]`，`verify.run` 与 `probe.probe_node` 返回 `isp_leak`。
+   - `repair.repair_node` 严格禁止将 `health == "proxy"` 等非 `ok` 状态判定为自愈成功。
+   - `GET /api/ping` 返回 `204 No Content`（仅用于客户端网关 RTT 测速）；`POST /api/ping` 触发 `probe.run_probe_cycle` 并返回最新 `status.json`。
+   - `ipcheck.py` 优先检测节点 `exit_ip`；`traffic_stats.py` 固定输出 `+08:00` 时区 ISO 时间戳。

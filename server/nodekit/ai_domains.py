@@ -10,4 +10,13 @@ AI_DOMAIN_SUFFIXES = (
     "oaiusercontent.com",
     "ai.google.dev",
     "bard.google.com",
+    "gemini.google.com",
+    "generativelanguage.googleapis.com",
+    "aistudio.google.com",
+    "perplexity.ai",
+    "x.ai",
+    "grok.com",
+    "cursor.com",
+    "cursor.sh",
+    "githubcopilot.com",
 )

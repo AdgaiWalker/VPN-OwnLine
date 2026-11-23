@@ -276,7 +276,7 @@ def test_hy2_toggle_cert_verify_and_rollback():
         check("远端挂载静态住宅 ISP 成功", res_isp["ok"] is True, res_isp)
         isp_written = json.loads(Path(cfg_path).read_text(encoding="utf-8"))
         check("挂载 ISP 后 HY2 入站仍保留", len(isp_written["inbounds"]) == 2)
-        check("挂载 ISP 后路由指向 isp-out", isp_written["route"]["rules"] == [{"outbound": "isp-out"}])
+        check("挂载 ISP 后路由指向 isp-out 且拒绝非支持 UDP", isp_written["route"]["final"] == "isp-out" and {"outbound": "isp-out"} in isp_written["route"]["rules"] and {"network": "udp", "action": "reject"} in isp_written["route"]["rules"])
 
         # 4. 关闭 HY2 → 远端移除 hysteria2 inbound，保留 VLESS 与 ISP
         res_off = RC.toggle_hy2(

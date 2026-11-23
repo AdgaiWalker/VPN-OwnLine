@@ -161,6 +161,9 @@ def main():
     check("识别专线跳板为木桶瓶颈", agg_bottle["total"]["guidance"].get("bottleneck", {}).get("is_relay_bottleneck") is True)
     check("短板场景发出跳板短板预警", agg_bottle["total"]["guidance"]["badge"] == "跳板短板预警" and "北京" in agg_bottle["total"]["guidance"]["text"])
 
+    agg_default_now = T.aggregate_all_traffic_stats(mock_usage, history, active_nodes=active_cluster)
+    check("默认时间输出显式 +08:00 时区而非错标 +00:00", agg_default_now["updated_at"].endswith("+08:00"), agg_default_now["updated_at"])
+
     print(f"\n通过 {passed} 项")
 
 

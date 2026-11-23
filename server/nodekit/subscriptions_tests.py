@@ -232,4 +232,22 @@ from nodekit import links as L
 check("build_link vless 节点输出正确", L.build_link(fast).startswith("vless://"))
 check("build_link hy2 节点输出正确", L.build_link(hy2_node).startswith("hysteria2://"))
 
+# 10. Phase 1 零 DNS 泄漏 + 国内直连 + ISP 非 UDP 控制
+check("Clash DNS 开启 respect-rules 防止境外域名走国内 DNS 泄漏", "respect-rules: true" in yaml_str)
+check("Clash DNS 配置 proxy-server-nameserver 与 direct-nameserver", "proxy-server-nameserver:" in yaml_str and "direct-nameserver:" in yaml_str)
+nameserver_idx = yaml_str.find("\n  nameserver:\n")
+nameserver_block = yaml_str[nameserver_idx:nameserver_idx + 80] if nameserver_idx != -1 else ""
+check("Clash 默认 nameserver 为境外 DoH", "https://1.1.1.1/dns-query" in nameserver_block)
+for prof_name, prof_yaml in (("pro/all", yaml_str), ("lite", yaml_lite), ("office", yaml_office)):
+    check(f"{prof_name} 包含 codebuddy.ai 国内直连", "DOMAIN-SUFFIX,codebuddy.ai,DIRECT" in prof_yaml)
+    check(f"{prof_name} 包含 .cn 尾缀直连", "DOMAIN-SUFFIX,cn,DIRECT" in prof_yaml)
+check("AI 分流补全 gemini/perplexity/cursor 域名", "DOMAIN-SUFFIX,gemini.google.com,🤖 AI 业务" in yaml_str and "DOMAIN-SUFFIX,cursor.com,🤖 AI 业务" in yaml_str)
+
+fast_isp = node("fast-isp", isp={"type": "socks", "server": "198.51.100.2", "server_port": 6297})
+yaml_isp = S.render_clash_yaml([fast, fast_isp])
+check("无 ISP 的 VLESS 节点保持 udp: true", "    udp: true" in "\n".join(S.clash_proxy_lines(fast)))
+check("挂载非 UDP ISP 的 VLESS 节点渲染 udp: false", "    udp: false" in "\n".join(S.clash_proxy_lines(fast_isp)))
+fast_isp_udp = node("fast-isp-udp", isp={"type": "socks", "server": "198.51.100.2", "server_port": 6297, "udp": True})
+check("显式支持 UDP 的 SOCKS5 ISP 渲染 udp: true", "    udp: true" in "\n".join(S.clash_proxy_lines(fast_isp_udp)))
+
 print("通过 %d 项" % ok)

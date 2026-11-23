@@ -141,9 +141,8 @@ def _client_cfg(node, socks_port):
     }
 
 
-def proxy_exit_ip(node, timeout=8):
-    """真的连一次：本机起个 socks，走这条节点出去，看能不能取到出口 IP。
-    取到 → 说明这条节点真的能用；取不到 → 说明不能用（不管端口和握手多漂亮）。"""
+def proxy_probe(node, timeout=8):
+    """真的连一次：本机起个 socks，走这条节点出去，返回 {"ok", "exit_ip", "ms"}。"""
     port = random.randint(20000, 45000)
     fd, path = tempfile.mkstemp(prefix="ownline-px-", suffix=".json")
     p = None
@@ -160,14 +159,27 @@ def proxy_exit_ip(node, timeout=8):
                 break
             time.sleep(0.3)
         if not ready:
-            return ""
-        r = subprocess.run(["curl", "-s", "--max-time", str(timeout),
-                            "--socks5-hostname", "127.0.0.1:%d" % port,
-                            "https://api.ipify.org"], capture_output=True, text=True)
-        ip = (r.stdout or "").strip()
-        return ip if is_ip(ip) else ""
+            return {"ok": False, "exit_ip": "", "ms": 0}
+        for probe_url in ("https://api.ipify.org", "https://ipv4.icanhazip.com"):
+            r = subprocess.run(
+                ["curl", "-s", "--max-time", str(timeout),
+                 "--socks5-hostname", "127.0.0.1:%d" % port,
+                 "-w", "\n%{time_starttransfer}", probe_url],
+                capture_output=True, text=True,
+            )
+            lines = [ln.strip() for ln in (r.stdout or "").splitlines() if ln.strip()]
+            ip = lines[0] if lines else ""
+            if is_ip(ip):
+                ms = 1
+                if len(lines) >= 2:
+                    try:
+                        ms = max(1, int(float(lines[-1]) * 1000))
+                    except Exception:
+                        ms = 1
+                return {"ok": True, "exit_ip": ip, "ms": ms}
+        return {"ok": False, "exit_ip": "", "ms": 0}
     except Exception:
-        return ""
+        return {"ok": False, "exit_ip": "", "ms": 0}
     finally:
         if p is not None:
             try:
@@ -182,6 +194,12 @@ def proxy_exit_ip(node, timeout=8):
             os.remove(path)
         except Exception:
             pass
+
+
+def proxy_exit_ip(node, timeout=8):
+    """真的连一次：本机起个 socks，走这条节点出去，看能不能取到出口 IP。
+    取到 → 说明这条节点真的能用；取不到 → 说明不能用（不管端口和握手多漂亮）。"""
+    return proxy_probe(node, timeout=timeout)["exit_ip"]
 
 
 def run(node):
@@ -219,6 +237,9 @@ def run(node):
         if cc == "CN":
             return {"health": "role_mismatch", "exit_ip": ip, "exit_country": cc,
                     "detail": "出口还在国内，这条帮不上你"}
+        if node.get("isp") and ip == str(host or "").strip():
+            return {"health": "isp_leak", "exit_ip": ip, "exit_country": cc,
+                    "detail": "已挂载住宅代理但出口仍为机房 IP %s，存在泄漏风险" % ip}
         return {"health": "ok", "exit_ip": ip, "exit_country": cc, "detail": "出口 %s (%s)" % (ip, cc or "?")}
 
     # 代理不通：机器还活着吗？

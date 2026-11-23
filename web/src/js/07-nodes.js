@@ -3,6 +3,7 @@
       port: "端口关闭",
       tls: "服务停止",
       proxy: "代理未就绪",
+      isp_leak: "住宅出口泄漏",
       role_mismatch: "机房不符",
       landing: "落地不可达",
       blocked: "疑似被墙阻断",
@@ -24,7 +25,17 @@
       if (st && st.ok === false) {
         badCount++;
         if (d) d.className = "dot bad";
-        if (s) s.textContent = st.reason === "port" ? (zh ? "端口关闭 · 阻断" : "Port Blocked") : (st.reason === "tls" ? (zh ? "服务未响应" : "No Response") : (zh ? "连接失败" : "Connection Failed"));
+        if (s) {
+          s.textContent = st.reason === "port"
+            ? (zh ? "端口关闭 · 阻断" : "Port Blocked")
+            : st.reason === "tls"
+              ? (zh ? "服务未响应" : "No Response")
+              : st.reason === "isp_leak"
+                ? (zh ? "住宅出口泄漏 · 仍为机房 IP" : "ISP Egress Leak")
+                : st.reason === "proxy"
+                  ? (zh ? "代理出网失败" : "Proxy Egress Failed")
+                  : (zh ? "连接失败" : "Connection Failed");
+        }
         return;
       }
       if (st && st.cn_ok === false) {
@@ -57,8 +68,9 @@
           pingHtml = '<span class="ping-pill fast">' + (zh ? "正常" : "OK") + '</span>';
         }
         var exitNotice = "";
-        if (n.role !== "relay" && n.exit_ip && n.exit_ip !== n.host && n.exit_ip !== n.ip) {
-          exitNotice = (zh ? ' · 出口 ' : ' · Egress ') + esc(n.exit_ip);
+        var actualExitIp = (st && st.exit_ip) || n.exit_ip;
+        if (n.role !== "relay" && actualExitIp && actualExitIp !== n.host && actualExitIp !== n.ip) {
+          exitNotice = (zh ? ' · 出口 ' : ' · Egress ') + esc(actualExitIp);
         }
         if (s) s.innerHTML = pingHtml + exitNotice;
         return;
@@ -412,7 +424,9 @@
       var warpPill = "";
       if (!isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
         var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
-        if (isWarp) {
+        if (n.isp && isWarp) {
+          statusBadges += '<span class="tag" style="font-size:11px;opacity:0.7" title="' + (zh ? '已挂载静态住宅 IP，全量流量优先走住宅出口；解绑后自动恢复 WARP' : 'Residential ISP mounted; WARP standby') + '">' + (zh ? 'WARP 待命' : 'WARP Standby') + '</span>';
+        } else if (isWarp) {
           statusBadges += '<span class="tag ok" style="font-size:11px" title="' + (zh ? 'WARP 清洁出网已开启' : 'WARP Active') + '">WARP</span>';
         }
         warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
@@ -690,7 +704,7 @@
       '所有经由此节点的流量将通过静态住宅代理出网，具备高纯净度属地标签，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
       '</p>' +
       '<div style="margin-bottom:12px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
-        '<b>防泄漏提示：</b>挂载住宅代理后，在小火箭/Clash 中请务必将全局路由切换为<b>「全部代理 / 全局」</b>，避免客户端本地分流规则直连导致原生机房 IP 暴露。' +
+        '<b>防泄漏与分流建议：</b>订阅已内置零 DNS 泄漏分流规则。在 Shadowrocket / FlClash 中保持<b>「规则模式」</b>即可实现 AI 与流媒体锁定住宅 IP、国内应用直连不撞墙；仅访问未收录新站时可临时切全局。' +
       '</div>' +
       currentDesc +
       '<div style="margin-bottom:12px">' +

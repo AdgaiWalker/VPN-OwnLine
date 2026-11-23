@@ -127,13 +127,52 @@ def test_provenance_port_conflict_safety_abort():
     print("  OK 目标端口被其他进程占用时安全终止自愈，未误杀外部服务")
 
 
+def test_provenance_verified_but_proxy_failed_is_honest():
+    secret = "test_master_secret_123"
+    node = {"name": "硅谷", "host": "198.51.100.12", "port": 443, "health": "proxy"}
+    cfg_sha = provenance.compute_config_sha256('{"inbounds":[]}')
+    manifest = provenance.sign_provenance(node["host"], cfg_sha, secret)
+
+    class DummyRes:
+        def __init__(self, code, out):
+            self.returncode = code
+            self.stdout = out
+            self.stderr = ""
+
+    def fake_exec(n, cmd, **kwargs):
+        if "base64.b64encode(Path(p)" in cmd:
+            return DummyRes(0, json.dumps({"config": base64.b64encode(b'{"inbounds":[]}').decode(),
+                                          "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()}))
+        if "ss -lptn" in cmd:
+            return DummyRes(0, 'LISTEN 0 128 *:443 *:* users:(("sing-box",pid=1234,fd=3))')
+        if "BIN check" in cmd or "SYNTAX" in cmd:
+            return DummyRes(0, "SYNTAX_OK")
+        if "systemctl restart sing-box" in cmd:
+            return DummyRes(0, "active")
+        return DummyRes(0, "")
+
+    res = repair.repair_node(
+        node,
+        execute_remote_fn=fake_exec,
+        verifier=lambda n: {"health": "proxy", "detail": "机器活着，但代理连不通"},
+        sleep_fn=lambda s: None,
+        master_secret=secret,
+    )
+    assert res["ok"] is False, res
+    assert res["requires_manual"] is True, res
+    assert res["after"] == "proxy", res
+    assert "未通过" in res["detail"], res
+    print("  OK 代理健康为 proxy 时严禁冒充 ok 成功")
+
+
 def run_all():
     test_manual_checks_preserve_node()
     test_external_no_execution()
     test_execute_remote_local()
     test_provenance_verified_self_heal_success()
     test_provenance_port_conflict_safety_abort()
-    print("通过 5 项")
+    test_provenance_verified_but_proxy_failed_is_honest()
+    print("通过 6 项")
 
 
 if __name__ == "__main__":

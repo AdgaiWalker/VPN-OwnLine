@@ -123,8 +123,8 @@ def check_and_notify(status=None):
     for m in msgs:
         try:
             from nodekit import logger
-            lvl = "ERROR" if m.get("level") == "alert" else "SUCCESS"
-            logger.log(lvl, "ALERT", m.get("title", "") + ": " + m.get("content", ""))
+            lvl = "ERROR" if "异常" in str(m) else "SUCCESS"
+            logger.log(lvl, "ALERT", str(m))
         except Exception:
             pass
         send_message(cfg, m)

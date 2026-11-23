@@ -27,6 +27,7 @@
 - [ADR-025：流量传感器单一真理源对齐与住宅出口安全断路器](#adr-025)
 - [ADR-026：链路木桶短板感知与计费重置语义消除歧义](#adr-026)
 - [ADR-027：Webshare 静态住宅 IP 深度适配与智能解析器升级](#adr-027)
+- [ADR-028：住宅出口数据面止血与真实观测自愈机制](#adr-028)
 
 ---
 
@@ -445,3 +446,18 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
    - 住宅 IP 弹窗展开直出 Webshare 标准 4 字段（`Proxy Address`、`Port`、`Username`、`Password`）与 `SOCKS5 / HTTP` 单选组；
    - 顶部提供智能粘贴输入区（Textarea），在用户输入/粘贴时毫秒级提供「✓ 已识别 Webshare 代理：IP:PORT」绿灯徽标反馈，并自动将解析结果双向回填至下方参数表单中；
    - 维持防泄漏提示与解绑/保存动作的一致性。
+
+### <a id="adr-028"></a>ADR-028 · 住宅出口数据面止血与真实观测自愈机制 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与原始素材取证 (Context)
+对现网 `walker-sv`（`sing-box 1.14.4`）最近 2000 条运行时日志与配置快照做只读审计，发现 4 类真实失效：
+1. **住宅 UDP 黑洞与 DNS 缺失**：现网日志高频出现 524 次 `socks5: request rejected, code=7`（Webshare SOCKS5 拒绝 UDP ASSOCIATE），且现网 `/opt/sing-box/config.json` 缺少 `dns` 块及 `route.final`。
+2. **客户端 DNS 泄漏与全局强制冲突**：Clash 默认将境外查询发往 `223.5.5.5` 造成 DNS 泄漏，同时前端引导用户开「全局代理」把 `codebuddy.ai`（547 次 `code=2`）、`deepseek.com`（38 次 `code=4`）等国内域名打入 Webshare 导致被上游拒绝。
+3. **观测与自愈假绿灯**：`probe.py` 用 `openssl s_client` 触发 `www.apple.com` 伪装回落给出 `2ms` 假绿灯并忽略 `hysteria2`；`repair.py` 错误地将 `health == "proxy"` 判定为修复成功；`alert.py` 日志调用对字符串调用 `.get()`；`admin.py` 的 `do_GET /ping` 存在被第 403 行遮蔽的第 601 行死代码。
+4. **状态/体检/时区失真**：`ipcheck.py` 体检机房 IP 而非 `exit_ip`；`traffic_stats.py` 将东八区时间错标为 `+00:00`；前端在 `isp` 覆盖 `warp` 时仍亮绿色 `WARP` 徽章。
+
+#### 2. 裁决结论 (Decision)
+1. **sing-box 1.14 住宅出口 DoH + UDP 收敛**：`templates.exit_config` 在 `isp` 分支注入 Typed `https` DoH 服务器（`detour: "isp-out"`, `strategy: "ipv4_only"`）、`sniff` 与 `hijack-dns`，默认对非 UDP 住宅代理拒绝 UDP（`{"network": "udp", "action": "reject"}`），并通过 `final: "isp-out"` 守住 Fail-Closed 边界；`warp` 分支前置 `{"action": "sniff"}` 并设定 `final: "direct"`。
+2. **Clash 零泄漏 DNS + 分流诚实化**：启用 `respect-rules: true`、拆分 `proxy-server-nameserver`/`direct-nameserver` 与境外 DoH `nameserver`，对挂载非 UDP ISP 的 VLESS 节点输出 `udp: false`，补齐国内直连域名（含 `codebuddy.ai`、`.cn` 等）及 `gemini`/`perplexity`/`cursor` AI 域名。
+3. **真实端到端探活与诚实自愈**：`verify.py` 新增 `proxy_probe` 与 `isp_leak` 检测；`probe.py` 改由 `proxy_probe` 对 VLESS 与 HY2 共同执行真实出口 IP 与延迟探测；`repair.py` 仅在 `health == "ok"` 时判定自愈成功；修复 `alert.py` 与移除 `admin.py` 死路由。
+4. **外围体检与 UI 对齐**：`ipcheck.py` 优先检测 `exit_ip`；`traffic_stats.py` 固定输出 `+08:00` 时区；前端区分 `WARP` 与 `WARP 待命`，改引导规则模式分流。

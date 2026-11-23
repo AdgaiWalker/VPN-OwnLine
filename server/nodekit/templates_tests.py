@@ -43,15 +43,24 @@ check("HY2 ALPN 是 h3", hy["tls"]["alpn"] == ["h3"])
 check("HY2 用自签证书路径", hy["tls"]["certificate_path"].endswith("hy2.crt"))
 check("HY2 有上下行带宽提示", hy["up_mbps"] and hy["down_mbps"])
 
-# --- 出口：带 ISP 静态住宅链式代理 (3x-ui 同款能力) ---
+# --- 出口：带 ISP 静态住宅链式代理 (3x-ui 同款能力 + 防 DNS/UDP 泄漏) ---
 ISP = dict(server="198.51.100.22", server_port=1080, username="att_user", password="att_password", type="socks")
 c_isp = T.exit_config(isp=ISP, **BASE)
 check("带 ISP 包含 socks 出口", any(o.get("tag") == "isp-out" and o.get("type") == "socks" for o in c_isp["outbounds"]))
 check("带 ISP 出口服务器正确", c_isp["outbounds"][0]["server"] == "198.51.100.22")
 check("带 ISP 出口端口正确", c_isp["outbounds"][0]["server_port"] == 1080)
 check("带 ISP 出口认证信息正确", c_isp["outbounds"][0]["username"] == "att_user" and c_isp["outbounds"][0]["password"] == "att_password")
-check("带 ISP 路由规则指向 isp-out", c_isp["route"]["rules"] == [{"outbound": "isp-out"}])
+check("带 ISP 注入 sniff 与 hijack-dns 规则", {"action": "sniff"} in c_isp["route"]["rules"] and {"protocol": "dns", "action": "hijack-dns"} in c_isp["route"]["rules"])
+check("带 ISP 默认拒绝上游不支持的 UDP 防止 code=7 报错", {"network": "udp", "action": "reject"} in c_isp["route"]["rules"])
+check("带 ISP 路由规则指向 isp-out 且设置 final", {"outbound": "isp-out"} in c_isp["route"]["rules"] and c_isp["route"]["final"] == "isp-out")
+check("带 ISP 注入 sing-box 1.14 DoH DNS 并走 isp-out", c_isp["dns"]["servers"][0]["type"] == "https" and c_isp["dns"]["servers"][0]["detour"] == "isp-out" and c_isp["dns"]["strategy"] == "ipv4_only")
 check("validate 接受 ISP 静态住宅出口", T.validate(c_isp) == [])
+
+c_isp_http = T.exit_config(isp=dict(ISP, type="http", udp=True), **BASE)
+check("HTTP ISP 即使传 udp=True 仍强制拒绝 UDP", {"network": "udp", "action": "reject"} in c_isp_http["route"]["rules"])
+
+c_isp_udp = T.exit_config(isp=dict(ISP, type="socks", udp=True), **BASE)
+check("显式支持 UDP 的 SOCKS5 ISP 允许放行 UDP", {"network": "udp", "action": "reject"} not in c_isp_udp["route"]["rules"] and c_isp_udp["route"]["final"] == "isp-out")
 
 # --- 出口：带 Cloudflare WARP 免费清洁出网 (0元洗白) ---
 WARP = dict(private_key="WARP_PRIV_KEY", local_address=["172.16.0.2/32"])

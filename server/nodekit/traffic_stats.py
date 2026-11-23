@@ -16,6 +16,8 @@ try:
 except ImportError:
     from store import AtomicJsonStore
 
+CN_TZ = datetime.timezone(datetime.timedelta(hours=8))
+
 
 def parse_vnstat_json(data: Any) -> Dict[str, Any]:
     """解析 vnStat --json 输出格式（兼容 vnStat 2.x 结构）。
@@ -103,7 +105,7 @@ def record_history_snapshot(history: Dict[str, Any], usage_item: Dict[str, Any],
                             host: str, now: Optional[datetime.datetime] = None) -> Dict[str, Any]:
     """将一次采样点记入历史时序库，处理跨天、月账单清零重置，并计算增量。"""
     if now is None:
-        now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)
+        now = datetime.datetime.now(CN_TZ)
 
     today_str = now.strftime("%Y-%m-%d")
     current_used = float(usage_item.get("used", 0.0) or 0.0)
@@ -166,7 +168,7 @@ def generate_usage_guidance(used_gb: float, total_gb: float,
                             now: Optional[datetime.datetime] = None) -> Dict[str, Any]:
     """核心算法：计算剩余天数、日均预算与针对用户的行动指南。"""
     if now is None:
-        now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)
+        now = datetime.datetime.now(CN_TZ)
 
     today_date = now.date()
 
@@ -224,7 +226,7 @@ def compute_node_stats(host: str, usage_item: Dict[str, Any],
                        now: Optional[datetime.datetime] = None) -> Dict[str, Any]:
     """汇总单个节点的日/周/月/年消耗指标与规划建议。"""
     if now is None:
-        now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)
+        now = datetime.datetime.now(CN_TZ)
 
     today_str = now.strftime("%Y-%m-%d")
     current_used = float(usage_item.get("used", 0.0) or 0.0)
@@ -300,7 +302,7 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
     保证控制台顶部进度条与行动指引单一真理源（SSOT）一致。
     """
     if now is None:
-        now = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=8)
+        now = datetime.datetime.now(CN_TZ)
 
     active_hosts = set()
     egress_hosts = set()

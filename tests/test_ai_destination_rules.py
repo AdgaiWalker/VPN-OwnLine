@@ -19,9 +19,10 @@ class AIDestinationRulesTests(unittest.TestCase):
         for warp in ({"type": "socks", "server_port": 40000}, {"private_key": "TEST"}):
             config = templates.exit_config(443, "id", "sni", "private", "1234", warp=warp)
             rules = config["route"]["rules"]
+            self.assertIn({"action": "sniff"}, rules)
             for domain in expected + ("example.com", "notchatgpt.com"):
                 with self.subTest(domain=domain, warp=warp):
-                    selected = next(r["outbound"] for r in rules if (
+                    selected = next(r["outbound"] for r in rules if "outbound" in r and (
                         not (r.get("domain_keyword") or r.get("domain_suffix"))
                         or any(keyword in domain for keyword in r.get("domain_keyword", []))
                         or any(domain == suffix or domain.endswith("." + suffix) for suffix in r.get("domain_suffix", []))

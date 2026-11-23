@@ -598,25 +598,6 @@ class H(BaseHTTPRequestHandler):
                 lines = 50
             res = logger.get_syslog(service, lines=lines)
             return self._json(200 if res.get("ok") else 400, res)
-        if norm_path == "/ping":
-            try:
-                import probe as probe_mod
-                nodes = load_nodes()
-                settings = _load_json("settings.json", {})
-                cn = probe_mod.cn_probe(nodes, preferred_vantage=settings.get("probe_vantage"))
-                status = _load_json("status.json", {})
-                if cn:
-                    for name, cinfo in cn.items():
-                        if name in status and isinstance(cinfo, dict):
-                            status[name].update(cinfo)
-                    status["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                    tmp = os.path.join(DATA, "status.json.tmp")
-                    with open(tmp, "w", encoding="utf-8") as f:
-                        json.dump(status, f, ensure_ascii=False)
-                    os.replace(tmp, os.path.join(DATA, "status.json"))
-                return self._json(200, {"ok": True, "status": status})
-            except Exception as e:
-                return self._json(500, {"ok": False, "error": str(e)})
 
         if norm_path == "/system/version":
             return self._json(200, updater_mod.get_version_info())
@@ -1237,19 +1218,12 @@ class H(BaseHTTPRequestHandler):
         if norm_path == "/ping":
             try:
                 import probe as probe_mod
-                nodes = load_nodes()
                 settings = _load_json("settings.json", {})
-                cn = probe_mod.cn_probe(nodes, preferred_vantage=settings.get("probe_vantage"))
-                status = _load_json("status.json", {})
-                if cn:
-                    for name, cinfo in cn.items():
-                        if name in status and isinstance(cinfo, dict):
-                            status[name].update(cinfo)
-                    status["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-                    tmp = os.path.join(DATA, "status.json.tmp")
-                    with open(tmp, "w", encoding="utf-8") as f:
-                        json.dump(status, f, ensure_ascii=False)
-                    os.replace(tmp, os.path.join(DATA, "status.json"))
+                status = probe_mod.run_probe_cycle(
+                    nodes_path=NODES,
+                    out_path=os.path.join(DATA, "status.json"),
+                    preferred_vantage=settings.get("probe_vantage"),
+                )
                 return self._json(200, {"ok": True, "status": status})
             except Exception as e:
                 return self._json(500, {"ok": False, "error": str(e)})

@@ -152,3 +152,25 @@ test('parseWebshareProxy parses curl command, 4-colon list, and credentials corr
     password: 'secretpass'
   });
 });
+
+test('renderNodes displays muted WARP standby instead of active ok WARP badge when ISP is mounted', () => {
+  const { c, box } = context();
+  const nodes = [
+    {
+      name: '硅谷',
+      host: '198.51.100.15',
+      port: 443,
+      role: 'exit',
+      warp_enabled: true,
+      isp: { type: 'socks', server: '198.51.100.88', server_port: 10808 }
+    }
+  ];
+  c.renderNodes(nodes, {});
+  assert.match(box.innerHTML, /WARP 待命/);
+  assert.doesNotMatch(box.innerHTML, /<span class="tag ok"[^>]*>WARP<\/span>/);
+});
+
+test('mountIsp modal provides rule-mode zero-DNS-leak guidance', () => {
+  assert.match(html, /防泄漏与分流建议/);
+  assert.match(html, /保持<b>「规则模式」<\/b>/);
+});

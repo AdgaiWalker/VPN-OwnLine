@@ -26,16 +26,18 @@ def query(ip):
 
 def main():
     try:
-        nodes = json.load(open(NODES, encoding="utf-8"))
+        with open(NODES, encoding="utf-8") as f:
+            nodes = json.load(f)
     except Exception:
         nodes = []
     out = {}
     for n in nodes:
-        ip = n.get("host")
-        if not ip:
+        vps_host = str(n.get("host") or "").strip()
+        target_ip = str(n.get("exit_ip") or vps_host).strip()
+        if not target_ip or target_ip in out:
             continue
-        d = query(ip)
-        out[ip] = {
+        d = query(target_ip)
+        entry = {
             "country": d.get("country", ""),
             "city": d.get("city", ""),
             "asn": (d.get("as") or "").split(" ")[0],
@@ -45,6 +47,9 @@ def main():
             "mobile": bool(d.get("mobile")),
             "status": d.get("status", "fail"),
         }
+        if vps_host and target_ip != vps_host:
+            entry["vps_host"] = vps_host
+        out[target_ip] = entry
         time.sleep(1.4)  # ip-api 免费额度：45 次/分钟
     out["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     AtomicJsonStore.dump(OUT, out)

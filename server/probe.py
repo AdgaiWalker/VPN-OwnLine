@@ -174,41 +174,95 @@ def tls_ok(host, port, sni):
     return ("Cipher is" in out) and ("Cipher is (NONE)" not in out)
 
 
-def main():
-    nodes = json.load(open(NODES, encoding="utf-8"))
+def probe_node(n, proxy_probe_fn=None, tcp_ping_fn=None, tls_ok_fn=None):
+    """探测单条节点真实可用性：有完整凭据且本机有 sing-box 时直接跑真实端到端代理出网探活。"""
+    if not isinstance(n, dict) or n.get("enabled") is False:
+        return None
+    is_hy2 = (n.get("type") == "hysteria2")
+    host, port = n.get("host"), n.get("port")
+    if not host or not port:
+        return None
+
+    has_proxy_creds = n.get("source") != "external" and (
+        (is_hy2 and bool(n.get("password")))
+        or (not is_hy2 and bool(n.get("uuid") and n.get("pbk") and n.get("sid")))
+    )
+    do_tcp = tcp_ping_fn or tcp_ping
+    do_tls = tls_ok_fn or tls_ok
+
+    if has_proxy_creds and (proxy_probe_fn is not None or os.path.exists(verify_mod.BIN)):
+        do_proxy = proxy_probe_fn or verify_mod.proxy_probe
+        res = do_proxy(n) or {}
+        exit_ip = str(res.get("exit_ip") or "").strip()
+        if res.get("ok") and exit_ip:
+            if n.get("isp") and exit_ip == str(host).strip():
+                return {
+                    "ok": False,
+                    "ms": 0,
+                    "reason": "isp_leak",
+                    "exit_ip": exit_ip,
+                    "verified_by": "proxy",
+                }
+            return {
+                "ok": True,
+                "ms": max(1, int(res.get("ms") or 1)),
+                "reason": "",
+                "exit_ip": exit_ip,
+                "verified_by": "proxy",
+            }
+        if not is_hy2:
+            ok_tcp, _ = do_tcp(host, port)
+            reason = "proxy" if ok_tcp else "port"
+        else:
+            reason = "proxy"
+        return {
+            "ok": False,
+            "ms": 0,
+            "reason": reason,
+            "verified_by": "proxy",
+        }
+
+    if is_hy2:
+        return None
+    ok_tcp, tcp_ms = do_tcp(host, port)
+    if not ok_tcp:
+        return {"ok": False, "ms": 0, "reason": "port"}
+    if not do_tls(host, port, n.get("sni")):
+        return {"ok": False, "ms": 0, "reason": "tls"}
+    return {"ok": True, "ms": tcp_ms, "reason": ""}
+
+
+def run_probe_cycle(nodes_path=NODES, out_path=OUT, preferred_vantage=None,
+                    proxy_probe_fn=None, cn_probe_fn=None, notify=True):
+    """执行完整一轮探活周期并原子更新 status.json。"""
+    with open(nodes_path, encoding="utf-8") as f:
+        nodes = json.load(f)
     old_status = {}
-    if os.path.exists(OUT):
+    if os.path.exists(out_path):
         try:
-            old_status = json.load(open(OUT, encoding="utf-8"))
+            with open(out_path, encoding="utf-8") as f:
+                old_status = json.load(f)
         except Exception:
             pass
 
     out = {}
     for n in nodes:
-        # Hysteria2 是 QUIC/UDP，443 端口同时跑着 Reality，
-        # 用 TCP+TLS 探活会给出"假绿灯"，所以不做探活，交给客户端实测。
-        if n.get("type") == "hysteria2":
+        name = n.get("name")
+        if not name:
             continue
-        name = n["name"]
-        host, port = n.get("host"), n.get("port")
-        ok_tcp, tcp_ms = tcp_ping(host, port)
-        if not ok_tcp:
-            out[name] = {"ok": False, "ms": 0, "reason": "port"}
-        elif not tls_ok(host, port, n.get("sni")):
-            out[name] = {"ok": False, "ms": 0, "reason": "tls"}
-        else:
-            out[name] = {"ok": True, "ms": tcp_ms, "reason": ""}
-
-        # 状态变更记录
+        st = probe_node(n, proxy_probe_fn=proxy_probe_fn)
+        if st is None:
+            continue
+        out[name] = st
         old_n = old_status.get(name) or {}
         if old_n:
-            if old_n.get("ok") is True and out[name]["ok"] is False:
-                logger.log("ERROR", "PROBE", f"节点 [{name}] 变为不通 (原因={out[name]['reason']})")
-            elif old_n.get("ok") is False and out[name]["ok"] is True:
-                logger.log("SUCCESS", "PROBE", f"节点 [{name}] 恢复通畅 (延迟={out[name]['ms']}ms)")
+            if old_n.get("ok") is True and st["ok"] is False:
+                logger.log("ERROR", "PROBE", f"节点 [{name}] 变为不通 (原因={st['reason']})")
+            elif old_n.get("ok") is False and st["ok"] is True:
+                logger.log("SUCCESS", "PROBE", f"节点 [{name}] 恢复通畅 (延迟={st['ms']}ms)")
 
-    cn = cn_probe(nodes)
-    for name, cinfo in cn.items():
+    cn = (cn_probe_fn or cn_probe)(nodes, preferred_vantage=preferred_vantage)
+    for name, cinfo in (cn or {}).items():
         if name in out and isinstance(cinfo, dict):
             out[name].update(cinfo)
             old_n = old_status.get(name) or {}
@@ -220,21 +274,27 @@ def main():
 
     out["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
-    tmp = OUT + ".tmp"
+    tmp = out_path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False)
         f.flush()
         os.fsync(f.fileno())
-    os.replace(tmp, OUT)
-    try:
-        import alert
-        alert.check_and_notify(out)
-    except Exception:
-        pass
-    try:
-        logger.rotate_if_needed()
-    except Exception:
-        pass
+    os.replace(tmp, out_path)
+    if notify:
+        try:
+            import alert
+            alert.check_and_notify(out)
+        except Exception:
+            pass
+        try:
+            logger.rotate_if_needed()
+        except Exception:
+            pass
+    return out
+
+
+def main():
+    run_probe_cycle()
 
 
 if __name__ == "__main__":
