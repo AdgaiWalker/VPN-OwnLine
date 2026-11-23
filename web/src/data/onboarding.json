@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "checked_at": "2026-11-23",
+  "price_note": "以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。",
+  "vps_options": [
+    {
+      "name": "Oracle Cloud Always Free",
+      "url": "https://www.oracle.com/cloud/free/",
+      "cost_range": "永久免费额度（需外币信用卡验证，以官方为准）",
+      "note": "arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。",
+      "checked_at": "2026-11-23"
+    },
+    {
+      "name": "阿里云高校「云工开物」",
+      "url": "https://university.aliyun.com/",
+      "cost_range": "约 0–10 元/月（学生/青年开发者补贴，以官方为准）",
+      "note": "购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。",
+      "checked_at": "2026-11-23"
+    },
+    {
+      "name": "腾讯云轻量应用服务器（Lighthouse）",
+      "url": "https://www.tencentcloud.com/products/lighthouse",
+      "cost_range": "约 99–138 元/年大促区间（以官方为准）",
+      "note": "优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。",
+      "checked_at": "2026-11-23"
+    },
+    {
+      "name": "RackNerd",
+      "url": "https://www.racknerd.com/",
+      "cost_range": "约 7 元/月起年付区间（以官方为准）",
+      "note": "高性价比海外年付 KVM，建议优先选美西机房。",
+      "checked_at": "2026-11-23"
+    },
+    {
+      "name": "LINUX DO 社区促销板块",
+      "url": "https://linux.do/",
+      "cost_range": "实时低价特惠情报",
+      "note": "可用于比对各云厂商近期真实特惠活动与避坑反馈。",
+      "checked_at": "2026-11-23"
+    }
+  ],
+  "server_requirements": {
+    "os": "空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，root SSH 登录与公网 IPv4）",
+    "ports": [
+      "SSH 端口（默认 22）",
+      "8443/TCP（管理后台与订阅分发）",
+      "443/TCP（VLESS Reality 主通道）",
+      "443/UDP（Hysteria2 晚高峰高速通道）",
+      "80/TCP（仅绑定自定义域名自动申请 HTTPS 证书时需要）"
+    ]
+  },
+  "topology_advice": {
+    "single_node": "单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。",
+    "relay_pair": "双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。"
+  },
+  "webshare_isp": {
+    "name": "Webshare Static Residential",
+    "url": "https://www.webshare.io/",
+    "cost_range": "约 $12/年区间（以官方为准）",
+    "select_hint": "购买后选择「Static Residential」美国静态住宅代理，用于降低 ChatGPT / Claude / 流媒体机房 IP 风控拦截；注意静态住宅不支持 UDP 转发。",
+    "paste_formats": [
+      "curl --proxy http://user:pass@ip:port ...",
+      "ip:port:user:pass",
+      "socks5://user:pass@ip:port"
+    ],
+    "checked_at": "2026-11-23"
+  },
+  "clients": [
+    {
+      "name": "FlClash",
+      "url": "https://github.com/chen08209/FlClash/releases",
+      "note": "Windows / macOS / Android / Linux 开源客户端"
+    },
+    {
+      "name": "Clash Verge Rev",
+      "url": "https://github.com/clash-verge-rev/clash-verge-rev/releases",
+      "note": "电脑端规则分流客户端"
+    },
+    {
+      "name": "Shadowrocket（小火箭）",
+      "url": "https://apps.apple.com/app/shadowrocket/id932747118",
+      "note": "iPhone / iPad 推荐使用（需美区 App Store）"
+    }
+  ],
+  "ios_apple_id": {
+    "shared_url": "https://idapp.app/",
+    "shared_warning": "共享账号（idapp.app）：只在 App Store 里登录，千万不要在手机「设置」最上方登录，下载完成后立即退出该账号。",
+    "official_fallback": "备选官方路径：自行注册美区 Apple ID，并在 App Store 购买 Shadowrocket（约 $2.99，以官方为准）。",
+    "checked_at": "2026-11-23"
+  },
+  "custom_domain": {
+    "default_behavior": "默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。",
+    "registrar": "Spaceship",
+    "url": "https://www.spaceship.com/",
+    "cost_range": "约 $1–$3/首年（以官方为准）",
+    "note": "可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后在服务器运行 sudo bash /opt/web/change_domain.sh <域名>。",
+    "checked_at": "2026-11-23"
+  },
+  "tencent_cam_note": "请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。",
+  "agent_brief": "请协助我用 Evergreen · OwnLine 的跨平台本地引擎（macOS / Windows / Linux），从 0 完成专属节点配置（规范见 skills/ownline-local/SKILL.md，选型与准备清单见 web/src/data/onboarding.json）：\n1. 在仓库根目录运行 python3 ownline.py doctor --json 检查与自举环境（Windows 可用 py -3 ownline.py 或 python ownline.py；图形回退入口为「启动安装.command」/「启动安装.bat」或 ownline.py ui）。如我尚未购买服务器，先读取 web/src/data/onboarding.json 为我对比方案与必开端口（Ubuntu 22.04+ 或 Debian 12+，放行 SSH、8443/TCP、443/TCP、443/UDP）。\n2. 需要 SSH、腾讯云只读 API、Webshare 家宽或面板密码时，调用 ownline.py vault request --slot <ssh|tencent_api|webshare_isp|panel_auth> 弹起本机盲签卡（无桌面环境自动退回终端隐身输入），让我本人在本地页面输入，严禁让我在对话中发送任何明文凭据。\n3. 拿到句柄后先用 ownline.py check --vault-handle 预检（首次连接请我核对 SSH 指纹）并通过 ownline.py install 完成首装，再按需用 ownline.py apply 串联改密、Webshare 静态住宅与中转扩容验真。\n4. 交付后清理本机句柄（ownline.py vault clear --json），告知管理后台地址并提醒仅靠本机内存交付初始密码；严禁索取、复制或输出密码、私钥、密钥、订阅链接或含凭据截图。"
+}

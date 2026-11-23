@@ -420,6 +420,7 @@ def build_parser():
 
     p_doc = sub.add_parser("doctor", help="检查本机环境、依赖、前端构建与可选更新")
     p_doc.add_argument("--check-update", action="store_true")
+    p_doc.add_argument("--ensure-deps", action="store_true", help="若缺锁定依赖则自动在 .venv 完成安装（由入口预引导）")
     p_doc.add_argument("--json", action="store_true")
 
     p_upd = sub.add_parser("update-check", help="检查最新软件版本")
@@ -468,9 +469,9 @@ def build_parser():
     p_chk.add_argument("--port", type=int, default=0)
     p_chk.add_argument("--json", action="store_true")
 
-    p_tc = sub.add_parser("tencent-instances", help="使用盲签句柄只读查询腾讯云 CVM 公网实例")
+    p_tc = sub.add_parser("tencent-instances", help="使用盲签句柄只读查询腾讯云轻量与 CVM 公网实例")
     p_tc.add_argument("--vault-handle", required=True)
-    p_tc.add_argument("--product", default="cvm", choices=("cvm", "lighthouse"))
+    p_tc.add_argument("--product", default="all", choices=("all", "cvm", "lighthouse"))
     p_tc.add_argument("--json", action="store_true")
 
     p_inst = sub.add_parser("install", help="凭已确认的 check_token 触发首台服务器安装")
@@ -650,10 +651,10 @@ def main(argv=None, *, state_path=None, diag_log=None, prompt_fn=input, secret_p
 
         if args.command == "tencent-instances":
             client = ensure_daemon(state_path=state_path, autostart=False)
-            code, res = client.post_json(
-                "/api/tencent/instances",
-                {"vault_handle": args.vault_handle, "product": args.product},
-            )
+            payload = {"vault_handle": args.vault_handle}
+            if args.product != "all":
+                payload["product"] = args.product
+            code, res = client.post_json("/api/tencent/instances", payload)
             _emit_output({"ok": code == 200, **res}, True)
             return 0 if code == 200 else 1
 

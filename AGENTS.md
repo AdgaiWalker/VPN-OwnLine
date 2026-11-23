@@ -13,7 +13,7 @@
 ## Four-State Asset Lifecycle
 
 - **Release (运行态)**: Root-level single source of truth for runtime execution (`server/`, `web/`, `deploy/`, `scripts/`, `tests/`). Never clutter root with scratch prototypes or operational dumps.
-- **Working (演进态)**: Active architecture, specification, and research artifacts (`docs/`, `research/`).
+- **Working (演进态)**: Active architecture, specification, and research artifacts (`docs/`, `research/`). Keep unimplemented plans, per-iteration acceptance/verification records, and priority backlogs isolated in `research/plans/` separate from the numbered `01-05` core specs.
 - **Archive (归档态)**: Retired prototypes, historical specifications, superseded code (`archive/prototypes/`, `archive/historical-specs/`).
 - **Private (私有态)**: Host keys, credentials, local emergency tarballs (`.ops-private/`, `.backups-private/`). Never commit to Git (must be `.gitignore` protected).
 

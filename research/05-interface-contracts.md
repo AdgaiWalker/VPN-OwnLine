@@ -618,3 +618,20 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
    - `tests/test_s3_handoff_and_ui.py` 覆盖真实子进程 `SIGKILL` 后回退接管、陈旧状态文件清理与合成静态页结构约束；
    - `tests/local-setup-progress.test.js` 覆盖步骤轨联动及剪贴板异常时自动展开帮助面板；
    - 经 `scripts/build_web.py --check` 验证产物一致，并在 `1280x800` 与 `390x844` 视口下实测零控制台错误及零横向溢出。
+
+### 4.29 从 0 到 1 内嵌资源单源化、冷启动自举与旁路脚本契约（ADR-035） [STATUS: IMPLEMENTED]
+
+1. **结构化资源单源与构建注入契约（`web/src/data/onboarding.json`, `scripts/build_web.py`）**：
+   - `web/src/data/onboarding.json` 维护官方无返佣资源清单、`checked_at`、历史参考区间、D2 iOS 共享/官方路径文案、`tencent_cam_note` 及唯一标准 `agent_brief`；`scripts/build_web.py` 构建期转义并注入 `#no-server-guide`、`#vault-webshare-guide`、`#panel-onboarding-guide`、`PANEL_TC_CAM_GUIDE` 与 `AGENT_BRIEF`；
+   - 已部署旧版本外链兼容性保留：`docs/server-buying-guide.md` 与 `README.md` `id="ai-assisted-setup"` 保持可达。
+
+2. **腾讯云合并发现默认行为（`web/src/js/local-setup.js`, `server/local_setup.py`, `server/ownline_cli.py`）**：
+   - 本地安装页点击「腾讯云」调用 `POST /api/tencent/instances` 时默认不强制限制 `product`，由 `tencent_discovery.discover_for_local_setup()` 同时查询轻量与 CVM；
+   - `ownline.py tencent-instances` `--product` 支持 `all|cvm|lighthouse` 且默认 `all`（传入 `all` 时请求体省略 `product`）。
+
+3. **冷启动 `.venv` 自举与诊断事件（`ownline.py`, `server/nodekit/local_diag.py`, `docs/02-本地诊断事件表.md`）**：
+   - `ensure_runtime_python()` 在 `--help`、`OWNLINE_BOOTSTRAPPED=1`、`OWNLINE_NO_BOOTSTRAP=1` 或当前解释器已具备锁定依赖时直接放行；否则优先切换至已就绪 `.venv`，或在必需命令且存在 `requirements.lock` 时创建 `.venv` 并按 `--require-hashes` 安装依赖；所有提示输出到 `stderr`；
+   - `EVENT_REGISTRY` 与 `docs/02-本地诊断事件表.md` 同步新增 `local_env_bootstrapped` 与 `local_env_bootstrap_failed`（合计 31 类事件）。
+
+4. **旁路运维脚本原子锁与权限契约（`server/change_domain.sh`, `server/rotate.sh`）**：
+   - `change_domain.sh` 在覆盖 `/etc/caddy/Caddyfile` 前设置 `0640`（并按 `caddy` 组存在与否设置 `root:caddy`），与 `rotate.sh` 共同经 `nodekit.store.AtomicJsonStore.update` 持 `${SETTINGS}.lock` 更新 `settings.json` 并强制保持 `0600` 权限。

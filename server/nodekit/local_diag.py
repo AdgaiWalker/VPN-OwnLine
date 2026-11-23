@@ -26,6 +26,16 @@ EVENT_REGISTRY = {
         "severity": "info",
         "summary": "运行本地环境与构建自检",
     },
+    "local_env_bootstrapped": {
+        "stage": "lifecycle",
+        "severity": "info",
+        "summary": "自动创建或补齐本地锁定虚拟环境依赖",
+    },
+    "local_env_bootstrap_failed": {
+        "stage": "lifecycle",
+        "severity": "error",
+        "summary": "本地锁定虚拟环境依赖自举失败",
+    },
     "local_update_checked": {
         "stage": "update",
         "severity": "info",
@@ -89,17 +99,17 @@ EVENT_REGISTRY = {
     "tencent_lookup_started": {
         "stage": "cloud_discovery",
         "severity": "info",
-        "summary": "开始通过只读 API 查询腾讯云 CVM 实例",
+        "summary": "开始通过只读 API 查询腾讯云轻量与 CVM 实例",
     },
     "tencent_lookup_done": {
         "stage": "cloud_discovery",
         "severity": "info",
-        "summary": "完成腾讯云 CVM 实例列表读取",
+        "summary": "完成腾讯云轻量与 CVM 实例列表读取",
     },
     "tencent_lookup_failed": {
         "stage": "cloud_discovery",
         "severity": "error",
-        "summary": "读取腾讯云 CVM 实例列表失败",
+        "summary": "读取腾讯云轻量与 CVM 实例列表失败",
     },
     "install_started": {
         "stage": "install",

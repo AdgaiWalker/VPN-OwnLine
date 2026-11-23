@@ -36,7 +36,11 @@
                   </div>
                 </div>
                 <div id="apple-store-help" style="display:none" class="apple-id-callout">
-                  <p class="small muted" style="margin:0"><span data-i18n="free_acc_prefix">免费账号：</span><a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a><span data-i18n="free_acc_suffix">（仅在 App Store 登录，切勿登录 iCloud）。</span></p>
+                  <p class="small muted" style="margin:0"><span data-i18n="free_acc_prefix">共享账号：</span><a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a><span data-i18n="free_acc_suffix">（只在 App Store 里登录，千万不要在手机「设置」最上方登录，下载完成后立即退出该账号）。</span></p>
+                  <details style="margin-top:6px">
+                    <summary class="small muted" style="cursor:pointer" data-i18n="ios_official_fallback_summary">备选：自己注册美区账号</summary>
+                    <p class="small muted" style="margin:4px 0 0" data-i18n="ios_official_fallback_desc">也可自行注册美区 Apple ID，并在 App Store 购买 Shadowrocket（约 $2.99，以官方为准）。</p>
+                  </details>
                 </div>
               </div>
             </div>
@@ -270,7 +274,7 @@
             </div>
           </div>
           </details>
-          <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">AI 配置指引</a></p>
+          <!-- {{PANEL_TC_CAM_GUIDE}} -->
         </div>
         <details class="inner" id="tc-guide-box" style="margin-bottom:10px">
           <summary data-i18n="tc_guide_summary">选购与环境准备</summary>
@@ -354,19 +358,19 @@
         <!-- Mode 2: Direct SSH Connection (Advanced) -->
         <div id="box-ssh-direct" style="display:none">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写两项信息，先检测连接，再确认安装。</p>
-        <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限。
-我的目标是将一台新的自备 Linux 云服务器接入本项目的节点池。
+        <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
+我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
 目标说明：
 [仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
 
 请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
 1. 本机引擎与盲签收密：
-   - 运行 `python3 ownline.py doctor --json`，通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 盲签页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
+   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 盲签页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
 2. 自动扫雷与系统加固：
    - 完成 SSH 登入与环境就绪：放行内部防火墙（22、443、8443 端口）、确保 root 权限畅通；
    - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
 3. 一键纳管并出网验真：
-   - 调用仓库现有的节点纳管流水线完成装配，并执行 verify.py 出网测试，结束后清理内存句柄；
+   - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
    - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
 4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
         <p class="small muted" style="margin:0 0 12px 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
@@ -411,7 +415,7 @@
         </div>
         </div></div>
         </div>
-        <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">安装指引</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">VPS 选购建议</a></p>
+        <!-- {{PANEL_ONBOARDING_GUIDE}} -->
       </div>
     </div>
   </section>

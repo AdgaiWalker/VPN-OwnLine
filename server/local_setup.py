@@ -210,7 +210,7 @@ def create_server(
                         sid, skey = borrowed.get('secret_id'), borrowed.get('secret_key')
                     else:
                         sid, skey = body.get('secret_id'), body.get('secret_key')
-                    _emit('tencent_lookup_started', {'product': body.get('product') or 'cvm', 'using_vault': bool(borrowed)})
+                    _emit('tencent_lookup_started', {'product': body.get('product') or 'all', 'using_vault': bool(borrowed)})
                     res = tencent_discovery.discover_for_local_setup(sid, skey, product=body.get('product'))
                     _emit('tencent_lookup_done', {'count': len(res.get('instances') or [])})
                     self.send(200, res)

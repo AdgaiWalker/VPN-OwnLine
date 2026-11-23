@@ -172,6 +172,29 @@ details > p { margin: 12px 0; }
 }
 #ssh-help-details { margin-top: 4px; }
 #ssh-help-details summary { padding: 6px 0; font-weight: 600; }
+.guide-disclosure { margin-top: 12px; }
+.guide-disclosure summary { padding: 6px 0; font-weight: 600; }
+.guide-body {
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  color: var(--muted);
+}
+.guide-body p { margin: 8px 0; overflow-wrap: anywhere; }
+.guide-body p:first-child { margin-top: 0; }
+.guide-body p:last-child { margin-bottom: 0; }
+.guide-list { margin: 0 0 10px; padding-inline-start: 18px; }
+.guide-list li { padding-block: 3px; overflow-wrap: anywhere; }
+.guide-body code {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
 
 #connection-methods {
   display: inline-flex;
@@ -327,6 +350,7 @@ footer:has(#quit[hidden]) { display: none; }
 </fieldset>
 <fieldset id="slot-webshare_isp" hidden disabled aria-label="Webshare 静态住宅代理">
 <label>静态住宅代理串<input id="vault-isp-proxy" name="proxy_url" type="password" required placeholder="粘贴 Webshare 代理串 / ip:port:user:pass / curl 命令" autocomplete="off" spellcheck="false"></label>
+<details id="vault-webshare-guide" class="guide-disclosure"><summary>如何获取 Webshare 静态住宅代理？</summary><div class="guide-body"><p><a href="https://www.webshare.io/" target="_blank" rel="noopener noreferrer">打开 Webshare 官网</a>（约 $12/年区间（以官方为准））：购买后选择「Static Residential」美国静态住宅代理，用于降低 ChatGPT / Claude / 流媒体机房 IP 风控拦截；注意静态住宅不支持 UDP 转发。</p><p><strong>可直接粘贴的格式：</strong><code>curl --proxy http://user:pass@ip:port ...</code> <code>ip:port:user:pass</code> <code>socks5://user:pass@ip:port</code></p><p class="field-note">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
 </fieldset>
 <fieldset id="slot-panel_auth" hidden disabled aria-label="管理后台密码">
 <label>管理面板地址（可选）<input id="vault-panel-url" name="dashboard_url" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"></label>

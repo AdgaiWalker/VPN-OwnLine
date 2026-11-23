@@ -22,7 +22,7 @@
 <p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再通过仓库根目录的「启动安装.command」（macOS）、「启动安装.bat」（Windows）或 python3 ownline.py ui 重新打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
 <button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection"><svg class="ico" aria-hidden="true"><use href="#i-terminal"/></svg><span>SSH 直连</span></button>
-<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg><span>腾讯云 CVM</span></button>
+<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg><span>腾讯云</span></button>
 </div>
 <form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
 <label id="server-address">服务器地址<input name="host" required placeholder="公网 IPv4 或域名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
@@ -38,10 +38,10 @@
 </details>
 <button id="check" type="submit">测试连接</button>
 </fieldset></form>
-<section id="tencent" hidden aria-label="选择腾讯云 CVM 实例">
+<section id="tencent" hidden aria-label="选择腾讯云实例">
 <form id="tencent-credentials" method="post">
 <fieldset id="tencent-fields" aria-label="腾讯云 API 密钥">
-<p class="field-note">用只读 API 密钥查找你的 CVM 实例。</p>
+<p class="field-note">用只读 API 密钥查找你的轻量应用服务器或 CVM 实例。</p>
 <div class="row">
 <label>SecretId<input id="tencent-secret-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
 <label>SecretKey<input id="tencent-secret-key" name="secret_key" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
@@ -100,17 +100,13 @@
 </div>
 <p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 Cursor、Claude、Codex 或 Antigravity。密码和私钥请在本页填写。</p>
 <p id="ssh-copy-status" class="field-note" role="status"></p>
+<!-- {{LOCAL_NO_SERVER_GUIDE}} -->
 <details id="ssh-help-details"><summary>查看完整任务书与端口说明</summary>
-<pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的本机引擎（macOS / Windows / Linux），为一台我确认的新 Linux 服务器创建首个节点。
-1. 在仓库根目录运行 python3 ownline.py doctor --json 检查环境（图形回退入口为「启动安装.command」/「启动安装.bat」或 python3 ownline.py ui）。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
-2. 需要 SSH 凭据时，调用 python3 ownline.py vault request --slot ssh 打开本机盲签输入页，让我本人在本地页面输入密码或粘贴私钥，不要让我把明文发进对话。
-3. 使用盲签返回的句柄调用 python3 ownline.py check --vault-handle，提示我核对 SSH 指纹。检查通过后，让我核实目标并确认创建。
-4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
+<pre id="ssh-prompt" aria-label="Agent 任务书">{{AGENT_BRIEF}}</pre>
 <p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、8443/TCP、443/TCP 和 443/UDP（使用域名自动签发 HTTPS 证书时另放行 80/TCP）。</p>
 <p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
 <div class="help-links">
-<a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
-<a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noreferrer">查看版本发布</a>
+<a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noopener noreferrer">查看版本发布</a>
 </div>
 <p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
 </details>

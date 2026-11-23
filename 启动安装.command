@@ -11,9 +11,4 @@ if ! python3 -c 'import sys; raise SystemExit(sys.version_info < (3, 10))'; then
   read -r -p '按回车退出。'
   exit 1
 fi
-if [ ! -x .venv/bin/python ]; then python3 -m venv .venv; fi
-if ! .venv/bin/python -c 'import paramiko,bcrypt' >/dev/null 2>&1; then
-  echo '首次启动，正在安装经过锁定校验的本地依赖…'
-  bash deploy/install-python-deps.sh .venv/bin/python
-fi
-exec .venv/bin/python -B -m server.local_setup
+exec python3 -B ownline.py ui

@@ -13,6 +13,9 @@ description: Orchestrate Evergreen OwnLine across macOS, Windows, and Linux usin
 
 ## Standard End-to-End Lifecycle
 
+### 0. Zero-to-One Resource Lookup (If the User Has No Server Yet)
+Read [web/src/data/onboarding.json](../../web/src/data/onboarding.json) before recommending any VPS provider, port rule, domestic relay, Webshare static residential proxy, client download, Apple ID path, or optional custom domain. Do not invent prices or third-party links; cite only the official URLs, historical price ranges, and `checked_at` date recorded in that file. (On Windows, invoke `py -3 ownline.py` or `python ownline.py` instead of `python3`.)
+
 ### 1. Preflight
 ```bash
 python3 ownline.py doctor --json

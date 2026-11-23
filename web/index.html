@@ -1896,7 +1896,11 @@ footer.site-footer {
                   </div>
                 </div>
                 <div id="apple-store-help" style="display:none" class="apple-id-callout">
-                  <p class="small muted" style="margin:0"><span data-i18n="free_acc_prefix">免费账号：</span><a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a><span data-i18n="free_acc_suffix">（仅在 App Store 登录，切勿登录 iCloud）。</span></p>
+                  <p class="small muted" style="margin:0"><span data-i18n="free_acc_prefix">共享账号：</span><a href="https://idapp.app/" target="_blank" rel="noopener noreferrer">idapp.app</a><span data-i18n="free_acc_suffix">（只在 App Store 里登录，千万不要在手机「设置」最上方登录，下载完成后立即退出该账号）。</span></p>
+                  <details style="margin-top:6px">
+                    <summary class="small muted" style="cursor:pointer" data-i18n="ios_official_fallback_summary">备选：自己注册美区账号</summary>
+                    <p class="small muted" style="margin:4px 0 0" data-i18n="ios_official_fallback_desc">也可自行注册美区 Apple ID，并在 App Store 购买 Shadowrocket（约 $2.99，以官方为准）。</p>
+                  </details>
                 </div>
               </div>
             </div>
@@ -2130,7 +2134,7 @@ footer.site-footer {
             </div>
           </div>
           </details>
-          <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">AI 配置指引</a></p>
+          <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <span class="muted">请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。</span></p>
         </div>
         <details class="inner" id="tc-guide-box" style="margin-bottom:10px">
           <summary data-i18n="tc_guide_summary">选购与环境准备</summary>
@@ -2214,19 +2218,19 @@ footer.site-footer {
         <!-- Mode 2: Direct SSH Connection (Advanced) -->
         <div id="box-ssh-direct" style="display:none">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写两项信息，先检测连接，再确认安装。</p>
-        <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限。
-我的目标是将一台新的自备 Linux 云服务器接入本项目的节点池。
+        <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
+我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
 目标说明：
 [仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
 
 请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
 1. 本机引擎与盲签收密：
-   - 运行 `python3 ownline.py doctor --json`，通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 盲签页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
+   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 盲签页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
 2. 自动扫雷与系统加固：
    - 完成 SSH 登入与环境就绪：放行内部防火墙（22、443、8443 端口）、确保 root 权限畅通；
    - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
 3. 一键纳管并出网验真：
-   - 调用仓库现有的节点纳管流水线完成装配，并执行 verify.py 出网测试，结束后清理内存句柄；
+   - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
    - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
 4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
         <p class="small muted" style="margin:0 0 12px 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
@@ -2271,7 +2275,7 @@ footer.site-footer {
         </div>
         </div></div>
         </div>
-        <p class="small"><a href="https://github.com/AdgaiWalker/VPN-OwnLine#ai-assisted-setup" target="_blank" rel="noopener noreferrer">安装指引</a> · <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noopener noreferrer">VPS 选购建议</a></p>
+        <details class="inner" id="panel-onboarding-guide" style="margin-top:10px"><summary>还没有服务器或想看选型与可选域名？</summary><div class="small muted" style="margin-top:8px;line-height:1.6"><ul style="margin:0 0 8px;padding-left:18px"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p style="margin:4px 0"><b>系统与端口：</b>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，root SSH 登录与公网 IPv4）；放行 SSH 端口（默认 22）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）、80/TCP（仅绑定自定义域名自动申请 HTTPS 证书时需要）。</p><p style="margin:4px 0"><b>方案参考：</b>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。 双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p style="margin:4px 0"><b>自定义域名（可选）：</b>默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后在服务器运行 sudo bash /opt/web/change_domain.sh &lt;域名&gt;。）。</p><p style="margin:6px 0 0">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
       </div>
     </div>
   </section>
@@ -2710,9 +2714,11 @@ async function copySetupText(text) {
       launching_client: "Launching client…",
       not_installed: "Client not installed?",
       need_us_apple_id: "Need US Apple ID?",
-      free_account_notice: "Free account: idapp.app (App Store only, never sign in to iCloud).",
-      free_acc_prefix: "Free account: ",
-      free_acc_suffix: " (App Store only, never sign in to iCloud).",
+      free_account_notice: "Shared account: idapp.app (Sign in ONLY in App Store, never at the top of iPhone Settings, and sign out right after downloading).",
+      free_acc_prefix: "Shared account: ",
+      free_acc_suffix: " (Sign in ONLY in App Store, never at the top of iPhone Settings, and sign out right after downloading).",
+      ios_official_fallback_summary: "Alternative: Register your own US Apple ID",
+      ios_official_fallback_desc: "You can also register a US Apple ID yourself and buy Shadowrocket on the App Store (around $2.99, subject to official pricing).",
       clash_ios_help: "Clash: Please select the appropriate iOS download channel.",
       manual_copy_toggle: "Manual Link Copy & QR Code",
       sub_empty: "Subscription link unavailable",
@@ -2914,9 +2920,11 @@ async function copySetupText(text) {
       launching_client: "正在唤起客户端...",
       not_installed: "未安装客户端？",
       need_us_apple_id: "需要美区 Apple ID？",
-      free_account_notice: "免费账号：idapp.app（仅在 App Store 登录，切勿登录 iCloud）。",
-      free_acc_prefix: "免费账号：",
-      free_acc_suffix: "（仅在 App Store 登录，切勿登录 iCloud）。",
+      free_account_notice: "共享账号：idapp.app（只在 App Store 里登录，千万不要在手机「设置」最上方登录，下载完成后立即退出该账号）。",
+      free_acc_prefix: "共享账号：",
+      free_acc_suffix: "（只在 App Store 里登录，千万不要在手机「设置」最上方登录，下载完成后立即退出该账号）。",
+      ios_official_fallback_summary: "备选：自己注册美区账号",
+      ios_official_fallback_desc: "也可自行注册美区 Apple ID，并在 App Store 购买 Shadowrocket（约 $2.99，以官方为准）。",
       clash_ios_help: "Clash: 请选择适用的 iOS 下载渠道。",
       manual_copy_toggle: "手动复制链接与撤销",
       sub_empty: "订阅链接暂不可用",

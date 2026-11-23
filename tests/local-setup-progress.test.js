@@ -14,7 +14,7 @@ const running = {state:'running',stage:'dependencies',stage_label:'安装系统�
     {code:'dependencies',label:'安装系统依赖和管理网关',elapsed_seconds:65,state:'running'}],log:['fixture-private-log']};
 
 async function harness(job = running, responses = {}, copy = async () => {}) {
-  const html = fs.readFileSync('web/src/html/local-setup.html','utf8');
+  const html = fs.readFileSync('web/local-setup.html','utf8');
   const elements = Object.fromEntries([...html.matchAll(/<[^>]+id="([^"]+)"[^>]*>/g)].map(m=>[
     m[1], {...element(),hidden:/\bhidden\b/.test(m[0]),open:/\bopen\b/.test(m[0]),disabled:/\bdisabled\b/.test(m[0])}
   ]));
@@ -186,7 +186,7 @@ test('the visible cross-platform task brief copies only static text and stays av
 });
 
 test('connection help stays open for both connection methods',async()=>{
-  const html = fs.readFileSync('web/src/html/local-setup.html','utf8');
+  const html = fs.readFileSync('web/local-setup.html','utf8');
   assert.match(html,/<section id="ssh-help"/);
   const h=await harness({state:'idle'});
   h.elements['method-cvm'].onclick();
@@ -234,7 +234,7 @@ test('partial CVM results require a selection and retain the CVM context and res
   assert.equal(h.elements.connection.elements.password.focused,true);
   assert.deepEqual(h.calls.filter(c=>c.options.method==='POST').map(c=>c.path),['/api/tencent/instances']);
   assert.deepEqual(JSON.parse(h.calls.find(c=>c.path==='/api/tencent/instances').options.body),{
-    secret_id:'fixture-id',secret_key:'fixture-key',product:'cvm'
+    secret_id:'fixture-id',secret_key:'fixture-key'
   });
   h.elements.connection.elements.password.value='new-ssh-password';
   await h.elements.connection.onsubmit(submit);

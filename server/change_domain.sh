@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# 长青 (Evergreen OwnLine) · 自定义域名绑定与切换助手
-#
-# 哲学：
-#   零摩擦演化：先用默认 sslip.io 跑通，有了自有域名随时平滑切换。
-#   平滑热更新：自动校验 DNS、自动申请新 SSL 证书、自动更新订阅地址，
-#   不重启代理进程，不影响现有节点流量。
+# Evergreen OwnLine · 自定义域名绑定与切换助手
 #
 # 用法：
-#   sudo bash /opt/web/change_domain.sh [新域名] [--skip-dns-check]
-#   例如：
-#   sudo bash /opt/web/change_domain.sh vpn.yourdomain.com
+#   sudo bash /opt/web/change_domain.sh <新域名> [--skip-dns-check]
 # ==============================================================================
 set -euo pipefail
 
-say()  { printf '\n\033[1;36m==> %s\033[0m\n' "$*"; }
-ok()   { printf '\033[1;32m  ✔ %s\033[0m\n' "$*"; }
-warn() { printf '\033[1;33m  ⚠ %s\033[0m\n' "$*"; }
-die()  { printf '\033[1;31m  ✖ %s\033[0m\n' "$*" >&2; exit 1; }
+say()  { printf '\n==> %s\n' "$*"; }
+ok()   { printf '  [ok] %s\n' "$*"; }
+warn() { printf '  [warn] %s\n' "$*"; }
+die()  { printf '\n[err] %s\n' "$*" >&2; exit 1; }
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SETTINGS="${LADDER_SETTINGS:-/opt/web-data/settings.json}"
+CADDYFILE="${LADDER_CADDYFILE:-/etc/caddy/Caddyfile}"
+QR_OUT="${LADDER_QR_OUT:-/opt/web/qr-sub.png}"
 
 NEW_DOMAIN=""
 SKIP_DNS=0
@@ -47,25 +45,22 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 if [ -z "$NEW_DOMAIN" ]; then
-  printf '👉 请输入你想绑定的新域名 (例如 vpn.yourdomain.com): '
+  printf '请输入你想绑定的新域名 (例如 vpn.yourdomain.com): '
   read -r NEW_DOMAIN
 fi
 
 NEW_DOMAIN=$(echo "$NEW_DOMAIN" | tr 'A-Z' 'a-z' | xargs)
 [[ "$NEW_DOMAIN" =~ ^[a-z0-9][a-z0-9.-]{0,251}[a-z0-9]$ ]] || die "域名格式不正确: $NEW_DOMAIN"
 
-SETTINGS="/opt/web-data/settings.json"
-CADDYFILE="/etc/caddy/Caddyfile"
-
 [ -f "$SETTINGS" ] || die "未找到 $SETTINGS，请确认系统已完成首次安装。"
 [ -f "$CADDYFILE" ] || die "未找到 $CADDYFILE，请确认 Caddy 已配置。"
 
 say "1/4 正在获取本机公网 IP 并校验 DNS 解析..."
-PUB_IP=$(curl -fsSL --connect-timeout 4 https://api.ipify.org 2>/dev/null || curl -fsSL --connect-timeout 4 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
-[ -n "$PUB_IP" ] || die "无法获取本机公网 IP，请检查服务器网络。"
-ok "本机公网 IP: $PUB_IP"
-
 if [ "$SKIP_DNS" = 0 ]; then
+  PUB_IP=$(curl -fsSL --connect-timeout 4 https://api.ipify.org 2>/dev/null || curl -fsSL --connect-timeout 4 https://ifconfig.me 2>/dev/null || hostname -I | awk '{print $1}')
+  [ -n "$PUB_IP" ] || die "无法获取本机公网 IP，请检查服务器网络。"
+  ok "本机公网 IP: $PUB_IP"
+
   RESOLVED_IP=$(getent ahostsv4 "$NEW_DOMAIN" 2>/dev/null | awk '{print $1}' | head -n 1 || true)
   if [ "$RESOLVED_IP" != "$PUB_IP" ]; then
     warn "域名解析未就绪！"
@@ -75,73 +70,90 @@ if [ "$SKIP_DNS" = 0 ]; then
     echo ""
     echo "请前往你的域名 DNS 控制台（如 Cloudflare / 腾讯云 / 阿里云）："
     echo "1. 添加一条 A 记录，将 '$NEW_DOMAIN' 指向 '$PUB_IP'"
-    echo "2. ⚠️ 若使用 Cloudflare，务必关闭橙色小云朵（设置为 DNS only / 灰色云），否则证书申请与代理握手会被拦截"
-    echo "3. 等待 1~2 分钟生效后重试。若已确认解析生效，可加 --skip-dns-check 强制执行。"
+    echo "2. 若使用 Cloudflare 且直接代理到本机端口，请核对代理模式（灰色云直连）"
+    echo "3. 生效后重试；若已确认解析生效，可加 --skip-dns-check 执行。"
     exit 1
   fi
   ok "DNS 解析已验证通过 ($NEW_DOMAIN -> $PUB_IP)"
+else
+  ok "已按 --skip-dns-check 跳过 DNS 解析检查"
 fi
 
 say "2/4 正在渲染新 Caddyfile 并验证配置..."
-CADDY_TMP="$(mktemp /etc/caddy/.caddyfile-new-XXXXXX)"
+CADDY_DIR="$(dirname "$CADDYFILE")"
+CADDY_TMP="$(mktemp "${CADDY_DIR}/.caddyfile-new-XXXXXX")"
+cleanup_tmp() { rm -f "$CADDY_TMP"; }
+trap cleanup_tmp EXIT
 
-# 替换 Caddyfile 中的域名绑定
 python3 - "$CADDYFILE" "$CADDY_TMP" "$NEW_DOMAIN" <<'PY'
-import sys, re
+import re
+import sys
+
 source, target, new_domain = sys.argv[1], sys.argv[2], sys.argv[3]
-with open(source, 'r', encoding='utf-8') as f:
+with open(source, "r", encoding="utf-8") as f:
     text = f.read()
 
-# 替换 https://<domain>:8443
-text = re.sub(r'https://[a-zA-Z0-9.-]+:8443\s*\{', f'https://{new_domain}:8443 {{', text)
-# 替换 :80 中的重定向目标
-text = re.sub(r'redir https://[a-zA-Z0-9.-]+:8443\{uri\} 308', f'redir https://{new_domain}:8443{{uri}} 308', text)
+text = re.sub(r"https://[a-zA-Z0-9.-]+:8443\s*\{", f"https://{new_domain}:8443 {{", text)
 
-with open(target, 'w', encoding='utf-8') as f:
+with open(target, "w", encoding="utf-8") as f:
     f.write(text)
 PY
 
 if ! caddy validate --config "$CADDY_TMP" --adapter caddyfile >/dev/null 2>&1; then
-  rm -f "$CADDY_TMP"
   die "Caddy 配置文件验证失败，原配置未做任何修改。"
 fi
 
+if getent group caddy >/dev/null 2>&1; then
+  chown root:caddy "$CADDY_TMP"
+fi
+chmod 640 "$CADDY_TMP"
 cp -f "$CADDYFILE" "${CADDYFILE}.bak-$(date +%Y%m%d%H%M%S)"
 mv -f "$CADDY_TMP" "$CADDYFILE"
-chmod 644 "$CADDYFILE"
-ok "Caddy 配置文件已更新，原配置已备份"
+ok "Caddy 配置文件已按 0640 最小权限原子更新，原配置已备份"
 
-say "3/4 正在平滑重载 Caddy 并自动申请新证书..."
+say "3/4 正在平滑重载 Caddy..."
 systemctl reload caddy
-ok "Caddy 已热重载，证书正在自动签发中"
+ok "Caddy 已热重载"
 
-say "4/4 正在更新系统订阅配置..."
-python3 -c "
-import json
-with open('$SETTINGS', 'r') as f:
-    s = json.load(f)
-s['domain'] = '$NEW_DOMAIN'
-with open('$SETTINGS', 'w') as f:
-    json.dump(s, f, indent=2)
-"
+say "4/4 正在持锁原子更新系统订阅配置..."
+SETTINGS_OUT=$(
+  PYTHONPATH="$SCRIPT_DIR${PYTHONPATH:+:$PYTHONPATH}" python3 - "$SETTINGS" "$NEW_DOMAIN" <<'PY'
+import os
+import sys
 
-# 如果有二维码，重新生成
-SUB_TOKEN=$(python3 -c "import json; print(json.load(open('$SETTINGS')).get('sub_token', ''))")
-SUB_PORT=$(python3 -c "import json; print(json.load(open('$SETTINGS')).get('sub_port', 8443))")
+from nodekit.store import AtomicJsonStore
+
+settings_path, new_domain = sys.argv[1], sys.argv[2]
+
+
+def _mutate(current):
+    data = dict(current) if isinstance(current, dict) else {}
+    data["domain"] = new_domain
+    return data
+
+
+updated = AtomicJsonStore.update(settings_path, _mutate, default={})
+os.chmod(settings_path, 0o600)
+sub_token = str(updated.get("sub_token", "") or "")
+sub_port = str(updated.get("sub_port", "") or "")
+print(sub_token)
+print(sub_port)
+PY
+)
+SUB_TOKEN="$(printf '%s\n' "$SETTINGS_OUT" | sed -n '1p')"
+SUB_PORT="$(printf '%s\n' "$SETTINGS_OUT" | sed -n '2p')"
+
 PORT_PART=""
 if [ -n "$SUB_PORT" ] && [ "$SUB_PORT" != "443" ] && [ "$SUB_PORT" != "80" ]; then
   PORT_PART=":$SUB_PORT"
 fi
 NEW_SUB="https://${NEW_DOMAIN}${PORT_PART}/s/${SUB_TOKEN}"
 
-if command -v qrencode >/dev/null 2>&1; then
-  qrencode -o /opt/web/qr-sub.png -s 12 -m 2 "$NEW_SUB" 2>/dev/null || true
+if [ -n "$SUB_TOKEN" ] && command -v qrencode >/dev/null 2>&1; then
+  qrencode -o "$QR_OUT" -s 12 -m 2 "$NEW_SUB" 2>/dev/null || true
 fi
-ok "系统订阅地址已自动切换为新域名"
+ok "系统订阅地址已安全切换为新域名"
 
-say "🎉 域名绑定成功！"
-echo ""
-printf '  \033[1;32m👉 新管理控制台: https://%s:8443/\033[0m\n' "$NEW_DOMAIN"
-printf '  \033[1;32m👉 新订阅分发地址: %s\033[0m\n' "$NEW_SUB"
-echo ""
-echo "客户端（小火箭 / Clash）下次刷新订阅时将自动使用新域名通信。"
+say "域名绑定完成"
+echo "  新管理控制台: https://${NEW_DOMAIN}:8443/"
+echo "  新订阅分发地址: $NEW_SUB"

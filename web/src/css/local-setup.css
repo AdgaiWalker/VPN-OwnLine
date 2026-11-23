@@ -171,6 +171,29 @@ details > p { margin: 12px 0; }
 }
 #ssh-help-details { margin-top: 4px; }
 #ssh-help-details summary { padding: 6px 0; font-weight: 600; }
+.guide-disclosure { margin-top: 12px; }
+.guide-disclosure summary { padding: 6px 0; font-weight: 600; }
+.guide-body {
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-top: 6px;
+  color: var(--muted);
+}
+.guide-body p { margin: 8px 0; overflow-wrap: anywhere; }
+.guide-body p:first-child { margin-top: 0; }
+.guide-body p:last-child { margin-bottom: 0; }
+.guide-list { margin: 0 0 10px; padding-inline-start: 18px; }
+.guide-list li { padding-block: 3px; overflow-wrap: anywhere; }
+.guide-body code {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
 
 #connection-methods {
   display: inline-flex;

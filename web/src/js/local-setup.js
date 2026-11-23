@@ -168,10 +168,9 @@
     const credentials = Object.fromEntries(new FormData($('tencent-credentials')));
     const controller = new AbortController();
     cloudLookup = controller;
-    credentials.product = 'cvm';
     clearTencentKeys();
     $('tencent-fields').disabled = true;
-    status('正在读取 CVM 实例…');
+    status('正在读取腾讯云实例…');
     record('开始读取腾讯云实例');
     try {
       const data = await request('/api/tencent/instances', credentials, controller);
@@ -189,7 +188,9 @@
         const row = document.createElement('li');
         const button = document.createElement('button');
         button.type = 'button';
-        button.textContent = `${instance.name} · ${instance.ip} · ${instance.region}`;
+        button.textContent = instance.product
+          ? `${instance.name}（${instance.product}）· ${instance.ip} · ${instance.region}`
+          : `${instance.name} · ${instance.ip} · ${instance.region}`;
         button.onclick = () => selectTencentInstance(instance);
         row.appendChild(button);
         return row;
