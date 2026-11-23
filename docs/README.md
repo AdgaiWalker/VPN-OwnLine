@@ -14,7 +14,7 @@
 | [Core 03 · 技术方案](核心文档/03-技术方案-全自动化装配中枢架构方案.md) | 控制面主控、订阅与出网验真架构 |
 | [Core 04 · 工程规范与验收](核心文档/04-工程规范与验收标准.md) | 生产技术栈、安全边界及门禁规范 |
 | [交互规格 v2.1](设计/客户端Web交互设计规格说明书.md) | 控制台交互设计、配额与分流规范 |
-| [产研决策 ADR](../research/04-adr-decisions.md) 与 [契约](../research/05-interface-contracts.md) | `research/` 下长期有效的架构决策与接口契约；未落地/阶段性方案统一隔离在 `research/plans/` |
+| [产研决策 ADR](../research/04-adr-decisions.md) 与 [契约](../research/05-interface-contracts.md) | `research/` 下长期有效的架构决策与接口契约；未落地/阶段性方案按 `YYYY-MM-DD-<topic>.md` 隔离在 `research/plans/` |
 
 ## 快速使用
 

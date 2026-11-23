@@ -345,7 +345,7 @@
 
 ### <a id="adr-018"></a>ADR-018：可信交付、服务归属与版本发布事务 [STATUS: IMPLEMENTED]
 
-问题：身份检查、凭据传递、安装执行与交付判断分散；版本清单重复；服务控制入口采用不同归属规则。具体路径和比较见 [实施方案](plans/06-trusted-delivery-plan.md)。
+问题：身份检查、凭据传递、安装执行与交付判断分散；版本清单重复；服务控制入口采用不同归属规则。具体路径和比较见 [实施方案](plans/2026-11-17-trusted-delivery.md)。
 
 选择面向常见调用的三个深模块，而非继续分散补字段或引入通用任意操作引擎：
 
@@ -513,7 +513,7 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
    - 修复上述 Caddy `handle_errors { header -Server }`、`subscriptions.py` 无引号 `MATCH` 规则与 `repair.py` `ss -lptn -H` + 表头过滤 3 项真实生产缺陷。
 2. **引入离线性质模糊测试与数学/解析加固（`tests/test_phase4_property_fuzz.py`）**：
    - 在本地 `.venv` 启用 `hypothesis==6.170.17`（严禁污染生产 `requirements.lock`），并在 `links.py`、`quota_guard.py`、`traffic_stats.py` 与 `verify.py` 完成边界防呆与可测试出口探针抽取。
-3. **固化外部可观测工具与按日历验收基准（`scripts/ops/{external_probe,billing_reconcile}.py` + `research/plans/08-phase4-external-verification.md`）**：
+3. **固化外部可观测工具与按日历验收基准（`scripts/ops/{external_probe,billing_reconcile}.py` + `research/plans/2026-11-23-phase4-external-verification.md`）**：
    - 以纯标准库工具支撑 7 天连续外网可用率/P95/隐身/防泄漏采样、腾讯云账单月底实对账，以及 3–5 名普通用户无提示端到端盲测记录。
 
 ### <a id="adr-032"></a>ADR-032 · 跨平台本地引擎 (`ownline`)、盲签凭据库 (Option A) 与本地诊断兜底三件套 [STATUS: IMPLEMENTED]
@@ -578,7 +578,7 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
   2. 直接解压发布包运行系统 `python3 ownline.py ...` 时无法自动复用或创建锁定 `.venv`，`.command`/`.bat` 启动器各自维护重复的 pip 源逻辑；
   3. 遗留脚本 `deploy/restore_master.sh` 已随异地备份下线而失效并破坏沙箱与归属存证，`server/change_domain.sh` 将 `/etc/caddy/Caddyfile` 降权为 `0644` 且 `change_domain.sh`/`rotate.sh` 未经 `flock` 保护写 `settings.json`。
 - **决策**：
-  1. **单一资源事实源与按需显现**：新建 [web/src/data/onboarding.json](web/src/data/onboarding.json)（标注 `checked_at`、历史参考区间与无返佣官方链接），由 `scripts/build_web.py` 在构建时注入 `local-setup.html`（默认折叠 `#no-server-guide` 与规范 `agent_brief`）、`local-vault.html`（仅 `webshare_isp` 槽位内折叠 `#vault-webshare-guide`）及 `index.html`（`#panel-onboarding-guide` 与 CAM 只读提示）；共享美区 Apple ID（`idapp.app`）保持主推并强化「只在 App Store 登录、勿在系统设置顶部登录、用完立即退出」提示，官方注册作为折叠备选；本地安装页与 `ownline.py tencent-instances` 默认开放轻量与 CVM 合并查询；归档旧版中文新手指南与 `deploy/restore_master.sh` 至 `archive/historical-specs/`，在 `docs/server-buying-guide.md` 与 `README.md#ai-assisted-setup` 保留向后兼容入口，并在 `AGENTS.md` 固化 `research/plans/` 隔离约定（将 `07` 与 `core-problems-priority.md` 一并收拢）。
+  1. **单一资源事实源与按需显现**：新建 [web/src/data/onboarding.json](web/src/data/onboarding.json)（标注 `checked_at`、历史参考区间与无返佣官方链接），由 `scripts/build_web.py` 在构建时注入 `local-setup.html`（默认折叠 `#no-server-guide` 与规范 `agent_brief`）、`local-vault.html`（仅 `webshare_isp` 槽位内折叠 `#vault-webshare-guide`）及 `index.html`（`#panel-onboarding-guide` 与 CAM 只读提示）；共享美区 Apple ID（`idapp.app`）保持主推并强化「只在 App Store 登录、勿在系统设置顶部登录、用完立即退出」提示，官方注册作为折叠备选；本地安装页与 `ownline.py tencent-instances` 默认开放轻量与 CVM 合并查询；归档旧版中文新手指南与 `deploy/restore_master.sh` 至 `archive/historical-specs/`，在 `docs/server-buying-guide.md` 与 `README.md#ai-assisted-setup` 保留向后兼容入口，并在 `AGENTS.md` 固化 `research/plans/` 隔离约定（统一按 `YYYY-MM-DD-<topic>.md` 命名，不再延续 `01-05` 序号）。
   2. **纯标准库 `.venv` 冷启动自举**：在 [ownline.py](ownline.py) 入口前置 `ensure_runtime_python()`，当当前解释器缺少锁定依赖时自动切入就绪 `.venv`，或按 `requirements.lock --require-hashes`（清华源回退 PyPI）自动建环自举并记录 `local_env_bootstrapped` / `local_env_bootstrap_failed` 事件（进度仅输出至 `stderr` 保持 `--json` 纯净）；收口 `启动安装.command` 与 `启动安装.bat` 为薄入口。
   3. **旁路脚本原子锁与最小权限收口**：`server/change_domain.sh` 与 `server/rotate.sh` 统一调用 `nodekit.store.AtomicJsonStore.update` 持 `${SETTINGS}.lock` 原子写入 `settings.json`（`0600`），`change_domain.sh` 在 `mv -f` 前提前设置 `Caddyfile` `0640 root:caddy` 并移除过时 `:80` 正则。
 - **验证证据**：
