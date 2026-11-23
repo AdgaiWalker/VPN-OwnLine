@@ -36,7 +36,11 @@ jobs:
 
       - name: Install CI-only property fuzzing engine (hypothesis)
         run: |
-          pip install --no-input --disable-pip-version-check hypothesis==6.170.17
+          if [ "${{ matrix.python-version }}" = "3.10" ]; then
+            pip install --no-input --disable-pip-version-check hypothesis==6.168.5
+          else
+            pip install --no-input --disable-pip-version-check hypothesis==6.170.17
+          fi
           python -c "import hypothesis; print('hypothesis', hypothesis.__version__)"
 
       - name: Run Full Offline Quality Gate

@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 from server import local_setup
 
@@ -37,22 +38,31 @@ class S3AgentHandoffAndUiTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             state_file = Path(tmp) / "agent_state.json"
             diag_file = Path(tmp) / "diag.jsonl"
+            daemon_err = Path(tmp) / "daemon.err"
             env = dict(os.environ, OWNLINE_LOCAL_STATE=str(state_file), OWNLINE_DIAG_LOG=str(diag_file))
 
             # 1. Start real detached local daemon process (simulating Agent-spawned daemon).
+            err_fh = daemon_err.open("w", encoding="utf-8")
             daemon = subprocess.Popen(
                 [sys.executable, "-B", "-m", "server.local_setup", "--no-browser", "--state-file", str(state_file), "--diag-log", str(diag_file)],
                 cwd=str(ROOT),
                 env=env,
                 stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
+                stderr=err_fh,
             )
             agent = None
             try:
-                deadline = time.monotonic() + 8.0
+                deadline = time.monotonic() + 15.0
                 while time.monotonic() < deadline and not state_file.is_file():
+                    if daemon.poll() is not None:
+                        break
                     time.sleep(0.05)
-                self.assertTrue(state_file.is_file(), "daemon state file not written")
+                err_fh.flush()
+                err_text = daemon_err.read_text(encoding="utf-8", errors="replace") if daemon_err.is_file() else ""
+                self.assertTrue(
+                    state_file.is_file(),
+                    f"daemon state file not written (rc={daemon.poll()}, stderr={err_text!r})",
+                )
                 state_before = json.loads(state_file.read_text(encoding="utf-8"))
                 origin = state_before["origin"]
                 token = state_before["token"]
@@ -112,6 +122,18 @@ class S3AgentHandoffAndUiTests(unittest.TestCase):
                 if daemon.poll() is None:
                     daemon.terminate()
                     daemon.wait(timeout=3)
+                err_fh.close()
+
+    def test_create_server_skips_reverse_dns_getfqdn(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            diag_file = Path(tmp) / "diag.jsonl"
+            with mock.patch("socket.getfqdn", side_effect=AssertionError("getfqdn called")):
+                srv = local_setup.create_server(0, diag_log=diag_file)
+            try:
+                self.assertEqual(srv.server_name, "127.0.0.1")
+                self.assertGreater(srv.server_port, 0)
+            finally:
+                srv.server_close()
 
     def test_stale_state_file_returns_none_on_probe(self):
         with tempfile.TemporaryDirectory() as tmp:

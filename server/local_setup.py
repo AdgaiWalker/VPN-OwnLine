@@ -8,6 +8,7 @@ from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
 from pathlib import Path
+import socketserver
 import threading
 import urllib.parse
 import webbrowser
@@ -47,6 +48,13 @@ def _default_state_path():
     if override:
         return Path(override)
     return ROOT / '.ops-private' / 'local_agent.json'
+
+
+class _LoopbackHTTPServer(ThreadingHTTPServer):
+    def server_bind(self):
+        socketserver.TCPServer.server_bind(self)
+        self.server_name = '127.0.0.1'
+        self.server_port = self.server_address[1]
 
 
 def create_server(
@@ -321,7 +329,7 @@ def create_server(
                 if isinstance(borrowed, dict):
                     borrowed.clear()
 
-    server = ThreadingHTTPServer(('127.0.0.1', port), Handler)
+    server = _LoopbackHTTPServer(('127.0.0.1', port), Handler)
     server.guard = LocalSetupGuard(server.server_port)
     server.vault = active_vault
     server.diag_log = resolved_diag
