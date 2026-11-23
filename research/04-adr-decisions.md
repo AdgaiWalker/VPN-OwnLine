@@ -556,3 +556,17 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
 3. **统一 Agent Skill 与真二进制黑盒验证闭环（`skills/ownline-local/SKILL.md`, `scripts/verify_s2_blackbox.py`）**：
    - 为本地 Agent 提供单一规范技能文件 `skills/ownline-local/SKILL.md` 并纳入 `.github/workflows/release.yml` 发布打包清单；同时将 `local_setup.py` 的 `paramiko`/`bcrypt` 改为按需惰性导入，确保仅调用能力编排的纯标准库环境亦可运行；
    - 以 `scripts/verify_s2_blackbox.py` 在 `ownline-phase4-lab:latest`（`--network none`）内连通真实 `caddy 2.10.2`、`reset_admin_password.py`、`admin.py`、`sing-box 1.14.4`（DoH over SOCKS5）、`mihomo v1.19.34` 与 `ownline.py` CLI 跑通完整黑盒闭环，实测 `leaked_secrets=0`。
+
+## ADR-034 · 回退交互页视觉收敛、单屏降噪与 Agent 中断无感接管 [STATUS: IMPLEMENTED]
+
+- **背景与问题**：
+  1. 当本地 Agent 在交付或安装中途被强制终止（例如 `SIGKILL`），后台可能仍运行着持有效状态文件与环回端口的守护进程；若用户直接通过 `ownline.py ui` 或 `local_setup.py` 拉起回退图形页，旧逻辑可能误覆盖状态或与已存活进程冲突；
+  2. 回退交互页 `local-setup.html` 与内存金库页 `local-vault.html` 在 390px 窄屏与初次加载场景中存在视觉噪声偏高、多步注意力分散、未交互表单即触发误报风险及减动效偏好未兜底等问题。
+- **决策**：
+  1. **Agent 中断守护进程无感接管**：在 `server/local_setup.py` 新增 `_probe_running_daemon(state_path)` 对环回地址执行携带 `Host` 头与 `ownline_setup` Cookie 的 `GET /api/status` 探活；`main()` 默认优先检测存活守护进程并直接复用既有 `origin`（发出 `fallback_ui_opened` 事件且标记 `reattached=True`、不覆盖 `state_path`），并在 `local_setup.py` 与 `server/ownline_cli.py`（`ui` / `serve` 子命令）提供显式 `--force-new` 开关按需强制新建会话；
+  2. **回退 UI 单屏降噪与无文字视觉语义**：在 `web/src/html/local-setup.html` 与 `web/src/html/local-vault.html` 引入零尺寸内联 Lucide SVG `<symbol>`（零表情符号），新增 `#step-rail`（`#step-1..3`）引导分阶段注意力；将冗长命令提示与防火墙说明折叠至默认闭合的 `<details id="ssh-help-details">`（复制失败时自动展开，同时保持 `#ssh-prompt` 无 `hidden` 属性以兼容既有机理）；
+  3. **交互后校验与可访问性收敛**：在 `web/src/css/local-setup.css` 采用 `:is(input:user-invalid, input.user-invalid-fallback)` 与 `input:user-valid` 延迟错误态渲染，默认保持 `.spin-ico` 静止并在 `@media (prefers-reduced-motion: no-preference)` 内开启 `ownline-spin`，补齐 `overflow-x: clip` 与 `max-width: 480px` 堆叠规则；收紧 `.vault-badge` 文案消除 390px 视口换行。
+- **验证证据**：
+  - `tests/test_s3_handoff_and_ui.py` 离线实测真实子进程 `SIGKILL` 中断后的存活接管、过期状态文件清理及合成 HTML 卫生约束；
+  - `tests/local-setup-progress.test.js` 验证 `#step-rail` 状态流转与剪贴板失败自动展开 `#ssh-help-details`；
+  - 真实浏览器 `1280x800` 与 `390x844` 零控制台报错及零横向溢出检查，`./scripts/test.sh` 全量 976 项门禁 100% 通过。

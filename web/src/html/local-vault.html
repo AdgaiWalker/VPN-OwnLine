@@ -1,11 +1,16 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本机盲签凭据</title><style>/* {{STYLE}} */</style></head>
-<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>本机盲签凭据</span></header>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+</svg>
+<main><header><strong>Evergreen <small>OwnLine</small></strong><span>本机盲签凭据</span></header>
 <p id="vault-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，或在无图形界面终端改用 python3 ownline.py vault request --mode tty。</p>
 <section id="vault-card" hidden aria-labelledby="vault-title">
 <h1 id="vault-title" tabindex="-1">输入本机凭据</h1>
 <p id="vault-context" class="notice" hidden></p>
-<p>你输入的内容仅保存在当前设备内存中，Agent 只会收到一次性编号，无法读取任何明文。</p>
+<div class="vault-badge"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg><span>仅存本机内存 · Agent 不可见明文</span></div>
 <form id="vault-form" method="post">
 <fieldset id="slot-ssh" hidden disabled aria-label="SSH 服务器凭据">
 <label>服务器地址<input id="vault-ssh-host" name="host" required placeholder="公网 IPv4 或域名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
@@ -33,13 +38,13 @@
 </div>
 </fieldset>
 <div class="actions">
-<button id="vault-submit" type="submit">安全存入本机内存</button>
+<button id="vault-submit" type="submit"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg><span>安全存入本机内存</span></button>
 <button id="vault-cancel" class="secondary" type="button">取消</button>
 </div>
 </form>
 </section>
 <section id="vault-done" hidden aria-labelledby="vault-done-title">
-<h1 id="vault-done-title" tabindex="-1">已存入本机内存</h1>
+<h1 id="vault-done-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>已存入本机内存</h1>
 <p>明文凭据未写入磁盘，也未发送给 AI。你可以关闭此页面并返回命令行继续执行。</p>
 <div class="target-card">
 <div><strong id="vault-handle-out"></strong><span id="vault-summary-out"></span></div>

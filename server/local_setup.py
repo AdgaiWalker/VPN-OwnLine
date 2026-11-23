@@ -2,6 +2,7 @@
 import argparse
 from contextlib import suppress
 from datetime import datetime, timedelta, timezone
+import http.client
 import json
 from http.cookies import CookieError, SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -362,23 +363,72 @@ def _remove_own_state_file(state_path):
         pass
 
 
-def main(argv=None):
+def _probe_running_daemon(state_path):
+    path = Path(state_path)
+    if not path.is_file():
+        return None
+    try:
+        info = json.loads(path.read_text(encoding='utf-8'))
+        if not isinstance(info, dict):
+            return None
+        origin = str(info.get('origin') or '').rstrip('/')
+        token = str(info.get('token') or '')
+        parsed = urllib.parse.urlsplit(origin)
+        if parsed.scheme != 'http' or parsed.hostname != '127.0.0.1' or not parsed.port or not token:
+            return None
+        conn = http.client.HTTPConnection('127.0.0.1', parsed.port, timeout=1.5)
+        try:
+            conn.request(
+                'GET',
+                '/api/status',
+                headers={'Host': parsed.netloc, 'Cookie': 'ownline_setup=' + token},
+            )
+            resp = conn.getresponse()
+            resp.read(4096)
+            if resp.status == 200:
+                return info
+        finally:
+            conn.close()
+    except Exception:
+        return None
+    return None
+
+
+def main(argv=None, *, open_browser_fn=None):
     parser = argparse.ArgumentParser()
     parser.add_argument('--no-browser', action='store_true')
+    parser.add_argument('--force-new', action='store_true')
     parser.add_argument('--port', type=int, default=0)
     parser.add_argument('--state-file', default=None)
     parser.add_argument('--diag-log', default=None)
     args = parser.parse_args(argv)
-    server = create_server(args.port, diag_log=args.diag_log)
+    open_fn = open_browser_fn or webbrowser.open
     state_path = Path(args.state_file) if args.state_file else _default_state_path()
+    resolved_diag = Path(args.diag_log) if args.diag_log else local_diag.default_log_path(ROOT)
+
+    if not args.force_new:
+        existing = _probe_running_daemon(state_path)
+        if existing is not None:
+            with suppress(Exception):
+                local_diag.emit_event(
+                    'fallback_ui_opened',
+                    {'origin': existing['origin'], 'reattached': True},
+                    log_path=resolved_diag,
+                )
+            print('已接管正在运行的本地安装服务：' + existing['origin'], flush=True)
+            if not args.no_browser:
+                open_fn(existing['origin'])
+            return 0
+
+    server = create_server(args.port, diag_log=resolved_diag)
     _write_state_file(state_path, server)
     server.emit_diag('local_ui_started', {'port': server.server_port, 'headless': bool(args.no_browser)})
     if not args.no_browser:
-        server.emit_diag('fallback_ui_opened', {'origin': server.guard.origin})
+        server.emit_diag('fallback_ui_opened', {'origin': server.guard.origin, 'reattached': False})
     print('本地安装入口：' + server.guard.origin, flush=True)
     print('安装期间请保持此窗口运行；结束后可在网页点击“关闭本地服务”。', flush=True)
     if not args.no_browser:
-        webbrowser.open(server.guard.origin)
+        open_fn(server.guard.origin)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -387,7 +437,8 @@ def main(argv=None):
         server.vault.clear()
         _remove_own_state_file(state_path)
         server.server_close()
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

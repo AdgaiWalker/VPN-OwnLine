@@ -16,6 +16,15 @@
     if (element.textContent !== text) element.textContent = text;
     element.dataset.kind = kind;
   };
+  function setStep(activeStep) {
+    if (!$('step-rail')) return;
+    $('step-rail').hidden = activeStep <= 0;
+    for (let i = 1; i <= 3; i += 1) {
+      const node = $(`step-${i}`);
+      if (!node) continue;
+      node.dataset.state = activeStep > i ? 'done' : (activeStep === i ? 'active' : 'pending');
+    }
+  }
   function record(label, attention = false) {
     if (label !== lastDiagnostic) {
       const row = document.createElement('li');
@@ -91,6 +100,7 @@
     const prompt = $('ssh-prompt');
     const copied = await copySetupText(prompt.textContent);
     $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择任务书文字复制。';
+    if (!copied && $('ssh-help-details')) $('ssh-help-details').open = true;
   };
   function clearTencentKeys() {
     $('tencent-secret-id').value = $('tencent-secret-key').value = '';
@@ -220,6 +230,7 @@
     sshCredential.focus();
   }
   function showConnectionStep(show) {
+    if (show) setStep(1);
     $('connection-intro').hidden = $('connection-methods').hidden = $('ssh-help').hidden = !show;
     if (show) showConnectionMethod(cvmActive);
     else sshForm.hidden = $('tencent').hidden = true;
@@ -295,6 +306,7 @@
       ticket = data.check_token;
       $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
       showConnectionStep(false);
+      setStep(2);
       $('setup-diagnostics').hidden = true;
       $('confirmation').hidden = $('install').disabled = false;
       status('');
@@ -350,6 +362,7 @@
     if (cvmActive && firstRender) leaveTencent();
     clearSecrets();
     showConnectionStep(false);
+    setStep(job.state === 'done' ? 4 : 3);
     $('confirmation').hidden = true;
     $('setup-diagnostics').hidden = true;
     renderProgress(job);
@@ -431,7 +444,7 @@
       $('initial-password').value = '';
       diagnostics.length = 0;
       $('setup-events').replaceChildren();
-      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit', 'check-update', 'update-status']) {
+      for (const id of ['step-rail', 'connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit', 'check-update', 'update-status']) {
         if ($(id)) $(id).hidden = true;
       }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');

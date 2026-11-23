@@ -426,12 +426,14 @@ def build_parser():
     p_upd.add_argument("--force", action="store_true")
     p_upd.add_argument("--json", action="store_true")
 
-    p_ui = sub.add_parser("ui", help="启动跨平台本机回退安装页面")
+    p_ui = sub.add_parser("ui", help="启动或接管跨平台本机回退安装页面")
     p_ui.add_argument("--port", type=int, default=0)
     p_ui.add_argument("--no-browser", action="store_true")
+    p_ui.add_argument("--force-new", action="store_true")
 
     p_srv = sub.add_parser("serve", help="仅启动本机守护进程（不自动弹浏览器）")
     p_srv.add_argument("--port", type=int, default=0)
+    p_srv.add_argument("--force-new", action="store_true")
 
     p_stop = sub.add_parser("stop", help="关闭本机守护进程并清空全部内存凭据")
     p_stop.add_argument("--json", action="store_true")
@@ -575,12 +577,13 @@ def main(argv=None, *, state_path=None, diag_log=None, prompt_fn=input, secret_p
             ls_args = ["--port", str(args.port)]
             if args.command == "serve" or getattr(args, "no_browser", False):
                 ls_args.append("--no-browser")
+            if getattr(args, "force_new", False):
+                ls_args.append("--force-new")
             if state_path is not None:
                 ls_args.extend(["--state-file", str(state_path)])
             if diag_log is not None:
                 ls_args.extend(["--diag-log", str(diag_log)])
-            local_setup.main(ls_args)
-            return 0
+            return int(local_setup.main(ls_args) or 0)
 
         if args.command == "stop":
             client = ensure_daemon(state_path=state_path, autostart=False)

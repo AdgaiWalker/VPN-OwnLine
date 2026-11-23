@@ -601,3 +601,20 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
 
 4. **真二进制黑盒门禁（`scripts/verify_s2_blackbox.py`）**：
    - 在 `--network none --cap-add NET_ADMIN` 的 `ownline-phase4-lab:latest` 容器中，串联真实 `caddy 2.10.2`、`reset_admin_password.py`、`admin.py`、`sing-box 1.14.4`（DoH over SOCKS5）、`mihomo v1.19.34` 与 `ownline.py` 端到端黑盒实测，验证 `303/403` 门锁、真 Caddy 改密重载、SOCKS5 真实出口 `10.204.0.2`、配置零漂移及 `leaked_secrets=0`。
+
+### 4.28 本机图形回退界面收敛与 Agent 中断接管契约（ADR-034 / S3） [STATUS: IMPLEMENTED]
+
+1. **守护进程中断接管与显式重建参数（`server/local_setup.py`, `server/ownline_cli.py`）**：
+   - `_probe_running_daemon(state_path)`：读取状态文件并向环回地址发起携带 `Host` 头与 `ownline_setup` Cookie 的 `GET /api/status` 探活；存活返回既有状态字典，陈旧或不可达状态返回 `None`。
+   - `local_setup.main(argv=None, *, open_browser_fn=None)`：未传入 `--force-new` 且 `_probe_running_daemon()` 命中活跃守护进程时，输出 `"已接管正在运行的本地安装服务：..."`、记录 `fallback_ui_opened`（`reattached=True`）、调用 `open_fn(existing["origin"])` 并返回 `0`，不覆盖既有 `state_path`。
+   - `ownline_cli.py` 的 `ui` 与 `serve` 子命令透传 `--force-new` 至 `local_setup.main()`。
+
+2. **前端视觉与交互契约（`web/src/{css,html,js}/local-setup.*`, `web/src/html/local-vault.html`）**：
+   - 内联 Lucide SVG `<symbol>` 替换文本修饰符号，禁止任何表情包与冗余说明文案；
+   - `local-setup.html` 顶部提供 `#step-rail`（`#step-1..3`），`setStep(activeStep)` 通过 `$(id)` 与 `.dataset.state`（`active` / `done` / `pending`）同步当前步骤，辅助说明统一收纳于默认折叠的 `<details id="ssh-help-details">`（复制失败自动设 `.open = true`，`#ssh-prompt` 保持非 `hidden`）；
+   - `local-setup.css` 使用 `:is(input:user-invalid, input.user-invalid-fallback)`、`input:user-valid`、`@media (prefers-reduced-motion: no-preference)` 驱动 `.spin-ico`，以及 `overflow-x: clip` 与 `max-width: 480px` 移动端堆叠适配。
+
+3. **自动化校验与布局基线（`tests/test_s3_handoff_and_ui.py`, `tests/local-setup-progress.test.js`）**：
+   - `tests/test_s3_handoff_and_ui.py` 覆盖真实子进程 `SIGKILL` 后回退接管、陈旧状态文件清理与合成静态页结构约束；
+   - `tests/local-setup-progress.test.js` 覆盖步骤轨联动及剪贴板异常时自动展开帮助面板；
+   - 经 `scripts/build_web.py --check` 验证产物一致，并在 `1280x800` 与 `390x844` 视口下实测零控制台错误及零横向溢出。

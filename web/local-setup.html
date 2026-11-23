@@ -13,8 +13,32 @@
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; }
+body { margin: 0; overflow-x: clip; }
 main { max-inline-size: 640px; margin-inline: auto; padding: 44px 24px 32px; }
+.ico {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+  flex: none;
+  vertical-align: -2px;
+}
+h1 .ico {
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+  vertical-align: -3px;
+  margin-inline-end: 8px;
+}
+@keyframes ownline-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .spin-ico { animation: ownline-spin 1.2s linear infinite; }
+}
 header {
   display: flex;
   justify-content: space-between;
@@ -56,6 +80,10 @@ input::placeholder { color: #626d62; }
   outline-offset: 3px;
 }
 button, .primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   min-block-size: 44px;
   padding: 10px 16px;
   border: 1px solid transparent;
@@ -68,11 +96,19 @@ button, .primary-link {
   font-weight: 600;
 }
 .primary-link { display: inline-flex; align-items: center; text-decoration: none; }
+:is(input:user-invalid, input.user-invalid-fallback) {
+  border-color: #9b4c2a;
+  background-color: #fbefe6;
+}
+input:user-valid {
+  border-color: var(--accent);
+}
 button:hover:not(:disabled), .primary-link:hover { background: var(--accent-hover); }
 button:disabled { cursor: default; opacity: .55; }
 button.secondary { background: var(--soft); color: #202822; }
 button.secondary:hover:not(:disabled) { background: #e0e5d9; }
 button.text-button {
+  justify-content: flex-start;
   background: transparent;
   color: var(--accent);
   padding: 6px 0;
@@ -90,6 +126,52 @@ details > p { margin: 12px 0; }
 .help-links { align-items: center; column-gap: 16px; }
 .field-note { font-size: 14px; }
 .notice { background: var(--soft); padding: 14px 16px; border-radius: 8px; }
+.vault-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 18px;
+  border-radius: 8px;
+  background: var(--soft);
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 600;
+}
+.step-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 20px 0 4px;
+  padding: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.step-rail li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+}
+.step-rail li[data-state="active"] {
+  color: var(--accent);
+  background: #fff;
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.step-rail li[data-state="done"] {
+  color: #fff;
+  background: var(--accent);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+#ssh-help-details { margin-top: 4px; }
+#ssh-help-details summary { padding: 6px 0; font-weight: 600; }
 
 #connection-methods {
   display: inline-flex;
@@ -208,18 +290,37 @@ footer:has(#quit[hidden]) { display: none; }
 
 @media (max-width: 480px) {
   main { padding: 24px 16px; }
-  h1 { margin-top: 28px; }
+  h1 { margin-top: 24px; }
   .row label { flex-basis: 100%; }
+  #connection-methods { display: flex; inline-size: 100%; }
+  #connection-methods button { flex: 1 1 0; }
+  .actions { flex-direction: column; }
+  .actions button, .actions .primary-link { inline-size: 100%; }
 }
 </style></head>
-<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>本地安装</span></header>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <symbol id="i-terminal" viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
+  <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
+  <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+</svg>
+<main><header><strong>Evergreen <small>OwnLine</small></strong><span>本地安装</span></header>
+<ol id="step-rail" class="step-rail" aria-label="安装步骤" hidden>
+<li id="step-1" data-state="active">1 连接</li>
+<li id="step-2" data-state="pending">2 确认</li>
+<li id="step-3" data-state="pending">3 完成</li>
+</ol>
 <div id="connection-intro">
 <h1>创建节点</h1><p>用一台空白 Linux 服务器，从本机完成配置。</p>
 </div>
 <p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再通过仓库根目录的「启动安装.command」（macOS）、「启动安装.bat」（Windows）或 python3 ownline.py ui 重新打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
-<button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection">SSH 直连</button>
-<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection">腾讯云 CVM</button>
+<button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection"><svg class="ico" aria-hidden="true"><use href="#i-terminal"/></svg><span>SSH 直连</span></button>
+<button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg><span>腾讯云 CVM</span></button>
 </div>
 <form id="connection" method="post" hidden><fieldset id="connection-fields" aria-label="连接信息">
 <label id="server-address">服务器地址<input name="host" required placeholder="公网 IPv4 或域名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
@@ -253,7 +354,7 @@ footer:has(#quit[hidden]) { display: none; }
 <button id="tencent-retry" class="text-button" type="button" hidden>重新读取</button>
 </section>
 <section id="fingerprint" hidden aria-labelledby="fingerprint-title">
-<h1 id="fingerprint-title" tabindex="-1">核对服务器指纹</h1>
+<h1 id="fingerprint-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>核对服务器指纹</h1>
 <p>在云控制台或其他可信渠道核对这台服务器的 SSH 指纹。</p>
 <code id="fingerprint-value" class="target-card"></code>
 <div class="actions">
@@ -271,13 +372,13 @@ footer:has(#quit[hidden]) { display: none; }
 </div>
 </section>
 <section id="progress" hidden aria-labelledby="progress-title">
-<h1 id="progress-title" tabindex="-1">正在创建节点</h1>
+<h1><svg class="ico spin-ico" aria-hidden="true"><use href="#i-refresh"/></svg><span id="progress-title" tabindex="-1">正在创建节点</span></h1>
 <p id="progress-stage" role="status"></p>
 <p id="progress-time"></p>
 <p id="progress-keep-open">安装期间请保持本机和启动窗口运行。</p>
 </section>
 <section id="delivery" hidden aria-labelledby="delivery-title">
-<h1 id="delivery-title" tabindex="-1">节点已创建</h1>
+<h1 id="delivery-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>节点已创建</h1>
 <p>服务端验收已通过。登录后台改密，再导入客户端。</p>
 <div class="delivery-credentials">
 <p>账号 <strong>admin</strong></p>
@@ -285,7 +386,7 @@ footer:has(#quit[hidden]) { display: none; }
 <button id="reveal" class="text-button" type="button" aria-controls="initial-password" aria-pressed="false">显示密码</button>
 <p class="field-note">请先保存密码，关闭本地服务后本页将清除交付信息。</p>
 </div>
-<a id="dashboard" class="primary-link" target="_blank" rel="noreferrer">打开管理后台</a>
+<a id="dashboard" class="primary-link" target="_blank" rel="noreferrer"><span>打开管理后台</span><svg class="ico" aria-hidden="true"><use href="#i-external-link"/></svg></a>
 </section>
 <p id="status" role="status" aria-live="polite"></p>
 <details id="setup-diagnostics" hidden><summary>查看连接诊断</summary><ol id="setup-events"></ol></details>
@@ -293,10 +394,11 @@ footer:has(#quit[hidden]) { display: none; }
 <section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
 <div class="help-heading">
 <h2 id="ssh-help-title">安装帮助</h2>
-<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status">复制 Agent 任务书</button>
+<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span>复制 Agent 任务书</span></button>
 </div>
-<p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 WorkBuddy、Muse、Codex、Claude 或 Cursor。密码和私钥请在本页填写。</p>
+<p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 Cursor、Claude、Codex 或 Antigravity。密码和私钥请在本页填写。</p>
 <p id="ssh-copy-status" class="field-note" role="status"></p>
+<details id="ssh-help-details"><summary>查看完整任务书与端口说明</summary>
 <pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的本机引擎（macOS / Windows / Linux），为一台我确认的新 Linux 服务器创建首个节点。
 1. 在仓库根目录运行 python3 ownline.py doctor --json 检查环境（图形回退入口为「启动安装.command」/「启动安装.bat」或 python3 ownline.py ui）。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
 2. 需要 SSH 凭据时，调用 python3 ownline.py vault request --slot ssh 打开本机盲签输入页，让我本人在本地页面输入密码或粘贴私钥，不要让我把明文发进对话。
@@ -309,6 +411,7 @@ footer:has(#quit[hidden]) { display: none; }
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noreferrer">查看版本发布</a>
 </div>
 <p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
+</details>
 </section>
 <footer>
 <div class="footer-left">
@@ -370,6 +473,15 @@ async function copySetupText(text) {
     if (element.textContent !== text) element.textContent = text;
     element.dataset.kind = kind;
   };
+  function setStep(activeStep) {
+    if (!$('step-rail')) return;
+    $('step-rail').hidden = activeStep <= 0;
+    for (let i = 1; i <= 3; i += 1) {
+      const node = $(`step-${i}`);
+      if (!node) continue;
+      node.dataset.state = activeStep > i ? 'done' : (activeStep === i ? 'active' : 'pending');
+    }
+  }
   function record(label, attention = false) {
     if (label !== lastDiagnostic) {
       const row = document.createElement('li');
@@ -445,6 +557,7 @@ async function copySetupText(text) {
     const prompt = $('ssh-prompt');
     const copied = await copySetupText(prompt.textContent);
     $('ssh-copy-status').textContent = copied ? '已复制' : '请手动选择任务书文字复制。';
+    if (!copied && $('ssh-help-details')) $('ssh-help-details').open = true;
   };
   function clearTencentKeys() {
     $('tencent-secret-id').value = $('tencent-secret-key').value = '';
@@ -574,6 +687,7 @@ async function copySetupText(text) {
     sshCredential.focus();
   }
   function showConnectionStep(show) {
+    if (show) setStep(1);
     $('connection-intro').hidden = $('connection-methods').hidden = $('ssh-help').hidden = !show;
     if (show) showConnectionMethod(cvmActive);
     else sshForm.hidden = $('tencent').hidden = true;
@@ -649,6 +763,7 @@ async function copySetupText(text) {
       ticket = data.check_token;
       $('target').textContent = `${data.result.username}@${data.result.address}:${data.result.ssh_port} · ${data.result.os} ${data.result.version}`;
       showConnectionStep(false);
+      setStep(2);
       $('setup-diagnostics').hidden = true;
       $('confirmation').hidden = $('install').disabled = false;
       status('');
@@ -704,6 +819,7 @@ async function copySetupText(text) {
     if (cvmActive && firstRender) leaveTencent();
     clearSecrets();
     showConnectionStep(false);
+    setStep(job.state === 'done' ? 4 : 3);
     $('confirmation').hidden = true;
     $('setup-diagnostics').hidden = true;
     renderProgress(job);
@@ -785,7 +901,7 @@ async function copySetupText(text) {
       $('initial-password').value = '';
       diagnostics.length = 0;
       $('setup-events').replaceChildren();
-      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit', 'check-update', 'update-status']) {
+      for (const id of ['step-rail', 'connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit', 'check-update', 'update-status']) {
         if ($(id)) $(id).hidden = true;
       }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');

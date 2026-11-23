@@ -397,3 +397,26 @@ test('explicit check-update click queries /api/update without polling side effec
   assert.equal(h.elements['update-status'].hidden,false);
   assert.match(h.elements['update-status'].textContent,/v0\.8\.0/);
 });
+
+test('step rail reflects active stage cleanly and ssh-help-details expands on copy failure',async()=>{
+  const h=await harness({state:'idle'},{'/api/check':()=>checked},async()=>{throw new Error('clipboard blocked');});
+  assert.equal(h.elements['step-rail'].hidden,false);
+  assert.equal(h.elements['step-1'].dataset.state,'active');
+  assert.equal(h.elements['step-2'].dataset.state,'pending');
+  assert.equal(h.elements['ssh-help-details'].open,false);
+  await h.elements['copy-ssh-prompt'].onclick();
+  assert.equal(h.elements['ssh-help-details'].open,true);
+  await h.elements.connection.onsubmit(submit);
+  assert.equal(h.elements['step-1'].dataset.state,'done');
+  assert.equal(h.elements['step-2'].dataset.state,'active');
+  assert.equal(h.elements['step-3'].dataset.state,'pending');
+  h.setJob(running);
+  await h.tick(3000);
+  assert.equal(h.elements['step-2'].dataset.state,'done');
+  assert.equal(h.elements['step-3'].dataset.state,'active');
+  h.setJob({...running,state:'done',delivery:{dashboard_url:'https://example.test/',temp_password:'secret'}});
+  await h.tick(3000);
+  assert.equal(h.elements['step-3'].dataset.state,'done');
+  await h.elements.quit.onclick();
+  assert.equal(h.elements['step-rail'].hidden,true);
+});
