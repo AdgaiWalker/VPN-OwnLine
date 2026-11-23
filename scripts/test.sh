@@ -91,12 +91,12 @@ if [ -f "scripts/build_web.py" ]; then
     failed=$((failed + 1))
   fi
 fi
-if [ -f "scripts/check_docs_harness.py" ]; then
-  if "$PYTHON_BIN" scripts/check_docs_harness.py >/dev/null 2>&1; then
-    printf '  ✅ %-40s 门禁一致\n' "docs/harness -> links/state/adr"
+if [ -f "scripts/zero_drift.py" ] && [ -f "zero-drift.toml" ]; then
+  if "$PYTHON_BIN" scripts/zero_drift.py check >/dev/null 2>&1; then
+    printf '  ✅ %-40s 门禁一致\n' "zero-drift -> links/state/adr"
     total=$((total + 1))
   else
-    printf '  ❌ %-40s 失败，请运行 scripts/check_docs_harness.py 排查\n' "docs/harness -> links/state/adr"
+    printf '  ❌ %-40s 失败，请运行 scripts/zero_drift.py check 排查\n' "zero-drift -> links/state/adr"
     failed=$((failed + 1))
   fi
 fi

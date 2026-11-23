@@ -1,0 +1,64 @@
+[meta]
+schema_version = 1
+min_tool_version = "0.1.0"
+
+[scope]
+forbid_paths = [
+  "archive",
+  "research",
+  "prompt",
+  "docs/核心文档",
+  "docs/设计",
+  "docs/归档",
+]
+include_globs = [
+  "AGENTS.md",
+  "README.md",
+  "GLOSSARY.md",
+  "skills/ownline-local/SKILL.md",
+  "docs/**/*.md",
+]
+exclude_globs = []
+
+[entrypoint]
+path = "AGENTS.md"
+max_lines = 80
+max_bytes = 8192
+
+[compat]
+required_files = [
+  "README.md",
+  "docs/server-buying-guide.md",
+]
+required_anchors = [
+  "README.md#ai-assisted-setup",
+]
+
+[backlog]
+mode = "table"
+path = "docs/backlog.md"
+max_bytes = 16384
+id_pattern = '^BL-\d+$'
+priority_pattern = '^P[012]$'
+allowed_statuses = ["OPEN", "BLOCKED", "VERIFYING"]
+stale_days = 30
+check_entrypoints = true
+
+[plans]
+dir = "docs/plans"
+filename_pattern = '^\d{4}-\d{2}-\d{2}-[a-z0-9-]+\.md$'
+status_pattern = '\bStatus:\s*(ACTIVE|PARTIAL)\b'
+header_lines = 10
+
+[adr]
+mode = "single-file"
+path = "docs/adr.md"
+active_index_heading = "## 当前生效 ADR 索引"
+anchor_pattern = '<a\s+id="(adr-\d+)"\s*>\s*</a>'
+index_link_pattern = '#(adr-\d+)'
+superseded_pattern = '\[STATUS:\s*SUPERSEDED\b'
+
+[codegraph]
+enabled = "auto"
+db_path = ".codegraph/codegraph.db"
+forbid_prefixes = ["archive/"]

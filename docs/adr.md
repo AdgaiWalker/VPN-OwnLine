@@ -609,6 +609,6 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
 - **裁决结论**：
   1. **单一文档根 + Git Tag 永久封存**：推送永久标签 `archive/pre-cleanup-20261123`（`3fe4725`）后从 `HEAD` 移出 `archive/`、`docs/核心文档/`、`docs/设计/`、`docs/归档/`、`docs/README.md`、`prompt/` 与停更 `research/01..03` / `05-interface-contracts.md`；活跃非代码资产统一收口至 [`docs/`](backlog.md)（`adr.md`、`backlog.md`、`plans/`、`01-变更记录.md`、`02-本地诊断事件表.md`、`server-buying-guide.md`），保留 `v0.8.1` 外链兼容入口与精简版 [`GLOSSARY.md`](../GLOSSARY.md)。
   2. **不变量零丢失迁移 + 顶部有效 ADR 索引**：将未进测试的合规红线（禁止篡改时区/语言/字体/`Intl` 伪造海外身份）、删节点/改密码/重装前置确认、0-5 UX 原则及 CodeGraph 实测盲区 3 条跨层接缝收敛进 [`AGENTS.md`](../AGENTS.md)；为 `docs/adr.md` 9 条历史 ADR 补齐状态标签并在文首维护 `## 当前生效 ADR 索引`；将 7 项真实未闭环问题统一收口于 [`docs/backlog.md`](backlog.md)。
-  3. **机械门禁与图谱净化**：新增 [`scripts/check_docs_harness.py`](../scripts/check_docs_harness.py)（断链、兼容锚点、`AGENTS.md` 体积上限、`backlog.md` 与 `plans/` 状态机、ADR 有效索引一致性、`HEAD` 无历史墓地及 CodeGraph `archive/` 零污染校验），接入 `scripts/test.sh` 并重建 `.codegraph/codegraph.db`。
+  3. **机械门禁与图谱净化**：引入通用标准库门禁 [`scripts/zero_drift.py`](../scripts/zero_drift.py) + 声明式配置 [`zero-drift.toml`](../zero-drift.toml)（断链、兼容锚点、`AGENTS.md` 行/字节上限、`backlog.md` 与 `plans/` 状态机、ADR 有效索引一致性、`HEAD` 无历史墓地及 CodeGraph `archive/` 零污染校验），接入 `scripts/test.sh` 并重建 `.codegraph/codegraph.db`（由初始硬编码脚本收口迁移为 `zero-drift` 通用引擎）。
 - **验证证据**：
-  - `tests/test_docs_harness.py` 故障注入与实库全通，`./scripts/test.sh` 全量自动化门禁与 `scripts/check_docs_harness.py` 100% 通过；`codegraph index` 重建后 `archive/` 污染节点降至 `0`，配合改造前后零上下文 4 任务 A/B 盲测验收。
+  - `tests/test_docs_harness.py` 故障注入与实库全通，`./scripts/test.sh` 全量自动化门禁与 `scripts/zero_drift.py check` 100% 通过；`codegraph index` 重建后 `archive/` 污染节点降至 `0`，配合改造前后零上下文 4 任务 A/B 盲测验收。
