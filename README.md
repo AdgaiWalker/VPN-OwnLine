@@ -8,10 +8,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 984 Passed](https://img.shields.io/badge/Tests-984%20Passed%20(100%25)-success.svg)]()
-[![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/plans/2026-11-17-trusted-delivery.md)
-[![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/plans/2026-11-17-trusted-delivery.md)
-[![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](research/05-interface-contracts.md)
+[![Tests: 992 Passed](https://img.shields.io/badge/Tests-992%20Passed%20(100%25)-success.svg)]()
+[![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](docs/adr.md#adr-018)
+[![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](docs/adr.md#adr-018)
+[![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](docs/adr.md#adr-032)
 
 ---
 
@@ -73,7 +73,7 @@ flowchart LR
 - **Windows**：双击根目录 **`启动安装.bat`**
 - **Linux / 命令行**：在仓库根目录运行 `python3 ownline.py ui`
 
-页面支持「SSH 直连」（同一输入栏填密码或粘贴完整 PEM 私钥）与「腾讯云（轻量与 CVM）只读发现」，未买机器时可在页内展开「还没有服务器」选型与端口指引；连接前先弹窗核对 SSH 指纹，再显式确认安装并实时展示真实阶段与耗时。安装期间保持本机与启动窗口运行；保存初始密码并关闭本地服务后，内存中的任务与凭据随即清空。[首版 Mac 验收记录](research/plans/2026-11-18-mac-install-acceptance.md)
+页面支持「SSH 直连」（同一输入栏填密码或粘贴完整 PEM 私钥）与「腾讯云（轻量与 CVM）只读发现」，未买机器时可在页内展开「还没有服务器」选型与端口指引；连接前先弹窗核对 SSH 指纹，再显式确认安装并实时展示真实阶段与耗时。安装期间保持本机与启动窗口运行；保存初始密码并关闭本地服务后，内存中的任务与凭据随即清空。[首版 Mac 验收记录](https://github.com/AdgaiWalker/VPN-OwnLine/blob/archive/pre-cleanup-20261123/research/plans/2026-11-18-mac-install-acceptance.md)
 
 > 安全组端口要求：在云控制台放行 `SSH 端口`、`8443/TCP`、`443/TCP`、`443/UDP`（若使用自定义域名自动签发 HTTPS 证书，另放行 `80/TCP`）。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器。
 
@@ -112,7 +112,7 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
 
 ## 🧱 开源基石致敬
 
-安装、升级及节点控制的归属校验、失败恢复和兼容规则见 [可信交付方案与执行清单](research/plans/2026-11-17-trusted-delivery.md)。旧节点的现有连接继续保留；无法确认服务归属时，在线修改会被拒绝，需要先核实归属。
+安装、升级及节点控制的归属校验、失败恢复和兼容规则见 [可信交付方案与执行清单](docs/adr.md#adr-018)。旧节点的现有连接继续保留；无法确认服务归属时，在线修改会被拒绝，需要先核实归属。
 
 本项目建立在以下卓越的开源技术之上：
 * [sing-box](https://github.com/SagerNet/sing-box) - 下一代通用代理核心引擎

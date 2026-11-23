@@ -195,7 +195,7 @@ def parse_isp_proxy(url):
 
 def build_deep_links(sub_url: str, name: str = "OwnLine") -> dict:
     """生成 iOS Shadowrocket 与 Clash 的一键唤醒 URL Scheme。
-    契约遵循 05-interface-contracts.md 第 4.2 节。
+    契约由 tests/test_delivery_contract.py 锁定。
     """
     if not sub_url:
         return {"shadowrocket": "", "clash": ""}

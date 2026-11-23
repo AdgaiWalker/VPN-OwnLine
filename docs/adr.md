@@ -1,0 +1,614 @@
+# 04 - 架构决策备忘录 (Architecture Decision Records)
+
+> **版本**：v1.0.0 · 2026-11-09  
+> **记录原则**：记录关键路线的分歧、权衡（Trade-offs）与最终裁决，防止架构反复横跳。
+
+---
+
+## 当前生效 ADR 索引
+
+> 仅列出当前仍生效或部分生效的决策（新会话检索因果请先看此表，无需通读全文）；已被完全替代的历史记录：`ADR-007`（-> `ADR-036`）、`ADR-009`（-> `ADR-018`）、`ADR-011`（-> `ADR-032/035`）、`ADR-015`（-> `ADR-016/028`）、`ADR-020`（-> `ADR-032/034/035`）、`ADR-023`（-> `ADR-035`）。
+
+- [ADR-001：确立“去中心化自备主机自举”定位，彻底摒弃“商业机场代理运营”模式](#adr-001)
+- [ADR-002：确立“双门户隔离机制”，将管理控制与客户端订阅彻底解耦](#adr-002)
+- [ADR-003：否决“生活场景化标签”，坚持以真实地理地域与网络特性命名](#adr-003)
+- [ADR-004：界定客户端热插拔边界，依托下游订阅原生机制而非介入客户端](#adr-004)
+- [ADR-005：确立“按需功能双向唤醒”而非“静态全量平铺”的 UX 范式 `[PARTIAL]`](#adr-005)
+- [ADR-006：前端源码模块化拆分与零外部依赖确定性合成管线](#adr-006)
+- [ADR-008：控制面通信与代理数据面彻底解耦及高可用切换防抖机制](#adr-008)
+- [ADR-010：双轨分层真实延迟架构与浏览器网关 RTT 测速机制](#adr-010)
+- [ADR-012：单双机分级拓扑自适应装配与晚高峰抗丢包自愈架构](#adr-012)
+- [ADR-013：AI 业务 IP 粘滞防护不变式与客户端分流边界解耦](#adr-013)
+- [ADR-014：零摩擦反向自举纳管协议与免密安全边界 `[EXTENDED]`](#adr-014)
+- [ADR-016：WARP 真实数据面闭环与反向自举中转配对协议](#adr-016)
+- [ADR-017：反向入网与升级状态的安全边界](#adr-017)
+- [ADR-018：可信交付、服务归属与版本发布事务](#adr-018)
+- [ADR-019：按资源范围迁移旧代理归属](#adr-019)
+- [ADR-021：私有状态快照交付与真实安装阶段](#adr-021)
+- [ADR-022：Mac 本地首装选择腾讯云实例](#adr-022)
+- [ADR-024：多维度流量时序聚合与智能使用规划引擎](#adr-024)
+- [ADR-025：流量传感器单一真理源对齐与住宅出口安全断路器 `[§3 已由 ADR-028 替代]`](#adr-025)
+- [ADR-026：链路木桶短板感知与计费重置语义消除歧义](#adr-026)
+- [ADR-027：Webshare 静态住宅 IP 深度适配与智能解析器升级](#adr-027)
+- [ADR-028：住宅出口数据面止血与真实观测自愈机制](#adr-028)
+- [ADR-029：抗主动探测隐身网关、systemd 最小权限沙箱与配额自动熔断落地](#adr-029)
+- [ADR-030：声明式状态收敛引擎、反向接入边界定界与冗余分支清理](#adr-030)
+- [ADR-031：真二进制容器混沌实验室、性质模糊测试与外部可观测验证基准](#adr-031)
+- [ADR-032：跨平台本地引擎 (`ownline`)、盲签凭据库 (Option A) 与本地诊断兜底三件套](#adr-032)
+- [ADR-033：可插拔能力包引擎、声明式拓扑编排 (`apply`) 与统一 Agent Skill](#adr-033)
+- [ADR-034：回退交互页视觉收敛、单屏降噪与 Agent 中断无感接管](#adr-034)
+- [ADR-035：从 0 到 1 产品内嵌资源单源化、冷启动自举与旁路脚本收口](#adr-035)
+- [ADR-036：第一性原理文档收敛、Git Tag 历史封存、ADR 清洗与 CodeGraph 净化](#adr-036)
+
+---
+
+### <a id="adr-001"></a>ADR-001：确立“去中心化自备主机自举”定位，彻底摒弃“商业机场代理运营”模式 [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在项目初期讨论中，曾有一种思路是中心服务器集中采购大带宽节点，搭建统一分发后台，直接向终端用户下发代理流量。
+
+#### 2. 决策权衡 (Considerations)
+* **商业机场模式**：中心承担所有服务器采购与流量成本；面临极高资金垫付压力与用户退费死账风险；中心承载多租户流量具有极高法律与合规风险；万人共用 IP 导致 OpenAI/海外银行频繁封禁。
+* **自备主机自举模式**：用户自备云主机，资产归用户所有；中心只提供“全自动化装配软件”，不触碰任何用户流量，实现 100% 独立原生出口 IP；中心零 CapEx（资本支出）。
+
+#### 3. 裁决结论 (Decision)
+**坚决采用【去中心化自备主机自举模式】。** 系统只做装配流水线，坚决不当机场主。新机器部署必须支持独立自举跑起本地 Web 控制台与 Caddy 网关，脱离中心亦可独立存活。
+
+---
+
+### <a id="adr-002"></a>ADR-002：确立“双门户隔离机制”，将管理控制与客户端订阅彻底解耦 [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+当前单一面板将“客户端一键导入/测速”与“添加服务器/修改 SSH 密码/配额熔断/底层日志”混在同一个页面中。
+
+#### 2. 决策权衡 (Considerations)
+普通访客如果能看到添加服务器与修改配置等高危运维按钮，极易引发误触，增加巨大客服排障负担，且严重破坏界面克制感。
+
+#### 3. 裁决结论 (Decision)
+**实施【双门户彻底隔离】。**
+1. **轻量用户态 (User Portal)**：未登录访客仅可见订阅获取、一键唤起小火箭/Clash、真实测速指标与小白指引；
+2. **管理控制态 (Admin Console)**：只有通过管理员凭据认证后，才解锁节点总控、国内中转绑定、HY2 开关及日志查看。
+
+---
+
+### <a id="adr-003"></a>ADR-003：否决“生活场景化标签”，坚持以真实地理地域与网络特性命名 [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+曾提议将节点命名为“看剧专用”、“ChatGPT 专用”、“游戏低延迟”等生活业务场景化标签。
+
+#### 2. 决策权衡 (Considerations)
+* **生活场景标签的缺陷**：用户拿“看剧节点”去查资料或办公会产生认知别扭；底层协议并不绑定特定应用，过度抽象反显业余；增加节点命名维护负担。
+* **地域+网络特性命名**：如“硅谷 01 · 独享”、“香港 01 · 专线中转”，客观诚实、清晰透明，符合专业工具认知。
+
+#### 3. 裁决结论 (Decision)
+**彻底否决生活场景化命名。** 坚持“地理区域（硅谷/香港/新加坡） + 线路属性（直连/专线中转/HY2极速）”的命名基准，严谨克制。
+
+---
+
+### <a id="adr-004"></a>ADR-004：界定客户端热插拔边界，依托下游订阅原生机制而非介入客户端 [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在讨论“动态按需加载模块（如开启 HY2 或挂载中转）”时，曾探讨系统是否需要解决客户端的动态热插拔问题。
+
+#### 2. 决策权衡 (Considerations)
+所有现代客户端（Shadowrocket、Clash Verge 等）均具备标准的“定时自动拉取订阅”机制。上游 `admin.py` 动态重写订阅内容后，下游客户端会在周期刷新时静默接收最新节点配置。
+
+#### 3. 裁决结论 (Decision)
+**界定系统边界：本系统不介入下游客户端的热插拔实现。** 系统核心职责是在服务端完成配置的原子更新与接口分发，下游配置更新完全依托客户端原生生态。
+
+---
+
+### <a id="adr-005"></a>ADR-005：确立“按需功能双向唤醒”而非“静态全量平铺”的 UX 范式 `[STATUS: PARTIAL]`
+
+> 注记：主动丢包唤醒与自然语言意图映射两项未闭环需求见 [`docs/backlog.md`](backlog.md)（`BL-03`、`BL-04`）。
+
+#### 1. 背景与上下文 (Context)
+系统具备 HY2 抢跑、国内中转加速、住宅原生 IP 挂载等强悍高阶能力，但普通小白用户处于“不知道自己不知道”的盲区。
+
+#### 2. 决策权衡 (Considerations)
+* 若将所有高阶开关静态平铺在首页：用户看不懂参数，产生畏难情绪，90% 的功能被永久闲置；
+* 若完全隐藏高级功能：有真实刚需的用户无法发现并使用。
+
+#### 3. 裁决结论 (Decision)
+**确立【按需双向唤醒】设计范式：**
+1. **系统主动提醒唤醒**：当网络体检测出晚高峰丢包严重时，界面主动弹出优化胶囊（“检测到丢包，一键唤醒 HY2 极速抢跑”）；
+2. **用户意图驱动唤醒**：通过 Agent 或场景提示词输入（如“我要做外贸防封”），系统自动为用户调配并激活对应的高级模块。
+
+---
+
+### <a id="adr-006"></a>ADR-006：前端源码模块化拆分与零外部依赖确定性合成管线 (Zero-Dependency Modular Build) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+此前 `web/index.html` 采用 5,400+ 行的单文件巨石架构（Monolith），所有 CSS、HTML 模态框与 JS 脚本交织在一起，存在状态竞争风险（如定时轮询覆盖用户操作）及代码可维护性瓶颈。但生产服务器采用 Caddy 直接托管单文件 HTML，且部署环境无 Node.js/Webpack/Vite 等构建工具链。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（全量引入 Webpack/Vite + NPM 工具链）：增加数百兆依赖与编译黑盒，破坏服务器端免构建自包含极简部署特性；
+* 方案 B（维持 5,400 行单文件手工编辑）：无法进行模块化维护，状态流重构易产生代码膨胀与回归死角；
+* 方案 C（采用标准库 Python 3 确定性合成管线）：源码拆分为 `web/src/{css,html,js}` 模块，通过 `scripts/build_web.py` 在毫秒级内确定性拼接为生产级 `web/index.html`，门禁脚本强制校验 `--check` 同步性。
+
+#### 3. 裁决结论 (Decision)
+**采纳方案 C。**
+1. 源码按关注点分离为 `web/src/css/`、`web/src/html/`、`web/src/js/`；
+2. 保持生产产物 `web/index.html` 为自包含单文件，对运行时环境保持零外部依赖；
+3. 将 `python3 scripts/build_web.py --check` 纳入 `./scripts/test.sh` 核心门禁，确保源码与产物强一致。
+
+---
+
+### <a id="adr-007"></a>ADR-007：工作区全景按生命周期状态分层与 Git 扁平化架构 (Workspace Lifecycle State Stratification) [STATUS: SUPERSEDED BY ADR-036]
+
+#### 1. 背景与上下文 (Context)
+此前工作区存在“顶层工作区 (`梯子/`) 与核心 Git 仓库 (`梯子/仓库/`)”双层嵌套，且外围平铺着原型、历史归档、备份快照与运维脚本，存在多处路径二义性、文件散落及公开推送与生产发布边界模糊的问题。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（维持嵌套与平铺）：继续在 `梯子/仓库/` 进行开发，外围散落历史包袱，导致开发查找路径繁琐且容易混淆；
+* 方案 B（删除历史只留极简代码）：抹除了项目开源演进的完整历史脉络；
+* 方案 C（按生命周期状态四态分层治理）：
+  1. **发布态**：生产环境与 Release Tag 只包含运行核心（`server/`、`web/index.html`、`deploy/`）；
+  2. **工作态**：将 `仓库/` 提升至根目录，日常开发直接面对 `web/src/`、`server/`、`scripts/`，消灭嵌套；
+  3. **公开归档态**：历史原型与技术方案收纳进 `archive/` 统一目录，随 Git 留存且不干扰日常开发；
+  4. **本地私密态**：节点凭证、真实密钥与全量快照物理隔离至 `.ops-private/` 与 `.backups-private/`，经 `.gitignore` 强制阻断防泄漏。
+
+#### 3. 裁决结论 (Decision)
+**采纳方案 C。** 彻底实现工作区扁平化与四态生命周期分离，消除路径二义性，确保发布版轻量、开发流直观、公开历史可溯、私密资产严防。
+
+---
+
+### <a id="adr-008"></a>ADR-008：控制面通信与代理数据面彻底解耦及高可用切换防抖机制 (Control Plane Decoupling & Anti-Flapping) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在真实生产使用中，用户在管理面板关闭或切换节点 HY2 极速通道时，发生严重可用性故障：用户客户端网络骤断，面板打不开，服务端日志出现“移除 HY2 后主通道验真失败（端口连不上），已自动回滚原配置”，且连续操作导致 `sing-box.service` 重启过于频繁触发 systemd `start-limit-hit` 崩溃。
+
+深度复盘发现三大缺陷：
+1. **控制面流量被代理劫持自锁**：客户端（Clash/Shadowrocket）分流规则为 `MATCH, 节点选择`，默认通过正在被操作的代理节点转发管理面板请求。当节点协议切换、服务重启时，通往控制面自身的 TCP 连接被中断，形成自锁死循环；
+2. **端口绑定时延差导致虚假回滚**：`systemctl restart sing-box` 退出后内核与进程完成 443 端口监听需数十毫秒。验真逻辑单次探测因收到 `ECONNREFUSED` 即误判为新配置损坏，自动触发回滚与二次重启；
+3. **无序并发击穿系统限流**：前端按钮无请求锁，用户连续点击下发并发修改请求，配合虚假回滚导致 3 秒内重启 6 次，直接触碰 systemd 限流熔断。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（仅延长重启等待时间与提示用户手动切直连）：治标不治本，无法根除客户端误走代理导致的自锁，用户体验脆弱；
+* 方案 B（控制面通信与代理数据面强行解耦 + 服务端端到端防抖）：
+  1. 订阅分发侧将所有受控节点公网 IP 强制置顶为 `DIRECT` 规则，确保管理员访问面板无论任何时刻都不入代理隧道；
+  2. 端口探测与探活引入多轮重试循环（4 次阶梯探测），抹平进程重启与网络瞬时抖动；
+  3. 前后端双重加锁（前端防重入锁 + 后端单机 `_mutation_lock`），保证变更绝对串行化。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“控制面直连豁免（Control Plane Direct Exemption）”原则，任何代理下发的配置规则集顶部必须置顶受控节点 IP 的直连规则；
+2. 远端配置变更与验真必须具备启动容忍缓冲与端口多轮重试，彻底消除“刚重启尚未监听即验真回滚”的逻辑缺陷；
+3. 所有节点状态与协议变更实行端到端并发互斥与防抖。
+
+---
+
+### <a id="adr-009"></a>ADR-009：用户端版本更新感知与一键平滑升级架构 (Client-Side Version Update & Atomic In-Place Upgrade) [STATUS: SUPERSEDED BY ADR-018]
+
+#### 1. 背景与上下文 (Context)
+自建与自托管代理系统普遍存在两大痛点：
+1. **升级依赖终端与黑框框**：普通用户或无运维背景人员一旦需要应用新特性（如策略组容差、自代理防断、流量重置日）或安全更新，必须通过 SSH 终端手动敲命令或跑部署脚本，心智负担极重；
+2. **缺乏版本自知与变更感知**：用户无法直观了解当前系统运行版本，上游有重要稳定性补丁或功能发布时无法感知；
+3. **升级恐慌与断联风险**：用户担心升级会洗掉配置、丢掉节点或打断现有网络代理连接。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（维持纯命令行升级）：技术成本最低，但将普通用户彻底拒之门外，违背让“不懂技术的人也能舒心用上专线”的核心价值；
+* 方案 B（主面板常驻弹窗横幅强提示）：频繁打扰日常使用，严重破坏 Apple HIG 极简纯粹的设计美学；
+* 方案 C（用户端偏好设置内嵌 + 数据代码物理解耦 + 独立子进程热更 + 心跳探活自愈）：
+  1. 视觉零打扰：入口收敛在偏好设置（Preferences）弹窗内，平时仅在设置齿轮挂低调系统蓝点；
+  2. 零丢失底座：升级代码范围严格限制在 `/opt/web`，数据持久态目录 `/opt/web-data` 丝毫不动，节点底账、订阅密钥、用户密码 100% 保持；
+  3. 防断连接口：`/api/system/upgrade` 异步触发独立子进程执行沙箱拉取与服务重启，立即响应前端 200，杜绝 HTTP 瞬断抛错；前端心跳探活自愈重载。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 C。** 确立自建系统版本更新全链路规范：通过 `/api/system/version`、`/api/system/check_update`（带 1 小时缓存防限流）、`/api/system/upgrade` 与 `deploy/upgrade.sh` 实现“点一下升级，数据零丢失，平滑热重载”。
+
+---
+
+### <a id="adr-010"></a>ADR-010：双轨分层真实延迟架构与浏览器网关 RTT 测速机制 (Dual-Track Layered Latency & Gateway RTT Probing) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在代理管理面板中，用户普遍关注节点延迟表现：
+1. **服务端骨干视角局限**：此前节点面板仅展示国内探针（如广州主机）到目标节点的骨干延迟（如 159ms），当用户自身家庭 WiFi、移动蜂窝网络卡顿或本地宽带波动时，面板依然显示“极速绿色”，造成用户“明明很卡面板却显示正常”的认知断层；
+2. **浏览器沙箱伪装兜底陷阱**：直接在浏览器前端利用 `fetch` 直连节点 443/8443 端口测速时，由于 sing-box Reality 协议特性，未携带私钥握手的浏览器 HTTP 请求会被自动重定向至上游伪装域名（如 `www.apple.com`），这一跨境转发过程耗时高达 700ms~1000ms+，导致节点卡片全部呈现刺眼的千毫秒红字假延迟；且浏览器 W3C 沙箱天然禁止原生 TCP SYN 探测，无法直接测量节点原始端口。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（全量节点卡片双重测速）：在每个节点卡片上同时展示浏览器直连延迟与骨干延迟。该方案在 Reality 节点上必然触发伪装回落，给用户展示 1000ms 虚假数据；若强行要求在每个节点开放探测 HTTP 端口，会破坏 Reality 隐蔽性并增加端口暴露面；
+* 方案 B（双轨分层架构：网关纯净视窗 + 骨干真实视窗 + 上下文智能归因）：
+  1. **本地接入层（网关 RTT）**：在 Caddy 管理控制台暴露极轻量 `/api/ping`（返回 HTTP 204 No Content，零反代/零 Reality 拦截），浏览器通过原生 fetch 双轮滤波测量当前设备到控制台网关的纯净物理 RTT，并呈现在节点列表顶部总览（`📱 本机: 24ms`）；
+  2. **跨网骨干层（真实锚点）**：节点卡片保留经由服务端探针测量的物理 TCP 往返延迟（1ms、39ms、78ms、159ms），保持卡片视觉极简纯净；
+  3. **上下文智能归因**：仅当本地网络出现高延迟或拥堵（>220ms）时，节点悬停浮窗主动给出智能归因提示，明确告知是本地网络波动而非节点骨干问题。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“双轨分层延迟呈现规范”：浏览器只测量纯净的网关管理通路 RTT，绝不向带有防探测特性的 Reality 代理端口发送明文探测；
+2. 保持卡片信息密度克制：节点卡片恢复单一可信骨干延迟，通过顶部总览与智能气泡完成本地与骨干状态的分层闭环。
+
+---
+
+### <a id="adr-011"></a>ADR-011：本地自主智能体 (Local Agent) 全生命周期装配与任务书协议 (Autonomous Agentic Onboarding & Task Brief Protocol) [STATUS: SUPERSEDED BY ADR-032, ADR-035]
+
+#### 1. 背景与上下文 (Context)
+自备服务器接入在传统模式下面临双重卡点：
+1. **冷启动门槛（尚未克隆项目）**：小白用户在 GitHub 浏览 `README.md` 时尚未克隆代码，面对繁杂的终端命令容易心生畏惧；
+2. **多节点扩容门槛（已在控制台中）**：在 Web 控制台通过「SSH 直连」接入第三方 VPS（如搬瓦工、AWS、甲骨文、RackNerd）时，容易卡在云厂商安全组未放行 22/443、系统默认禁用 root 密码、权限配置不当等底层运维细节；
+3. **AI 辅助范式漂移**：传统的“教程化/问答式 AI 提示词”依旧要求用户充当中间人手动执行命令，违背了现代本地 AI 智能体（如 Cursor、Claude Code、Antigravity）原生具备终端 Shell 执行能力的工程现实。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（教程型分步提示词）：AI 指导用户一步步点开控制台、敲命令，用户心智负担高，容易因输入错误导致链路中断；
+* 方案 B（双生命周期 Agent 任务书闭环协议）：
+  1. **冷启动阶段 (`README.md`)**：提供携带 GitHub 官方仓库地址的开箱提示词，明确将本地 Agent 定义为自主执行工兵，由 Agent 自动完成 `git clone`、前置检测、执行自举脚本（`setup-mac.sh` 或 `bootstrap.sh`），端到端交付控制台 URL 与初始密码；
+  2. **扩容阶段 (Web 控制台 `#panel-other`)**：在 SSH 直连面板中固化「Agent 任务书」复制入口，利用本地代码库已具备的现有资产（`sshcheck`、`addnode.sh`、`verify.py`），由 Agent 自主完成 VPS 扫雷（开端口、修 root 权限、配置公钥）与节点纳管。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“默认对方为本地自主 Agent”的设计基准，彻底摒弃交互式说教，将所有操作收敛为端到端自动化执行；
+2. 固化 `prompt/ssh_setup.md` 为受控资产，并在 Web 控制台与 `README.md` 完成双轨对齐；
+3. 严格遵循安全红线：严禁将服务器明文密码或私钥持久化记录进代码仓库。
+
+---
+
+### <a id="adr-012"></a>ADR-012：单双机分级拓扑自适应装配与晚高峰抗丢包自愈架构 (Tiered Single/Dual-Host Adaptive Topology & Peak-Congestion Self-Healing Architecture) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在自备节点场景下，用户硬件资产与网络诉求呈现两极分化：
+1. **单机普通用户（1 台海外）**：预算有限的小白用户通常仅采购单台便宜的海外 VPS（如 RackNerd、甲骨文免费额度、阿里云学生机），在夜间晚高峰（20:00 - 24:00）面临民用公网国际海缆出口 20%~25% 的物理级严重丢包，传统 TCP Reality 握手超时导致测速暴增至 2300ms+；
+2. **双机进阶用户（1 国内 + 1 海外）**：拥有国内轻量机（如阿里云/腾讯云国内机）与海外落地机，希望通过国内专线跳板实现全天候 60~80ms 零丢包出海，但缺乏自动编排与自愈容灾机制；
+3. **架构割裂痛点**：若系统强行绑定单一模式，单机用户门槛过高，双机用户又无法发挥资产最大价值。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（单一专线中转模式）：强制要求用户自备两台服务器（一内一外）。该方案技术指标最优，但将仅有一台机器的小白用户完全拒之门外；
+* 方案 B（单一海外直连模式）：仅支持海外机器直连。该方案部署简单，但受制于跨洋公网海缆物理拥堵，无法根治晚高峰丢包与高延迟卡顿；
+* 方案 C（单双机分级拓扑自适应装配 + 双通道降级 + 秒级中转自愈矩阵）：
+  1. **单机极简模型**：仅接入海外机时，系统自动下发 Reality（TCP 纯净伪装防封）与 Hysteria 2（UDP 暴烈推流抗丢包）并联双通道；客户端注入带有容差防抖的 `url-test` 策略组，晚高峰 TCP 超时 0 秒无感降级至 HY2；
+  2. **双机专线模型**：同时录入国内与海外机时，系统自动唤醒中转装配，国内机部署轻量级零拷贝中转（Realm / Sing-box Relay），将出海链路收敛至大厂机房 BGP 骨干，端到端延迟压至 60~80ms 且 0 丢包；
+  3. **中转故障自愈矩阵**：中转跳板内置 `auto_failover_check` 引擎，当主力海外落地受阻时，秒级原子切换至备用海外落地，并设置 300 秒冷却期防乒乓漂移。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 C。**
+1. 确立“资产自适应拓扑”设计基准：系统根据用户录入的节点地域（`CN` vs `OVERSEAS`）自动推导最佳网络拓扑与订阅分组；
+2. 固化单机双通道（Reality + HY2）与双机中转（Domestic BGP Relay）为标准实现，订阅命名严格遵循人话标准；
+3. 严格遵循向后兼容与配置原子性：中转切流与自愈过程必须保证状态机原子流转，并在异常时自动安全回滚。
+
+---
+
+### <a id="adr-013"></a>ADR-013：AI 业务 IP 粘滞防护不变式与客户端分流边界解耦 (AI IP-Stickiness Anti-Ban Invariant & Client Routing Decoupling) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+在代理拓扑与分流演进中，存在一项可能对用户核心资产造成不可逆破坏的风险：
+1. **跨国自动测速与切流的封号陷阱**：若将不同国家/地区的节点混入带有自动测速（`url-test`）或故障转移（`fallback`）的策略组，当客户端在几秒内因毫秒级延迟波动而将请求在不同跨洋出口间切换时，OpenAI、Claude、Stripe 等海外严格风控平台会判定为 Session 地理跳跃（Geo-Hopping）或账号共享，导致用户账号被瞬间永封；
+2. **职责边界泛化与重复造轮子**：系统曾探讨是否应在服务端统筹管理“国内 AI 走直连、美国 AI 走美西、区域服务走新加坡”等复杂业务分流。然而，市面上成熟的客户端生态（Clash Verge、Mihomo、Shadowrocket）与社区规则集（Loyalsoldier / ACL4SSR）早已成熟解决了基于域名的细粒度分流问题；服务端过度介入不仅增加系统脆弱性，且违背了长青“专属节点供应链”的极简定位。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（服务端强行介入复杂多出口编排与跨国自动负载均衡）：试图通过复杂的策略把所有流量在云端细分。该方案不仅极其脆弱且容易引入跨国 IP 漂移，直接危害用户的 AI 账号资产；
+* 方案 B（系统边界清晰收敛 + IP 粘滞防护不变式 + 同宿主双协议降级）：
+  1. **职责分离边界**：长青服务端坚决回归根本——专心交付“独享、纯净、安全、不卡顿”的单机或专线节点；而“如何分流、走哪个节点”的自由度完全依托客户端成熟的原生规则生态；
+  2. **AI 业务 IP 粘滞不变式（Anti-Ban Invariant）**：订阅生成的 `🤖 AI 业务` 策略组严格锁定为静态单选（`type: select`），首选安全的单节点，**绝对不包含 `自动选择`（url-test）或跨国 `故障转移`（fallback）**，杜绝后台自动跨国切流；
+  3. **同 IP 协议级平替（安全与抗丢包兼得）**：单台海外主机上 Reality 与 HY2 共享同一个物理公网出口 IP；晚高峰用户切换到 HY2 仅是传输层 UDP 替换 TCP，出口 IP 纹丝不动，OpenAI 看到的是同一会话，封号风险为零；
+  4. **国内 AI 规则直连**：在订阅规则层将 DeepSeek、Kimi、智谱、豆包等国内核心 AI 域名与微信/局域网一同直出 `DIRECT`，零代理开销。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 确立“AI 业务出口 IP 绝对静止”为系统安全红线；
+2. 保持长青定位纯粹：做最省心、最硬核的自备节点供应链，不越界侵入客户端分流领域；
+3. 现网已对齐订阅生成器与单元测试，彻底消灭 AI 策略组的跨国自动漂移漏洞。
+
+---
+
+### <a id="adr-014"></a>ADR-014：零摩擦反向自举纳管协议与免密安全边界 (Pre-Auth Reverse Join Protocol & Zero-SSH Invariant) [STATUS: EXTENDED BY ADR-017, ADR-030]
+
+#### 1. 背景与上下文 (Context)
+此前纳管自备 Linux VPS 时，系统依赖两种途径：
+1. **控制台网页输入 SSH 密码/私钥**：尽管前端采用内存即用即焚策略，但对于安全敏感型用户与现代安全审计体系而言，在 Web 界面键入 root 凭据依然存在巨大的心理阻力；
+2. **正向批量探活端口暴露风险**：正向 SSH 连接要求目标机器开放公网 22 端口并允许远程密码登录，容易遭受全网暴力穷举扫描。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（维持纯正向 SSH 推送）：改动最小，但无法消除用户的安全顾虑与网络防火墙限制；
+* 方案 B（重型 Agent/Daemon 常驻守护）：在目标机安装后台常驻 Agent。但增加资源消耗，违背长青原生态零冗余定位；
+* 方案 C（预鉴权一次性凭据 + 终端反向拉取自举 + 消费即焚防重放）：
+  1. **预鉴权高熵凭据（Pre-Auth Token）**：由管理员在控制台生成 64 位十六进制一次性 Token，默认 15 分钟 TTL；
+  2. **终端一键自举拉取**：目标 VPS 运行 `curl -fsSL https://<master>/join/<token> | bash`；
+  3. **私钥物理不出机原则**：Reality 私钥与 HY2 证书完全在目标机本地物理生成，私钥绝对不回传；
+  4. **单向 HTTPS 回传元数据并原子核销**：仅回传公钥（`pbk`）、短 ID（`sid`）、UUID 与服务端口；服务端原子消费 Token 并纳管节点，杜绝重放攻击。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 C。**
+1. 控制台新增 `/node/join-token` 与 `/join/<token>` 路由，Caddyfile 直通 `/join/*` 反向自举通道；
+2. 纳管落盘严格通过 `NodeManager.add_node` 原子事务持锁完成；
+3. 全面保障私钥物理不出机与凭据即焚不变式。
+
+---
+
+### <a id="adr-015"></a>ADR-015：出海落地机 WARP WireGuard 出站与 AI 服务智能清洁分流 (WARP Detour for AI Services) [STATUS: SUPERSEDED BY ADR-016, ADR-028]
+
+#### 1. 背景与上下文 (Context)
+廉价数据中心 VPS（如 DigitalOcean、Linode、RackNerd、Vultr 等）机房 IP 经常被 OpenAI、Claude 等高风控 AI 平台标记甚至封禁，出现 `Access Denied` 或高频 Cloudflare 验证码；然而租用昂贵的纯净家庭住宅 IP 又增加了长期使用成本。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（全局强行走住宅代理）：成本高昂，且大流量下载或日常浏览极度消耗住宅 IP 昂贵流量；
+* 方案 B（sing-box 落地机 WARP WireGuard 原生出站分流）：
+  1. 免费利用 Cloudflare 官方原生 WARP WireGuard 出口作为落地机第二出站通道（`warp-out`）；
+  2. 在 `templates.py:exit_config` 注入域名规则路由：常规流量走原生 `direct` 保证最高速率与超低延迟；
+  3. 针对 `openai.com`、`anthropic.com`、`claude.ai`、`oaistatic.com` 等 AI 域名智能路由至 `warp-out`，由 Cloudflare 清洁住宅出口代为转发，完美绕过机房 IP 风控限制。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 在 `templates.py` 固化 `_warp_outbound(warp)` 与 WireGuard 原生校验契约；
+2. 保持零付费外部依赖，实现 AI 业务免费清洗出海。
+
+---
+
+### <a id="adr-016"></a>ADR-016：WARP 真实数据面闭环与反向自举中转配对协议 (WARP Data-Plane Closed-Loop & Reverse-Join Relay Pairing) [STATUS: IMPLEMENTED]
+
+#### 1. 背景与上下文 (Context)
+此前 ADR-015 定义了 WARP AI 分流规则，但未集成真实的 WireGuard 注册协议与凭据生成，导致控制台开启 WARP 仅是修改 `nodes.json` 元数据，落地机 sing-box 未真实生效；同时在反向自举场景下，国内轻量服务器面临 80/443 非备案端口拦截，且主控机不掌握国内服务器 SSH 凭据，无法由主控通过 SSH 推送中转配置。
+
+#### 2. 决策权衡 (Considerations)
+* 方案 A（要求用户预先安装 warp-cli 或本地代理）：需要额外守护进程与本地代理监听，增加系统复杂度与维护心智负担；
+* 方案 B（轻量内置 WireGuard 客户端与自举脚本前置编译）：
+  1. 编写 `warp_client.py`，纯 Python 原生生成 x25519 密钥对并调用 Cloudflare 官方注册 API，获取真实 WireGuard 节点凭据与专属内网 IP；
+  2. 落地机 sing-box 同步适配现代 `endpoints` WireGuard 架构，直接写入 `/opt/sing-box/config.json` 并验真生效；
+  3. 国内中转反向自举采用“前置拉取编译”模型：创建 Token 时选择关联的目标海外落地机，在生成的自举脚本中直接固化中转转发规则，且国内节点监听端口默认切换为高端口 `8443`（避开非备案 80/443 拦截），无需主控端发起 SSH 推送。
+
+#### 3. 裁决结论 (Decision)
+**坚决采纳方案 B。**
+1. 彻底闭环 WARP 数据面端到端真实出网，AI 分流 100% 具备数据面保障；
+2. 反向自举支持国内中继角色，一键拉取即自愈成型；
+3. `remote_config.check_controllable` 明确拦截无凭据反向节点的远程 SSH 推送，保障系统不变式。
+
+### <a id="adr-017"></a>ADR-017：反向入网与升级状态的安全边界 [STATUS: IMPLEMENTED]
+
+反向入网在写入之前检查现有服务与配置，拒绝覆盖已有资产；通过可信 HTTPS 下载和注册，限制私钥配置权限，配置校验及服务启动失败时不登记。新入网节点的连通性为待验证，WARP 状态按实际配置显示。现有自签名主控需要配置目标机信任的证书后才能使用此入口；注册失败后的本机残留需人工处理。
+
+升级任务以独立 systemd 单元执行，使用持久化任务状态记录结果；指定版本必须与服务报告版本一致才显示成功。任务异常中断时按 systemd 状态识别失败。历史节点的 HMAC 存证建立与安全迁移仍未完成，本决策不声称已修复远程配置的归属校验。
+
+### <a id="adr-018"></a>ADR-018：可信交付、服务归属与版本发布事务 [STATUS: IMPLEMENTED]
+
+问题：身份检查、凭据传递、安装执行与交付判断分散；版本清单重复；服务控制入口采用不同归属规则。具体路径和比较见 [实施方案](https://github.com/AdgaiWalker/VPN-OwnLine/blob/archive/pre-cleanup-20261123/research/plans/2026-11-17-trusted-delivery.md)。
+
+选择面向常见调用的三个深模块，而非继续分散补字段或引入通用任意操作引擎：
+
+1. **安装与交付**：服务端持有 600 秒、一次性的内存检查票据，绑定解析地址、SSH host key、机器标识及凭据。安装前复核；SSH 密码、私钥和口令通过 stdin、匿名 fd 和 Linux memfd 传递，不进入参数、环境或持久任务文件。已有路由保留适配，不能绕过检查。独立后台功能保留，实际上传完整发布资源部署，以目标 TLS、登录、订阅及全部代理通道验收后交付。失败不提供虚构资产。
+2. **服务归属**：所有已有代理服务变更统一校验 HMAC、稳定 `provenance_id` 和现网配置摘要，锁内复核防止检查后漂移；配置和存证成对备份及回滚。本机 `master_secret` 与订阅令牌分离；独立目标使用随机 `control_secret`，主控保留该目标密钥，目标仅持有自己的密钥。旧未签名服务不自动补签、不自动接管、不主动停止。
+3. **版本发布**：首装与升级使用同一个资源清单；应用包只走官方 HTTPS，无可信独立摘要时拒绝镜像降级。固定 sing-box 包使用内置摘要，镜像仅传输字节。完整组装和检查后才切换，`release_id` 固定于服务进程启动时，用于识别真正重启的新进程。原子交换、外置恢复记录及独立恢复入口覆盖异常和强制中断；不能以写入新文件替代运行验真。
+
+节点记录继续归 `NodeManager` 所有，文件存储通过跨进程 flock 串行读改写；新增 `group_id` 维护协议伴生关系，显示名不再决定删除、暂停或 HY2 切换范围。AI 规则由共享纯数据生成，Clash 动态标量统一安全编码。
+
+迁移代价：旧签名缺失节点暂不能执行危险在线控制，需要单独核实归属；进程重启丢失未消费票据，用户重新认证。保持公开路径、订阅格式和已有节点连接能力。实际空白主机、Windows 及生产激活的验证与离线门禁分别记录，不互相替代。
+
+
+
+发布恢复的稳定代码位于 `/opt/ownline-upgrade/`（root 所有，无凭据），事务记录位于 `/opt/.web-upgrade-journal.json`；`ownline-upgrade-recovery.service` 支持启动恢复，配套 timer 每 20 秒检查未完成事务。卸载先核验独占归属和受管网关/单元，停止恢复任务后再停止其余服务，确认停止后才清理；purge 才删除恢复代码和记录。
+
+旧部署提供显式操作工具 `deploy/adopt_legacy.py`：`--check-only` 仅检查本机节点、配置摘要、受管网关与服务路径；建立存证必须同时提供 `--confirm-exclusive --host <已核实本机IP> --expected-config-sha <事先核对的SHA256>`。工具只写签名元数据，不重启、不改代理配置；摘要漂移、身份不一致、共享网关或已有不同存证均拒绝。运行入口不会自动调用它。
+
+### <a id="adr-019"></a>ADR-019：按资源范围迁移旧代理归属 [STATUS: IMPLEMENTED]
+
+生产只读预检发现旧主控使用自定义 Caddy 配置，代理记录也尚未标记 `local`。ADR-018 的完整安装归属检查会因此拒绝迁移；但本次代理签名和控制台代码升级并不需要停止或改写 Caddy。将两者所有权混为一体会迫使用户改造正常网关。
+
+保留 `adopt_legacy.py` 默认 `--scope installation` 的严格网关检查，新增显式 `--scope proxy`：只核实本机节点、冻结的代理配置摘要及实际代理服务路径，建立代理签名元数据；仍要求 `--confirm-exclusive`，仍拒绝摘要漂移、身份不一致和不同已有存证，且不修改网关或重启服务。卸载继续执行完整安装及网关独占检查。缺少本机标记的旧记录须先由运维人员根据配置匹配证据明确确认，经 NodeManager 持锁绑定；检查和运行入口不自动修改该标记。
+
+
+### <a id="adr-020"></a>ADR-020：Mac 本地首装入口 [STATUS: SUPERSEDED BY ADR-032, ADR-034, ADR-035]
+
+用户需要直接在 Mac 网页操作 SSH 首装，凭据不得经过第三方安装服务。新增根目录 `启动安装.command`，以本地 venv 启动 Python 标准库 HTTP 服务，绑定随机的 127.0.0.1 端口并打开浏览器。连接仅从 Mac 发往目标服务器，复用 Paramiko 指纹校验、一次性检查票据、源码打包、现有 install.sh 与 HTTPS 交付验收；不恢复归档的 Flask 安装器，不依赖已有生产主控。
+
+接口以精确 Host、同源 Origin、HttpOnly SameSite=Strict 会话 cookie 保护；状态读取同样需要 cookie。秘密只在进程内存、SSH 加密通道及匿名 stdin 中使用，页面不使用本地存储保存秘密。目标先检查空白系统、root、已有管理服务和磁盘，再复核 machine_id 和 host key；原子锁阻止并行安装。初版不支持 sudo 登录、任务进程重启恢复、自动修改云安全组和已有服务接管；进程中断时不自动重试，目标可能存在部分安装。用户保持启动窗口运行，保存交付信息后关闭本地服务。实现完成与离线测试不等同于空白云机或实际客户端验收。
+
+### <a id="adr-021"></a>ADR-021：私有状态快照交付与真实安装阶段 [STATUS: IMPLEMENTED]
+
+问题：新装数据目录为 root 所有的 0700，Caddy 以普通用户运行，直接 file_server 读取状态文件会失败；手动测速经 admin 返回结果，因此页面刷新与手动检测不一致。安装期间仅有通用等待提示，也无法区分下载、配置、证书申请和验收耗时。
+
+保留私有目录权限，由 admin 在首次改密门禁之后只读取四种固定状态快照，支持裸路径及 `/api/*`；新装网关对旧快照路径继续认证、检查首次改密门禁并转发 admin。前端使用 `/api/status.json`，升级代码后不依赖自动改写旧 Caddyfile。改密及归属识别接受旧静态、新代理两种精确模板，仍拒绝自定义或共享配置。读取失败显示不可用，缺少结果显示待验证，部分成功不宣称全部正常。
+
+安装执行器通过 stdout 发出固定版本、固定阶段码的消息；SSH 在命令结束前接收，解析器只认有界完整消息并丢弃其他输出。本机会话维护有序阶段及单调时钟时间，状态接口提供阶段、耗时、固定安全错误码及阶段历史，不提供原始日志或凭据。页面只渲染真实收到的阶段，不估算百分比；刷新读取原任务，轮询失败提示并重试，禁止自动重装。结束后计时冻结，退出后延迟响应不能恢复交付信息。阶段记录仍仅在内存，不引入落盘凭据、后台恢复或中间安装服务器。
+
+验证包含离线回归、真实普通用户 Caddy 在私有目录场景下的隔离集成、浏览器正常/失败/刷新/退出路径；不将适配器验证描述为真实云机中断恢复。新云机和现有生产部署另行验收，不自动接管网关。
+
+### <a id="adr-022"></a>ADR-022 · Mac 本地首装选择腾讯云实例 [STATUS: IMPLEMENTED]
+
+Mac 安装页增加可选的腾讯云实例发现。复用现有只读查询和 TC3 签名，支持轻量应用服务器与云服务器 CVM。腾讯云 API 密钥用于从 Mac 直接向腾讯云查询，页面、任务和日志都不保存密钥。只读结果仅回填公网 IPv4。后续仍使用用户提供的 SSH 凭据，核对指纹、检查目标、确认安装。
+
+查询由本地会话保护，限定已知腾讯云 API 地址，并禁用代理和重定向。产品或地域的部分失败通过提示显示，保留可用结果。用户随时可回到手填地址流程。现有管理后台调用继续使用原有轻量应用服务器查询。
+
+### <a id="adr-023"></a>ADR-023 · Mac 安装页直接选择 SSH 或腾讯云 CVM [STATUS: SUPERSEDED BY ADR-035]
+
+SSH 认证方式里隐藏云实例入口，用户需要先打开登录选项才能发现。页面将两种连接方式放在表单顶部，默认显示 SSH 直连。腾讯云 CVM 选项复用只读查询，限定该产品的实例。选中实例回填地址，后续仍走同一个 SSH 表单、指纹检查与安装确认。
+
+本地实例发现接受可选的产品筛选，省略时仍按 ADR-022 查询两种产品。管理后台沿用原有轻量应用服务器查询。
+
+### <a id="adr-024"></a>ADR-024 · 多维度流量时序聚合与智能使用规划引擎 [STATUS: IMPLEMENTED]
+
+现状：系统仅具备粗粒度的当月出口累计用量，用户无法感知“今日消耗了多少”、“本周消耗了多少”，也无法判断“之后该怎么用才能保证月末不超额或不浪费”。
+
+决定：
+1. 建立纯函数、零外部依赖的流量时序聚合引擎（`traffic_stats.py`），通过每 10 分钟定期快照增量计算跨天、跨周、跨月与跨年使用量，兼容计费周期重置清零（Counter Rollover）；支持直接消费 Linux 原生 `vnstat --json`（KiB 级精确硬件数据）。
+2. 结合底层云厂商计费周期（`start`/`end`）自动计算出「剩余天数」与「剩余配额」，输出确定性的「每日建议安全额度（Daily Safe Budget）」与面向普通用户的节奏评估（`abundant/normal/heavy/critical`），彻底回答“今天用了多少？之后我该怎么用？”。
+3. 对外暴露 `/api/traffic/stats` 与 `/traffic/stats`（支持 Caddy `handle_path` 双前缀归一化），前端在出海总流量仪表盘直出四维卡片与智能行动指南。
+
+### <a id="adr-025"></a>ADR-025 · 流量传感器单一真理源对齐与住宅出口安全断路器 [STATUS: PARTIALLY SUPERSEDED BY ADR-028]
+
+> 注记：第 3 条住宅全局代理指引已被 [`ADR-028`](#adr-028) 证伪并替代为规则模式分流 + DoH。
+
+现状：
+1. 传感器冲突：从控制论视角，流量引导算法因全量求和了腾讯云历史已解绑/非活跃云实例（如新加坡 1024GB），导致界面顶部配额卡（218GB）与底部行动指引（1012GB）计算口径冲突，破坏了用户的确定性观测输入。
+2. 执行机构隐式旁路：住宅 IP（ISP 代理）出网缺少硬断路器（Egress Kill-Switch），在代理不可用或客户端处于「配置规则」分流时，可能导致真实机房 IP 静默泄露。
+
+决定：
+1. **单一真理源（SSOT）传感器对齐**：`aggregate_all_traffic_stats` 注入 `active_nodes` 过滤，彻底剔除非活动实例；出海总配额与行动指引指标强制绑定活动出口落地节点（`role != "relay"`），确保剩余流量、重置周期与日均预算与顶部看板实现 100% 像素级对齐。
+2. **动态流量偏差阻尼控制器**：在静态除法基础上增加今日消耗比率（`pacing_ratio`），根据 $R = \frac{\text{今日已用}}{\text{建议日均配额}}$ 动态提供自适应负反馈阻尼建议。
+3. **住宅出网安全断路器与防泄漏指引**：加固 `templates.py` 的 sing-box 出站路由，固化 `final: "isp-out"` 规则，防止未匹配流量静默降级为机房直连；在住宅 IP 弹窗中明确要求客户端开启「全局/全部代理」模式，消除客户端规则分流泄露。
+
+### <a id="adr-026"></a>ADR-026 · 链路木桶短板感知与计费重置语义消除歧义 [STATUS: IMPLEMENTED]
+
+现状：
+1. 语义歧义：节点卡片提示「23日重置」在中文自然语境下极易被误读为倒计时「还有 23 天重置」，造成使用者在多日观察后产生“系统写死未联动”的信任危机。
+2. 木桶短板盲区：在专线中转（Relay）$\rightarrow$ 落地机（Exit）链式网络中，若中转机剩余配额低于落地机，全局看板若单纯按落地机余量给出指引，会诱导用户过度消耗导致中转机被打停断网。
+3. 临界超量风险：在周期切日前 48 小时盲目鼓吹“随心看高清/测速”，容易引发用户非理性突发消耗并在非整点切日时产生云厂商按量超额计费。
+
+决定：
+1. **彻底消除重置语义歧义**：将节点卡片标签规范化为明确的「每月 X 号重置」，消除相对倒计时与绝对日期的混淆。
+2. **拓扑木桶短板分析 (Bottleneck Theory)**：在 `aggregate_all_traffic_stats` 中引入专线跳板配额对比逻辑，当中转机剩余量低于落地机时，自动发出「跳板短板预警」，并将链路有效可用量锚定在短板跳板。
+3. **周期临界安全缓冲保护**：当剩余天数 $\le 2$ 天时，指引文案转为提示「账单周期即将切换，建议保留安全余量避免超量计费」，消除非理性突发用量诱导。
+
+### <a id="adr-027"></a>ADR-027 · Webshare 静态住宅 IP 深度适配与智能解析器升级 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率最高的供应商。然而此前系统的住宅代理挂载交互存在显著心智割裂：
+1. **输入契约不匹配**：后端 `parse_isp_proxy` 仅接受严格以 `socks5://` 或 `http://` 开头的单一 URL 串，当用户粘贴 Webshare 控制台主流给出的 curl 命令（`curl --proxy "http://user:pass@ip:port/" ...`）或列表导出四段式（`ip:port:user:pass`）时，系统直接抛出 `LinkError` 报错拒绝。
+2. **表单隐藏与认知负荷**：Webshare 控制台核心表格直出 `Proxy Address`、`Port`、`Username`、`Password` 4 项字段，而此前界面的手工输入项被折叠在 `<details>` 内部，且无智能识别与自动回填能力。
+
+#### 2. 裁决结论 (Decision)
+1. **全场景智能多格式解析引擎**：
+   - 前端引入 `parseWebshareProxy` 实时解析器，并在控制台节点管理控制器中公开导出；
+   - 后端重构 `server/nodekit/links.py:parse_isp_proxy`，通过正则表达式与字符串切片自适应剥除外层引号、提取 `--proxy / -x` 参数、解析四段式冒号序列（`ip:port:user:pass`）及裸端口白名单模式；
+   - 协议类型自适应适配 SOCKS5 与 HTTP。
+2. **交互心智模型 1:1 对齐 Webshare**：
+   - 住宅 IP 弹窗展开直出 Webshare 标准 4 字段（`Proxy Address`、`Port`、`Username`、`Password`）与 `SOCKS5 / HTTP` 单选组；
+   - 顶部提供智能粘贴输入区（Textarea），在用户输入/粘贴时毫秒级提供「✓ 已识别 Webshare 代理：IP:PORT」绿灯徽标反馈，并自动将解析结果双向回填至下方参数表单中；
+   - 维持防泄漏提示与解绑/保存动作的一致性。
+
+### <a id="adr-028"></a>ADR-028 · 住宅出口数据面止血与真实观测自愈机制 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与原始素材取证 (Context)
+对现网 `walker-sv`（`sing-box 1.14.4`）最近 2000 条运行时日志与配置快照做只读审计，发现 4 类真实失效：
+1. **住宅 UDP 黑洞与 DNS 缺失**：现网日志高频出现 524 次 `socks5: request rejected, code=7`（Webshare SOCKS5 拒绝 UDP ASSOCIATE），且现网 `/opt/sing-box/config.json` 缺少 `dns` 块及 `route.final`。
+2. **客户端 DNS 泄漏与全局强制冲突**：Clash 默认将境外查询发往 `223.5.5.5` 造成 DNS 泄漏，同时前端引导用户开「全局代理」把 `codebuddy.ai`（547 次 `code=2`）、`deepseek.com`（38 次 `code=4`）等国内域名打入 Webshare 导致被上游拒绝。
+3. **观测与自愈假绿灯**：`probe.py` 用 `openssl s_client` 触发 `www.apple.com` 伪装回落给出 `2ms` 假绿灯并忽略 `hysteria2`；`repair.py` 错误地将 `health == "proxy"` 判定为修复成功；`alert.py` 日志调用对字符串调用 `.get()`；`admin.py` 的 `do_GET /ping` 存在被第 403 行遮蔽的第 601 行死代码。
+4. **状态/体检/时区失真**：`ipcheck.py` 体检机房 IP 而非 `exit_ip`；`traffic_stats.py` 将东八区时间错标为 `+00:00`；前端在 `isp` 覆盖 `warp` 时仍亮绿色 `WARP` 徽章。
+
+#### 2. 裁决结论 (Decision)
+1. **sing-box 1.14 住宅出口 DoH + UDP 收敛**：`templates.exit_config` 在 `isp` 分支注入 Typed `https` DoH 服务器（`detour: "isp-out"`, `strategy: "ipv4_only"`）、`sniff` 与 `hijack-dns`，默认对非 UDP 住宅代理拒绝 UDP（`{"network": "udp", "action": "reject"}`），并通过 `final: "isp-out"` 守住 Fail-Closed 边界；`warp` 分支前置 `{"action": "sniff"}` 并设定 `final: "direct"`。
+2. **Clash 零泄漏 DNS + 分流诚实化**：启用 `respect-rules: true`、拆分 `proxy-server-nameserver`/`direct-nameserver` 与境外 DoH `nameserver`，对挂载非 UDP ISP 的 VLESS 节点输出 `udp: false`，补齐国内直连域名（含 `codebuddy.ai`、`.cn` 等）及 `gemini`/`perplexity`/`cursor` AI 域名。
+3. **真实端到端探活与诚实自愈**：`verify.py` 新增 `proxy_probe` 与 `isp_leak` 检测；`probe.py` 改由 `proxy_probe` 对 VLESS 与 HY2 共同执行真实出口 IP 与延迟探测；`repair.py` 仅在 `health == "ok"` 时判定自愈成功；修复 `alert.py` 与移除 `admin.py` 死路由。
+4. **外围体检与 UI 对齐**：`ipcheck.py` 优先检测 `exit_ip`；`traffic_stats.py` 固定输出 `+08:00` 时区；前端区分 `WARP` 与 `WARP 待命`，改引导规则模式分流。
+
+
+### <a id="adr-029"></a>ADR-029 · 抗主动探测隐身网关、systemd 最小权限沙箱与配额自动熔断落地 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与原始素材取证 (Context)
+对现网 `walker-sv` 网络暴露面、HTTP 响应指纹、进程权限及控制链路做原始核查，发现四类结构性脆弱点：
+1. **管理域主动探测与源站直露**：Caddy 监听 `:80` 并对裸 IP HTTP 请求返回 `308 -> https://v.goodloop.si:8443/`（直接泄漏管理域名）及 `Server: Caddy`；同时 `:8443/tcp` 与 `:8443/udp` 对全网任意扫描源直接响应 TLS 与 HTTP 401 认证提示，暴露 Cloudflare 后方真实源站。
+2. **静态特征与未限流服务面**：HY2 自签证书有效期长达 3650 天（10 年），符合主动探测启发式特征；`admin.py` 使用默认 `ThreadingHTTPServer`（backlog=5、无并发上限）且公共 `/s/*`、`/join/*` 接口缺乏滑动窗口限流与安全响应头。
+3. **高危特权运行态**：`sing-box.service`、`caddy.service`、`admin.service` 均以 `root:root` 无沙箱运行，`systemd-analyze security` 暴露分全部为 `9.6 UNSAFE`。
+4. **配额熔断现网未激活**：`walker-sv` 上线运行的 `sing-box.service` 缺失 `ConditionPathExists=!/var/lib/ownline/quota-paused` 且 `nodes.json` 两条记录 `quota_control_managed` 为 `None`，`/api/quota/guard` 显示不可自动停启。
+
+#### 2. 裁决结论 (Decision)
+1. **隐身网关与 Cloudflare 源站锁定**：移除 Caddyfile `:80` 块及 `h3` 监听，启用全局 `auto_https disable_redirects` 与 `protocols h1 h2`，剥离 `Server` 并注入标准化安全标头（`X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`）；`reset_admin_password.py:inspect_credentials` 同时严格校验新旧单站模板。新增 `scripts/ops/cf_origin_lock.sh` 与 systemd 持久化单元，在专用 `OWNLINE-ORIGIN-8443` 链对非回环与非 Cloudflare 官方 IPv4/IPv6 网段的 `8443/tcp` 请求执行 `DROP`，严禁触及 `22/tcp` 与 `443`。
+2. **证书生命周期收敛与后端抗突发**：HY2 自签证书默认有效期统一缩减至 `365` 天；`http_utils.py` 与 `admin.py` 上线 `HardenedThreadingHTTPServer`（`request_queue_size=64`、`daemon_threads=True`、`BoundedSemaphore(32)` 超限快返 `503`）及 `SlidingWindowRateLimiter`（公开路由每 IP 60 次/分，超限 `429`）。
+3. **systemd 最小权限沙箱与跨脚本权限对齐**：将 `sing-box` 迁移至非特权 `sing-box:sing-box`（仅保留 `CAP_NET_BIND_SERVICE`、`ProtectSystem=strict`、`SystemCallFilter=~@privileged ...`），将 `caddy` 迁移至非特权 `caddy:caddy`（PKI 迁至 `/var/lib/caddy/.local/share/caddy/pki`），对 `admin.service` 启用 `ProtectSystem=strict`、`StateDirectory=ownline`、受限能力集与系统调用白名单（保留 `chown` 以支持密码重置与配置分组授权），并同步更新 `remote_config._build_apply_script`、`install.sh` 与 `addnode.sh` 在存在 `sing-box` 组时授予配置与私钥 `0640 root:sing-box`。
+4. **配额熔断真机激活**：部署含 `ConditionPathExists=!/var/lib/ownline/quota-paused` 的 `sing-box.service`，经 `provenance.verify_target` 验签通过后通过 `NodeManager` 为现网双节点开启 `quota_control_managed=true` 与固定 `provenance_id`。
+
+### <a id="adr-030"></a>ADR-030 · 声明式状态收敛引擎、反向接入边界定界与冗余分支清理 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+前序 Phase 1/2 解决了数据面正确性与服务面最小权限加固，但控制面与生命周期边界仍存在三类架构债：
+1. **声明式收敛缺失**：`nodes.json`（期望状态）与远端 `/opt/sing-box/config.json`（运行态）之间缺少统一的只读比对与原子收敛闭环；原 `scripts/drift.py` 未完整覆盖 HY2/ISP/DoH/WARP 等实际配置段落，且控制面无按节点归集并触发 `verify` 验真后自动回滚的状态收敛入口。
+2. **`reverse_join` 与外部节点边界含糊**：反向免密自举节点（`source == "reverse_join"`）虽未向主控交出 SSH 凭据，但此前部分后端调用点及前端交互仍混合出现远端修复、配额停机与参数推送按钮；同时 `join_token.py` 为反向入网机生成的 `sing-box.service` 仍以默认 `root` 运行。
+3. **冗余遗留路径与未实机验证分支**：`server/admin.py` 保留了历史遗留的无实效 `render()` 与内联远端补丁辅助函数（`_b64`、`_py_patch`、`_ps_patch`、`patch_remote`），`deploy/install.sh` 等文件仍残留 `subconverter` 引用；`remote_config.py` 与 `repair.py` 中面向 Windows 的 PowerShell 远端管控分支缺乏真机闭环验证却可通过参数绕过保护。
+
+#### 2. 裁决结论 (Decision)
+1. **建立声明式状态收敛引擎（`server/nodekit/reconcile.py` + `NodeManager.reconcile_node` + `/api/reconcile/*`）**：
+   - 以 `reconcile.node_capability(node)` 作为全系统唯一的节点可控能力真值源（区分 `managed`、`external`、`reverse_join`、`windows_frozen`、`cleanup_pending`）；
+   - 通过 `build_desired_config`、`diff_configs`（默认对 `private_key`、`public_key`、`password`、`obfs_password`、`uuid`、`short_id` 自动脱敏）与 `inspect_cluster_drift` 执行只读漂移核验；
+   - `reconcile_node(..., apply=True)` 通过 `remote_config.apply_config`（依赖 `provenance.verify_target`）下发并立即运行 `verify.run`，探活非 `"ok"` 时自动调用 `rollback_config`；同步将 `scripts/drift.py` 升级支持多特性配置往返校验及 `--nodes` / `--reconcile` / `--json` 双路径运行时进口。
+2. **显式固化 `reverse_join` 与 Windows 只读观测边界，并加固反向接入单元权限**：
+   - 在 `remote_config.check_controllable`、`repair.repair_node`、`quota_guard.supports_quota_control`、`reconcile.node_capability` 及前端节点卡片/菜单（`web/src/js/07-nodes.js`、`01-i18n.js`）一致执行 Fail-Closed 边界：`reverse_join` 仅提供订阅分发、连通探测与本机运维提示，不发起远端 SSH/配额停机调用；
+   - `join_token.generate_install_script` 将 `sing-box.service` 收敛为 `User=sing-box`、`ProtectSystem=strict`、`CAP_NET_BIND_SERVICE` 最小权限单元，并对 `/opt/sing-box` 设置 `0750 root:sing-box`、对 `config.json` 与 `hy2.key` 设置 `0640 root:sing-box`（仅对 Linux 工具链严格执行，不降级静默放行）。
+3. **代码做减法（清理死分支与冻结未验真路径）**：
+   - 将 `admin.py:render()` 收敛为显式 no-op 并移除 `_b64`、`_py_patch`、`_ps_patch`、`patch_remote` 与 `subconverter` 历史配置字段；
+   - 无条件移除 `remote_config.py`（含 `allow_windows` 覆盖参数及 PowerShell 脚本构造）与 `repair.py` 中的 Windows 远端执行路径，确保 Windows 节点永不触发远端命令。
+
+### <a id="adr-031"></a>ADR-031 · 真二进制容器混沌实验室、性质模糊测试与外部可观测验证基准 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+截至 Phase 3，仓库已积累 930 项高覆盖率离网测试，但纯 Mock 单元测试对真实二进制运行行为与边界异常输入存在固有盲区。当将固定版本 `sing-box 1.14.4`、`caddy 2.10.2`、`mihomo v1.19.34` 与 `iproute2`/`iptables`/`tc netem`/`tcpdump` 接入隔离 Docker 容器实测并用 Hypothesis 做性质模糊测试时，当场暴露出 6 类仅在真机/性质 fuzz 下才复现的真实问题：
+1. **Caddy `401` 误漏 `Server` 指纹**：`basic_auth` 质询走 Caddy 错误管线，绕过路由级 `header -Server`，在直连/非 Cloudflare 代理下仍输出 `server: Caddy`。
+2. **Clash `office` / `lite` 订阅不可加载**：`subscriptions.py` 在 `MATCH,"🛡️ 安全办公"` 与 `MATCH,"🚀 智能优选"` 中附带字面双引号，真实 `mihomo` 按逗号分词规则直接报 `proxy ["..."] not found`。
+3. **`repair.py` 空端口表头假中止**：真实 `ss -lptn 'sport = :PORT'` 在端口空闲时仍打印列标题 `State Recv-Q Send-Q ...`，导致 `sing-box` 宕机时 `repair_node` 必定误判端口被第三方占用。
+4. **解析/统计/账单边界输入脆弱**：`links.parse_isp_proxy` 对 `:8080:u:p` 与多冒号凭据串、 `quota_guard.parse_reset_day` 对布尔/`NaN`/`2026-02-29`、以及 `traffic_stats.aggregate_all_traffic_stats` 在浮点超过 2 位小数时的 `0.01 GB` 顶栏/指引显示漂移。
+
+#### 2. 裁决结论 (Decision)
+1. **建立真二进制 Docker 混沌实验门禁（`tests/docker/Dockerfile.phase4` + `scripts/verify_real_binaries.py`）**：
+   - 将 `sing-box 1.14.4`、`caddy 2.10.2`、`mihomo v1.19.34` 及其校验摘要固定于容器实验镜像，在 `--network none --cap-add NET_ADMIN --cap-add NET_RAW` 下执行 6 大全真验证套件（配置核验、隐身网关、5 档订阅 `-t`、DoH/SOCKS5/HTTP/Relay 端到端数据面、`iptables`+`tcpdump` `0` 字节原生逃逸物理证明、`tc netem` 丢包抖动下 HY2/Failover/真实 `repair_node`）。
+   - 修复上述 Caddy `handle_errors { header -Server }`、`subscriptions.py` 无引号 `MATCH` 规则与 `repair.py` `ss -lptn -H` + 表头过滤 3 项真实生产缺陷。
+2. **引入离线性质模糊测试与数学/解析加固（`tests/test_phase4_property_fuzz.py`）**：
+   - 在本地 `.venv` 启用 `hypothesis==6.170.17`（严禁污染生产 `requirements.lock`），并在 `links.py`、`quota_guard.py`、`traffic_stats.py` 与 `verify.py` 完成边界防呆与可测试出口探针抽取。
+3. **固化外部可观测工具与按日历验收基准（`scripts/ops/{external_probe,billing_reconcile}.py` + `docs/plans/2026-11-23-phase4-external-verification.md`）**：
+   - 以纯标准库工具支撑 7 天连续外网可用率/P95/隐身/防泄漏采样、腾讯云账单月底实对账，以及 3–5 名普通用户无提示端到端盲测记录。
+
+### <a id="adr-032"></a>ADR-032 · 跨平台本地引擎 (`ownline`)、盲签凭据库 (Option A) 与本地诊断兜底三件套 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+截至 Phase 4，本机首次接入链路存在四类结构性断裂：
+1. **双入口撕裂与平台锁定**：`README.md` 推荐用户将明文 `[IP:端口:密码]` 发进 AI 对话窗口，而仓库同时存在 Mac 专属 Shell 包装 `deploy/setup-mac.sh`、`启动安装.command` 与 `local-setup.html` 中的大量 `"Mac"` 硬编码，导致 Windows 与 Linux 用户缺少一致入口且本地凭据暴露面矛盾。
+2. **Agent 无法在零明文暴露下拿密**：若由本地 Agent（Cursor / Claude Code / Codex / Antigravity）代办安装与后续扩容（机房出口、Webshare 住宅 IP、国内中继），常规命令行参数或对话文本必然把 SSH 密码、私钥、腾讯云 SecretKey、Webshare 代理串永久写入模型上下文和 Shell 历史。
+3. **缺少全平台一致的“兜底三件套”**：本机生命周期缺少结构化脱敏诊断日志、`EVENT_REGISTRY` 代码-文档防漂移机制与局部版本检查入口。
+4. **跨平台模块耦合**：`server/nodekit/installations.py` 无条件 `import fcntl` 且 `emit_bundle` 使用平台路径分隔符，直接阻断 Windows Python 导入和归档打包。
+
+#### 2. 裁决结论 (Decision)
+1. **兜底三件套前置固化（`server/nodekit/local_diag.py` + `docs/02-本地诊断事件表.md`）**：
+   - 将全部分离事件收敛于单一代码注册表 `EVENT_REGISTRY`，调用 `emit_event()` 时强校验事件必须已注册，并在测试门禁中强制校验 `docs/02-本地诊断事件表.md` 与 `render_events_markdown()` 逐字同步；
+   - 自动清洗 PEM 私钥块、`Basic`/`Bearer` 认证头、URL 内置账密、Webshare 四段式 `ip:port:user:pass`、腾讯云 `AKID...` 及敏感字段键值后以 `0600` 写入 `.ops-private/local_diag.jsonl`；
+   - 通过 `server/local_setup.py` `GET /api/update` 与 `ownline.py update-check` 复用 `system_updater.check_update` 提供只读按需版本检查，回退页保持静态提示兜底。
+2. **Option A 盲签凭据库（`server/nodekit/local_vault.py` + `web/local-vault.html`）**：
+   - 在本机 `127.0.0.1` 守护进程内存中运行 `BlindVault`，支持 `ssh`、`tencent_api`、`webshare_isp`、`panel_auth` 四类槽位；Agent 发起 `ownline.py vault request` 时，桌面环境自动弹出单屏 `127.0.0.1/vault?req=...` 输入卡，无图形桌面时自动回退终端隐身输入（`getpass`）；
+   - Agent 仅获得不透明句柄 `vh_...` 与非敏感摘要，调用 `ownline.py check --vault-handle` 与 `/api/{check,tencent/instances}` 时由守护进程在内存内借用凭据并即时清理，进程关闭或 `/api/quit` 时全部归零。
+3. **跨平台统一入口与入口收口（`server/ownline_cli.py`, `ownline.py`, `启动安装.bat`）**：
+   - 归档Mac专用脚本 `deploy/setup-mac.sh` 至 `archive/prototypes/setup-mac.sh`；在 `installations.py` 兼容无 `fcntl` 平台并以 `.as_posix()` 规范化打包路径；移除 `prompt/ssh_setup.md`、`04-modals.html`、`README.md` 与 `local-setup.html` 中的 Mac 硬编码与明文传密话术。
+
+### <a id="adr-033"></a>ADR-033 · 可插拔能力包引擎、声明式拓扑编排 (`apply`) 与统一 Agent Skill [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+阶段 S1 确立了跨平台本地引擎与 Option A 盲签凭据库，解决了首装前采集 SSH 凭据的安全与入口问题；但在“首装完成之后”，若用户需要通过本地 Agent 一次性配齐初始改密、挂载 Webshare 静态住宅 IP、扩容国内中继专线并完成整网验真，仍面临四类障碍：
+1. **首装交付至面板接管存在断点**：首次安装仅将临时 `temp_password` 留在 `LocalSetupSession` 内存中，后续操控远端面板若要求用户手工复制粘贴临时密码再触发修改，既打断心流又容易把临时密码泄漏给 Agent。
+2. **增删能力维护成本高**：维护者希望按需增减能力（≤ 2 文件即可热拔插），而非每次新增一项运维能力都修改多处路由与前端。
+3. **传参/回显存在隐式泄密缝隙**：服务端接口（如 `/api/editnode`）会在响应节点对象里原样回带 `isp.username`/`isp.password`；若能力层与 `--plan` 参数缺少强制动态金丝雀守卫（Canary Guard），任何拼装或转发都可能把凭据重新泄漏到 Agent 上下文或终端。
+4. **品牌级双模与真网关门禁细节差异**：真二进制实测表明，经由 Caddy `forward_auth` 的未改密面板在 `--dry-run` 预检读取 `/api/nodes` 时返回 HTTP `303` 而非直连 `admin.py` 的 `403`；且无 third-party SSH 依赖的 Docker/精简控制环境需要惰性加载 `paramiko`/`bcrypt`。
+
+#### 2. 裁决结论 (Decision)
+1. **目录驱动可插拔能力包 + 动态金丝雀防泄漏（`server/nodekit/capabilities/`）**：
+   - 新增 `CapabilityRegistry.discover()` 自动扫描 `server/nodekit/capabilities/*.py` 并加载 `CAPABILITY: CapabilitySpec` 插件；新增或下线一项独立能力只需增删单个 `.py` 文件（零额外核心文件改动）。
+   - `CapabilityContext` 在内存中维护 `_borrowed_secrets` 集合与 `RemotePanelClient`，每次执行通过 `scrub_output()` 对返回与异常做键名和值级金丝雀擦除（覆盖明文、URL 编码与 Base64 形态），并在 `finally` 立即清空所有临时借用字典与客户端认证头。
+   - 先期落地 4 项核心生产能力：`panel-password`（支持直接承接首装 RAM `delivery` 完成初始改密并颁发活跃 `panel_auth` 句柄）、`residential-isp`（盲签挂载/解绑 Webshare 住宅出口）、`relay-expand`（`reverse_join` 免密令牌、`ssh_managed` 指纹校验与 `addnode` 轮询、`pair_only` 配对）与 `topology-verify`（零漂移核验 + 真实出口与 `/s/<token>` / Clash 订阅校验）。
+2. **声明式全链路编排器与原始明文拦截门（`server/nodekit/topology_plan.py`）**：
+   - 新增 `assert_plan_has_no_raw_secrets()`，在 CLI 解析及服务端接收入口优先拒绝包含 `password`/`private_key`/`secret_key`/`proxy_url` 或匹配 PEM/凭据 URL/四段式代理的原始明文，强制通过 `ownline.py vault request` 句柄驱动；
+   - 新增 `execute_topology_plan()` 支撑 `ownline.py apply` 按序编排 `rotate_initial_password -> residential_isp -> relay -> verify`，在 `panel-password` 执行后自动将刷新后的 `active_panel_handle` 串联传递到后续所有步骤；`--dry-run` 期间妥善识别 `303/403` 初始密码门锁并预览后续步骤。
+3. **统一 Agent Skill 与真二进制黑盒验证闭环（`skills/ownline-local/SKILL.md`, `scripts/verify_s2_blackbox.py`）**：
+   - 为本地 Agent 提供单一规范技能文件 `skills/ownline-local/SKILL.md` 并纳入 `.github/workflows/release.yml` 发布打包清单；同时将 `local_setup.py` 的 `paramiko`/`bcrypt` 改为按需惰性导入，确保仅调用能力编排的纯标准库环境亦可运行；
+   - 以 `scripts/verify_s2_blackbox.py` 在 `ownline-phase4-lab:latest`（`--network none`）内连通真实 `caddy 2.10.2`、`reset_admin_password.py`、`admin.py`、`sing-box 1.14.4`（DoH over SOCKS5）、`mihomo v1.19.34` 与 `ownline.py` CLI 跑通完整黑盒闭环，实测 `leaked_secrets=0`。
+
+### <a id="adr-034"></a>ADR-034 · 回退交互页视觉收敛、单屏降噪与 Agent 中断无感接管 [STATUS: IMPLEMENTED]
+
+- **背景与问题**：
+  1. 当本地 Agent 在交付或安装中途被强制终止（例如 `SIGKILL`），后台可能仍运行着持有效状态文件与环回端口的守护进程；若用户直接通过 `ownline.py ui` 或 `local_setup.py` 拉起回退图形页，旧逻辑可能误覆盖状态或与已存活进程冲突；
+  2. 回退交互页 `local-setup.html` 与内存金库页 `local-vault.html` 在 390px 窄屏与初次加载场景中存在视觉噪声偏高、多步注意力分散、未交互表单即触发误报风险及减动效偏好未兜底等问题。
+- **决策**：
+  1. **Agent 中断守护进程无感接管**：在 `server/local_setup.py` 新增 `_probe_running_daemon(state_path)` 对环回地址执行携带 `Host` 头与 `ownline_setup` Cookie 的 `GET /api/status` 探活；`main()` 默认优先检测存活守护进程并直接复用既有 `origin`（发出 `fallback_ui_opened` 事件且标记 `reattached=True`、不覆盖 `state_path`），并在 `local_setup.py` 与 `server/ownline_cli.py`（`ui` / `serve` 子命令）提供显式 `--force-new` 开关按需强制新建会话；
+  2. **回退 UI 单屏降噪与无文字视觉语义**：在 `web/src/html/local-setup.html` 与 `web/src/html/local-vault.html` 引入零尺寸内联 Lucide SVG `<symbol>`（零表情符号），新增 `#step-rail`（`#step-1..3`）引导分阶段注意力；将冗长命令提示与防火墙说明折叠至默认闭合的 `<details id="ssh-help-details">`（复制失败时自动展开，同时保持 `#ssh-prompt` 无 `hidden` 属性以兼容既有机理）；
+  3. **交互后校验与可访问性收敛**：在 `web/src/css/local-setup.css` 采用 `:is(input:user-invalid, input.user-invalid-fallback)` 与 `input:user-valid` 延迟错误态渲染，默认保持 `.spin-ico` 静止并在 `@media (prefers-reduced-motion: no-preference)` 内开启 `ownline-spin`，补齐 `overflow-x: clip` 与 `max-width: 480px` 堆叠规则；收紧 `.vault-badge` 文案消除 390px 视口换行。
+- **验证证据**：
+  - `tests/test_s3_handoff_and_ui.py` 离线实测真实子进程 `SIGKILL` 中断后的存活接管、过期状态文件清理及合成 HTML 卫生约束；
+  - `tests/local-setup-progress.test.js` 验证 `#step-rail` 状态流转与剪贴板失败自动展开 `#ssh-help-details`；
+  - 真实浏览器 `1280x800` 与 `390x844` 零控制台报错及零横向溢出检查，`./scripts/test.sh` 全量 976 项门禁 100% 通过。
+
+### <a id="adr-035"></a>ADR-035 · 从 0 到 1 产品内嵌资源单源化、冷启动自举与旁路脚本收口 [STATUS: IMPLEMENTED]
+
+- **背景与问题**：
+  1. 新用户从「尚未购买服务器」起步所需的主机选型、安全组端口、单机 vs 中转建议、Webshare 静态住宅、客户端与可选域名指南此前分散在仓外过时文档（含明文传密错例、全英文旧版与失效锚点），产品内反而缺少按需供给的同源引导，本地安装页还将腾讯云发现硬编码为仅查 CVM（`product = 'cvm'`）；
+  2. 直接解压发布包运行系统 `python3 ownline.py ...` 时无法自动复用或创建锁定 `.venv`，`.command`/`.bat` 启动器各自维护重复的 pip 源逻辑；
+  3. 遗留脚本 `deploy/restore_master.sh` 已随异地备份下线而失效并破坏沙箱与归属存证，`server/change_domain.sh` 将 `/etc/caddy/Caddyfile` 降权为 `0644` 且 `change_domain.sh`/`rotate.sh` 未经 `flock` 保护写 `settings.json`。
+- **决策**：
+  1. **单一资源事实源与按需显现**：新建 [web/src/data/onboarding.json](../web/src/data/onboarding.json)（标注 `checked_at`、历史参考区间与无返佣官方链接），由 `scripts/build_web.py` 在构建时注入 `local-setup.html`（默认折叠 `#no-server-guide` 与规范 `agent_brief`）、`local-vault.html`（仅 `webshare_isp` 槽位内折叠 `#vault-webshare-guide`）及 `index.html`（`#panel-onboarding-guide` 与 CAM 只读提示）；共享美区 Apple ID（`idapp.app`）保持主推并强化「只在 App Store 登录、勿在系统设置顶部登录、用完立即退出」提示，官方注册作为折叠备选；本地安装页与 `ownline.py tencent-instances` 默认开放轻量与 CVM 合并查询；归档旧版中文新手指南与 `deploy/restore_master.sh` 至 `archive/historical-specs/`，在 `docs/server-buying-guide.md` 与 `README.md#ai-assisted-setup` 保留向后兼容入口，并在 `AGENTS.md` 固化 `research/plans/` 隔离约定（统一按 `YYYY-MM-DD-<topic>.md` 命名，不再延续 `01-05` 序号）。
+  2. **纯标准库 `.venv` 冷启动自举**：在 [ownline.py](../ownline.py) 入口前置 `ensure_runtime_python()`，当当前解释器缺少锁定依赖时自动切入就绪 `.venv`，或按 `requirements.lock --require-hashes`（清华源回退 PyPI）自动建环自举并记录 `local_env_bootstrapped` / `local_env_bootstrap_failed` 事件（进度仅输出至 `stderr` 保持 `--json` 纯净）；收口 `启动安装.command` 与 `启动安装.bat` 为薄入口。
+  3. **旁路脚本原子锁与最小权限收口**：`server/change_domain.sh` 与 `server/rotate.sh` 统一调用 `nodekit.store.AtomicJsonStore.update` 持 `${SETTINGS}.lock` 原子写入 `settings.json`（`0600`），`change_domain.sh` 在 `mv -f` 前提前设置 `Caddyfile` `0640 root:caddy` 并移除过时 `:80` 正则。
+- **验证证据**：
+  - `tests/test_onboarding_and_coldstart.py` 8 项回归全通；系统裸 `python3 ownline.py doctor --json` 实测无缝切入 `.venv` 返回纯 JSON `ok: true`；
+  - 真实浏览器 `1280x800` 与 `390x844` 验证 `local-setup.html` 与 `local-vault.html`（`webshare_isp`）折叠与展开均 `0` 溢出、`0` 控制台错误；`./scripts/test.sh` 全量 **984** 项 100% 通过。
+
+### <a id="adr-036"></a>ADR-036 · 第一性原理文档收敛、Git Tag 历史封存、ADR 清洗与 CodeGraph 净化 [STATUS: IMPLEMENTED]
+
+- **原始事实审计（基线 `3fe4725`）**：
+  1. 活跃区存在 `22` 份 Markdown（`4,798` 行），其中停更基线 `docs/核心文档/`（959L）、`research/01..03`（289L）与交互过程稿（1,027L）占 **47.4%**，最高频手改文件仍含 `10` 处断链及 `5` 处幽灵代码路径；近 `40` 次提交中代码提交每次平均手工改动 **`4.03`** 份 `.md`。
+  2. `git archive HEAD` 体积 **`6.95 MiB`**（`archive/` 独占 `67.7%`）；`.codegraph/codegraph.db` 索引 `archive/` 下 `52` 个退役代码文件 / `782` 节点（占比 **19.0%**），导致 `4/5` 跨边界探针受归档噪声污染，且 Shell/systemd 权限与 JSON->HTML 构建链路属于 CodeGraph 实测盲区（`0/3`、`1/3`）。
+  3. `04-adr-decisions.md`（`72.9 KB`）累计 `35` 条 ADR 却有 `0` 条标明 `SUPERSEDED`，其中 `9` 条存在冲突、部分实现或演进替代。
+- **裁决结论**：
+  1. **单一文档根 + Git Tag 永久封存**：推送永久标签 `archive/pre-cleanup-20261123`（`3fe4725`）后从 `HEAD` 移出 `archive/`、`docs/核心文档/`、`docs/设计/`、`docs/归档/`、`docs/README.md`、`prompt/` 与停更 `research/01..03` / `05-interface-contracts.md`；活跃非代码资产统一收口至 [`docs/`](backlog.md)（`adr.md`、`backlog.md`、`plans/`、`01-变更记录.md`、`02-本地诊断事件表.md`、`server-buying-guide.md`），保留 `v0.8.1` 外链兼容入口与精简版 [`GLOSSARY.md`](../GLOSSARY.md)。
+  2. **不变量零丢失迁移 + 顶部有效 ADR 索引**：将未进测试的合规红线（禁止篡改时区/语言/字体/`Intl` 伪造海外身份）、删节点/改密码/重装前置确认、0-5 UX 原则及 CodeGraph 实测盲区 3 条跨层接缝收敛进 [`AGENTS.md`](../AGENTS.md)；为 `docs/adr.md` 9 条历史 ADR 补齐状态标签并在文首维护 `## 当前生效 ADR 索引`；将 7 项真实未闭环问题统一收口于 [`docs/backlog.md`](backlog.md)。
+  3. **机械门禁与图谱净化**：新增 [`scripts/check_docs_harness.py`](../scripts/check_docs_harness.py)（断链、兼容锚点、`AGENTS.md` 体积上限、`backlog.md` 与 `plans/` 状态机、ADR 有效索引一致性、`HEAD` 无历史墓地及 CodeGraph `archive/` 零污染校验），接入 `scripts/test.sh` 并重建 `.codegraph/codegraph.db`。
+- **验证证据**：
+  - `tests/test_docs_harness.py` 故障注入与实库全通，`./scripts/test.sh` 全量自动化门禁与 `scripts/check_docs_harness.py` 100% 通过；`codegraph index` 重建后 `archive/` 污染节点降至 `0`，配合改造前后零上下文 4 任务 A/B 盲测验收。

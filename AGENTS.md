@@ -2,46 +2,31 @@
 
 ## Conversational Style
 
-- Keep answers short and concise.
-- Technical prose only, be direct. No fluff, filler, or emojis in commits, code, or comments.
-- Answer user questions first before executing edits or commands.
-- State whether you agree or disagree with user feedback before explaining changes.
-- Explain non-trivial designs as: problem, concrete trace, then solution.
-- **Value-First Decision**: Always explain user and business value in plain, non-technical terms before proposing actions or asking for decisions. Do not dump raw protocol terms without stating what problem it solves and what the user actually gets.
-- **Outcome-First Delivery**: On task completion, report only user/business value, test/deployment status, and next actionable steps. Never dump raw execution logs or procedural noise.
+- Keep answers short and concise. Technical prose only; zero emojis in commits, code, docs, or comments.
+- Answer user questions first; state agree/disagree with user feedback before explaining changes.
+- Explain non-trivial designs as problem -> trace -> solution.
+- **Value-First Decision / Outcome-First Delivery**: Explain user/business value before proposing changes; report only value, verification status, and next steps on completion.
 
-## Four-State Asset Lifecycle
+## Single Docs Root & Boundaries
 
-- **Release (运行态)**: Root-level single source of truth for runtime execution (`server/`, `web/`, `deploy/`, `scripts/`, `tests/`). Never clutter root with scratch prototypes or operational dumps.
-- **Working (演进态)**: Active architecture, specification, and research artifacts (`docs/`, `research/`). Keep unimplemented plans, per-iteration acceptance/verification records, and priority backlogs isolated in `research/plans/` using `YYYY-MM-DD-<topic>.md` naming (never continuing the `01-05` core spec numbering).
-- **Archive (归档态)**: Retired prototypes, historical specifications, superseded code (`archive/prototypes/`, `archive/historical-specs/`).
-- **Private (私有态)**: Host keys, credentials, local emergency tarballs (`.ops-private/`, `.backups-private/`). Never commit to Git (must be `.gitignore` protected).
+- **Single Docs Root (`docs/`)**: Active non-code files live only in `docs/` (`adr.md`, `backlog.md`, `plans/`, `01-变更记录.md`, `02-本地诊断事件表.md`, `server-buying-guide.md`) plus root `AGENTS.md`, `README.md`, `GLOSSARY.md`. Retired assets live in permanent Git tags (e.g. `archive/pre-cleanup-20261123`), never in `HEAD`. Runtime secrets stay in `.ops-private/` and `.backups-private/` (`.gitignore` protected).
+- **CodeGraph vs Docs Seam Boundary**: Query Python/JS call graphs live via `codegraph_explore` (run `codegraph sync -q` after edits). CodeGraph cannot trace these 3 seams, pinned here and enforced by tests:
+  1. Dual HTTP prefix (`/api/*` and bare) between `web/src/js` and `server/admin.py` (Caddy `handle_path`);
+  2. Host/Shell/systemd invariants: `/etc/caddy/Caddyfile` (`0640 root:caddy`, no `:80`, `handle_errors { header -Server }`), `settings.json` (`0600` + `AtomicJsonStore` lock), `/opt/sing-box/{config.json,hy2.key}` (`0640 root:sing-box`), `sing-box.service` (`ConditionPathExists=!/var/lib/ownline/quota-paused`), `cf_origin_lock.sh` never touches `22`/`443`;
+  3. Build pipeline: `web/src/data/onboarding.json` + `web/src/{css,html,js}` -> `scripts/build_web.py --check`.
+- **Doc Sync**: L0 minor/test edits require 0 doc changes. L1 releases append to [`docs/01-变更记录.md`](docs/01-变更记录.md) and update [`README.md`](README.md). L2 causal architecture changes append to [`docs/adr.md`](docs/adr.md) (updating its top Active Index) and track open items in [`docs/backlog.md`](docs/backlog.md). Plans in `docs/plans/` must be `YYYY-MM-DD-<topic>.md` with `Status: ACTIVE|PARTIAL` and leave `HEAD` once closed.
 
-## Code Quality & Architecture
+## Architecture, Security & UX Redlines
 
-- **CodeGraph-First**: Call `codegraph_explore` before modifying architectural components to inspect callers and blast radius.
-- **Modular Web Pipeline**: Edit frontend code exclusively in `web/src/{css,html,js}` and synthesize via `scripts/build_web.py`. Never edit `web/index.html` directly.
-- **Inspection & Deletion Guard**: Read files in full before wide-ranging edits; never rely on partial search snippets. Always confirm before removing code or functionality that appears intentional.
-- **Node Control Plane**: All node mutations (add, remove, relay, hy2) must pass through `NodeManager` (`server/nodekit/node_manager.py`) with `flock`. Never mutate `nodes.json` directly.
-- **Safety Provenance**: Always verify HMAC signature via `provenance.verify_provenance` before restarting or killing remote services. Abort on invalid or missing signature.
-- **Ephemeral Credentials**: Never write cloud credentials (`SecretId`/`SecretKey`) or SSH passwords to disk or logs; consume in memory only.
-- **RSA 2048 Certificates**: Use `remote_config.generate_self_signed_cert_pem` for universal cross-platform HY2 certificate generation.
-- **Gateway Matching**: All admin HTTP routes in `server/admin.py` must support dual prefix matching (`/api/*` and bare paths) for Caddy `handle_path` compatibility.
+- **CodeGraph-First & Safe Edits**: Run `codegraph_explore` before changing core modules; read target files before wide edits; confirm before deleting intentional code.
+- **Modular Web Pipeline**: Edit frontend only in `web/src/{css,html,js}` and `web/src/data/onboarding.json`; synthesize via `scripts/build_web.py`.
+- **Control Plane & Provenance**: All node mutations pass through `NodeManager` (`server/nodekit/node_manager.py`) with `flock`; verify HMAC via `provenance.verify_provenance` before service restarts/kills.
+- **Credentials & Crypto**: Never write `SecretId`/`SecretKey` or SSH passwords to disk/logs; consume in memory only. Use `remote_config.generate_self_signed_cert_pem` (RSA 2048) for HY2.
+- **Ethical & Confirmation Redlines**: Never modify OS timezone, browser language, fonts, or `Intl` locale to spoof overseas identity. Always confirm explicitly with the user before deleting any node, resetting a server password, or reinstalling a cloud host OS.
+- **0-5 UX Principles**: Follow Occam's razor ("如无必要，勿增实体"); diverge then converge; 0 self-reflection; 1 automate & register events in `local_diag.py` ([`docs/02-本地诊断事件表.md`](docs/02-本地诊断事件表.md)); 2 progressive disclosure & graceful fallback UI; 3 spread attention; 4 3-second blind scan & zero emojis; 5 reserve logs/update/fallback UI upfront.
 
-## Three-Tier Document Synchronization
+## Git & Verification
 
-- **L0 (Micro / Implementation)**: Minor internal refactors, isolated unit tests, or code cleanup require zero document changes; code is the executable truth.
-- **L1 (Release / User-Facing)**: User-facing features, UX improvements, incident fixes, or test gate threshold changes must append to [`docs/01-变更记录.md`](docs/01-变更记录.md) and update badges in [`README.md`](README.md).
-- **L2 (Architecture / Invariant)**: System topology, protocol contracts, network invariants, API payloads, or deployment flags must atomically append a new ADR in [`research/04-adr-decisions.md`](research/04-adr-decisions.md) (never rewrite existing records) and update [`research/05-interface-contracts.md`](research/05-interface-contracts.md) in the exact same commit. Mark unimplemented as `[STATUS: PROPOSED]`, completed as `[STATUS: IMPLEMENTED]`.
-
-## Git & Delivery
-
-- Stage explicit files (`git add <file1> <file2>`); never use `git add .` or `git add -A`.
-- Conventional commit message format: `{feat,fix,docs,refactor}[(scope)]: <concise description>`.
-- Never run destructive git commands: `git reset --hard`, `git clean -fd`, `git commit --no-verify`.
-- **Offline Tests & Regression Guards**: Tests must run 100% offline with zero paid token or external network dependencies (use mocks). Every bug fix must include a regression test.
-- **Autonomous Turnkey DoD**: On receiving a user intent, execute the full lifecycle autonomously (code, build, test, deploy, doc sync, commit, push). Never pause for micro-confirmations on standard engineering steps. Ensure `./scripts/test.sh` passes 100% (541+ checks green) before delivery.
-
-## User Override
-
-If the user's explicit instructions conflict with any rule here, request confirmation before overriding, then execute as instructed.
+- Stage explicit files (`git add <files>`); never `git add .`, `git add -A`, `git reset --hard`, `git clean -fd`, or `git commit --no-verify`. Conventional commits: `{feat,fix,docs,refactor}[(scope)]: <desc>`.
+- Offline tests only (mocks, regression guard for every bug fix). Execute full turnkey DoD autonomously and ensure `./scripts/test.sh` passes 100% before delivery.
+- **User Override**: If explicit user instructions conflict with any rule here, confirm before overriding, then execute as instructed.

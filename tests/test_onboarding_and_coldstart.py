@@ -69,13 +69,12 @@ class OnboardingSsotAndBackwardCompatTests(unittest.TestCase):
         self.assertIn('id="ai-assisted-setup"', readme)
 
         self.assertFalse((ROOT / "docs/小白10分钟自建专属节点指南.md").exists())
-        self.assertTrue((ROOT / "archive/historical-specs/小白10分钟自建专属节点指南.md").is_file())
         self.assertFalse((ROOT / "deploy/restore_master.sh").exists())
-        self.assertTrue((ROOT / "archive/historical-specs/restore_master.sh").is_file())
+        self.assertFalse((ROOT / "archive").exists())
 
         for rel in (
             "README.md",
-            "prompt/ssh_setup.md",
+            "web/src/data/onboarding.json",
             "skills/ownline-local/SKILL.md",
             "web/local-setup.html",
             "web/index.html",

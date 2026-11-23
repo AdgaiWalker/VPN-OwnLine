@@ -403,7 +403,7 @@ class S1CrossPlatformAndPolicyTests(unittest.TestCase):
 
     def test_mac_only_script_archived_and_cross_platform_launchers_exist(self):
         self.assertFalse((ROOT / "deploy" / "setup-mac.sh").exists())
-        self.assertTrue((ROOT / "archive" / "prototypes" / "setup-mac.sh").is_file())
+        self.assertFalse((ROOT / "archive").exists())
         self.assertTrue((ROOT / "ownline.py").is_file())
         self.assertTrue((ROOT / "启动安装.bat").is_file())
         self.assertTrue((ROOT / "web" / "local-vault.html").is_file())
@@ -415,7 +415,8 @@ class S1CrossPlatformAndPolicyTests(unittest.TestCase):
             self.assertNotIn(forbidden, local_setup_src)
 
         for doc_rel in (
-            "prompt/ssh_setup.md",
+            "skills/ownline-local/SKILL.md",
+            "web/src/data/onboarding.json",
             "web/src/html/04-modals.html",
             "web/index.html",
             "README.md",
@@ -424,9 +425,8 @@ class S1CrossPlatformAndPolicyTests(unittest.TestCase):
             self.assertNotIn("[IP:端口:密码]", content, f"plaintext prompt left in {doc_rel}")
             self.assertNotIn("填入新服务器 IP、密码、密钥", content, f"plaintext prompt left in {doc_rel}")
 
-        readme_prompts = (ROOT / "prompt" / "README.md").read_text(encoding="utf-8")
-        self.assertNotIn("../docs/设计/", readme_prompts)
-        self.assertNotIn("../docs/核心文档/", readme_prompts)
+        for legacy_dir in ("prompt", "docs/设计", "docs/核心文档"):
+            self.assertFalse((ROOT / legacy_dir).exists(), f"retired dir left in HEAD: {legacy_dir}")
 
 
 if __name__ == "__main__":

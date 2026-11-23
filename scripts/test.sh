@@ -91,6 +91,15 @@ if [ -f "scripts/build_web.py" ]; then
     failed=$((failed + 1))
   fi
 fi
+if [ -f "scripts/check_docs_harness.py" ]; then
+  if "$PYTHON_BIN" scripts/check_docs_harness.py >/dev/null 2>&1; then
+    printf '  ✅ %-40s 门禁一致\n' "docs/harness -> links/state/adr"
+    total=$((total + 1))
+  else
+    printf '  ❌ %-40s 失败，请运行 scripts/check_docs_harness.py 排查\n' "docs/harness -> links/state/adr"
+    failed=$((failed + 1))
+  fi
+fi
 if command -v node >/dev/null 2>&1; then
   if out="$(node --test tests/*.test.js 2>&1)"; then
     n="$(printf '%s\n' "$out" | sed -n -E 's/^(ℹ|#) pass ([0-9]+)$/\2/p' | tail -1)"

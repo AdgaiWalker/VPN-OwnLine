@@ -5,9 +5,10 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
-const sshSetupMd = fs.readFileSync(path.join(__dirname, '../prompt/ssh_setup.md'), 'utf8');
+const onboarding = JSON.parse(fs.readFileSync(path.join(__dirname, '../web/src/data/onboarding.json'), 'utf8'));
+const skillMd = fs.readFileSync(path.join(__dirname, '../skills/ownline-local/SKILL.md'), 'utf8');
 
-test('ssh ai prompt: HTML elements, prompt text, and prompt markdown file exist', () => {
+test('ssh ai prompt: HTML elements, onboarding brief, and SKILL.md exist', () => {
   assert(html.includes('id="btn-copy-ssh-ai-prompt"'), '#btn-copy-ssh-ai-prompt button must exist in index.html');
   assert(html.includes('id="ai-ssh-prompt-text"'), '#ai-ssh-prompt-text pre element must exist in index.html');
   assert(html.includes('data-i18n="ssh_copy_ai_prompt"'), 'data-i18n attribute for copy button must exist');
@@ -20,15 +21,18 @@ test('ssh ai prompt: HTML elements, prompt text, and prompt markdown file exist'
   assert(html.includes('22、443、8443'), 'Prompt must specify ports 22, 443, 8443');
   assert(html.includes('verify.py'), 'Prompt must reference verify.py for turnkey test');
 
-  // Verify markdown file integrity
-  assert(sshSetupMd.includes('AI 辅助服务器接入任务书'), 'ssh_setup.md must have title');
-  assert(sshSetupMd.includes('Evergreen · OwnLine'), 'ssh_setup.md must reference project');
+  // Verify canonical SSOT brief and SKILL.md integrity
+  assert.equal(typeof onboarding.agent_brief, 'string', 'onboarding.json must define agent_brief');
+  assert(onboarding.agent_brief.includes('Evergreen · OwnLine'), 'agent_brief must reference project');
+  assert(onboarding.agent_brief.includes('ownline.py vault request'), 'agent_brief must reference blind vault CLI');
+  assert(skillMd.includes('Evergreen OwnLine Local Agent Skill'), 'SKILL.md must have title');
 
   // Verify blind vault & zero plaintext secret policy
   assert(html.includes('ownline.py vault request'), 'index.html prompt must reference blind vault CLI');
-  assert(sshSetupMd.includes('ownline.py vault request'), 'ssh_setup.md must reference blind vault CLI');
+  assert(skillMd.includes('ownline.py vault request'), 'SKILL.md must reference blind vault CLI');
   assert(!html.includes('填入新服务器 IP、密码、密钥'), 'index.html must not tell users to paste secrets in chat');
-  assert(!sshSetupMd.includes('填入新服务器 IP、密码、密钥'), 'ssh_setup.md must not tell users to paste secrets in chat');
+  assert(!onboarding.agent_brief.includes('填入新服务器 IP、密码、密钥'), 'agent_brief must not tell users to paste secrets in chat');
+  assert(!skillMd.includes('填入新服务器 IP、密码、密钥'), 'SKILL.md must not tell users to paste secrets in chat');
 });
 
 test('ssh ai prompt: i18n dictionary contains required keys in both zh and en', () => {
