@@ -461,3 +461,19 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
 2. **Clash 零泄漏 DNS + 分流诚实化**：启用 `respect-rules: true`、拆分 `proxy-server-nameserver`/`direct-nameserver` 与境外 DoH `nameserver`，对挂载非 UDP ISP 的 VLESS 节点输出 `udp: false`，补齐国内直连域名（含 `codebuddy.ai`、`.cn` 等）及 `gemini`/`perplexity`/`cursor` AI 域名。
 3. **真实端到端探活与诚实自愈**：`verify.py` 新增 `proxy_probe` 与 `isp_leak` 检测；`probe.py` 改由 `proxy_probe` 对 VLESS 与 HY2 共同执行真实出口 IP 与延迟探测；`repair.py` 仅在 `health == "ok"` 时判定自愈成功；修复 `alert.py` 与移除 `admin.py` 死路由。
 4. **外围体检与 UI 对齐**：`ipcheck.py` 优先检测 `exit_ip`；`traffic_stats.py` 固定输出 `+08:00` 时区；前端区分 `WARP` 与 `WARP 待命`，改引导规则模式分流。
+
+
+### <a id="adr-029"></a>ADR-029 · 抗主动探测隐身网关、systemd 最小权限沙箱与配额自动熔断落地 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与原始素材取证 (Context)
+对现网 `walker-sv` 网络暴露面、HTTP 响应指纹、进程权限及控制链路做原始核查，发现四类结构性脆弱点：
+1. **管理域主动探测与源站直露**：Caddy 监听 `:80` 并对裸 IP HTTP 请求返回 `308 -> https://v.goodloop.si:8443/`（直接泄漏管理域名）及 `Server: Caddy`；同时 `:8443/tcp` 与 `:8443/udp` 对全网任意扫描源直接响应 TLS 与 HTTP 401 认证提示，暴露 Cloudflare 后方真实源站。
+2. **静态特征与未限流服务面**：HY2 自签证书有效期长达 3650 天（10 年），符合主动探测启发式特征；`admin.py` 使用默认 `ThreadingHTTPServer`（backlog=5、无并发上限）且公共 `/s/*`、`/join/*` 接口缺乏滑动窗口限流与安全响应头。
+3. **高危特权运行态**：`sing-box.service`、`caddy.service`、`admin.service` 均以 `root:root` 无沙箱运行，`systemd-analyze security` 暴露分全部为 `9.6 UNSAFE`。
+4. **配额熔断现网未激活**：`walker-sv` 上线运行的 `sing-box.service` 缺失 `ConditionPathExists=!/var/lib/ownline/quota-paused` 且 `nodes.json` 两条记录 `quota_control_managed` 为 `None`，`/api/quota/guard` 显示不可自动停启。
+
+#### 2. 裁决结论 (Decision)
+1. **隐身网关与 Cloudflare 源站锁定**：移除 Caddyfile `:80` 块及 `h3` 监听，启用全局 `auto_https disable_redirects` 与 `protocols h1 h2`，剥离 `Server` 并注入标准化安全标头（`X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: no-referrer`）；`reset_admin_password.py:inspect_credentials` 同时严格校验新旧单站模板。新增 `scripts/ops/cf_origin_lock.sh` 与 systemd 持久化单元，在专用 `OWNLINE-ORIGIN-8443` 链对非回环与非 Cloudflare 官方 IPv4/IPv6 网段的 `8443/tcp` 请求执行 `DROP`，严禁触及 `22/tcp` 与 `443`。
+2. **证书生命周期收敛与后端抗突发**：HY2 自签证书默认有效期统一缩减至 `365` 天；`http_utils.py` 与 `admin.py` 上线 `HardenedThreadingHTTPServer`（`request_queue_size=64`、`daemon_threads=True`、`BoundedSemaphore(32)` 超限快返 `503`）及 `SlidingWindowRateLimiter`（公开路由每 IP 60 次/分，超限 `429`）。
+3. **systemd 最小权限沙箱与跨脚本权限对齐**：将 `sing-box` 迁移至非特权 `sing-box:sing-box`（仅保留 `CAP_NET_BIND_SERVICE`、`ProtectSystem=strict`、`SystemCallFilter=~@privileged ...`），将 `caddy` 迁移至非特权 `caddy:caddy`（PKI 迁至 `/var/lib/caddy/.local/share/caddy/pki`），对 `admin.service` 启用 `ProtectSystem=strict`、`StateDirectory=ownline`、受限能力集与系统调用白名单（保留 `chown` 以支持密码重置与配置分组授权），并同步更新 `remote_config._build_apply_script`、`install.sh` 与 `addnode.sh` 在存在 `sing-box` 组时授予配置与私钥 `0640 root:sing-box`。
+4. **配额熔断真机激活**：部署含 `ConditionPathExists=!/var/lib/ownline/quota-paused` 的 `sing-box.service`，经 `provenance.verify_target` 验签通过后通过 `NodeManager` 为现网双节点开启 `quota_control_managed=true` 与固定 `provenance_id`。

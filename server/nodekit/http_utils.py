@@ -5,8 +5,11 @@
 from __future__ import annotations
 
 import json
+import threading
+import time
 import urllib.parse
-from typing import Any, Optional, Tuple
+from collections import deque
+from typing import Any, Dict, Optional, Tuple
 
 MAX_BODY = 1_000_000  # 1MB 限制，防超大 Payload
 
@@ -23,6 +26,9 @@ def send_json(handler: Any, code: int, obj: Any) -> None:
         handler.send_response(code)
         handler.send_header("Content-Type", "application/json; charset=utf-8")
         handler.send_header("Cache-Control", "no-store")
+        handler.send_header("X-Content-Type-Options", "nosniff")
+        handler.send_header("X-Frame-Options", "DENY")
+        handler.send_header("Referrer-Policy", "no-referrer")
         handler.send_header("Content-Length", str(len(body)))
         handler.end_headers()
         handler.wfile.write(body)
@@ -78,14 +84,55 @@ def validate_origin(handler: Any) -> bool:
 
 
 def extract_client_ip(handler: Any) -> str:
-    """安全解析客户端真实 IP。"""
-    forwarded = handler.headers.get("X-Forwarded-For")
+    """安全解析客户端真实 IP（优先 CF-Connecting-IP，其次 X-Forwarded-For，再其次直连源地址）。"""
+    headers = getattr(handler, "headers", None) or {}
+    cf_ip = str(headers.get("CF-Connecting-IP") or "").strip()
+    if cf_ip:
+        return cf_ip
+    forwarded = str(headers.get("X-Forwarded-For") or "").strip()
     if forwarded:
         return forwarded.split(",")[0].strip()
     addr = getattr(handler, "client_address", None)
     if addr and len(addr) > 0:
         return str(addr[0]).strip()
     return ""
+
+
+class SlidingWindowRateLimiter:
+    """线程安全的按 Key 滑动窗口限流器（内置键容量上限，防内存膨胀）。"""
+
+    def __init__(self, max_requests: int = 60, window_seconds: float = 60.0, max_keys: int = 4096) -> None:
+        self.max_requests = max(1, int(max_requests))
+        self.window_seconds = max(0.1, float(window_seconds))
+        self.max_keys = max(1, int(max_keys))
+        self._lock = threading.Lock()
+        self._buckets: Dict[str, deque] = {}
+
+    def allow(self, key: str, now: Optional[float] = None) -> bool:
+        k = str(key or "unknown")
+        ts = time.monotonic() if now is None else float(now)
+        cutoff = ts - self.window_seconds
+        with self._lock:
+            bucket = self._buckets.get(k)
+            if bucket is None:
+                if len(self._buckets) >= self.max_keys:
+                    stale = [bk for bk, q in self._buckets.items() if not q or q[-1] <= cutoff]
+                    for bk in stale:
+                        del self._buckets[bk]
+                    while len(self._buckets) >= self.max_keys and self._buckets:
+                        del self._buckets[next(iter(self._buckets))]
+                bucket = deque()
+                self._buckets[k] = bucket
+            while bucket and bucket[0] <= cutoff:
+                bucket.popleft()
+            if len(bucket) >= self.max_requests:
+                return False
+            bucket.append(ts)
+            return True
+
+    def reset(self) -> None:
+        with self._lock:
+            self._buckets.clear()
 
 
 def normalize_api_path(path: str) -> str:

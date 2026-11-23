@@ -32,37 +32,64 @@ def inspect_credentials(raw):
     # Ignore project comments and whitespace, not Caddyfile directives or tokens.
     lines = [' '.join(line.strip().split()) for line in raw.splitlines()
              if line.strip() and not line.strip().startswith('#')]
-    template = [
-        '(app) {', 'redir /p / 308', 'redir /p/* / 308',
-        'handle /s/* {', 'reverse_proxy 127.0.0.1:8099', '}',
-        'handle /join/* {', 'reverse_proxy 127.0.0.1:8099', '}',
-        '@blocked path /sub*', 'handle @blocked {', 'respond 404', '}',
-        'handle_path /api/* {', 'basic_auth {', 'USER HASH', '}',
-        'reverse_proxy 127.0.0.1:8099', '}',
-        '@sensitive path /tc.json /nodes.json /retired-nodes-*.json',
-        'handle @sensitive {', 'respond 404', '}',
-        '@pubjson path /status.json /servers.json /usage.json /quota.json',
-        'handle @pubjson {', 'basic_auth {', 'USER HASH', '}',
-        'header Cache-Control "no-store"', 'root * /opt/web-data', 'file_server', '}',
-        'handle {', 'basic_auth {', 'USER HASH', '}',
-        'header Cache-Control "no-store"', 'root * /opt/web', 'file_server', '}', '}',
-        ':80 {', 'redir https://DOMAIN:8443{uri} 308', '}',
-        'https://DOMAIN:8443 {', 'TLS', 'import app', '}',
+    security_headers = [
+        'header -Server',
+        'header X-Content-Type-Options "nosniff"',
+        'header X-Frame-Options "DENY"',
+        'header Referrer-Policy "no-referrer"',
     ]
-    initial_gate = '# ownline-managed-password-v1\n' in raw
-    if initial_gate:
-        blocked_end = template.index('handle_path /api/* {')
-        template[blocked_end:blocked_end] = [
-            'handle /change-password {', 'basic_auth {', 'USER HASH', '}',
-            'root * /opt/web', 'rewrite * /change-password.html', 'file_server', '}',
-            'handle /api/password/* {', 'basic_auth {', 'USER HASH', '}',
+    global_options = [
+        '{',
+        'auto_https disable_redirects',
+        'servers {',
+        'protocols h1 h2',
+        '}',
+        '}',
+    ]
+
+    def build_app_block(initial_gate, *, include_headers=False, route_order='s_first'):
+        app = ['(app) {']
+        if include_headers:
+            app.extend(security_headers)
+        app.extend(['redir /p / 308', 'redir /p/* / 308'])
+        if route_order == 'join_first':
+            app.extend([
+                'handle /join/* {', 'reverse_proxy 127.0.0.1:8099', '}',
+                'handle /s/* {', 'reverse_proxy 127.0.0.1:8099', '}',
+            ])
+        else:
+            app.extend([
+                'handle /s/* {', 'reverse_proxy 127.0.0.1:8099', '}',
+                'handle /join/* {', 'reverse_proxy 127.0.0.1:8099', '}',
+            ])
+        app.extend(['@blocked path /sub*', 'handle @blocked {', 'respond 404', '}'])
+        if initial_gate:
+            app.extend([
+                'handle /change-password {', 'basic_auth {', 'USER HASH', '}',
+                'root * /opt/web', 'rewrite * /change-password.html', 'file_server', '}',
+                'handle /api/password/* {', 'basic_auth {', 'USER HASH', '}',
+                'reverse_proxy 127.0.0.1:8099', '}',
+            ])
+        app.extend([
+            'handle_path /api/* {', 'basic_auth {', 'USER HASH', '}',
             'reverse_proxy 127.0.0.1:8099', '}',
-        ]
-        # The gate must apply to API, status JSON and ordinary static resources.
-        for target in ('handle_path /api/* {', 'handle @pubjson {', 'handle {'):
-            start = template.index(target)
-            auth_end = template.index('}', start) + 1
-            template[auth_end:auth_end] = ['forward_auth 127.0.0.1:8099 {', 'uri /password-gate', '}']
+            '@sensitive path /tc.json /nodes.json /retired-nodes-*.json',
+            'handle @sensitive {', 'respond 404', '}',
+            '@pubjson path /status.json /servers.json /usage.json /quota.json',
+            'handle @pubjson {', 'basic_auth {', 'USER HASH', '}',
+            'header Cache-Control "no-store"', 'root * /opt/web-data', 'file_server', '}',
+            'handle {', 'basic_auth {', 'USER HASH', '}',
+            'header Cache-Control "no-store"', 'root * /opt/web', 'file_server', '}', '}',
+        ])
+        if initial_gate:
+            # The gate must apply to API, status JSON and ordinary static resources.
+            for target in ('handle_path /api/* {', 'handle @pubjson {', 'handle {'):
+                start = app.index(target)
+                auth_end = app.index('}', start) + 1
+                app[auth_end:auth_end] = ['forward_auth 127.0.0.1:8099 {', 'uri /password-gate', '}']
+        return app
+
+    initial_gate = '# ownline-managed-password-v1\n' in raw
     user_hash_pairs = [m.groups() for line in lines if (m := re.fullmatch(r'([A-Za-z0-9_.-]{1,64}) (' + HASH + r')', line))]
     expected_matches = 5 if initial_gate else 3
     if len(user_hash_pairs) != expected_matches:
@@ -82,16 +109,29 @@ def inspect_credentials(raw):
     for line in lines:
         line = line.replace(hash_val, 'HASH').replace(username + ' HASH', 'USER HASH').replace('https://' + domain + ':8443', 'https://DOMAIN:8443')
         normalized.append(line)
-    if 'tls internal' not in normalized:
-        template.remove('TLS')
-    else:
+    has_tls_internal = 'tls internal' in normalized
+    if has_tls_internal:
         normalized = ['TLS' if line == 'tls internal' else line for line in normalized]
-    # Accept both exact project-generated snapshot transports. Older installs
-    # used static files; new ones proxy to admin without exposing DATA to Caddy.
-    proxied_template = list(template)
-    snapshot_root = proxied_template.index('root * /opt/web-data')
-    proxied_template[snapshot_root:snapshot_root + 2] = ['reverse_proxy 127.0.0.1:8099']
-    if normalized not in (template, proxied_template):
+
+    site_tail = ['https://DOMAIN:8443 {', *(['TLS'] if has_tls_internal else []), 'import app', '}']
+    legacy_tail = [':80 {', 'redir https://DOMAIN:8443{uri} 308', '}', *site_tail]
+
+    candidates = []
+    for include_headers, prefix, tail in (
+        (False, [], legacy_tail),
+        (True, global_options, site_tail),
+    ):
+        for route_order in ('s_first', 'join_first'):
+            base_tmpl = prefix + build_app_block(
+                initial_gate, include_headers=include_headers, route_order=route_order
+            ) + tail
+            candidates.append(base_tmpl)
+            proxied_tmpl = list(base_tmpl)
+            snapshot_root = proxied_tmpl.index('root * /opt/web-data')
+            proxied_tmpl[snapshot_root:snapshot_root + 2] = ['reverse_proxy 127.0.0.1:8099']
+            candidates.append(proxied_tmpl)
+
+    if normalized not in candidates:
         raise ValueError('检测到自定义或共享 Caddy 配置，不做修改')
     return domain, username, hash_val
 

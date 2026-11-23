@@ -289,7 +289,12 @@ def _build_apply_script(cfg_json_text, cfg_path=CFG_PATH, bin_path=BIN_PATH, ens
 if [ ! -s {q_crt} ] || [ ! -s {q_key} ]; then
   echo {shlex.quote(ensure_hy2_cert['cert_b64'])} | base64 -d > {q_crt}
   echo {shlex.quote(ensure_hy2_cert['key_b64'])} | base64 -d > {q_key}
-  chmod 600 {q_key} {q_crt}
+  chmod 600 {q_key}
+  chmod 644 {q_crt}
+  if getent group sing-box >/dev/null 2>&1; then
+    chgrp sing-box {q_key} {q_crt}
+    chmod 640 {q_key}
+  fi
 fi
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
   ufw allow {port}/udp >/dev/null 2>&1 || true
@@ -324,6 +329,10 @@ cp -pf {q_prov} {q_prov_bak}
 echo {shlex.quote(b64_cfg)} | base64 -d > {q_stg}
 echo {shlex.quote(b64_prov)} | base64 -d > {q_prov_stg}
 chmod 600 {q_stg} {q_prov_stg}
+if getent group sing-box >/dev/null 2>&1; then
+  chgrp sing-box {q_stg}
+  chmod 640 {q_stg}
+fi
 {q_bin} check -c {q_stg}
 changed=1
 mv -f {q_stg} {q_cfg}
@@ -334,14 +343,14 @@ fi
 """
 
 
-def generate_self_signed_cert_pem(sni="www.bing.com"):
+def generate_self_signed_cert_pem(sni="www.apple.com"):
     """使用 OpenSSL 生成通用自签名证书及私钥（PEM 文本，RSA 2048 跨平台兼容）。"""
     with tempfile.TemporaryDirectory() as td:
         crt_file = os.path.join(td, "cert.crt")
         key_file = os.path.join(td, "cert.key")
         cmd = [
             "openssl", "req", "-x509", "-newkey", "rsa:2048",
-            "-days", "3650", "-nodes",
+            "-days", "365", "-nodes",
             "-subj", f"/CN={sni}",
             "-keyout", key_file,
             "-out", crt_file,

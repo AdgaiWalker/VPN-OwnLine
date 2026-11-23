@@ -194,7 +194,7 @@ else:
         "port": port,
         "password": node.get("hy2_password") or node["uuid"],
         "obfs_password": node.get("obfs_password") or "tz-obfs",
-        "sni": node.get("hy2_sni") or "www.bing.com",
+        "sni": node.get("hy2_sni") or "www.apple.com",
     }
     conf = templates.exit_config(port, node["uuid"], node["sni"], node["private_key"], node["sid"], hy2=hy2_opts, isp=node.get("isp"))
 errs = templates.validate(conf)
@@ -229,11 +229,21 @@ mkdir /opt/sing-box
 tar xzf "__ARCHIVE__" -C /opt/sing-box --strip-components=1
 rm -f "__ARCHIVE__"
 
+getent group sing-box >/dev/null || groupadd --system sing-box
+getent passwd sing-box >/dev/null || useradd --system --gid sing-box --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin sing-box
+chmod 755 /opt/sing-box /opt/sing-box/sing-box
+touch /var/log/sing-box.log
+chown sing-box:sing-box /var/log/sing-box.log
+chmod 640 /var/log/sing-box.log
+
 umask 077
 if [ "__HAS_HY2__" = "1" ]; then
   printf '%s' '__CERT_B64__' | base64 -d > /opt/sing-box/hy2.crt
   printf '%s' '__KEY_B64__' | base64 -d > /opt/sing-box/hy2.key
   test -s /opt/sing-box/hy2.key && test -s /opt/sing-box/hy2.crt
+  chown root:sing-box /opt/sing-box/hy2.key /opt/sing-box/hy2.crt
+  chmod 640 /opt/sing-box/hy2.key
+  chmod 644 /opt/sing-box/hy2.crt
 fi
 mkdir -p /etc/sing-box
 cat > /etc/sing-box/.evergreen-provenance.json <<'PROVENANCE'
@@ -243,6 +253,8 @@ PROVENANCE
 cat > /opt/sing-box/config.json <<'JSONCFG'
 __CONFIG__
 JSONCFG
+chown root:sing-box /opt/sing-box/config.json
+chmod 640 /opt/sing-box/config.json
 cat > /etc/systemd/system/sing-box.service <<'UNIT'
 [Unit]
 Description=sing-box service
@@ -251,14 +263,45 @@ Wants=network-online.target
 ConditionPathExists=!/var/lib/ownline/quota-paused
 
 [Service]
+Type=simple
+User=sing-box
+Group=sing-box
+WorkingDirectory=/opt/sing-box
 ExecStart=/opt/sing-box/sing-box run -c /opt/sing-box/config.json
 Restart=on-failure
 RestartSec=5
 LimitNOFILE=1048576
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadOnlyPaths=/opt/sing-box
+ReadWritePaths=/var/log/sing-box.log
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @reboot @swap @clock @module @raw-io @debug @cpu-emulation @obsolete
+UMask=0077
 
 [Install]
 WantedBy=multi-user.target
 UNIT
+chmod 644 /etc/systemd/system/sing-box.service
 systemctl daemon-reload
 systemctl enable sing-box >/dev/null 2>&1 || true
 /opt/sing-box/sing-box check -c /opt/sing-box/config.json
@@ -367,7 +410,7 @@ if actual_role == "exit":
         "port": int(job.get("port") or 443),
         "ssh_port": int(job.get("ssh_port") or 22),
         "password": node.get("hy2_password") or node.get("uuid"),
-        "sni": node.get("hy2_sni") or "www.bing.com",
+        "sni": node.get("hy2_sni") or "www.apple.com",
         "obfs_password": node.get("obfs_password") or "tz-obfs",
         "ssh_user": job.get("user") or "root",
         "role": "exit",

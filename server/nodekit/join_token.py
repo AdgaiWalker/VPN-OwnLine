@@ -134,7 +134,7 @@ def generate_install_script(
             outbounds_json = '[{"type": "direct", "tag": "direct"}]'
             route_json = ""
     else:
-        cert_step = 'openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 3650 -subj "/CN=www.bing.com" 2>/dev/null'
+        cert_step = 'openssl req -x509 -nodes -newkey rsa:2048 -keyout /opt/sing-box/hy2.key -out /opt/sing-box/hy2.crt -days 365 -subj "/CN=www.apple.com" 2>/dev/null'
         hy2_inbound = f""",
     {{
       "type": "hysteria2",
@@ -144,7 +144,7 @@ def generate_install_script(
       "users": [{{"password": "$HY2_PW"}}],
       "tls": {{
         "enabled": true,
-        "server_name": "www.bing.com",
+        "server_name": "www.apple.com",
         "alpn": ["h3"],
         "certificate_path": "/opt/sing-box/hy2.crt",
         "key_path": "/opt/sing-box/hy2.key"

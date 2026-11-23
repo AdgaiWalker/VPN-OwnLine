@@ -1,5 +1,17 @@
 # 原生内置订阅：由 admin.py 统一处理，无需 subconverter 外部服务
+{
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+}
+
 (app) {
+	header -Server
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "no-referrer"
+
 	redir /p / 308
 	redir /p/* / 308
 
@@ -25,36 +37,31 @@
 		respond 404
 	}
 
-	# 面板前端直接 fetch 这四个，从数据目录发
+	# 面板前端直接 fetch 状态快照，由 admin.py 受控反代输出，Caddy 不直读 DATA 目录
 	@pubjson path /status.json /servers.json /usage.json /quota.json
 	handle @pubjson {
 		basic_auth {
 			admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
 		}
 		header Cache-Control "no-store"
-		root * /opt/web-data
-		file_server
+		reverse_proxy 127.0.0.1:8099
 	}
 
 	handle_path /api/* {
-	basic_auth {
-		admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
-	}
+		basic_auth {
+			admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
+		}
 		reverse_proxy 127.0.0.1:8099
 	}
 
 	handle {
-	basic_auth {
-		admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
-	}
+		basic_auth {
+			admin <BCRYPT_HASH_OF_YOUR_PASSWORD>
+		}
 		header Cache-Control "no-store"
 		root * /opt/web
 		file_server
 	}
-}
-
-:80 {
-	import app
 }
 
 https://v.example.com:8443 {

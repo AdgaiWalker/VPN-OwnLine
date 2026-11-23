@@ -261,17 +261,46 @@ if ! command -v caddy >/dev/null 2>&1; then
 Description=Caddy HTTPS server
 After=network-online.target
 Wants=network-online.target
+
 [Service]
 Type=notify
 User=caddy
 Group=caddy
-ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile
-ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --force
-AmbientCapabilities=CAP_NET_BIND_SERVICE
-NoNewPrivileges=yes
-PrivateTmp=yes
-ProtectSystem=full
+Environment=HOME=/var/lib/caddy
+Environment=XDG_DATA_HOME=/var/lib/caddy/.local/share
+Environment=XDG_CONFIG_HOME=/var/lib/caddy/.config
+ExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+ExecReload=/usr/local/bin/caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile --force
+Restart=on-failure
+RestartSec=5
 LimitNOFILE=1048576
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ReadOnlyPaths=/etc/caddy /opt/web
+ReadWritePaths=/var/lib/caddy
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX AF_NETLINK
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @mount @reboot @swap @clock @module @raw-io @debug @cpu-emulation @obsolete
+UMask=0077
+
 [Install]
 WantedBy=multi-user.target
 CADDYUNIT
@@ -280,6 +309,12 @@ CADDYUNIT
   fi
 else
   ok "Caddy 已就位: $(caddy version 2>/dev/null | head -1)"
+fi
+
+if [ "$DRY_RUN" = 0 ]; then
+  getent group caddy >/dev/null || groupadd --system caddy
+  getent passwd caddy >/dev/null || useradd --system --gid caddy --home-dir /var/lib/caddy --shell /usr/sbin/nologin caddy
+  install -d -m 700 -o caddy -g caddy /var/lib/caddy /var/lib/caddy/.local /var/lib/caddy/.local/share /var/lib/caddy/.local/share/caddy /var/lib/caddy/.config /var/lib/caddy/.config/caddy
 fi
 
 # basic_auth syntax requires Caddy >= 2.8; fail clearly instead of delivering a broken dashboard.
@@ -452,14 +487,14 @@ else:
     lines=subprocess.check_output([binary,"generate","reality-keypair"],text=True).splitlines()
     keys={line.split(":",1)[0]:line.split(":",1)[1].strip() for line in lines if ":" in line}
     sid=secrets.token_hex(4);password=secrets.token_hex(16);obfs=secrets.token_hex(16)
-    certificate, private_certificate = __import__("nodekit.remote_config",fromlist=["generate_self_signed_cert_pem"]).generate_self_signed_cert_pem("www.bing.com")
+    certificate, private_certificate = __import__("nodekit.remote_config",fromlist=["generate_self_signed_cert_pem"]).generate_self_signed_cert_pem("www.apple.com")
     Path("/opt/sing-box/hy2.crt").write_text(certificate)
     keyfd=os.open("/opt/sing-box/hy2.key",os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
     with os.fdopen(keyfd,"w") as output: output.write(private_certificate)
-    cfg=templates.exit_config(443,uid,"www.apple.com",keys["PrivateKey"],sid,hy2={"port":443,"password":password,"obfs_password":obfs,"sni":"www.bing.com","cert_path":"/opt/sing-box/hy2.crt","key_path":"/opt/sing-box/hy2.key"})
+    cfg=templates.exit_config(443,uid,"www.apple.com",keys["PrivateKey"],sid,hy2={"port":443,"password":password,"obfs_password":obfs,"sni":"www.apple.com","cert_path":"/opt/sing-box/hy2.crt","key_path":"/opt/sing-box/hy2.key"})
     if templates.validate(cfg):raise SystemExit("节点配置验证失败")
     records=[{"name":"主控-出口","host":sys.argv[1],"port":443,"uuid":uid,"sni":"www.apple.com","pbk":keys["PublicKey"],"sid":sid,"role":"exit","source":"builtin","local":True,"quota_control_managed":True,"health":"unknown"},
-             {"name":"主控-出口-HY2","type":"hysteria2","host":sys.argv[1],"port":443,"password":password,"sni":"www.bing.com","obfs_password":obfs,"role":"exit","source":"builtin","local":True,"quota_control_managed":True,"health":"unknown"}]
+             {"name":"主控-出口-HY2","type":"hysteria2","host":sys.argv[1],"port":443,"password":password,"sni":"www.apple.com","obfs_password":obfs,"role":"exit","source":"builtin","local":True,"quota_control_managed":True,"health":"unknown"}]
     atomic(seed,{"config":cfg,"nodes":records})
 if not config.exists():
     staged=config.with_suffix(".staged.json");atomic(staged,cfg)
@@ -476,6 +511,21 @@ atomic(manifest_path,manifest)
 seed.unlink(missing_ok=True)
 print("节点配置与底账已提交")
 PYSEED
+  getent group sing-box >/dev/null || groupadd --system sing-box
+  getent passwd sing-box >/dev/null || useradd --system --gid sing-box --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin sing-box
+  touch /var/log/sing-box.log
+  chown sing-box:sing-box /var/log/sing-box.log
+  chmod 640 /var/log/sing-box.log
+  chown root:sing-box /opt/sing-box/config.json
+  chmod 640 /opt/sing-box/config.json
+  if [ -f /opt/sing-box/hy2.key ]; then
+    chown root:sing-box /opt/sing-box/hy2.key
+    chmod 640 /opt/sing-box/hy2.key
+  fi
+  if [ -f /opt/sing-box/hy2.crt ]; then
+    chown root:sing-box /opt/sing-box/hy2.crt
+    chmod 644 /opt/sing-box/hy2.crt
+  fi
 fi
 
 # ---------- 6. 开启 BBR 拥塞控制 ----------
@@ -497,18 +547,23 @@ fi
 
 # ---------- 7. 防火墙端口放行 ----------
 progress firewall
-say "7/10 本机防火墙放行端口 (80/tcp, 443/tcp, 443/udp, 8443/tcp)"
+say "7/10 本机防火墙放行端口 (443/tcp, 443/udp, 8443/tcp)"
 if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q "Status: active"; then
-  run ufw allow 80/tcp >/dev/null 2>&1 || true
+  if [ "$TLS_INTERNAL" = 0 ]; then
+    run ufw allow 80/tcp >/dev/null 2>&1 || true
+  fi
   run ufw allow 443/tcp >/dev/null 2>&1 || true
   run ufw allow 443/udp >/dev/null 2>&1 || true
   run ufw allow 8443/tcp >/dev/null 2>&1 || true
-  ok "UFW 已放行 80/tcp, 443/tcp, 443/udp, 8443/tcp"
+  ok "UFW 已放行必要代理与管理端口"
 fi
 if command -v firewall-cmd >/dev/null 2>&1 && systemctl is-active --quiet firewalld 2>/dev/null; then
-  run firewall-cmd --permanent --add-port=80/tcp --add-port=443/tcp --add-port=443/udp --add-port=8443/tcp >/dev/null 2>&1 || true
+  if [ "$TLS_INTERNAL" = 0 ]; then
+    run firewall-cmd --permanent --add-port=80/tcp >/dev/null 2>&1 || true
+  fi
+  run firewall-cmd --permanent --add-port=443/tcp --add-port=443/udp --add-port=8443/tcp >/dev/null 2>&1 || true
   run firewall-cmd --reload >/dev/null 2>&1 || true
-  ok "firewalld 已放行 80/tcp, 443/tcp, 443/udp, 8443/tcp"
+  ok "firewalld 已放行必要代理与管理端口"
 fi
 
 # ---------- 8. 写入 settings.json 与 Caddyfile ----------
@@ -573,7 +628,19 @@ PY
     cat > "$CADDY_STAGED" << CADDYEOF
 # ownline-setup-job:$SETUP_JOB
 # ownline-managed-password-v1
+{
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+}
+
 (app) {
+	header -Server
+	header X-Content-Type-Options "nosniff"
+	header X-Frame-Options "DENY"
+	header Referrer-Policy "no-referrer"
+
 	redir /p / 308
 	redir /p/* / 308
 
@@ -648,10 +715,6 @@ PY
 	}
 }
 
-:80 {
-	redir https://${DOMAIN}:8443{uri} 308
-}
-
 https://${DOMAIN}:8443 {
 	$TLS_DIRECTIVE
 	import app
@@ -661,7 +724,12 @@ CADDYEOF
       rm -f "$CADDY_STAGED"
       die "管理网页配置未通过检查，未发布；请检查后继续原安装"
     fi
-    chmod 644 "$CADDY_STAGED"
+    if getent group caddy >/dev/null 2>&1; then
+      chown root:caddy "$CADDY_STAGED"
+      chmod 640 "$CADDY_STAGED"
+    else
+      chmod 644 "$CADDY_STAGED"
+    fi
     python3 - "$CADDY_STAGED" <<'PY'
 import os, sys
 fd = os.open(sys.argv[1], os.O_RDONLY)
@@ -688,6 +756,12 @@ progress services
 say "9/10 安装并启动系统服务"
 if [ -d "$SRC_DEPLOY/systemd" ]; then
   run cp "$SRC_DEPLOY"/systemd/*.service "$SRC_DEPLOY"/systemd/*.timer /etc/systemd/system/ 2>/dev/null || true
+fi
+if [ "$DRY_RUN" = 0 ] && [ -f /etc/systemd/system/caddy.service ]; then
+  CADDY_BIN=$(command -v caddy || echo /usr/local/bin/caddy)
+  if [ "$CADDY_BIN" != "/usr/local/bin/caddy" ]; then
+    sed -i "s|/usr/local/bin/caddy|${CADDY_BIN}|g" /etc/systemd/system/caddy.service
+  fi
 fi
 run systemctl daemon-reload
 # A long download never holds this short lifecycle lock. Quota stop can acquire it independently.

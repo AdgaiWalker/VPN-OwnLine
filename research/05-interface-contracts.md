@@ -494,3 +494,21 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
    - `repair.repair_node` 严格禁止将 `health == "proxy"` 等非 `ok` 状态判定为自愈成功。
    - `GET /api/ping` 返回 `204 No Content`（仅用于客户端网关 RTT 测速）；`POST /api/ping` 触发 `probe.run_probe_cycle` 并返回最新 `status.json`。
    - `ipcheck.py` 优先检测节点 `exit_ip`；`traffic_stats.py` 固定输出 `+08:00` 时区 ISO 时间戳。
+
+
+### 4.23 抗主动探测隐身网关、后端并发限流与最小权限运行态契约（ADR-029） `[STATUS: IMPLEMENTED]`
+
+1. **隐身 Caddyfile 模板与凭据检查契约（`deploy/install.sh`, `deploy/Caddyfile.example`, `server/reset_admin_password.py`）**：
+   - 新生成 Caddyfile 全局配置必须包含 `auto_https disable_redirects` 与 `servers { protocols h1 h2 }`，不得监听 `:80`，并在 `(app)` 内注入 `header -Server`、`header X-Content-Type-Options "nosniff"`、`header X-Frame-Options "DENY"`、`header Referrer-Policy "no-referrer"`，文件权限为 `0640 root:caddy`（存在 `caddy` 组时）。
+   - `reset_admin_password.inspect_credentials` 同时严格校验传统 `:80` 模板与无 `:80` 隐身模板，拒绝任何混合、额外站点块或头指令缺失配置；`maintenance.py` 与 `adopt_legacy.py` 复用同一校验入口。
+
+2. **Cloudflare 源站隔离契约（`scripts/ops/cf_origin_lock.sh`）**：
+   - 脚本仅操作专用 `OWNLINE-ORIGIN-<port>` 链及 `INPUT` 中 `-p tcp --dport <port>` 跳转规则；显式拒绝操作 `22` 与 `443` 端口，仅放行回环接口/回环地址、`ESTABLISHED,RELATED` 及官方 Cloudflare IPv4/IPv6 CIDR，其余直接 `DROP`。支持 `--enable`、`--disable`、`--status` 及开机回落选项 `--fallback`。
+
+3. **后端 HTTP 并发保护、公共限流与证书规范（`server/admin.py`, `server/nodekit/http_utils.py`, `server/nodekit/remote_config.py`, `server/nodekit/join_token.py`）**：
+   - `admin.py` 主循环使用 `HardenedThreadingHTTPServer`（`request_queue_size=64`、`daemon_threads=True`、`max_concurrent_requests=32`，信号量耗尽返回 `503`）。
+   - 未鉴权公开路由（`/s/*`、`/sub`、`/join/*`、`/node/join`、`/join/register`）按 `extract_client_ip`（优先 `CF-Connecting-IP`）实施每分钟 60 次滑动窗口限流，超限返回 HTTP `429` JSON；`http_utils.send_json` 统一附带 `X-Content-Type-Options`、`X-Frame-Options` 与 `Referrer-Policy` 标头。
+   - `remote_config.generate_self_signed_cert_pem` 与 `join_token.py` 生成 365 天有效期的 RSA 2048 自签证书，新装 HY2 默认 SNI 对齐 `www.apple.com`；`remote_config._build_apply_script` 在目标主机存在 `sing-box` 组时对暂存配置与 `hy2.key` 设置 `0640 root:sing-box`。
+
+4. **systemd 最小权限单元不变式（`deploy/systemd/{sing-box,caddy,admin}.service`）**：
+   - `sing-box.service` 以 `sing-box:sing-box` 运行并保留 `ConditionPathExists=!/var/lib/ownline/quota-paused`；`caddy.service` 以 `caddy:caddy` 运行并限定读写 `/var/lib/caddy`；`admin.service` 启用 `ProtectSystem=strict` 与 `StateDirectory=ownline`，全部单元保持与 `maintenance._owned_unit` 完全一致。

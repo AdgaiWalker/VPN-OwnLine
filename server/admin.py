@@ -37,6 +37,40 @@ _INSTALL_LOCK = threading.Lock()
 INITIAL_PASSWORD_MARKER = Path(DATA) / '.initial-password-required'
 _PASSWORD_LOCK = threading.Lock()
 _PASSWORD_ATTEMPTS = deque()
+_PUBLIC_RATE_LIMITER = http_utils.SlidingWindowRateLimiter(max_requests=60, window_seconds=60.0)
+
+
+class HardenedThreadingHTTPServer(ThreadingHTTPServer):
+    """Constrained threaded HTTP server protecting loopback admin backend."""
+
+    allow_reuse_address = True
+    daemon_threads = True
+    request_queue_size = 64
+    max_concurrent_requests = 32
+
+    def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True):
+        self._concurrency_sem = threading.BoundedSemaphore(self.max_concurrent_requests)
+        super().__init__(server_address, RequestHandlerClass, bind_and_activate=bind_and_activate)
+
+    def process_request_thread(self, request, client_address):
+        try:
+            super().process_request_thread(request, client_address)
+        finally:
+            self._concurrency_sem.release()
+
+    def process_request(self, request, client_address):
+        if not self._concurrency_sem.acquire(blocking=False):
+            try:
+                request.sendall(b"HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+            except OSError:
+                pass
+            self.shutdown_request(request)
+            return
+        try:
+            super().process_request(request, client_address)
+        except BaseException:
+            self._concurrency_sem.release()
+            raise
 
 
 def join_base_url(host):
@@ -114,7 +148,7 @@ def _gen_node():
         pub = re.search(r"PublicKey:\s*(\S+)", kp).group(1)
     except Exception:
         raise RuntimeError("sing-box 密钥生成失败，未启动安装") from None
-    cert, cert_key = remote_cfg_mod.generate_self_signed_cert_pem("www.bing.com")
+    cert, cert_key = remote_cfg_mod.generate_self_signed_cert_pem("www.apple.com")
     return {
         "uuid": uid,
         "private_key": priv,
@@ -123,7 +157,7 @@ def _gen_node():
         "sni": "www.apple.com",
         "hy2_password": os.urandom(12).hex(),
         "obfs_password": os.urandom(8).hex(),
-        "hy2_sni": "www.bing.com",
+        "hy2_sni": "www.apple.com",
         "hy2_cert_b64": base64.b64encode(cert.encode()).decode(),
         "hy2_key_b64": base64.b64encode(cert_key.encode()).decode(),
         "initial_password": secrets.token_urlsafe(16),
@@ -410,6 +444,9 @@ class H(BaseHTTPRequestHandler):
 
         # 免密反向自举脚本分发路由（供 VPS 终端一键 curl 执行）
         if path.startswith("/join/"):
+            client_ip = http_utils.extract_client_ip(self) or "local"
+            if not _PUBLIC_RATE_LIMITER.allow(client_ip):
+                return self._json(429, {"ok": False, "error": "请求过于频繁，请稍后再试"})
             token = path.split("/join/", 1)[1].strip()
             info = join_token_mod.verify_token(token)
             if not info:
@@ -492,8 +529,10 @@ class H(BaseHTTPRequestHandler):
 
         # 订阅路由：仅放行携带合法高熵 token 的 /s/<token>[/clash|/sr]，拒绝裸 /sub 与空 token
         token = get_sub_token()
-        client_ip = (self.headers.get("X-Forwarded-For") or self.client_address[0] or "").split(",")[0].strip()
+        client_ip = http_utils.extract_client_ip(self)
         if path.startswith("/s/") or path == "/sub":
+            if not _PUBLIC_RATE_LIMITER.allow(client_ip or "local"):
+                return self._json(429, {"ok": False, "error": "请求过于频繁，请稍后再试"})
             parts = path.split("/")
             req_token = parts[2] if (path.startswith("/s/") and len(parts) > 2) else ""
             if not token or not req_token or not hmac.compare_digest(req_token, token):
@@ -1043,6 +1082,9 @@ class H(BaseHTTPRequestHandler):
             })
 
         if norm_path in ("/node/join", "/join/register"):
+            client_ip = http_utils.extract_client_ip(self) or "local"
+            if not _PUBLIC_RATE_LIMITER.allow(client_ip):
+                return self._json(429, {"ok": False, "error": "请求过于频繁，请稍后再试"})
             token = (body.get("token") or "").strip()
             token_info = join_token_mod.consume_token(token)
             if not token_info:
@@ -1103,7 +1145,7 @@ class H(BaseHTTPRequestHandler):
                     "port": port,
                     "password": hy2_pw,
                     "obfs_password": body.get("obfs_password", ""),
-                    "sni": "www.bing.com",
+                    "sni": "www.apple.com",
                     "source": "reverse_join",
                     "enabled": True,
                     "health": "unknown",
@@ -1413,4 +1455,4 @@ class H(BaseHTTPRequestHandler):
         pass
 
 if __name__ == "__main__":
-    ThreadingHTTPServer(("127.0.0.1", 8099), H).serve_forever()
+    HardenedThreadingHTTPServer(("127.0.0.1", 8099), H).serve_forever()
