@@ -540,3 +540,20 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
 4. **反向自举最小权限与遗留路径清理不变式（`server/nodekit/join_token.py`, `server/admin.py`）**：
    - `join_token.generate_install_script` 生成的 systemd 单元必须以 `User=sing-box`、`ProtectSystem=strict` 与仅含 `CAP_NET_BIND_SERVICE` 运行；目录 `/opt/sing-box` 权限 `0750 root:sing-box`，`/opt/sing-box/config.json` 与 `hy2.key` 权限 `0640 root:sing-box`。
    - `admin.py` 移除 `_b64`、`_py_patch`、`_ps_patch`、`patch_remote` 死代码，`render()` 保持显式空操作；`deploy/install.sh` 与 `deploy/Caddyfile.example` 不再包含 `subconverter` 配置字段或生效规则。
+
+### 4.25 真二进制混沌门禁、外部 SLA 探测与账单对账契约（ADR-031） `[STATUS: IMPLEMENTED]`
+
+1. **真二进制容器实验门禁（`scripts/verify_real_binaries.py`, `tests/docker/Dockerfile.phase4`）**：
+   - 在 `--network none --cap-add NET_ADMIN --cap-add NET_RAW` 容器中对真实 `sing-box 1.14.4`、`caddy 2.10.2` 与 `mihomo v1.19.34` 运行 6 大验证套件：全部通过退出码 `0`，任一套件（含 `tcpdump` 原生泄漏抓包非零字节、`mihomo -t` 错误、Caddy `:80` 开放或 `401` 返回 `Server: Caddy`、`repair_node` 在端口空闲或恢复失败时行为异常）立即失败退出非 0。
+   - **Caddy 隐身模板契约补充**：`deploy/install.sh` 与 `deploy/Caddyfile.example` 的 `(app)` 片段必须包含 `handle_errors { header -Server }`；`reset_admin_password.inspect_credentials` 对启用安全标头的新模版同时严格兼容带/不带 `handle_errors` 两种形态。
+   - **Clash `MATCH` 规则契约**：`subscriptions.render_clash_yaml` 在全部模式（`all`、`pro`、`office`、`lite`、`direct`）下输出的规则策略名不得包裹额外双引号（如 `MATCH,🛡️ 安全办公` / `MATCH,🚀 智能优选`）。
+   - **端口占用检测契约**：`repair.repair_node` 必须使用 `ss -lptn -H 'sport = :{port}'` 并剔除任何 `State` / `Netid` / `Proto` 表头行，确保空端口不被误判为外部占用。
+
+2. **解析与会计稳健性补充契约（`server/nodekit/{links,quota_guard,traffic_stats,verify}.py`）**：
+   - `links.parse_isp_proxy` 拒绝空/含空白/含 ASCII 控制字符的主机名，且带 `@` / `//` 的 URL 不进入四段式冒号拆解。
+   - `quota_guard.parse_reset_day` 拒绝 `bool`、非有限浮点（`NaN`/`±Inf`）及不存在的公历日期（如 `2026-02-29`），正常接受合法闰日（如 `2028-02-29` -> `29`）与 `1..31`。
+   - `traffic_stats` 通过 `_safe_nonneg_float` 免疫 `NaN`/`Inf`/负值/布尔，且 `aggregate_all_traffic_stats` 以舍入后 `round(tot_total, 2) - round(tot_month, 2)` 计算 `guidance.remaining_gb` 对齐顶栏展示；`verify.PROBE_URLS` 允许在隔离自测环境中替换探测目标地址。
+
+3. **外部 SLA 探测与云账单对账工具（`scripts/ops/{external_probe,billing_reconcile}.py`）**：
+   - `external_probe.py [--url URL] [--socks5 HOST:PORT] [--isp-expected-ip IP] [--report] [--days 7] [--out PATH] [--json]`：记录 `+08:00` 时区探针结果至 JSONL，汇总窗口内样本数、`availability_pct`、`disconnect_rate_pct`、`p50_ms`、`p95_ms`、`stealth_pass_rate_pct` 与 `isp_leak_count`。
+   - `billing_reconcile.py [--panel-file FILE | --panel-gb GB] [--official-file CSV_OR_JSON | --official-gb GB] [--strict] [--json]`：比对面板月用量/重置日与云厂商官方账单，按 `delta_pct <= 5%`（且重置日不冲突）判定 `aligned`、`<= 15%` 判定 `minor_drift`、其余判定 `discrepancy`（退出码 `1`）。

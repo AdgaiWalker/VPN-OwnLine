@@ -497,3 +497,21 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
 3. **代码做减法（清理死分支与冻结未验真路径）**：
    - 将 `admin.py:render()` 收敛为显式 no-op 并移除 `_b64`、`_py_patch`、`_ps_patch`、`patch_remote` 与 `subconverter` 历史配置字段；
    - 无条件移除 `remote_config.py`（含 `allow_windows` 覆盖参数及 PowerShell 脚本构造）与 `repair.py` 中的 Windows 远端执行路径，确保 Windows 节点永不触发远端命令。
+
+### <a id="adr-031"></a>ADR-031 · 真二进制容器混沌实验室、性质模糊测试与外部可观测验证基准 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+截至 Phase 3，仓库已积累 930 项高覆盖率离网测试，但纯 Mock 单元测试对真实二进制运行行为与边界异常输入存在固有盲区。当将固定版本 `sing-box 1.14.4`、`caddy 2.10.2`、`mihomo v1.19.34` 与 `iproute2`/`iptables`/`tc netem`/`tcpdump` 接入隔离 Docker 容器实测并用 Hypothesis 做性质模糊测试时，当场暴露出 6 类仅在真机/性质 fuzz 下才复现的真实问题：
+1. **Caddy `401` 误漏 `Server` 指纹**：`basic_auth` 质询走 Caddy 错误管线，绕过路由级 `header -Server`，在直连/非 Cloudflare 代理下仍输出 `server: Caddy`。
+2. **Clash `office` / `lite` 订阅不可加载**：`subscriptions.py` 在 `MATCH,"🛡️ 安全办公"` 与 `MATCH,"🚀 智能优选"` 中附带字面双引号，真实 `mihomo` 按逗号分词规则直接报 `proxy ["..."] not found`。
+3. **`repair.py` 空端口表头假中止**：真实 `ss -lptn 'sport = :PORT'` 在端口空闲时仍打印列标题 `State Recv-Q Send-Q ...`，导致 `sing-box` 宕机时 `repair_node` 必定误判端口被第三方占用。
+4. **解析/统计/账单边界输入脆弱**：`links.parse_isp_proxy` 对 `:8080:u:p` 与多冒号凭据串、 `quota_guard.parse_reset_day` 对布尔/`NaN`/`2026-02-29`、以及 `traffic_stats.aggregate_all_traffic_stats` 在浮点超过 2 位小数时的 `0.01 GB` 顶栏/指引显示漂移。
+
+#### 2. 裁决结论 (Decision)
+1. **建立真二进制 Docker 混沌实验门禁（`tests/docker/Dockerfile.phase4` + `scripts/verify_real_binaries.py`）**：
+   - 将 `sing-box 1.14.4`、`caddy 2.10.2`、`mihomo v1.19.34` 及其校验摘要固定于容器实验镜像，在 `--network none --cap-add NET_ADMIN --cap-add NET_RAW` 下执行 6 大全真验证套件（配置核验、隐身网关、5 档订阅 `-t`、DoH/SOCKS5/HTTP/Relay 端到端数据面、`iptables`+`tcpdump` `0` 字节原生逃逸物理证明、`tc netem` 丢包抖动下 HY2/Failover/真实 `repair_node`）。
+   - 修复上述 Caddy `handle_errors { header -Server }`、`subscriptions.py` 无引号 `MATCH` 规则与 `repair.py` `ss -lptn -H` + 表头过滤 3 项真实生产缺陷。
+2. **引入离线性质模糊测试与数学/解析加固（`tests/test_phase4_property_fuzz.py`）**：
+   - 在本地 `.venv` 启用 `hypothesis==6.170.17`（严禁污染生产 `requirements.lock`），并在 `links.py`、`quota_guard.py`、`traffic_stats.py` 与 `verify.py` 完成边界防呆与可测试出口探针抽取。
+3. **固化外部可观测工具与按日历验收基准（`scripts/ops/{external_probe,billing_reconcile}.py` + `research/08-phase4-external-verification.md`）**：
+   - 以纯标准库工具支撑 7 天连续外网可用率/P95/隐身/防泄漏采样、腾讯云账单月底实对账，以及 3–5 名普通用户无提示端到端盲测记录。

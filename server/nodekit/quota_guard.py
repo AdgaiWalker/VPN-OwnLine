@@ -90,24 +90,26 @@ def stopped_hosts(state_file=None):
 
 def parse_reset_day(val):
     """安全解析每月流量包重置日 (1~31)。支持 YYYY-MM-DD、ISO 时间戳或纯数字/整型。"""
-    if val is None or val == "":
+    if val is None or val == "" or isinstance(val, bool):
         return None
     if isinstance(val, int):
         return val if 1 <= val <= 31 else None
     if isinstance(val, float):
+        if not math.isfinite(val):
+            return None
         ival = int(val)
         return ival if 1 <= ival <= 31 and ival == val else None
     if isinstance(val, str):
         val = val.strip()
-        parts = val.split("T")[0].split(" ")[0].split("-")
-        if len(parts) >= 3 and parts[2].isdigit():
+        date_part = val.split("T")[0].split(" ")[0]
+        parts = date_part.split("-")
+        if len(parts) >= 3:
             try:
-                day = int(parts[2])
-                if 1 <= day <= 31:
-                    return day
+                parsed = datetime.strptime("-".join(parts[:3]), "%Y-%m-%d")
+                return parsed.day if 1 <= parsed.day <= 31 else None
             except ValueError:
-                pass
-        if val.isdigit():
+                return None
+        if val.isascii() and val.isdigit():
             try:
                 day = int(val)
                 if 1 <= day <= 31:

@@ -250,4 +250,10 @@ check("挂载非 UDP ISP 的 VLESS 节点渲染 udp: false", "    udp: false" in
 fast_isp_udp = node("fast-isp-udp", isp={"type": "socks", "server": "198.51.100.2", "server_port": 6297, "udp": True})
 check("显式支持 UDP 的 SOCKS5 ISP 渲染 udp: true", "    udp: true" in "\n".join(S.clash_proxy_lines(fast_isp_udp)))
 
+for prof_name in ("all", "pro", "office", "lite", "direct"):
+    prof_text = S.render_clash_yaml(all_nodes, profile=prof_name)
+    check(f"{prof_name} MATCH 规则不含字面双引号", 'MATCH,"' not in prof_text, prof_name)
+check("office MATCH 规则不带引号指向安全办公", "  - MATCH,🛡️ 安全办公" in S.render_clash_yaml(all_nodes, profile="office"))
+check("lite MATCH 规则不带引号指向智能优选", "  - MATCH,🚀 智能优选" in S.render_clash_yaml(all_nodes, profile="lite"))
+
 print("通过 %d 项" % ok)

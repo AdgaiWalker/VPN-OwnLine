@@ -8,6 +8,7 @@
 """
 import datetime
 import json
+import math
 import os
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,18 @@ except ImportError:
     from store import AtomicJsonStore
 
 CN_TZ = datetime.timezone(datetime.timedelta(hours=8))
+
+
+def _safe_nonneg_float(val: Any, default: Optional[float] = 0.0) -> Optional[float]:
+    if isinstance(val, bool) or val is None:
+        return default
+    try:
+        num = float(val)
+    except (TypeError, ValueError):
+        return default
+    if not math.isfinite(num):
+        return default
+    return max(0.0, num)
 
 
 def parse_vnstat_json(data: Any) -> Dict[str, Any]:
@@ -108,8 +121,8 @@ def record_history_snapshot(history: Dict[str, Any], usage_item: Dict[str, Any],
         now = datetime.datetime.now(CN_TZ)
 
     today_str = now.strftime("%Y-%m-%d")
-    current_used = float(usage_item.get("used", 0.0) or 0.0)
-    current_total = float(usage_item.get("total", 0.0) or 0.0)
+    current_used = _safe_nonneg_float(usage_item.get("used"), 0.0)
+    current_total = _safe_nonneg_float(usage_item.get("total"), 0.0)
 
     nodes = history.setdefault("nodes", {})
     node_data = nodes.setdefault(host, {
@@ -119,7 +132,7 @@ def record_history_snapshot(history: Dict[str, Any], usage_item: Dict[str, Any],
         "last_date": today_str,
     })
 
-    last_seen = node_data.get("last_seen_used")
+    last_seen = _safe_nonneg_float(node_data.get("last_seen_used"), default=None)
     last_date = node_data.get("last_date", today_str)
     daily_totals = node_data.setdefault("daily_totals", {})
 
@@ -134,7 +147,7 @@ def record_history_snapshot(history: Dict[str, Any], usage_item: Dict[str, Any],
         delta = current_used
 
     # 累加到今日消耗
-    prev_today = daily_totals.get(today_str, 0.0)
+    prev_today = _safe_nonneg_float(daily_totals.get(today_str), 0.0)
     daily_totals[today_str] = round(prev_today + delta, 3)
 
     node_data["last_seen_used"] = current_used
@@ -169,6 +182,10 @@ def generate_usage_guidance(used_gb: float, total_gb: float,
     """核心算法：计算剩余天数、日均预算与针对用户的行动指南。"""
     if now is None:
         now = datetime.datetime.now(CN_TZ)
+
+    used_gb = _safe_nonneg_float(used_gb, 0.0)
+    total_gb = _safe_nonneg_float(total_gb, 0.0)
+    today_used_gb = _safe_nonneg_float(today_used_gb, 0.0)
 
     today_date = now.date()
 
@@ -229,8 +246,8 @@ def compute_node_stats(host: str, usage_item: Dict[str, Any],
         now = datetime.datetime.now(CN_TZ)
 
     today_str = now.strftime("%Y-%m-%d")
-    current_used = float(usage_item.get("used", 0.0) or 0.0)
-    current_total = float(usage_item.get("total", 0.0) or 0.0)
+    current_used = _safe_nonneg_float(usage_item.get("used"), 0.0)
+    current_total = _safe_nonneg_float(usage_item.get("total"), 0.0)
     start_str = usage_item.get("start", "")
     end_str = usage_item.get("end", "")
 
@@ -363,12 +380,14 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
     # 关键闭环：修正 primary_guidance 中的 remaining_gb 与 daily_budget_gb，
     # 确保与聚合的 tot_total 和 tot_month 绝对一致（SSOT 对齐）
     if primary_guidance and tot_total > 0:
-        actual_remaining = max(0.0, round(tot_total - tot_month, 2))
+        tot_total_r = round(tot_total, 2)
+        tot_month_r = round(tot_month, 2)
+        actual_remaining = max(0.0, round(tot_total_r - tot_month_r, 2))
         primary_guidance["remaining_gb"] = actual_remaining
         days_rem = primary_guidance.get("days_remaining", 30)
         daily_budget = round(actual_remaining / days_rem, 2) if days_rem > 0 else 0.0
         primary_guidance["daily_budget_gb"] = daily_budget
-        primary_guidance["total_gb"] = round(tot_total, 2)
+        primary_guidance["total_gb"] = tot_total_r
         ratio = (tot_today / daily_budget) if daily_budget > 0 else 0.0
         primary_guidance["pacing_ratio"] = round(ratio, 2)
         primary_guidance["today_used_gb"] = round(tot_today, 2)

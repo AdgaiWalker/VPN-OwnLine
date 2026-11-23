@@ -165,6 +165,42 @@ def test_provenance_verified_but_proxy_failed_is_honest():
     print("  OK 代理健康为 proxy 时严禁冒充 ok 成功")
 
 
+def test_ss_header_only_treated_as_free_port():
+    secret = "test_master_secret_123"
+    node = {"name": "硅谷", "host": "198.51.100.12", "port": 443, "health": "port"}
+    cfg_sha = provenance.compute_config_sha256('{"inbounds":[]}')
+    manifest = provenance.sign_provenance(node["host"], cfg_sha, secret)
+
+    class DummyRes:
+        def __init__(self, code, out):
+            self.returncode = code
+            self.stdout = out
+            self.stderr = ""
+
+    def fake_exec(n, cmd, **kwargs):
+        if "base64.b64encode(Path(p)" in cmd:
+            return DummyRes(0, json.dumps({"config": base64.b64encode(b'{"inbounds":[]}').decode(),
+                                          "provenance": base64.b64encode(json.dumps(manifest).encode()).decode()}))
+        if "ss -lptn" in cmd:
+            return DummyRes(0, "State Recv-Q Send-Q Local Address:Port Peer Address:PortProcess\n")
+        if "BIN check" in cmd or "SYNTAX" in cmd:
+            return DummyRes(0, "SYNTAX_OK")
+        if "systemctl restart sing-box" in cmd:
+            return DummyRes(0, "active")
+        return DummyRes(0, "")
+
+    res = repair.repair_node(
+        node,
+        execute_remote_fn=fake_exec,
+        verifier=lambda n: {"health": "ok", "ok": True, "exit_ip": "198.51.100.12"},
+        sleep_fn=lambda s: None,
+        master_secret=secret,
+    )
+    assert res["ok"] is True and res["after"] == "ok", res
+    assert any("处于空闲状态" in s for s in res["steps"]), res["steps"]
+    print("  OK ss 空端口仅返回表头时正确识别为空闲并完成自愈")
+
+
 def run_all():
     test_manual_checks_preserve_node()
     test_external_no_execution()
@@ -172,7 +208,8 @@ def run_all():
     test_provenance_verified_self_heal_success()
     test_provenance_port_conflict_safety_abort()
     test_provenance_verified_but_proxy_failed_is_honest()
-    print("通过 6 项")
+    test_ss_header_only_treated_as_free_port()
+    print("通过 7 项")
 
 
 if __name__ == "__main__":

@@ -126,13 +126,17 @@ def repair_node(
 
     # 4.1 端口占用与冲突排查
     port = int(node.get("port") or 443)
-    port_check_cmd = f"ss -lptn 'sport = :{port}' 2>/dev/null || netstat -tulpn 2>/dev/null | grep ':{port} ' || true"
+    port_check_cmd = f"ss -lptn -H 'sport = :{port}' 2>/dev/null || netstat -tulpn 2>/dev/null | grep ':{port} ' || true"
     try:
         port_res = exec_fn(node, port_check_cmd, timeout=10)
         port_out = getattr(port_res, "stdout", "") or ""
-        if port_out.strip():
+        port_lines = [
+            ln.strip() for ln in port_out.splitlines()
+            if ln.strip() and not ln.lstrip().startswith(("State ", "State\t", "Netid ", "Netid\t", "Proto ", "Proto\t"))
+        ]
+        if port_lines:
             # 若端口被占用，检查是否由 sing-box 占用
-            if "sing-box" in port_out:
+            if all("sing-box" in ln for ln in port_lines):
                 steps.append(f"端口诊断: 端口 :{port} 由现有 sing-box 进程持有")
             else:
                 steps.append(f"端口冲突: 端口 :{port} 被其他外部进程占用")

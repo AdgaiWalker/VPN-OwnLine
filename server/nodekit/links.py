@@ -94,6 +94,12 @@ def build_link(node, name=None):
     return build(node, name=name)
 
 
+def _valid_proxy_host(host: str) -> bool:
+    if not host or not isinstance(host, str):
+        return False
+    return not any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in host)
+
+
 def parse_isp_proxy(url):
     """解析 SOCKS5 或 HTTP 代理 URL 为 dict（3x-ui 兼容格式）。
     全面适配 Webshare 常见导出格式：
@@ -127,8 +133,10 @@ def parse_isp_proxy(url):
     text = text.rstrip("/")
 
     parts = text.split(":")
-    if len(parts) >= 4 and parts[1].isdigit():
+    if len(parts) >= 4 and parts[1].isascii() and parts[1].isdigit() and not ("//" in text or "@" in text):
         ip, port_str, user, password = parts[0].strip(), parts[1].strip(), parts[2].strip(), ":".join(parts[3:]).strip()
+        if not _valid_proxy_host(ip):
+            raise LinkError("代理链接中缺少合法服务器地址")
         port = int(port_str)
         if not (0 < port < 65536):
             raise LinkError("代理端口不合法（必须是 1-65535）")
@@ -140,8 +148,10 @@ def parse_isp_proxy(url):
             "password": password
         }
 
-    if len(parts) == 2 and parts[1].isdigit() and not ("//" in text or "@" in text):
+    if len(parts) == 2 and parts[1].isascii() and parts[1].isdigit() and not ("//" in text or "@" in text):
         ip, port_str = parts[0].strip(), parts[1].strip()
+        if not _valid_proxy_host(ip):
+            raise LinkError("代理链接中缺少合法服务器地址")
         port = int(port_str)
         if not (0 < port < 65536):
             raise LinkError("代理端口不合法（必须是 1-65535）")
@@ -163,8 +173,8 @@ def parse_isp_proxy(url):
     scheme = (u.scheme or "").lower()
     if scheme not in ("socks5", "socks", "http", "https"):
         raise LinkError("只支持 socks5:// 或 http:// 格式的代理链接")
-    if not u.hostname:
-        raise LinkError("代理链接中缺少服务器地址")
+    if not _valid_proxy_host(u.hostname or ""):
+        raise LinkError("代理链接中缺少合法服务器地址")
     try:
         port = int(u.port or 0)
     except Exception:

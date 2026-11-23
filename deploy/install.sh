@@ -639,6 +639,9 @@ PY
 	header X-Content-Type-Options "nosniff"
 	header X-Frame-Options "DENY"
 	header Referrer-Policy "no-referrer"
+	handle_errors {
+		header -Server
+	}
 
 	redir /p / 308
 	redir /p/* / 308

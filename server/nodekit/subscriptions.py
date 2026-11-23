@@ -458,7 +458,7 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         lines.extend(_DOMESTIC_DIRECT_RULES)
         lines.extend([
             "  - GEOIP,CN,DIRECT",
-            '  - MATCH,"🛡️ 安全办公"',
+            "  - MATCH,🛡️ 安全办公",
             "",
         ])
     elif profile == "lite":
@@ -479,7 +479,7 @@ def render_clash_yaml(nodes, profile="all", now_ts=None, usage_data=None):
         lines.extend(_DOMESTIC_DIRECT_RULES)
         lines.extend([
             "  - GEOIP,CN,DIRECT",
-            '  - MATCH,"🚀 智能优选"',
+            "  - MATCH,🚀 智能优选",
             "",
         ])
     else:  # pro / all / direct

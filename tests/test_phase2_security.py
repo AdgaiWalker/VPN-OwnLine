@@ -55,7 +55,7 @@ def _render_legacy_caddyfile(*, tls_internal=False, managed_v1=True):
     stealth = _render_stealth_caddyfile(tls_internal=tls_internal, managed_v1=managed_v1, proxied_pubjson=True, username="admin")
     legacy = re.sub(r"(?ms)^# ownline-managed-password-v1\n\{\n.*?\n\}\n\n", "# ownline-managed-password-v1\n", stealth)
     legacy = re.sub(
-        r"\(app\) \{\n\theader -Server\n\theader X-Content-Type-Options \"nosniff\"\n\theader X-Frame-Options \"DENY\"\n\theader Referrer-Policy \"no-referrer\"\n\n",
+        r"\(app\) \{\n\theader -Server\n\theader X-Content-Type-Options \"nosniff\"\n\theader X-Frame-Options \"DENY\"\n\theader Referrer-Policy \"no-referrer\"\n(?:\thandle_errors \{\n\t\theader -Server\n\t\}\n)?\n",
         "(app) {\n",
         legacy,
     )
@@ -73,6 +73,7 @@ class Phase2SecurityTests(unittest.TestCase):
             "auto_https disable_redirects",
             "protocols h1 h2",
             "header -Server",
+            "handle_errors {",
             'header X-Content-Type-Options "nosniff"',
             'header X-Frame-Options "DENY"',
             'header Referrer-Policy "no-referrer"',
@@ -89,6 +90,7 @@ class Phase2SecurityTests(unittest.TestCase):
             "auto_https disable_redirects",
             "protocols h1 h2",
             "header -Server",
+            "handle_errors {",
             "useradd --system --gid sing-box",
             "chown root:caddy",
             "chmod 640",

@@ -17,6 +17,7 @@ import urllib.request
 CTL_KEY = "/root/.ssh/node_ctl"
 KNOWN_HOSTS = "/opt/sing-box/known_hosts"
 BIN = "/opt/sing-box/sing-box"
+PROBE_URLS = ("https://api.ipify.org", "https://ipv4.icanhazip.com")
 
 
 def ssh_cmd(user, host, timeout=10, port=22):
@@ -160,7 +161,7 @@ def proxy_probe(node, timeout=8):
             time.sleep(0.3)
         if not ready:
             return {"ok": False, "exit_ip": "", "ms": 0}
-        for probe_url in ("https://api.ipify.org", "https://ipv4.icanhazip.com"):
+        for probe_url in PROBE_URLS:
             r = subprocess.run(
                 ["curl", "-s", "--max-time", str(timeout),
                  "--socks5-hostname", "127.0.0.1:%d" % port,

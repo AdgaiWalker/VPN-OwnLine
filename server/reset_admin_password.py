@@ -47,10 +47,12 @@ def inspect_credentials(raw):
         '}',
     ]
 
-    def build_app_block(initial_gate, *, include_headers=False, route_order='s_first'):
+    def build_app_block(initial_gate, *, include_headers=False, include_handle_errors=False, route_order='s_first'):
         app = ['(app) {']
         if include_headers:
             app.extend(security_headers)
+        if include_handle_errors:
+            app.extend(['handle_errors {', 'header -Server', '}'])
         app.extend(['redir /p / 308', 'redir /p/* / 308'])
         if route_order == 'join_first':
             app.extend([
@@ -117,13 +119,17 @@ def inspect_credentials(raw):
     legacy_tail = [':80 {', 'redir https://DOMAIN:8443{uri} 308', '}', *site_tail]
 
     candidates = []
-    for include_headers, prefix, tail in (
-        (False, [], legacy_tail),
-        (True, global_options, site_tail),
+    for include_headers, include_handle_errors, prefix, tail in (
+        (False, False, [], legacy_tail),
+        (True, False, global_options, site_tail),
+        (True, True, global_options, site_tail),
     ):
         for route_order in ('s_first', 'join_first'):
             base_tmpl = prefix + build_app_block(
-                initial_gate, include_headers=include_headers, route_order=route_order
+                initial_gate,
+                include_headers=include_headers,
+                include_handle_errors=include_handle_errors,
+                route_order=route_order,
             ) + tail
             candidates.append(base_tmpl)
             proxied_tmpl = list(base_tmpl)

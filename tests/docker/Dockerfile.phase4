@@ -1,0 +1,72 @@
+FROM python:3.11-slim-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+ARG TARGETARCH
+
+RUN apt-get update -qq \
+    && apt-get install -y -qq --no-install-recommends \
+       iproute2 iptables tcpdump openssl curl ca-certificates gzip tar procps \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY packages/ /tmp/packages/
+
+RUN set -eu; \
+    arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
+    case "$arch" in \
+      arm64|aarch64) \
+        SBOX_ARCH="arm64"; \
+        SBOX_SHA256="436441f76ee2f7fe21b5b2d426d3cb261a480455a704865789ad533e4273ec26"; \
+        CADDY_SHA512="6ce061a690312ab38367df3c5d5f89a2e4a263e7300d300d87356211bb81e79b15933e6d6203e03fbf26f15cc0311f264805f336147dbdd24938d84b57a4421c"; \
+        MIHOMO_FILE="mihomo-linux-arm64-v1.19.34.gz"; \
+        MIHOMO_SHA256="daaf78a6240a282cdfd75bcbf98fe321f6bd52765cc29e79f344191198f0b50f"; \
+        ;; \
+      amd64|x86_64) \
+        SBOX_ARCH="amd64"; \
+        SBOX_SHA256="699a1b510aa4396b2176d32d1181920399ebf1e267835da6f3b598d0f7c24968"; \
+        CADDY_SHA512="747df7ee74de188485157a383633a1a963fd9233b71fbb4a69ddcbcc589ce4e2cc82dacf5dbbe136cb51d17e14c59daeb5d9bc92487610b0f3b93680b2646546"; \
+        MIHOMO_FILE="mihomo-linux-amd64-v1.19.34.gz"; \
+        MIHOMO_SHA256="223fab877e5795ce780ba39902e5f0b1113c1256ae244a7160f1165e017e9ccc"; \
+        ;; \
+      *) echo "Unsupported architecture: $arch" >&2; exit 1 ;; \
+    esac; \
+    SBOX_TGZ="/tmp/packages/sing-box-1.14.4-linux-${SBOX_ARCH}.tar.gz"; \
+    if [ ! -f "$SBOX_TGZ" ]; then \
+      SBOX_TGZ="/tmp/sing-box.tar.gz"; \
+      curl -fsSL "https://github.com/SagerNet/sing-box/releases/download/v1.14.4/sing-box-1.14.4-linux-${SBOX_ARCH}.tar.gz" -o "$SBOX_TGZ"; \
+    fi; \
+    echo "${SBOX_SHA256}  ${SBOX_TGZ}" | sha256sum -c -; \
+    tar -xOf "$SBOX_TGZ" "sing-box-1.14.4-linux-${SBOX_ARCH}/sing-box" > /usr/local/bin/sing-box; \
+    chmod 755 /usr/local/bin/sing-box; \
+    mkdir -p /opt/sing-box; \
+    ln -sf /usr/local/bin/sing-box /opt/sing-box/sing-box; \
+    CADDY_TGZ="/tmp/packages/caddy_2.10.2_linux_${SBOX_ARCH}.tar.gz"; \
+    if [ ! -f "$CADDY_TGZ" ]; then \
+      CADDY_TGZ="/tmp/caddy.tar.gz"; \
+      curl -fsSL "https://github.com/caddyserver/caddy/releases/download/v2.10.2/caddy_2.10.2_linux_${SBOX_ARCH}.tar.gz" -o "$CADDY_TGZ"; \
+    fi; \
+    echo "${CADDY_SHA512}  ${CADDY_TGZ}" | sha512sum -c -; \
+    tar -xOf "$CADDY_TGZ" caddy > /usr/local/bin/caddy; \
+    chmod 755 /usr/local/bin/caddy; \
+    MIHOMO_GZ="/tmp/packages/${MIHOMO_FILE}"; \
+    if [ ! -f "$MIHOMO_GZ" ]; then \
+      MIHOMO_GZ="/tmp/mihomo.gz"; \
+      curl -fsSL "https://github.com/MetaCubeX/mihomo/releases/download/v1.19.34/${MIHOMO_FILE}" -o "$MIHOMO_GZ"; \
+    fi; \
+    echo "${MIHOMO_SHA256}  ${MIHOMO_GZ}" | sha256sum -c -; \
+    gzip -dc "$MIHOMO_GZ" > /usr/local/bin/mihomo; \
+    chmod 755 /usr/local/bin/mihomo; \
+    rm -rf /tmp/packages /tmp/sing-box.tar.gz /tmp/caddy.tar.gz /tmp/mihomo.gz; \
+    getent group sing-box >/dev/null || groupadd --system sing-box; \
+    getent passwd sing-box >/dev/null || useradd --system --gid sing-box --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin sing-box; \
+    getent group caddy >/dev/null || groupadd --system caddy; \
+    getent passwd caddy >/dev/null || useradd --system --gid caddy --home-dir /var/lib/caddy --create-home --shell /usr/sbin/nologin caddy; \
+    sing-box version; \
+    caddy version; \
+    mihomo -v; \
+    iptables --version; \
+    tcpdump --version; \
+    tc -V
+
+RUN mkdir -p /etc/mihomo \
+    && curl -fsSL "https://github.com/MetaCubeX/meta-rules-dat/releases/download/latest/geoip.metadb" -o /etc/mihomo/geoip.metadb \
+    && test -s /etc/mihomo/geoip.metadb
