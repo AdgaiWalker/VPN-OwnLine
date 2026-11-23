@@ -535,3 +535,24 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
    - Agent 仅获得不透明句柄 `vh_...` 与非敏感摘要，调用 `ownline.py check --vault-handle` 与 `/api/{check,tencent/instances}` 时由守护进程在内存内借用凭据并即时清理，进程关闭或 `/api/quit` 时全部归零。
 3. **跨平台统一入口与入口收口（`server/ownline_cli.py`, `ownline.py`, `启动安装.bat`）**：
    - 归档Mac专用脚本 `deploy/setup-mac.sh` 至 `archive/prototypes/setup-mac.sh`；在 `installations.py` 兼容无 `fcntl` 平台并以 `.as_posix()` 规范化打包路径；移除 `prompt/ssh_setup.md`、`04-modals.html`、`README.md` 与 `local-setup.html` 中的 Mac 硬编码与明文传密话术。
+
+### <a id="adr-033"></a>ADR-033 · 可插拔能力包引擎、声明式拓扑编排 (`apply`) 与统一 Agent Skill [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+阶段 S1 确立了跨平台本地引擎与 Option A 盲签凭据库，解决了首装前采集 SSH 凭据的安全与入口问题；但在“首装完成之后”，若用户需要通过本地 Agent 一次性配齐初始改密、挂载 Webshare 静态住宅 IP、扩容国内中继专线并完成整网验真，仍面临四类障碍：
+1. **首装交付至面板接管存在断点**：首次安装仅将临时 `temp_password` 留在 `LocalSetupSession` 内存中，后续操控远端面板若要求用户手工复制粘贴临时密码再触发修改，既打断心流又容易把临时密码泄漏给 Agent。
+2. **增删能力维护成本高**：维护者希望按需增减能力（≤ 2 文件即可热拔插），而非每次新增一项运维能力都修改多处路由与前端。
+3. **传参/回显存在隐式泄密缝隙**：服务端接口（如 `/api/editnode`）会在响应节点对象里原样回带 `isp.username`/`isp.password`；若能力层与 `--plan` 参数缺少强制动态金丝雀守卫（Canary Guard），任何拼装或转发都可能把凭据重新泄漏到 Agent 上下文或终端。
+4. **品牌级双模与真网关门禁细节差异**：真二进制实测表明，经由 Caddy `forward_auth` 的未改密面板在 `--dry-run` 预检读取 `/api/nodes` 时返回 HTTP `303` 而非直连 `admin.py` 的 `403`；且无 third-party SSH 依赖的 Docker/精简控制环境需要惰性加载 `paramiko`/`bcrypt`。
+
+#### 2. 裁决结论 (Decision)
+1. **目录驱动可插拔能力包 + 动态金丝雀防泄漏（`server/nodekit/capabilities/`）**：
+   - 新增 `CapabilityRegistry.discover()` 自动扫描 `server/nodekit/capabilities/*.py` 并加载 `CAPABILITY: CapabilitySpec` 插件；新增或下线一项独立能力只需增删单个 `.py` 文件（零额外核心文件改动）。
+   - `CapabilityContext` 在内存中维护 `_borrowed_secrets` 集合与 `RemotePanelClient`，每次执行通过 `scrub_output()` 对返回与异常做键名和值级金丝雀擦除（覆盖明文、URL 编码与 Base64 形态），并在 `finally` 立即清空所有临时借用字典与客户端认证头。
+   - 先期落地 4 项核心生产能力：`panel-password`（支持直接承接首装 RAM `delivery` 完成初始改密并颁发活跃 `panel_auth` 句柄）、`residential-isp`（盲签挂载/解绑 Webshare 住宅出口）、`relay-expand`（`reverse_join` 免密令牌、`ssh_managed` 指纹校验与 `addnode` 轮询、`pair_only` 配对）与 `topology-verify`（零漂移核验 + 真实出口与 `/s/<token>` / Clash 订阅校验）。
+2. **声明式全链路编排器与原始明文拦截门（`server/nodekit/topology_plan.py`）**：
+   - 新增 `assert_plan_has_no_raw_secrets()`，在 CLI 解析及服务端接收入口优先拒绝包含 `password`/`private_key`/`secret_key`/`proxy_url` 或匹配 PEM/凭据 URL/四段式代理的原始明文，强制通过 `ownline.py vault request` 句柄驱动；
+   - 新增 `execute_topology_plan()` 支撑 `ownline.py apply` 按序编排 `rotate_initial_password -> residential_isp -> relay -> verify`，在 `panel-password` 执行后自动将刷新后的 `active_panel_handle` 串联传递到后续所有步骤；`--dry-run` 期间妥善识别 `303/403` 初始密码门锁并预览后续步骤。
+3. **统一 Agent Skill 与真二进制黑盒验证闭环（`skills/ownline-local/SKILL.md`, `scripts/verify_s2_blackbox.py`）**：
+   - 为本地 Agent 提供单一规范技能文件 `skills/ownline-local/SKILL.md` 并纳入 `.github/workflows/release.yml` 发布打包清单；同时将 `local_setup.py` 的 `paramiko`/`bcrypt` 改为按需惰性导入，确保仅调用能力编排的纯标准库环境亦可运行；
+   - 以 `scripts/verify_s2_blackbox.py` 在 `ownline-phase4-lab:latest`（`--network none`）内连通真实 `caddy 2.10.2`、`reset_admin_password.py`、`admin.py`、`sing-box 1.14.4`（DoH over SOCKS5）、`mihomo v1.19.34` 与 `ownline.py` CLI 跑通完整黑盒闭环，实测 `leaked_secrets=0`。

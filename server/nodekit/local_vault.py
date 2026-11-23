@@ -1,6 +1,7 @@
 """In-memory blind credential vault issuing opaque handles for local Agents."""
 
 import copy
+import ipaddress
 import re
 import secrets
 import threading
@@ -142,7 +143,15 @@ def _validate_and_summarize(slot, payload):
         dashboard_url = str(payload.get("dashboard_url") or "").strip()
         if dashboard_url:
             parsed_url = urllib.parse.urlparse(dashboard_url)
-            if parsed_url.scheme != "https" or not parsed_url.netloc:
+            host_only = (parsed_url.hostname or "").strip().lower()
+            is_loopback = host_only == "localhost"
+            if not is_loopback and host_only:
+                try:
+                    is_loopback = ipaddress.ip_address(host_only).is_loopback
+                except ValueError:
+                    is_loopback = False
+            scheme_ok = parsed_url.scheme == "https" or (parsed_url.scheme == "http" and is_loopback)
+            if not scheme_ok or not parsed_url.netloc:
                 raise VaultError("VAULT_DASHBOARD_URL_INVALID", "管理后台地址必须为有效的 https:// URL。")
         secret = {"dashboard_url": dashboard_url, "username": username, "password": password}
         summary = {"dashboard_url": dashboard_url, "username": username}

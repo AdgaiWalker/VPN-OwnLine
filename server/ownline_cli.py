@@ -16,7 +16,9 @@ import urllib.parse
 import webbrowser
 
 from server.nodekit import local_diag, system_updater
+from server.nodekit.capabilities import CapabilityError, CapabilityRegistry
 from server.nodekit.local_vault import SUPPORTED_SLOTS, VaultError
+from server.nodekit.topology_plan import assert_plan_has_no_raw_secrets
 
 ROOT = Path(__file__).resolve().parents[1]
 _PEM_HEADER_RE = re.compile(r"-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----")
@@ -253,7 +255,7 @@ def run_vault_request(
     *,
     label="",
     target_hint="",
-    username="root",
+    username=None,
     ssh_port=22,
     dashboard_url="",
     mode="auto",
@@ -441,7 +443,7 @@ def build_parser():
     p_vreq.add_argument("--slot", required=True, choices=SUPPORTED_SLOTS)
     p_vreq.add_argument("--label", default="")
     p_vreq.add_argument("--hint", default="")
-    p_vreq.add_argument("--user", default="root")
+    p_vreq.add_argument("--user", default=None)
     p_vreq.add_argument("--port", type=int, default=22)
     p_vreq.add_argument("--dashboard-url", default="")
     p_vreq.add_argument("--mode", choices=("auto", "browser", "tty"), default="auto")
@@ -485,7 +487,64 @@ def build_parser():
     p_evt.add_argument("--markdown", action="store_true")
     p_evt.add_argument("--json", action="store_true")
 
+    p_cap = sub.add_parser("cap", help="列出或执行可插拔能力模块")
+    csub = p_cap.add_subparsers(dest="cap_cmd", required=True)
+    p_clist = csub.add_parser("list", help="列出当前可用的本地可插拔能力")
+    p_clist.add_argument("--json", action="store_true")
+
+    p_crun = csub.add_parser("run", help="执行指定能力模块（仅接受盲签句柄与非敏感参数）")
+    p_crun.add_argument("name", help="能力名称（如 panel-password / residential-isp / relay-expand / topology-verify）")
+    p_crun.add_argument("--param", action="append", default=[], help="KEY=VALUE 参数，可多次传入")
+    p_crun.add_argument("--params-json", default="", help="JSON 格式参数对象")
+    p_crun.add_argument("--dry-run", action="store_true")
+    p_crun.add_argument("--json", action="store_true")
+
+    p_apply = sub.add_parser("apply", help="执行声明式全链路拓扑编排计划")
+    group = p_apply.add_mutually_exclusive_group(required=True)
+    group.add_argument("--plan", help="JSON 编排计划文件路径")
+    group.add_argument("--plan-json", help="内联 JSON 编排计划")
+    p_apply.add_argument("--dry-run", action="store_true")
+    p_apply.add_argument("--json", action="store_true")
+
     return parser
+
+
+def _parse_kv_params(items, params_json):
+    merged = {}
+    if params_json:
+        try:
+            loaded = json.loads(params_json)
+        except ValueError as exc:
+            raise CliError("INVALID_PARAMS_JSON", f"--params-json 不是合法 JSON: {exc}") from None
+        if not isinstance(loaded, dict):
+            raise CliError("INVALID_PARAMS_JSON", "--params-json 必须是 JSON 对象。")
+        merged.update(loaded)
+    for raw_item in items or []:
+        if "=" not in raw_item:
+            raise CliError("INVALID_PARAM_FORMAT", f"参数格式无效 `{raw_item}`，应为 KEY=VALUE。")
+        key, raw_val = raw_item.split("=", 1)
+        key = key.strip()
+        val_str = raw_val.strip()
+        if not key:
+            raise CliError("INVALID_PARAM_FORMAT", f"参数名不能为空: `{raw_item}`。")
+        low = val_str.lower()
+        if low == "true":
+            val = True
+        elif low == "false":
+            val = False
+        elif low == "null":
+            val = None
+        elif re.fullmatch(r"-?\d+", val_str):
+            val = int(val_str)
+        elif val_str.startswith(("{", "[")):
+            try:
+                val = json.loads(val_str)
+            except ValueError:
+                val = raw_val
+        else:
+            val = raw_val
+        merged[key] = val
+    return merged
 
 
 def main(argv=None, *, state_path=None, diag_log=None, prompt_fn=input, secret_prompt_fn=getpass.getpass):
@@ -627,14 +686,59 @@ def main(argv=None, *, state_path=None, diag_log=None, prompt_fn=input, secret_p
                 _emit_output({"ok": True, "events": local_diag.EVENT_REGISTRY}, True)
             return 0
 
-    except (VaultError, CliError) as exc:
+        if args.command == "cap":
+            if args.cap_cmd == "list":
+                specs = CapabilityRegistry.discover().list_specs()
+                _emit_output({"ok": True, "capabilities": specs}, True)
+                return 0
+            if args.cap_cmd == "run":
+                params = _parse_kv_params(args.param, args.params_json)
+                assert_plan_has_no_raw_secrets(params)
+                client = ensure_daemon(state_path=state_path, autostart=True, diag_log=diag_log)
+                code, res = client.post_json(
+                    "/api/capabilities/run",
+                    {"name": args.name, "params": params, "dry_run": bool(args.dry_run)},
+                    timeout=180,
+                )
+                if code != 200 or not isinstance(res, dict) or res.get("ok") is not True:
+                    err_code = res.get("code", "CAPABILITY_FAILED") if isinstance(res, dict) else "CAPABILITY_FAILED"
+                    _emit_output({"ok": False, "code": err_code, **(res if isinstance(res, dict) else {})}, True)
+                    return 2 if err_code == "HOST_KEY_CONFIRMATION" else 1
+                _emit_output(res, True)
+                return 0
+
+        if args.command == "apply":
+            try:
+                if args.plan:
+                    plan = json.loads(Path(args.plan).read_text(encoding="utf-8"))
+                else:
+                    plan = json.loads(args.plan_json)
+            except (OSError, ValueError) as exc:
+                raise CliError("INVALID_PLAN", f"无法解析拓扑编排计划 JSON: {exc}") from None
+            assert_plan_has_no_raw_secrets(plan)
+            client = ensure_daemon(state_path=state_path, autostart=True, diag_log=diag_log)
+            code, res = client.post_json(
+                "/api/topology/apply",
+                {"plan": plan, "dry_run": bool(args.dry_run)},
+                timeout=180,
+            )
+            if code != 200 or not isinstance(res, dict) or res.get("ok") is not True:
+                err_code = res.get("code", "TOPOLOGY_APPLY_FAILED") if isinstance(res, dict) else "TOPOLOGY_APPLY_FAILED"
+                _emit_output({"ok": False, "code": err_code, **(res if isinstance(res, dict) else {})}, True)
+                return 2 if err_code == "HOST_KEY_CONFIRMATION" else 1
+            _emit_output(res, True)
+            return 0
+
+    except (CapabilityError, VaultError, CliError) as exc:
         err = {
             "ok": False,
             "code": getattr(exc, "code", "CLI_ERROR"),
             "message": getattr(exc, "message", str(exc)),
         }
+        if getattr(exc, "detail", None):
+            err["detail"] = exc.detail
         _emit_output(err, True)
-        return getattr(exc, "exit_code", 1)
+        return 2 if err["code"] == "HOST_KEY_CONFIRMATION" else getattr(exc, "exit_code", 1)
 
     return 1
 

@@ -8,7 +8,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 967 Passed](https://img.shields.io/badge/Tests-967%20Passed%20(100%25)-success.svg)]()
+[![Tests: 972 Passed](https://img.shields.io/badge/Tests-972%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/06-trusted-delivery-plan.md)
 [![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](research/05-interface-contracts.md)

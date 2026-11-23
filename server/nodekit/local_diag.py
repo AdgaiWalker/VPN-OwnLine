@@ -126,6 +126,36 @@ EVENT_REGISTRY = {
         "severity": "info",
         "summary": "打开本机图形回退界面",
     },
+    "capability_started": {
+        "stage": "capability",
+        "severity": "info",
+        "summary": "开始执行可插拔能力模块",
+    },
+    "capability_succeeded": {
+        "stage": "capability",
+        "severity": "info",
+        "summary": "可插拔能力模块执行完成",
+    },
+    "capability_failed": {
+        "stage": "capability",
+        "severity": "error",
+        "summary": "可插拔能力模块执行失败",
+    },
+    "topology_plan_started": {
+        "stage": "topology",
+        "severity": "info",
+        "summary": "开始执行声明式拓扑编排计划",
+    },
+    "topology_plan_completed": {
+        "stage": "topology",
+        "severity": "info",
+        "summary": "声明式拓扑编排计划全部完成",
+    },
+    "topology_plan_failed": {
+        "stage": "topology",
+        "severity": "error",
+        "summary": "声明式拓扑编排在某一步骤中止",
+    },
 }
 
 SECRET_KEY_TOKENS = (

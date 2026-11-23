@@ -13,13 +13,29 @@ import webbrowser
 
 from server import tencent_discovery
 from server.nodekit import local_diag, system_updater
+from server.nodekit.capabilities import CapabilityContext, CapabilityError, CapabilityRegistry, RemotePanelClient
 from server.nodekit.installations import InstallError
 from server.nodekit.local_setup_guard import LocalSetupGuard
-from server.nodekit.local_setup_runner import install
 from server.nodekit.local_setup_session import LocalSetupSession
 from server.nodekit.local_vault import BlindVault, VaultError
-from server.nodekit.sshcheck.first_check import check
 from server.nodekit.sshcheck.problem import Problem
+from server.nodekit.topology_plan import assert_plan_has_no_raw_secrets, execute_topology_plan
+
+
+def _lazy_check(body, allowed_targets=()):
+    try:
+        from server.nodekit.sshcheck.first_check import check as first_check
+    except ModuleNotFoundError:
+        raise InstallError('缺少本地 SSH 依赖（paramiko / bcrypt），请先按 requirements.lock 安装依赖。') from None
+    return first_check(body, allowed_targets)
+
+
+def _lazy_install(checked, source, on_progress=None):
+    try:
+        from server.nodekit.local_setup_runner import install as run_install
+    except ModuleNotFoundError:
+        raise InstallError('缺少本地 SSH 依赖（paramiko / bcrypt），请先按 requirements.lock 安装依赖。') from None
+    return run_install(checked, source, on_progress=on_progress)
 
 ROOT = Path(__file__).resolve().parents[1]
 TZ_CN = timezone(timedelta(hours=8))
@@ -32,7 +48,16 @@ def _default_state_path():
     return ROOT / '.ops-private' / 'local_agent.json'
 
 
-def create_server(port=0, session=None, *, vault=None, diag_log=None, update_checker=None):
+def create_server(
+    port=0,
+    session=None,
+    *,
+    vault=None,
+    diag_log=None,
+    update_checker=None,
+    capability_registry=None,
+    panel_client_factory=None,
+):
     resolved_diag = Path(diag_log) if diag_log is not None else local_diag.default_log_path(ROOT)
 
     def _emit(event, detail=None, severity=None):
@@ -42,11 +67,13 @@ def create_server(port=0, session=None, *, vault=None, diag_log=None, update_che
             pass
 
     session = session or LocalSetupSession(
-        check,
-        lambda checked, report: install(checked, ROOT, on_progress=report),
+        _lazy_check,
+        lambda checked, report: _lazy_install(checked, ROOT, on_progress=report),
     )
     active_vault = vault or BlindVault(on_event=lambda ev, dt: _emit(ev, dt))
     checker = update_checker or system_updater.check_update
+    capabilities = capability_registry or CapabilityRegistry.discover()
+    client_factory = panel_client_factory or RemotePanelClient
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
@@ -132,6 +159,8 @@ def create_server(port=0, session=None, *, vault=None, diag_log=None, update_che
                     self.send(200, self.server.vault.request_status(req_id))
                 elif path == '/api/vault/handles':
                     self.send(200, {'handles': self.server.vault.list_handles()})
+                elif path == '/api/capabilities':
+                    self.send(200, {'capabilities': self.server.capabilities.list_specs()})
                 else:
                     self.send(404, {'message': '接口不存在。'})
             except VaultError as exc:
@@ -219,6 +248,39 @@ def create_server(port=0, session=None, *, vault=None, diag_log=None, update_che
                     handle = body.get('handle')
                     cleared = self.server.vault.clear(str(handle).strip() if handle else None)
                     self.send(200, {'cleared': cleared})
+                elif path == '/api/capabilities/run':
+                    cap_name = str(body.get('name') or '').strip()
+                    if not cap_name:
+                        raise CapabilityError('CAPABILITY_NAME_REQUIRED', '缺少能力模块名称。', 400)
+                    params = body.get('params') if body.get('params') is not None else {}
+                    if not isinstance(params, dict):
+                        raise ValueError()
+                    assert_plan_has_no_raw_secrets(params)
+                    dry_run = bool(body.get('dry_run', False))
+                    ctx = CapabilityContext(
+                        vault=self.server.vault,
+                        session=session,
+                        emit_diag=_emit,
+                        dry_run=dry_run,
+                        panel_client_factory=self.server.panel_client_factory,
+                    )
+                    res = self.server.capabilities.execute(cap_name, params, ctx=ctx)
+                    self.send(200, res)
+                elif path == '/api/topology/apply':
+                    plan = body.get('plan')
+                    if plan is None:
+                        raise ValueError()
+                    dry_run = bool(body.get('dry_run', False))
+                    res = execute_topology_plan(
+                        plan,
+                        registry=self.server.capabilities,
+                        vault=self.server.vault,
+                        session=session,
+                        emit_diag=_emit,
+                        dry_run=dry_run,
+                        panel_client_factory=self.server.panel_client_factory,
+                    )
+                    self.send(200, res)
                 elif path == '/api/quit':
                     if session.status()['state'] == 'running':
                         raise InstallError('安装正在进行，请保持启动窗口运行')
@@ -228,6 +290,11 @@ def create_server(port=0, session=None, *, vault=None, diag_log=None, update_che
                     threading.Thread(target=self.server.shutdown, daemon=True).start()
                 else:
                     self.send(404, {'message': '接口不存在。'})
+            except CapabilityError as exc:
+                payload = {'code': exc.code, 'message': exc.message}
+                if exc.detail:
+                    payload['detail'] = exc.detail
+                self.send(exc.status, payload)
             except VaultError as exc:
                 self.send(exc.status, {'code': exc.code, 'message': exc.message})
             except tencent_discovery.Problem as exc:
@@ -258,6 +325,8 @@ def create_server(port=0, session=None, *, vault=None, diag_log=None, update_che
     server.vault = active_vault
     server.diag_log = resolved_diag
     server.update_checker = checker
+    server.capabilities = capabilities
+    server.panel_client_factory = client_factory
     server.emit_diag = _emit
     return server
 

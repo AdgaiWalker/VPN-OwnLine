@@ -582,3 +582,22 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
    - `python3 ownline.py doctor [--check-update] --json`：离线返回平台、Python >= 3.10、依赖（`paramiko`/`bcrypt`）、三份合成前端文件（`index.html`/`local-setup.html`/`local-vault.html`）、版本与守护进程存活状态。
    - `python3 ownline.py vault request --slot {ssh|tencent_api|webshare_isp|panel_auth} [--hint TARGET] [--mode auto|browser|tty] [--json]`：`auto` 模式下，有桌面环境自动启动本地守护进程并打开 `/vault?req=...`，无桌面环境（如 `OWNLINE_HEADLESS=1` 或 SSH 终端）自动切换 `getpass` 隐身输入，标准输出仅打印 `{"ok": true, "mode": ..., "handle": "vh_...", "summary": {...}}`。
    - 提供 `check --vault-handle`、`tencent-instances --vault-handle`、`install --check-token --confirm`、`status`、`logs`、`events [--markdown]`、`update-check`、`ui`、`serve`、`stop` 全量结构化 JSON 子命令；`deploy/setup-mac.sh` 归档至 `archive/prototypes/setup-mac.sh`。
+
+### 4.27 可插拔能力包、全链路拓扑编排 (`apply`) 与统一 Agent Skill 契约（ADR-033 / S2） `[STATUS: IMPLEMENTED]`
+
+1. **能力包发现与动态金丝雀防泄漏契约（`server/nodekit/capabilities/__init__.py`）**：
+   - `CapabilityRegistry.discover()` 自动扫包加载 `CAPABILITY: CapabilitySpec`，删去对应单文件模块即卸载该能力，无需修改调度代码。
+   - `CapabilityContext` 通过 `borrow()`、`borrow_panel()` 与 `store_panel_session()` 在本机内存中借用并追踪秘钥金丝雀，执行退出前由 `scrub_output()` 对明文、URL 编码及 Base64 编码的秘钥内容与敏感键执行 `[REDACTED]` 擦除，并在 `finally` 关闭全部连接及清零临时字典。
+   - 四项标准生产能力：`panel-password`（支持从首装 RAM `delivery` 无感接管初始改密并返回新 `active_panel_handle`）、`residential-isp`（挂载/解绑 Webshare 出口并剥离后端回显的账密）、`relay-expand`（`reverse_join` / `ssh_managed` 含 `409 HOST_KEY_CONFIRMATION` / `pair_only`）与 `topology-verify`（零漂移、节点探测及订阅双格式验真）。
+
+2. **声明式拓扑编排器与原始明文阻断门（`server/nodekit/topology_plan.py`）**：
+   - `assert_plan_has_no_raw_secrets()` 严格拒绝任何携带 `password`/`passwd`/`passphrase`/`private_key`/`secret_key`/`secret_id`/`proxy_url`/`temp_password`/`current`/`new`/`confirm`/`secret` 字段或 PEM/凭据 URL/四段式代理的计划与命令参数，统一抛出 `CapabilityError("RAW_SECRET_FORBIDDEN", 400)`。
+   - `execute_topology_plan()` 顺序编排 `panel-password -> residential-isp -> relay-expand -> topology-verify`；当 `rotate_initial_password` 在非 `dry_run` 模式下生成新的 `active_panel_handle` 时，后续步骤自动继承该新句柄；`dry_run=True` 下若首步包含 `panel-password`，后续预览允许面板返回 Caddy `303` 或直连 `403` 初始密码门锁并标记 `deferred_until_password_change: true`。
+
+3. **守护扩展、CLI 子命令与 Agent Skill 契约（`server/local_setup.py`, `server/ownline_cli.py`, `skills/ownline-local/SKILL.md`）**：
+   - 本地守护扩展 `GET /api/capabilities`、`POST /api/capabilities/run`、`POST /api/topology/apply`（均受 `LocalSetupGuard` 保护），且 `server/local_setup.py` 对 `paramiko`/`bcrypt` 采用惰性导入以兼容纯标准库环境。
+   - `ownline.py` 新增 `cap list [--json]`、`cap run <name> [--param K=V] [--params-json JSON] [--dry-run] [--json]` 与 `apply (--plan FILE | --plan-json JSON) [--dry-run] [--json]`；遇 `HOST_KEY_CONFIRMATION` 返回退出码 `2`。
+   - `skills/ownline-local/SKILL.md` 固化跨平台 Agent 操作规程，并在 [02-本地诊断事件表.md](docs/02-本地诊断事件表.md) 同步新增 `capability_*` 与 `topology_plan_*` 共 6 类事件。
+
+4. **真二进制黑盒门禁（`scripts/verify_s2_blackbox.py`）**：
+   - 在 `--network none --cap-add NET_ADMIN` 的 `ownline-phase4-lab:latest` 容器中，串联真实 `caddy 2.10.2`、`reset_admin_password.py`、`admin.py`、`sing-box 1.14.4`（DoH over SOCKS5）、`mihomo v1.19.34` 与 `ownline.py` 端到端黑盒实测，验证 `303/403` 门锁、真 Caddy 改密重载、SOCKS5 真实出口 `10.204.0.2`、配置零漂移及 `leaked_secrets=0`。
