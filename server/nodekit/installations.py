@@ -8,7 +8,10 @@ import socket
 import ssl
 import threading
 import time
-import fcntl
+try:
+    import fcntl
+except ImportError:  # Windows lacks POSIX fcntl; pin_known_host checks explicitly.
+    fcntl = None
 import os
 import subprocess
 
@@ -119,6 +122,8 @@ class PinnedHTTPS(http.client.HTTPSConnection):
 
 def pin_known_host(checked, filename, runner=subprocess.run):
     """Keep the checked public host key for later node_ctl operations too."""
+    if fcntl is None:
+        raise InstallError("当前平台不支持 POSIX known_hosts 文件锁")
     from pathlib import Path
     path = Path(filename)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -207,7 +212,7 @@ def emit_bundle(server_directory, output):
                               (web / "assets", "web/assets")):
         for path in directory.rglob("*") if directory.exists() else ():
             if "__pycache__" not in path.parts and path.suffix != ".pyc" and path.is_file():
-                candidates.append((path, prefix + "/" + str(path.relative_to(directory))))
+                candidates.append((path, prefix + "/" + path.relative_to(directory).as_posix()))
     for name in ("index.html", "change-password.html", "backup-crypto.js", "icon.png", "qr-sub.png"):
         if (web / name).is_file():
             candidates.append((web / name, "web/" + name))

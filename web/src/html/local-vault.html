@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本机盲签凭据</title><style>/* {{STYLE}} */</style></head>
+<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>本机盲签凭据</span></header>
+<p id="vault-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，或在无图形界面终端改用 python3 ownline.py vault request --mode tty。</p>
+<section id="vault-card" hidden aria-labelledby="vault-title">
+<h1 id="vault-title" tabindex="-1">输入本机凭据</h1>
+<p id="vault-context" class="notice" hidden></p>
+<p>你输入的内容仅保存在当前设备内存中，Agent 只会收到一次性编号，无法读取任何明文。</p>
+<form id="vault-form" method="post">
+<fieldset id="slot-ssh" hidden disabled aria-label="SSH 服务器凭据">
+<label>服务器地址<input id="vault-ssh-host" name="host" required placeholder="公网 IPv4 或域名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label>服务器密码或 SSH 私钥<input id="vault-ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="vault-ssh-key-status"></label>
+<span id="vault-ssh-key-status" role="status"></span>
+<details id="vault-ssh-options"><summary>连接设置</summary>
+<div class="row"><label>用户名<input id="vault-ssh-user" name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input id="vault-ssh-port" name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
+<label>私钥密码（可选）<input id="vault-ssh-passphrase" name="passphrase" type="password" autocomplete="off"></label>
+</details>
+</fieldset>
+<fieldset id="slot-tencent_api" hidden disabled aria-label="腾讯云只读 API 密钥">
+<div class="row">
+<label>SecretId<input id="vault-tencent-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
+<label>SecretKey<input id="vault-tencent-key" name="secret_key" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
+</div>
+</fieldset>
+<fieldset id="slot-webshare_isp" hidden disabled aria-label="Webshare 静态住宅代理">
+<label>静态住宅代理串<input id="vault-isp-proxy" name="proxy_url" type="password" required placeholder="粘贴 Webshare 代理串 / ip:port:user:pass / curl 命令" autocomplete="off" spellcheck="false"></label>
+</fieldset>
+<fieldset id="slot-panel_auth" hidden disabled aria-label="管理后台密码">
+<label>管理面板地址（可选）<input id="vault-panel-url" name="dashboard_url" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<div class="row">
+<label>管理员账号<input id="vault-panel-user" name="username" value="admin" required autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label>面板密码<input id="vault-panel-password" name="password" type="password" required autocomplete="off"></label>
+</div>
+</fieldset>
+<div class="actions">
+<button id="vault-submit" type="submit">安全存入本机内存</button>
+<button id="vault-cancel" class="secondary" type="button">取消</button>
+</div>
+</form>
+</section>
+<section id="vault-done" hidden aria-labelledby="vault-done-title">
+<h1 id="vault-done-title" tabindex="-1">已存入本机内存</h1>
+<p>明文凭据未写入磁盘，也未发送给 AI。你可以关闭此页面并返回命令行继续执行。</p>
+<div class="target-card">
+<div><strong id="vault-handle-out"></strong><span id="vault-summary-out"></span></div>
+</div>
+</section>
+<p id="vault-status" role="status" aria-live="polite"></p>
+</main><script>/* {{SCRIPT}} */</script></body></html>

@@ -515,3 +515,23 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
    - 在本地 `.venv` 启用 `hypothesis==6.170.17`（严禁污染生产 `requirements.lock`），并在 `links.py`、`quota_guard.py`、`traffic_stats.py` 与 `verify.py` 完成边界防呆与可测试出口探针抽取。
 3. **固化外部可观测工具与按日历验收基准（`scripts/ops/{external_probe,billing_reconcile}.py` + `research/08-phase4-external-verification.md`）**：
    - 以纯标准库工具支撑 7 天连续外网可用率/P95/隐身/防泄漏采样、腾讯云账单月底实对账，以及 3–5 名普通用户无提示端到端盲测记录。
+
+### <a id="adr-032"></a>ADR-032 · 跨平台本地引擎 (`ownline`)、盲签凭据库 (Option A) 与本地诊断兜底三件套 [STATUS: IMPLEMENTED]
+
+#### 1. 现状与痛点 (Context)
+截至 Phase 4，本机首次接入链路存在四类结构性断裂：
+1. **双入口撕裂与平台锁定**：`README.md` 推荐用户将明文 `[IP:端口:密码]` 发进 AI 对话窗口，而仓库同时存在 Mac 专属 Shell 包装 `deploy/setup-mac.sh`、`启动安装.command` 与 `local-setup.html` 中的大量 `"Mac"` 硬编码，导致 Windows 与 Linux 用户缺少一致入口且本地凭据暴露面矛盾。
+2. **Agent 无法在零明文暴露下拿密**：若由本地 Agent（Cursor / Claude Code / Codex / Antigravity）代办安装与后续扩容（机房出口、Webshare 住宅 IP、国内中继），常规命令行参数或对话文本必然把 SSH 密码、私钥、腾讯云 SecretKey、Webshare 代理串永久写入模型上下文和 Shell 历史。
+3. **缺少全平台一致的“兜底三件套”**：本机生命周期缺少结构化脱敏诊断日志、`EVENT_REGISTRY` 代码-文档防漂移机制与局部版本检查入口。
+4. **跨平台模块耦合**：`server/nodekit/installations.py` 无条件 `import fcntl` 且 `emit_bundle` 使用平台路径分隔符，直接阻断 Windows Python 导入和归档打包。
+
+#### 2. 裁决结论 (Decision)
+1. **兜底三件套前置固化（`server/nodekit/local_diag.py` + `docs/02-本地诊断事件表.md`）**：
+   - 将全部分离事件收敛于单一代码注册表 `EVENT_REGISTRY`，调用 `emit_event()` 时强校验事件必须已注册，并在测试门禁中强制校验 `docs/02-本地诊断事件表.md` 与 `render_events_markdown()` 逐字同步；
+   - 自动清洗 PEM 私钥块、`Basic`/`Bearer` 认证头、URL 内置账密、Webshare 四段式 `ip:port:user:pass`、腾讯云 `AKID...` 及敏感字段键值后以 `0600` 写入 `.ops-private/local_diag.jsonl`；
+   - 通过 `server/local_setup.py` `GET /api/update` 与 `ownline.py update-check` 复用 `system_updater.check_update` 提供只读按需版本检查，回退页保持静态提示兜底。
+2. **Option A 盲签凭据库（`server/nodekit/local_vault.py` + `web/local-vault.html`）**：
+   - 在本机 `127.0.0.1` 守护进程内存中运行 `BlindVault`，支持 `ssh`、`tencent_api`、`webshare_isp`、`panel_auth` 四类槽位；Agent 发起 `ownline.py vault request` 时，桌面环境自动弹出单屏 `127.0.0.1/vault?req=...` 输入卡，无图形桌面时自动回退终端隐身输入（`getpass`）；
+   - Agent 仅获得不透明句柄 `vh_...` 与非敏感摘要，调用 `ownline.py check --vault-handle` 与 `/api/{check,tencent/instances}` 时由守护进程在内存内借用凭据并即时清理，进程关闭或 `/api/quit` 时全部归零。
+3. **跨平台统一入口与入口收口（`server/ownline_cli.py`, `ownline.py`, `启动安装.bat`）**：
+   - 归档Mac专用脚本 `deploy/setup-mac.sh` 至 `archive/prototypes/setup-mac.sh`；在 `installations.py` 兼容无 `fcntl` 平台并以 `.as_posix()` 规范化打包路径；移除 `prompt/ssh_setup.md`、`04-modals.html`、`README.md` 与 `local-setup.html` 中的 Mac 硬编码与明文传密话术。

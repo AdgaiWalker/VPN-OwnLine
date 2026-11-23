@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>/* {{STYLE}} */</style></head>
-<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>Mac 本地安装</span></header>
+<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>本地安装</span></header>
 <div id="connection-intro">
-<h1>创建节点</h1><p>用一台空白 Linux 服务器，从这台 Mac 完成配置。</p>
+<h1>创建节点</h1><p>用一台空白 Linux 服务器，从本机完成配置。</p>
 </div>
-<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再从仓库双击「启动安装.command」。</p>
+<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再通过仓库根目录的「启动安装.command」（macOS）、「启动安装.bat」（Windows）或 python3 ownline.py ui 重新打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
 <button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection">SSH 直连</button>
 <button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection">腾讯云 CVM</button>
@@ -62,7 +62,7 @@
 <h1 id="progress-title" tabindex="-1">正在创建节点</h1>
 <p id="progress-stage" role="status"></p>
 <p id="progress-time"></p>
-<p id="progress-keep-open">安装期间请保持 Mac 和启动窗口运行。</p>
+<p id="progress-keep-open">安装期间请保持本机和启动窗口运行。</p>
 </section>
 <section id="delivery" hidden aria-labelledby="delivery-title">
 <h1 id="delivery-title" tabindex="-1">节点已创建</h1>
@@ -85,13 +85,13 @@
 </div>
 <p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 WorkBuddy、Muse、Codex、Claude 或 Cursor。密码和私钥请在本页填写。</p>
 <p id="ssh-copy-status" class="field-note" role="status"></p>
-<pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器创建首个节点。
-1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
-2. 在「SSH 直连」中填写服务器公网地址。请让我本人在本地页面输入服务器密码或粘贴私钥。若测试失败，按页面提示检查账号、端口和云安全组。
-3. 测试连接，提示我通过云控制台核对 SSH 指纹。检查通过后，让我核实目标并主动点击「确认创建」。
+<pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的本机引擎（macOS / Windows / Linux），为一台我确认的新 Linux 服务器创建首个节点。
+1. 在仓库根目录运行 python3 ownline.py doctor --json 检查环境（图形回退入口为「启动安装.command」/「启动安装.bat」或 python3 ownline.py ui）。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
+2. 需要 SSH 凭据时，调用 python3 ownline.py vault request --slot ssh 打开本机盲签输入页，让我本人在本地页面输入密码或粘贴私钥，不要让我把明文发进对话。
+3. 使用盲签返回的句柄调用 python3 ownline.py check --vault-handle，提示我核对 SSH 指纹。检查通过后，让我核实目标并确认创建。
 4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
-<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、80/TCP、8443/TCP、443/TCP 和 443/UDP。</p>
-<p>凭据仅在这台 Mac 内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
+<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、8443/TCP、443/TCP 和 443/UDP（使用域名自动签发 HTTPS 证书时另放行 80/TCP）。</p>
+<p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
 <div class="help-links">
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noreferrer">查看版本发布</a>
@@ -99,5 +99,9 @@
 <p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
 </section>
 <footer>
+<div class="footer-left">
+<button id="check-update" class="text-button" type="button" hidden>检查更新</button>
+<span id="update-status" class="field-note" role="status" hidden></span>
+</div>
 <button id="quit" class="text-button" type="button" hidden>关闭本地服务</button>
 </footer></main><script>/* {{SCRIPT}} */</script></body></html>

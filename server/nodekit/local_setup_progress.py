@@ -16,7 +16,7 @@ STAGES = {
     'services': '启动服务并申请 HTTPS 证书',
     'selfcheck': '执行服务器安装自检',
     'server_verify': '验收服务器双协议出网',
-    'delivery_verify': '从 Mac 校验 HTTPS、登录和订阅',
+    'delivery_verify': '从本机校验 HTTPS、登录和订阅',
     'cleanup': '清理临时安装文件',
 }
 REMOTE_STAGES = tuple(STAGES)[3:14]

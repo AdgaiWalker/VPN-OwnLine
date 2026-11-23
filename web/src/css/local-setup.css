@@ -144,15 +144,25 @@ details > p { margin: 12px 0; }
 #progress-stages [data-state="running"] { color: var(--accent); font-weight: 600; }
 #progress-stages [data-state="attention"] { color: #85391d; font-weight: 600; }
 #progress-details, #setup-diagnostics { margin-top: 12px; }
-#status { white-space: pre-wrap; margin-top: 16px; }
-#status:empty { margin: 0; }
-#status[data-kind="error"] {
+#status, #vault-status { white-space: pre-wrap; margin-top: 16px; }
+#status:empty, #vault-status:empty { margin: 0; }
+#status[data-kind="error"], #vault-status[data-kind="error"] {
   border-inline-start: 3px solid #9b4c2a;
   padding: 10px 12px;
   border-radius: 3px;
   color: #702d15;
   background: #fbefe6;
 }
+#vault-card fieldset > label + label { margin-top: 16px; }
+#vault-ssh-options { margin-top: 12px; }
+#vault-ssh-options summary { padding: 8px 0; }
+#vault-ssh-options > label, #vault-ssh-options .row { margin-top: 12px; }
+#vault-ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
+#vault-handle-out { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.footer-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-inline-size: 0; }
+#check-update { color: var(--muted); font-weight: 400; text-decoration: none; }
+#check-update:hover:not(:disabled) { text-decoration: underline; }
+#update-status:not(:empty) { color: var(--muted); }
 .delivery-credentials { border-block: 1px solid var(--line); margin: 20px 0; padding: 16px 0 0; }
 .delivery-credentials input { max-inline-size: 25rem; }
 #ssh-help {
@@ -186,7 +196,10 @@ footer {
   margin-top: 32px;
   padding-top: 8px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 footer:has(#quit[hidden]) { display: none; }
 #quit { color: var(--muted); text-decoration: none; font-weight: 400; flex: none; }

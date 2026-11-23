@@ -145,15 +145,25 @@ details > p { margin: 12px 0; }
 #progress-stages [data-state="running"] { color: var(--accent); font-weight: 600; }
 #progress-stages [data-state="attention"] { color: #85391d; font-weight: 600; }
 #progress-details, #setup-diagnostics { margin-top: 12px; }
-#status { white-space: pre-wrap; margin-top: 16px; }
-#status:empty { margin: 0; }
-#status[data-kind="error"] {
+#status, #vault-status { white-space: pre-wrap; margin-top: 16px; }
+#status:empty, #vault-status:empty { margin: 0; }
+#status[data-kind="error"], #vault-status[data-kind="error"] {
   border-inline-start: 3px solid #9b4c2a;
   padding: 10px 12px;
   border-radius: 3px;
   color: #702d15;
   background: #fbefe6;
 }
+#vault-card fieldset > label + label { margin-top: 16px; }
+#vault-ssh-options { margin-top: 12px; }
+#vault-ssh-options summary { padding: 8px 0; }
+#vault-ssh-options > label, #vault-ssh-options .row { margin-top: 12px; }
+#vault-ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
+#vault-handle-out { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.footer-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-inline-size: 0; }
+#check-update { color: var(--muted); font-weight: 400; text-decoration: none; }
+#check-update:hover:not(:disabled) { text-decoration: underline; }
+#update-status:not(:empty) { color: var(--muted); }
 .delivery-credentials { border-block: 1px solid var(--line); margin: 20px 0; padding: 16px 0 0; }
 .delivery-credentials input { max-inline-size: 25rem; }
 #ssh-help {
@@ -187,7 +197,10 @@ footer {
   margin-top: 32px;
   padding-top: 8px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 footer:has(#quit[hidden]) { display: none; }
 #quit { color: var(--muted); text-decoration: none; font-weight: 400; flex: none; }
@@ -199,11 +212,11 @@ footer:has(#quit[hidden]) { display: none; }
   .row label { flex-basis: 100%; }
 }
 </style></head>
-<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>Mac 本地安装</span></header>
+<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>本地安装</span></header>
 <div id="connection-intro">
-<h1>创建节点</h1><p>用一台空白 Linux 服务器，从这台 Mac 完成配置。</p>
+<h1>创建节点</h1><p>用一台空白 Linux 服务器，从本机完成配置。</p>
 </div>
-<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再从仓库双击「启动安装.command」。</p>
+<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再通过仓库根目录的「启动安装.command」（macOS）、「启动安装.bat」（Windows）或 python3 ownline.py ui 重新打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
 <button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection">SSH 直连</button>
 <button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection">腾讯云 CVM</button>
@@ -261,7 +274,7 @@ footer:has(#quit[hidden]) { display: none; }
 <h1 id="progress-title" tabindex="-1">正在创建节点</h1>
 <p id="progress-stage" role="status"></p>
 <p id="progress-time"></p>
-<p id="progress-keep-open">安装期间请保持 Mac 和启动窗口运行。</p>
+<p id="progress-keep-open">安装期间请保持本机和启动窗口运行。</p>
 </section>
 <section id="delivery" hidden aria-labelledby="delivery-title">
 <h1 id="delivery-title" tabindex="-1">节点已创建</h1>
@@ -284,13 +297,13 @@ footer:has(#quit[hidden]) { display: none; }
 </div>
 <p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 WorkBuddy、Muse、Codex、Claude 或 Cursor。密码和私钥请在本页填写。</p>
 <p id="ssh-copy-status" class="field-note" role="status"></p>
-<pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的 Mac 本地安装页，为一台我确认的新 Linux 服务器创建首个节点。
-1. 检查当前仓库是否有「启动安装.command」，并从本机打开安装页。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
-2. 在「SSH 直连」中填写服务器公网地址。请让我本人在本地页面输入服务器密码或粘贴私钥。若测试失败，按页面提示检查账号、端口和云安全组。
-3. 测试连接，提示我通过云控制台核对 SSH 指纹。检查通过后，让我核实目标并主动点击「确认创建」。
+<pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的本机引擎（macOS / Windows / Linux），为一台我确认的新 Linux 服务器创建首个节点。
+1. 在仓库根目录运行 python3 ownline.py doctor --json 检查环境（图形回退入口为「启动安装.command」/「启动安装.bat」或 python3 ownline.py ui）。使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。
+2. 需要 SSH 凭据时，调用 python3 ownline.py vault request --slot ssh 打开本机盲签输入页，让我本人在本地页面输入密码或粘贴私钥，不要让我把明文发进对话。
+3. 使用盲签返回的句柄调用 python3 ownline.py check --vault-handle，提示我核对 SSH 指纹。检查通过后，让我核实目标并确认创建。
 4. 等待页面验收，告诉我如何打开管理后台并首次改密。不要索取、复制或输出密码、私钥、密钥、订阅链接或包含凭据的截图。</pre>
-<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、80/TCP、8443/TCP、443/TCP 和 443/UDP。</p>
-<p>凭据仅在这台 Mac 内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
+<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、8443/TCP、443/TCP 和 443/UDP（使用域名自动签发 HTTPS 证书时另放行 80/TCP）。</p>
+<p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
 <div class="help-links">
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/blob/main/docs/server-buying-guide.md" target="_blank" rel="noreferrer">VPS 选购建议</a>
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noreferrer">查看版本发布</a>
@@ -298,6 +311,10 @@ footer:has(#quit[hidden]) { display: none; }
 <p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
 </section>
 <footer>
+<div class="footer-left">
+<button id="check-update" class="text-button" type="button" hidden>检查更新</button>
+<span id="update-status" class="field-note" role="status" hidden></span>
+</div>
 <button id="quit" class="text-button" type="button" hidden>关闭本地服务</button>
 </footer></main><script>function hasSSHPrivateKeyHeader(text) {
   return /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(text);
@@ -734,6 +751,29 @@ async function copySetupText(text) {
     $('reveal').textContent = show ? '隐藏密码' : '显示密码';
     $('reveal').setAttribute('aria-pressed', String(show));
   };
+  if ($('check-update')) {
+    $('check-update').onclick = async () => {
+      const btn = $('check-update');
+      const note = $('update-status');
+      btn.disabled = true;
+      note.hidden = false;
+      note.textContent = '正在检查更新…';
+      try {
+        const info = await request('/api/update');
+        if (!info.ok) {
+          note.textContent = info.error || '当前处于离线或受限网络，无法检查更新。';
+        } else if (info.has_update) {
+          note.textContent = `发现新版本 ${info.latest_version}（当前 ${info.current_version}），请到发布页或更新仓库。`;
+        } else {
+          note.textContent = `当前已是最新版本 ${info.current_version || ''}`.trim();
+        }
+      } catch (err) {
+        note.textContent = (err && err.message) || '无法检查更新。';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  }
   $('quit').onclick = async () => {
     try {
       await request('/api/quit', {});
@@ -745,8 +785,8 @@ async function copySetupText(text) {
       $('initial-password').value = '';
       diagnostics.length = 0;
       $('setup-events').replaceChildren();
-      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit']) {
-        $(id).hidden = true;
+      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit', 'check-update', 'update-status']) {
+        if ($(id)) $(id).hidden = true;
       }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
@@ -754,6 +794,7 @@ async function copySetupText(text) {
   $('startup-fallback').hidden = true;
   showConnectionStep(true);
   $('quit').hidden = false;
+  if ($('check-update')) $('check-update').hidden = false;
   poll();
 })();
 </script></body></html>

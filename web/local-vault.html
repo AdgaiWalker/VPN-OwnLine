@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本机盲签凭据</title><style>:root {
+  color-scheme: light;
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #202822;
+  background: #f6f6f0;
+  --muted: #535f55;
+  --line: #cfd5c9;
+  --soft: #eaece3;
+  --accent: #203f35;
+  --accent-hover: #162e26;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; }
+main { max-inline-size: 640px; margin-inline: auto; padding: 44px 24px 32px; }
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--line);
+}
+header span, small { color: var(--muted); font-size: 13px; }
+header strong { white-space: nowrap; }
+h1 {
+  font-size: clamp(30px, 5vw, 38px);
+  line-height: 1.16;
+  letter-spacing: -.025em;
+  margin: 36px 0 12px;
+}
+h2 { font-size: 20px; margin: 0 0 12px; }
+p { margin: 0 0 16px; color: var(--muted); }
+a { color: var(--accent); text-underline-offset: 3px; }
+fieldset { border: 0; margin: 0; min-inline-size: 0; padding: 0; }
+label { display: block; font-size: 14px; font-weight: 600; }
+input {
+  display: block;
+  inline-size: 100%;
+  min-block-size: 48px;
+  border: 1px solid #aab4a7;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-top: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 400;
+}
+input::placeholder { color: #626d62; }
+:where(button, a, input, summary):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+button, .primary-link {
+  min-block-size: 44px;
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.primary-link { display: inline-flex; align-items: center; text-decoration: none; }
+button:hover:not(:disabled), .primary-link:hover { background: var(--accent-hover); }
+button:disabled { cursor: default; opacity: .55; }
+button.secondary { background: var(--soft); color: #202822; }
+button.secondary:hover:not(:disabled) { background: #e0e5d9; }
+button.text-button {
+  background: transparent;
+  color: var(--accent);
+  padding: 6px 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+button.text-button:hover:not(:disabled) { background: transparent; color: var(--accent-hover); }
+summary { cursor: pointer; color: var(--accent); }
+details { font-size: 14px; }
+details > p { margin: 12px 0; }
+.row, .actions, .help-links { display: flex; gap: 12px; flex-wrap: wrap; }
+.row label { flex: 1 1 140px; min-inline-size: 0; }
+.actions { margin-top: 24px; }
+.help-links { align-items: center; column-gap: 16px; }
+.field-note { font-size: 14px; }
+.notice { background: var(--soft); padding: 14px 16px; border-radius: 8px; }
+
+#connection-methods {
+  display: inline-flex;
+  gap: 4px;
+  margin: 8px 0 24px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+}
+#connection-methods button { background: transparent; color: var(--muted); }
+#connection-methods button[aria-pressed="true"] {
+  background: #fff;
+  border-color: var(--line);
+  color: var(--accent);
+}
+#connection-methods button:hover:not(:disabled) { color: #14291f; }
+#connection-fields > label + label { margin-top: 16px; }
+#connection-fields .target-card + label { margin-top: 16px; }
+#ssh-options { margin-top: 12px; }
+#ssh-options summary { padding: 8px 0; }
+#ssh-options > label, #ssh-options .row { margin-top: 12px; }
+#ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
+#check, #tencent-read { display: block; margin-top: 20px; inline-size: 100%; }
+#tencent-results { margin-bottom: 8px; }
+#tencent-instances, #progress-stages, #setup-events { padding-inline-start: 20px; color: var(--muted); }
+#tencent-instances {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-block-size: 22rem;
+  overflow: auto;
+}
+#tencent-instances li + li { margin-top: 8px; }
+#tencent-instances button, .target-card {
+  overflow-wrap: anywhere;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #202822;
+  padding: 12px 14px;
+}
+#tencent-instances button { display: block; inline-size: 100%; text-align: left; }
+#tencent-instances button:hover:not(:disabled) { background: var(--soft); }
+.target-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.target-card div { min-inline-size: 0; }
+#selected-address { display: block; color: var(--muted); font-size: 14px; }
+#change-instance { flex: none; }
+#progress-stage { font-weight: 600; color: var(--accent); }
+#progress-time { font-variant-numeric: tabular-nums; }
+#progress-time:empty, #progress-stage:empty { margin: 0; }
+#progress-stages li, #setup-events li { padding-block: 4px; }
+#progress-stages [data-state="running"] { color: var(--accent); font-weight: 600; }
+#progress-stages [data-state="attention"] { color: #85391d; font-weight: 600; }
+#progress-details, #setup-diagnostics { margin-top: 12px; }
+#status, #vault-status { white-space: pre-wrap; margin-top: 16px; }
+#status:empty, #vault-status:empty { margin: 0; }
+#status[data-kind="error"], #vault-status[data-kind="error"] {
+  border-inline-start: 3px solid #9b4c2a;
+  padding: 10px 12px;
+  border-radius: 3px;
+  color: #702d15;
+  background: #fbefe6;
+}
+#vault-card fieldset > label + label { margin-top: 16px; }
+#vault-ssh-options { margin-top: 12px; }
+#vault-ssh-options summary { padding: 8px 0; }
+#vault-ssh-options > label, #vault-ssh-options .row { margin-top: 12px; }
+#vault-ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
+#vault-handle-out { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.footer-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-inline-size: 0; }
+#check-update { color: var(--muted); font-weight: 400; text-decoration: none; }
+#check-update:hover:not(:disabled) { text-decoration: underline; }
+#update-status:not(:empty) { color: var(--muted); }
+.delivery-credentials { border-block: 1px solid var(--line); margin: 20px 0; padding: 16px 0 0; }
+.delivery-credentials input { max-inline-size: 25rem; }
+#ssh-help {
+  margin-top: 28px;
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+  font-size: 14px;
+}
+.help-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 12px;
+}
+.help-heading h2 { margin: 0; }
+#copy-ssh-prompt { border-color: var(--line); }
+#ssh-copy-status:empty { display: none; }
+#ssh-prompt {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--soft);
+  border-radius: 8px;
+  padding: 12px;
+  font: inherit;
+}
+.update-note { margin: 8px 0 0; }
+footer {
+  border-top: 1px solid var(--line);
+  margin-top: 32px;
+  padding-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+footer:has(#quit[hidden]) { display: none; }
+#quit { color: var(--muted); text-decoration: none; font-weight: 400; flex: none; }
+#quit:hover:not(:disabled) { text-decoration: underline; }
+
+@media (max-width: 480px) {
+  main { padding: 24px 16px; }
+  h1 { margin-top: 28px; }
+  .row label { flex-basis: 100%; }
+}
+</style></head>
+<body><main><header><strong>Evergreen <small>OwnLine</small></strong><span>本机盲签凭据</span></header>
+<p id="vault-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，或在无图形界面终端改用 python3 ownline.py vault request --mode tty。</p>
+<section id="vault-card" hidden aria-labelledby="vault-title">
+<h1 id="vault-title" tabindex="-1">输入本机凭据</h1>
+<p id="vault-context" class="notice" hidden></p>
+<p>你输入的内容仅保存在当前设备内存中，Agent 只会收到一次性编号，无法读取任何明文。</p>
+<form id="vault-form" method="post">
+<fieldset id="slot-ssh" hidden disabled aria-label="SSH 服务器凭据">
+<label>服务器地址<input id="vault-ssh-host" name="host" required placeholder="公网 IPv4 或域名" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label>服务器密码或 SSH 私钥<input id="vault-ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="vault-ssh-key-status"></label>
+<span id="vault-ssh-key-status" role="status"></span>
+<details id="vault-ssh-options"><summary>连接设置</summary>
+<div class="row"><label>用户名<input id="vault-ssh-user" name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input id="vault-ssh-port" name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
+<label>私钥密码（可选）<input id="vault-ssh-passphrase" name="passphrase" type="password" autocomplete="off"></label>
+</details>
+</fieldset>
+<fieldset id="slot-tencent_api" hidden disabled aria-label="腾讯云只读 API 密钥">
+<div class="row">
+<label>SecretId<input id="vault-tencent-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
+<label>SecretKey<input id="vault-tencent-key" name="secret_key" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
+</div>
+</fieldset>
+<fieldset id="slot-webshare_isp" hidden disabled aria-label="Webshare 静态住宅代理">
+<label>静态住宅代理串<input id="vault-isp-proxy" name="proxy_url" type="password" required placeholder="粘贴 Webshare 代理串 / ip:port:user:pass / curl 命令" autocomplete="off" spellcheck="false"></label>
+</fieldset>
+<fieldset id="slot-panel_auth" hidden disabled aria-label="管理后台密码">
+<label>管理面板地址（可选）<input id="vault-panel-url" name="dashboard_url" type="url" placeholder="https://..." autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<div class="row">
+<label>管理员账号<input id="vault-panel-user" name="username" value="admin" required autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+<label>面板密码<input id="vault-panel-password" name="password" type="password" required autocomplete="off"></label>
+</div>
+</fieldset>
+<div class="actions">
+<button id="vault-submit" type="submit">安全存入本机内存</button>
+<button id="vault-cancel" class="secondary" type="button">取消</button>
+</div>
+</form>
+</section>
+<section id="vault-done" hidden aria-labelledby="vault-done-title">
+<h1 id="vault-done-title" tabindex="-1">已存入本机内存</h1>
+<p>明文凭据未写入磁盘，也未发送给 AI。你可以关闭此页面并返回命令行继续执行。</p>
+<div class="target-card">
+<div><strong id="vault-handle-out"></strong><span id="vault-summary-out"></span></div>
+</div>
+</section>
+<p id="vault-status" role="status" aria-live="polite"></p>
+</main><script>function hasSSHPrivateKeyHeader(text) {
+  return /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(text);
+}
+
+function bindSSHKeyPaste(input, onKeyChange) {
+  input.addEventListener("paste", function (event) {
+    const text = event.clipboardData && event.clipboardData.getData("text/plain");
+    if (!text || !hasSSHPrivateKeyHeader(text)) return;
+    event.preventDefault();
+    input.value = "";
+    onKeyChange(text);
+  });
+  input.addEventListener("input", function () { onKeyChange(""); });
+}
+
+async function copySetupText(text) {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch (_) {
+    const input = document.createElement("textarea");
+    input.value = text;
+    input.style.position = "fixed";
+    input.style.opacity = "0";
+    document.body.appendChild(input);
+    try {
+      input.select();
+      return document.execCommand("copy");
+    } catch (_) {
+      return false;
+    } finally {
+      input.remove();
+    }
+  }
+}
+
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const SLOTS = ['ssh', 'tencent_api', 'webshare_isp', 'panel_auth'];
+  const TITLES = {
+    ssh: '输入服务器 SSH 凭据',
+    tencent_api: '输入腾讯云只读 API 密钥',
+    webshare_isp: '输入静态住宅代理凭据',
+    panel_auth: '输入管理面板登录凭据',
+  };
+  const sshCred = $('vault-ssh-credential');
+  let reqId = '';
+  let activeSlot = '';
+  let sshPrivateKey = '';
+  let busy = false;
+
+  const setStatus = (text, kind = '') => {
+    const el = $('vault-status');
+    el.textContent = text;
+    el.dataset.kind = kind;
+  };
+
+  function setSSHKey(key) {
+    if (sshPrivateKey && key !== sshPrivateKey) $('vault-ssh-passphrase').value = '';
+    sshPrivateKey = key;
+    sshCred.required = !key;
+    $('vault-ssh-key-status').textContent = key ? '已粘贴 SSH 私钥' : '';
+  }
+
+  function clearAllSecrets() {
+    for (const id of [
+      'vault-ssh-credential',
+      'vault-ssh-passphrase',
+      'vault-tencent-id',
+      'vault-tencent-key',
+      'vault-isp-proxy',
+      'vault-panel-password',
+    ]) {
+      const el = $(id);
+      if (el) el.value = '';
+    }
+    setSSHKey('');
+  }
+
+  function formatSummary(slot, summary) {
+    if (!summary) return '';
+    if (slot === 'ssh') return `${summary.username || 'root'}@${summary.host || ''}:${summary.ssh_port || 22}`;
+    if (slot === 'tencent_api') return `SecretId ${summary.secret_id_masked || '****'}`;
+    if (slot === 'webshare_isp') return `${summary.protocol || 'socks'}://${summary.host || ''}:${summary.port || ''}`;
+    if (slot === 'panel_auth') return `${summary.username || 'admin'}${summary.dashboard_url ? ' · ' + summary.dashboard_url : ''}`;
+    return '';
+  }
+
+  function showDone(slot, handle, summary) {
+    clearAllSecrets();
+    $('vault-card').hidden = true;
+    $('vault-handle-out').textContent = handle || '';
+    $('vault-summary-out').textContent = formatSummary(slot, summary);
+    $('vault-done').hidden = false;
+    $('vault-done-title').focus();
+    setStatus('');
+  }
+
+  function showSlot(slot) {
+    for (const name of SLOTS) {
+      const fs = $(`slot-${name}`);
+      const active = name === slot;
+      fs.hidden = !active;
+      fs.disabled = !active;
+    }
+  }
+
+  async function api(path, body) {
+    const options = body
+      ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      : { cache: 'no-store' };
+    const resp = await fetch(path, options);
+    const data = await resp.json();
+    if (!resp.ok) {
+      const err = new Error(data.message || '操作未完成。');
+      err.data = data;
+      throw err;
+    }
+    return data;
+  }
+
+  bindSSHKeyPaste(sshCred, key => setSSHKey(key));
+  $('vault-ssh-options').addEventListener('invalid', () => { $('vault-ssh-options').open = true; }, true);
+
+  $('vault-form').onsubmit = async event => {
+    event.preventDefault();
+    if (busy || !reqId || !activeSlot) return;
+    let payload = {};
+    if (activeSlot === 'ssh') {
+      if (!sshPrivateKey && hasSSHPrivateKeyHeader(sshCred.value)) {
+        setStatus('请在凭据栏粘贴完整的 SSH 私钥。', 'error');
+        sshCred.focus();
+        return;
+      }
+      payload = {
+        host: $('vault-ssh-host').value.trim(),
+        username: $('vault-ssh-user').value.trim() || 'root',
+        ssh_port: Number($('vault-ssh-port').value || 22),
+      };
+      if (sshPrivateKey) {
+        payload.private_key = sshPrivateKey;
+        if ($('vault-ssh-passphrase').value) payload.passphrase = $('vault-ssh-passphrase').value;
+      } else {
+        payload.password = sshCred.value;
+      }
+    } else if (activeSlot === 'tencent_api') {
+      payload = {
+        secret_id: $('vault-tencent-id').value.trim(),
+        secret_key: $('vault-tencent-key').value.trim(),
+      };
+    } else if (activeSlot === 'webshare_isp') {
+      payload = { proxy_url: $('vault-isp-proxy').value.trim() };
+    } else if (activeSlot === 'panel_auth') {
+      payload = {
+        dashboard_url: $('vault-panel-url').value.trim(),
+        username: $('vault-panel-user').value.trim() || 'admin',
+        password: $('vault-panel-password').value,
+      };
+    }
+
+    busy = true;
+    $('vault-submit').disabled = $('vault-cancel').disabled = true;
+    clearAllSecrets();
+    setStatus('正在存入本机内存…');
+    try {
+      const data = await api('/api/vault/submit', { request_id: reqId, payload });
+      showDone(activeSlot, data.handle, data.summary);
+    } catch (err) {
+      setStatus(err.message || '提交未成功，请核对输入。', 'error');
+    } finally {
+      payload = {};
+      clearAllSecrets();
+      busy = false;
+      $('vault-submit').disabled = $('vault-cancel').disabled = false;
+    }
+  };
+
+  $('vault-cancel').onclick = async () => {
+    if (busy || !reqId) return;
+    busy = true;
+    $('vault-submit').disabled = $('vault-cancel').disabled = true;
+    clearAllSecrets();
+    try {
+      await api('/api/vault/cancel', { request_id: reqId });
+      $('vault-card').hidden = true;
+      setStatus('已取消输入，可关闭此页面。');
+    } catch (err) {
+      setStatus(err.message || '取消失败。', 'error');
+    } finally {
+      busy = false;
+      $('vault-submit').disabled = $('vault-cancel').disabled = false;
+    }
+  };
+
+  async function init() {
+    $('vault-fallback').hidden = true;
+    const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
+    reqId = params.get('req') || '';
+    if (!reqId) {
+      setStatus('缺少凭据请求编号，请从 Agent 或命令行重新打开此页面。', 'error');
+      return;
+    }
+    try {
+      const info = await api(`/api/vault/status?id=${encodeURIComponent(reqId)}`);
+      if (info.state === 'submitted') {
+        showDone(info.slot, info.handle, info.summary);
+        return;
+      }
+      if (info.state !== 'pending') {
+        setStatus(info.state === 'expired' ? '凭据输入请求已超时，请在终端重新发起。' : '该凭据输入请求已取消。', 'error');
+        return;
+      }
+      activeSlot = info.slot;
+      $('vault-title').textContent = TITLES[activeSlot] || '输入本机凭据';
+      const ctxParts = [info.label, info.target_hint].filter(Boolean);
+      if (ctxParts.length) {
+        $('vault-context').textContent = ctxParts.join(' · ');
+        $('vault-context').hidden = false;
+      }
+      if (activeSlot === 'ssh' && info.target_hint && !$('vault-ssh-host').value) {
+        $('vault-ssh-host').value = info.target_hint;
+      }
+      showSlot(activeSlot);
+      $('vault-card').hidden = false;
+      const firstFocus = activeSlot === 'ssh'
+        ? ($('vault-ssh-host').value ? sshCred : $('vault-ssh-host'))
+        : $(`slot-${activeSlot}`).querySelector('input');
+      if (firstFocus) firstFocus.focus();
+    } catch (err) {
+      setStatus(err.message || '无法读取凭据请求状态。', 'error');
+    }
+  }
+
+  init();
+})();
+</script></body></html>

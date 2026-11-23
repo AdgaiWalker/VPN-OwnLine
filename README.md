@@ -8,10 +8,10 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 951 Passed](https://img.shields.io/badge/Tests-951%20Passed%20(100%25)-success.svg)]()
+[![Tests: 967 Passed](https://img.shields.io/badge/Tests-967%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](research/06-trusted-delivery-plan.md)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](research/06-trusted-delivery-plan.md)
-[![Mac Install: Tested](https://img.shields.io/badge/Mac%20Install-Tested-success.svg)](research/07-mac-install-acceptance.md)
+[![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](research/05-interface-contracts.md)
 
 ---
 
@@ -47,40 +47,41 @@ flowchart LR
 
 ---
 
-## 🚀 2 分钟极速装配
+## 2 分钟极速装配
 
-材料就绪后，选择以下任意一种方式完成部署：
+材料就绪后，系统提供统一跨平台（macOS / Windows / Linux）本地控制引擎，按以下任一方式完成首台服务器部署：
 
-### Mac 本地网页安装
+### 方式 1：本地 AI Agent + 本机盲签凭据库（推荐 · 全平台）
 
-解压 [v0.7.0 发布包](https://github.com/AdgaiWalker/VPN-OwnLine/releases/download/v0.7.0/vpn-ownline-v0.7.0.tar.gz)，或使用仓库副本。双击根目录的 **`启动安装.command`**，打开只监听本机的「创建节点」页面。需要 Python 3.10+，首次启动会按 `requirements.lock` 安装本地依赖。填入服务器地址，在同一栏输入密码或粘贴完整的 SSH 私钥，再点击「测试连接」并按提示核对 SSH 指纹。修改默认账号 root、端口 22 或填写私钥密码时，展开「连接设置」。检查通过后核对目标，再点击「确认创建」。表单下方直接展示安装帮助、Agent 任务书及复制按钮。
+不用学 Linux 命令，也**不要把服务器密码、SSH 私钥、腾讯云 API 密钥或 Webshare 口令发进聊天框**。  
+在 **Cursor / Claude Code / Codex / Antigravity** 等具备本机终端权限的工具中，输入下面这段提示词（仅写目标服务器 IP）：
 
-需要协助时，把任务书复制到本地使用的 Agent，例如 WorkBuddy、Muse、Codex、Claude 或 Cursor。密码和私钥在安装页填写。
-
-安装页默认使用「SSH 直连」。切到「腾讯云 CVM」，可用只读 SecretId 和 SecretKey 查询有公网 IPv4 的 CVM 实例。结果完整且只有一台时自动带入，多台或结果不完整时从列表选择。选定后输入该服务器的 SSH 凭据即可测试连接，更换实例可回到已有列表。Mac 直接请求腾讯云接口，查询后清空密钥。轻量应用服务器可通过 SSH 直连填写公网地址。[CVM 查询](https://cloud.tencent.com/document/product/213/15728)
-
-SSH 连接由 Mac 直接发往目标服务器；密码、私钥和私钥口令不写入文件或日志。安装会下载目标依赖并申请 HTTPS 证书，需要云安全组放通 SSH、80/TCP、8443/TCP、443/TCP、443/UDP。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器，不接管已有服务。
-
-安装期间保持 Mac 和启动窗口运行。页面显示实际阶段和耗时，点击“查看安装记录”可展开完整记录，刷新后继续读取当前任务。失败时页面会直接显示原因和下一步。安装与验收通过后，页面优先显示管理入口和初始密码。保存密码后，可关闭本地服务，内存中的任务和交付信息随之清除。
-
-此入口已完成 Mac → 空白 Debian 12 云机的网页首装、首次改密、客户端导入和 Reality/HY2 独立出网验证。后续增加了安装进度、精简了确认流程，并将 SSH 直连和 CVM 选择放到表单顶部。真实腾讯云账号查询和更新后的云机首装待复验。[验收记录](research/07-mac-install-acceptance.md)
-
-### 方式 1：交给本地 AI Agent 全自动装配（⭐ 最推荐 · 小白首选）
-不用打开云服务器黑框终端，不用学任何 Linux 命令。  
-在 **Cursor / Claude Code / Antigravity / Windsurf** 等 AI 工具中，直接把下面这句话连同你的服务器信息发给 AI：
 ```text
-克隆 https://github.com/AdgaiWalker/VPN-OwnLine.git，通过 SSH 连接我的服务器 [IP:端口:密码]，帮我全自动装配好，并把管理网址和初始账号密码发给我。
+在 Evergreen · OwnLine 代码库根目录运行 python3 ownline.py doctor --json；通过 python3 ownline.py vault request --slot ssh --hint [你的服务器IP] 弹出本机盲签输入页（无图形界面时回退终端隐身输入）由我本人填写 SSH 凭据，拿到句柄后执行预检与安装，并在完成后汇报管理后台地址。切勿索取或输出任何明文密码或私钥。
 ```
-> AI 会自动帮你完成环境检测、安全加固与服务验证，装好后直接把管理后台链接和密码交还给你。
 
----
+- 桌面系统会自动在浏览器打开仅监听 `127.0.0.1` 的单屏盲签卡片；无桌面 SSH/终端环境自动回退为本机隐藏输入（`getpass`）。
+- 密码与私钥仅存于本机临时内存句柄（`vh_...`），不落盘、不进诊断日志、不进 AI 对话上下文。
 
-### 方式 2：自备服务器终端一行命令装配（工程师极客）
-如果你熟悉终端，登录云服务器网页命令行（Ubuntu 22.04 / Debian 12），粘贴并回车：
+### 方式 2：无 Agent 兜底 · 本机图形安装页（全平台）
+
+解压 [v0.7.0 发布包](https://github.com/AdgaiWalker/VPN-OwnLine/releases/download/v0.7.0/vpn-ownline-v0.7.0.tar.gz) 或克隆仓库（需 Python 3.10+，首次启动自动按 `requirements.lock` 校验安装依赖）：
+
+- **macOS**：双击根目录 **`启动安装.command`**
+- **Windows**：双击根目录 **`启动安装.bat`**
+- **Linux / 命令行**：在仓库根目录运行 `python3 ownline.py ui`
+
+页面支持「SSH 直连」（同一输入栏填密码或粘贴完整 PEM 私钥）与「腾讯云 CVM 只读发现」，连接前先弹窗核对 SSH 指纹，再显式确认安装并实时展示真实阶段与耗时。安装期间保持本机与启动窗口运行；保存初始密码并关闭本地服务后，内存中的任务与凭据随即清空。[首版 Mac 验收记录](research/07-mac-install-acceptance.md)
+
+> 安全组端口要求：在云控制台放行 `SSH 端口`、`8443/TCP`、`443/TCP`、`443/UDP`（若使用自定义域名自动签发 HTTPS 证书，另放行 `80/TCP`）。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器。
+
+### 方式 3：自备服务器终端一行命令装配（极客备选）
+
+登录云服务器终端（Ubuntu 22.04+ / Debian 12+），以 root 权限执行：
 ```bash
 curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash
 ```
-* **运行完毕后，屏幕直接打出你的专属管理后台网址与密码**：
+* **运行完毕后，屏幕直接打出你的专属管理后台网址与初始密码**：
   ```text
   专属管理地址: https://43.153.56.137:8443/
   面板账号:   admin

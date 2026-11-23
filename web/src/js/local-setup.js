@@ -397,6 +397,29 @@
     $('reveal').textContent = show ? '隐藏密码' : '显示密码';
     $('reveal').setAttribute('aria-pressed', String(show));
   };
+  if ($('check-update')) {
+    $('check-update').onclick = async () => {
+      const btn = $('check-update');
+      const note = $('update-status');
+      btn.disabled = true;
+      note.hidden = false;
+      note.textContent = '正在检查更新…';
+      try {
+        const info = await request('/api/update');
+        if (!info.ok) {
+          note.textContent = info.error || '当前处于离线或受限网络，无法检查更新。';
+        } else if (info.has_update) {
+          note.textContent = `发现新版本 ${info.latest_version}（当前 ${info.current_version}），请到发布页或更新仓库。`;
+        } else {
+          note.textContent = `当前已是最新版本 ${info.current_version || ''}`.trim();
+        }
+      } catch (err) {
+        note.textContent = (err && err.message) || '无法检查更新。';
+      } finally {
+        btn.disabled = false;
+      }
+    };
+  }
   $('quit').onclick = async () => {
     try {
       await request('/api/quit', {});
@@ -408,8 +431,8 @@
       $('initial-password').value = '';
       diagnostics.length = 0;
       $('setup-events').replaceChildren();
-      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit']) {
-        $(id).hidden = true;
+      for (const id of ['connection-intro', 'connection-methods', 'connection', 'confirmation', 'delivery', 'progress', 'progress-details', 'setup-diagnostics', 'ssh-help', 'quit', 'check-update', 'update-status']) {
+        if ($(id)) $(id).hidden = true;
       }
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
@@ -417,5 +440,6 @@
   $('startup-fallback').hidden = true;
   showConnectionStep(true);
   $('quit').hidden = false;
+  if ($('check-update')) $('check-update').hidden = false;
   poll();
 })();

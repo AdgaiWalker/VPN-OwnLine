@@ -557,3 +557,28 @@ Mac 页的「腾讯云 CVM」发送 `product: "cvm"`。选定实例后在当前�
 3. **外部 SLA 探测与云账单对账工具（`scripts/ops/{external_probe,billing_reconcile}.py`）**：
    - `external_probe.py [--url URL] [--socks5 HOST:PORT] [--isp-expected-ip IP] [--report] [--days 7] [--out PATH] [--json]`：记录 `+08:00` 时区探针结果至 JSONL，汇总窗口内样本数、`availability_pct`、`disconnect_rate_pct`、`p50_ms`、`p95_ms`、`stealth_pass_rate_pct` 与 `isp_leak_count`。
    - `billing_reconcile.py [--panel-file FILE | --panel-gb GB] [--official-file CSV_OR_JSON | --official-gb GB] [--strict] [--json]`：比对面板月用量/重置日与云厂商官方账单，按 `delta_pct <= 5%`（且重置日不冲突）判定 `aligned`、`<= 15%` 判定 `minor_drift`、其余判定 `discrepancy`（退出码 `1`）。
+
+### 4.26 跨平台本地控制引擎 (`ownline.py`)、盲签凭据库与本地诊断契约（ADR-032 / S1） `[STATUS: IMPLEMENTED]`
+
+1. **本地脱敏诊断日志与事件注册表契约（`server/nodekit/local_diag.py`, `docs/02-本地诊断事件表.md`）**：
+   - `emit_event(event, detail, *, log_path, severity)` 仅接受 `EVENT_REGISTRY` 中声明的事件码，未注册事件立即抛出 `ValueError`；`docs/02-本地诊断事件表.md` 必须与 `local_diag.render_events_markdown()` 完全一致并受自动化单测强校验。
+   - `redact_payload` 与 `redact_text` 在写入 `.ops-private/local_diag.jsonl`（权限 `0600`，单文件上限 `2 MiB` 滚动 `.1`）前强制擦除密码、私钥 PEM、`Basic`/`Bearer` 凭证、`scheme://u:p@host`、Webshare 四段式 `ip:port:u:p`、腾讯云 `AKID...` 及密钥字典键为 `[REDACTED]`，同时保留 `host`、`auth_type`、`code` 等非敏感排障字段。
+
+2. **盲签凭据库契约（`server/nodekit/local_vault.py`, `web/local-vault.html`）**：
+   - `BlindVault` 严格纯内存运行，支持 `ssh`、`tencent_api`、`webshare_isp`、`panel_auth` 四种槽位（默认句柄 TTL `600s`，输入请求 TTL `300s`）。
+   - 所有对外返回接口（`create_request`、`submit_request`、`request_status`、`describe`、`list_handles`）严禁出现 `password`、`private_key`、`passphrase`、`secret_id`、`secret_key`、`proxy_url` 或 Webshare 账号密码原文；`borrow(handle, expected_slot=...)` 仅限同进程执行器在内存中临时读取，跨槽位调用抛出 `VaultError("VAULT_SLOT_MISMATCH", 400)`，调用 `clear()` 或过期时必须立即就地清空凭据字典。
+
+3. **本地守护 HTTP 扩展端点（`server/local_setup.py`）**：
+   - 保持 `LocalSetupGuard`（回环 peer、`Host` 精确匹配、变更/敏感读 Cookie + 同源校验）全覆盖：
+     - `GET /vault`：输出单屏盲签输入页面 `web/local-vault.html` 并签发 `HttpOnly; SameSite=Strict` 会话 Cookie。
+     - `GET /api/vault/status?id=<req_id>` & `GET /api/vault/handles`：返回请求状态与非敏感摘要。
+     - `GET /api/update[?force=1]`：按需触发 `system_updater.check_update` 并记录 `local_update_checked` 事件；页面默认初始化与状态轮询期间不得主动请求该接口。
+     - `GET /api/diag/events[?limit=50]`：返回脱敏后的近期本地诊断事件列表。
+     - `POST /api/vault/{request,submit,cancel,clear}`：创建请求（`201` 含 `vault_url`）、提交明文换取 `vh_...` 句柄、取消或清理句柄。
+     - `POST /api/check` & `POST /api/tencent/instances`：支持传入 `{"vault_handle": "vh_..."}` 在内存借用凭据完成探测并在 `finally` 立即清空临时副本（`/api/check` 采用非销毁借用以支持 `409 HOST_KEY_CONFIRMATION` 指纹核对后重试）。
+     - `POST /api/quit`：拒绝中断进行中的安装任务，否则调用 `vault.clear()` 清空全量内存句柄并关闭本地服务。
+
+4. **跨平台 CLI 工具接口与启动器（`ownline.py`, `server/ownline_cli.py`, `启动安装.bat`, `启动安装.command`）**：
+   - `python3 ownline.py doctor [--check-update] --json`：离线返回平台、Python >= 3.10、依赖（`paramiko`/`bcrypt`）、三份合成前端文件（`index.html`/`local-setup.html`/`local-vault.html`）、版本与守护进程存活状态。
+   - `python3 ownline.py vault request --slot {ssh|tencent_api|webshare_isp|panel_auth} [--hint TARGET] [--mode auto|browser|tty] [--json]`：`auto` 模式下，有桌面环境自动启动本地守护进程并打开 `/vault?req=...`，无桌面环境（如 `OWNLINE_HEADLESS=1` 或 SSH 终端）自动切换 `getpass` 隐身输入，标准输出仅打印 `{"ok": true, "mode": ..., "handle": "vh_...", "summary": {...}}`。
+   - 提供 `check --vault-handle`、`tencent-instances --vault-handle`、`install --check-token --confirm`、`status`、`logs`、`events [--markdown]`、`update-check`、`ui`、`serve`、`stop` 全量结构化 JSON 子命令；`deploy/setup-mac.sh` 归档至 `archive/prototypes/setup-mac.sh`。

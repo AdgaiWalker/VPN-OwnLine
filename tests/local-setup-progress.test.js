@@ -165,7 +165,7 @@ test('typing a password replaces a pasted key and drops its passphrase',async()=
   });
 });
 
-test('the visible Mac task brief copies only static text and stays available for manual copy on failure',async()=>{
+test('the visible cross-platform task brief copies only static text and stays available for manual copy on failure',async()=>{
   let copied='', blockCopy=false;
   const h=await harness({state:'idle'},{},async text=>{
     if (blockCopy) throw new Error('clipboard disabled');
@@ -174,7 +174,7 @@ test('the visible Mac task brief copies only static text and stays available for
   assert.equal(h.elements['ssh-help'].hidden,false);
   assert.equal(h.elements['ssh-prompt'].hidden,false);
   await h.elements['copy-ssh-prompt'].onclick();
-  assert.match(copied,/启动安装\.command/);
+  assert.match(copied,/ownline\.py/);
   assert.match(copied,/本人在本地页面输入/);
   assert.doesNotMatch(copied,/local-fixture/);
   assert.equal(h.elements['ssh-prompt'].hidden,false);
@@ -386,4 +386,14 @@ test('a late in-flight status response cannot restore credentials after quitting
     assert.match(h.elements.status.textContent,/本地服务已关闭/);
     assert.equal(h.timers.size,0);
   }
+});
+
+test('explicit check-update click queries /api/update without polling side effects',async()=>{
+  const h=await harness({state:'idle'},{'/api/update':()=>({ok:true,current_version:'v0.7.0',latest_version:'v0.8.0',has_update:true})});
+  assert(h.calls.every(c=>c.path==='/api/status'));
+  assert.equal(h.elements['check-update'].hidden,false);
+  await h.elements['check-update'].onclick();
+  assert(h.calls.some(c=>c.path==='/api/update'));
+  assert.equal(h.elements['update-status'].hidden,false);
+  assert.match(h.elements['update-status'].textContent,/v0\.8\.0/);
 });

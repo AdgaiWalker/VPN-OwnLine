@@ -23,6 +23,12 @@ test('ssh ai prompt: HTML elements, prompt text, and prompt markdown file exist'
   // Verify markdown file integrity
   assert(sshSetupMd.includes('AI 辅助服务器接入任务书'), 'ssh_setup.md must have title');
   assert(sshSetupMd.includes('Evergreen · OwnLine'), 'ssh_setup.md must reference project');
+
+  // Verify blind vault & zero plaintext secret policy
+  assert(html.includes('ownline.py vault request'), 'index.html prompt must reference blind vault CLI');
+  assert(sshSetupMd.includes('ownline.py vault request'), 'ssh_setup.md must reference blind vault CLI');
+  assert(!html.includes('填入新服务器 IP、密码、密钥'), 'index.html must not tell users to paste secrets in chat');
+  assert(!sshSetupMd.includes('填入新服务器 IP、密码、密钥'), 'ssh_setup.md must not tell users to paste secrets in chat');
 });
 
 test('ssh ai prompt: i18n dictionary contains required keys in both zh and en', () => {

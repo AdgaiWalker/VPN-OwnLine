@@ -44,11 +44,20 @@ def build() -> str:
 
 def main():
     check_mode = "--check" in sys.argv
+    local_css = read_file(SRC_DIR / 'css/local-setup.css')
     local = read_file(SRC_DIR / 'html/local-setup.html')
-    local = local.replace('/* {{STYLE}} */', read_file(SRC_DIR / 'css/local-setup.css'))
+    local = local.replace('/* {{STYLE}} */', local_css)
     local_scripts = ('00-setup-input.js', 'local-setup.js')
     local = local.replace('/* {{SCRIPT}} */', '\n'.join(read_file(SRC_DIR / 'js' / name) for name in local_scripts))
-    outputs = {TARGET: build(), ROOT / 'web/local-setup.html': local}
+    vault = read_file(SRC_DIR / 'html/local-vault.html')
+    vault = vault.replace('/* {{STYLE}} */', local_css)
+    vault_scripts = ('00-setup-input.js', 'local-vault.js')
+    vault = vault.replace('/* {{SCRIPT}} */', '\n'.join(read_file(SRC_DIR / 'js' / name) for name in vault_scripts))
+    outputs = {
+        TARGET: build(),
+        ROOT / 'web/local-setup.html': local,
+        ROOT / 'web/local-vault.html': vault,
+    }
 
     if check_mode:
         for target, synthesized in outputs.items():
