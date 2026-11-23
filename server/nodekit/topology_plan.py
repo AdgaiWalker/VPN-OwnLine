@@ -204,3 +204,89 @@ def execute_topology_plan(
         "active_panel_handle": active_panel_handle or "",
         "steps": completed,
     }
+
+
+INTENT_PRESETS: Dict[str, Dict[str, Any]] = {
+    "budget_basic": {
+        "title": "极简入门：单台海外节点（Reality + HY2 双通道）",
+        "rationale": "最低成本（0~99 元/年），默认双协议抗普通丢包，适合个人日常联网。",
+        "required_vault_slots": ["ssh", "panel_auth"],
+        "apply_plan_template": {
+            "rotate_initial_password": {"new_panel_handle": "<vh_panel_auth>"},
+            "verify": {"quick": False, "check_subscription": True},
+        },
+    },
+    "ai_clean_ip": {
+        "title": "AI 防封专线：单台海外 + Webshare 静态住宅出口",
+        "rationale": "为海外节点挂载真实美国家宽 IP（约 +85 元/年），彻底解决 ChatGPT/Claude 机房风控拒访。",
+        "required_vault_slots": ["ssh", "panel_auth", "webshare_isp"],
+        "apply_plan_template": {
+            "rotate_initial_password": {"new_panel_handle": "<vh_panel_auth>"},
+            "residential_isp": {"isp_handle": "<vh_webshare_isp>"},
+            "verify": {"quick": False, "check_subscription": True},
+        },
+    },
+    "peak_stable": {
+        "title": "晚高峰抗丢包：海外落地 + 国内轻量中转专线",
+        "rationale": "利用国内云机 BGP 骨干网转发至海外出口，消除晚高峰跨国骨干丢包与卡顿。",
+        "required_vault_slots": ["ssh", "panel_auth"],
+        "apply_plan_template": {
+            "rotate_initial_password": {"new_panel_handle": "<vh_panel_auth>"},
+            "relay": {"method": "reverse_join", "role": "relay", "name": "国内中继-01"},
+            "verify": {"quick": False, "check_subscription": True},
+        },
+    },
+    "full_stack": {
+        "title": "全配稳定版：国内中转 + 海外落地 + Webshare 静态住宅",
+        "rationale": "兼顾晚高峰低延迟与纯净住宅出口，适合重度 AI 办公与稳定性优先场景。",
+        "required_vault_slots": ["ssh", "panel_auth", "webshare_isp"],
+        "apply_plan_template": {
+            "rotate_initial_password": {"new_panel_handle": "<vh_panel_auth>"},
+            "residential_isp": {"isp_handle": "<vh_webshare_isp>"},
+            "relay": {"method": "reverse_join", "role": "relay", "name": "国内中继-01"},
+            "verify": {"quick": False, "check_subscription": True},
+        },
+    },
+}
+
+_AI_KEYWORDS = ("chatgpt", "openai", "claude", "ai", "住宅", "家宽", "webshare", "isp", "防封", "解锁")
+_RELAY_KEYWORDS = ("中转", "专线", "晚高峰", "丢包", "卡顿", "稳定", "relay", "peak", "domestic", "latency")
+_BUDGET_KEYWORDS = ("便宜", "入门", "基础", "省钱", "免费", "0元", "budget", "basic", "cheap", "single")
+
+
+def resolve_intent_preset(intent_text: str) -> Dict[str, Any]:
+    """Deterministically map natural-language user intent or preset ID to a topology preset."""
+    raw = str(intent_text or "").strip()
+    assert_plan_has_no_raw_secrets(raw, _path="intent")
+    low = raw.lower()
+    if low in INTENT_PRESETS:
+        return {"preset": low, "matched_by": "preset_id"}
+
+    wants_ai = any(k in low for k in _AI_KEYWORDS)
+    wants_relay = any(k in low for k in _RELAY_KEYWORDS)
+    if wants_ai and wants_relay:
+        return {"preset": "full_stack", "matched_by": "keyword"}
+    if wants_ai:
+        return {"preset": "ai_clean_ip", "matched_by": "keyword"}
+    if wants_relay:
+        return {"preset": "peak_stable", "matched_by": "keyword"}
+    if any(k in low for k in _BUDGET_KEYWORDS):
+        return {"preset": "budget_basic", "matched_by": "keyword"}
+    return {"preset": "budget_basic", "matched_by": "default"}
+
+
+def build_intent_blueprint(intent_text: str) -> Dict[str, Any]:
+    """Return a zero-secret declarative onboarding + apply blueprint for a user goal."""
+    resolved = resolve_intent_preset(intent_text)
+    spec = copy.deepcopy(INTENT_PRESETS[resolved["preset"]])
+    return {
+        "ok": True,
+        "preset": resolved["preset"],
+        "matched_by": resolved["matched_by"],
+        "title": spec["title"],
+        "rationale": spec["rationale"],
+        "required_vault_slots": spec["required_vault_slots"],
+        "apply_plan_template": spec["apply_plan_template"],
+        "onboarding_ref": "web/src/data/onboarding.json",
+        "security_note": "所有敏感凭据必须通过 python3 ownline.py vault request 获取句柄，禁止传入明文。",
+    }

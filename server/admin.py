@@ -359,15 +359,24 @@ def nodes_with_advice():
     """节点 + 一句建议（依据来自探活与流量），以及全生命周期状态。"""
     status = _load_json("status.json", {})
     usage = _load_json("usage.json", {})
+    iphealth = _load_json("iphealth.json", {})
+    if not isinstance(iphealth, dict):
+        iphealth = {}
+    all_nodes = load_nodes()
     out = []
-    for n in load_nodes():
+    for n in all_nodes:
         n = dict(n)
         host = n.get("host")
         u_data = usage.get(host) if isinstance(usage.get(host), dict) else {}
+        ip_info = iphealth.get(n.get("exit_ip") or host) or iphealth.get(host)
+        if isinstance(ip_info, dict):
+            n["iphealth"] = ip_info
+        else:
+            ip_info = None
         reset_day = quota_mod.parse_reset_day(n.get("reset_day") or u_data.get("reset_day") or u_data.get("end"))
         if reset_day is not None:
             n["reset_day"] = reset_day
-        n["advice"] = advise_mod.advise(n, status.get(n.get("name")), u_data)
+        n["advice"] = advise_mod.advise(n, status.get(n.get("name")), u_data, iphealth=ip_info, nodes=all_nodes)
         n["lifecycle"] = lifecycle_mod.get_lifecycle_state(n)
         n["capability"] = reconcile_mod.node_capability(n)
         out.append(n)

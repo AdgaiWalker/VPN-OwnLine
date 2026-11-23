@@ -18,7 +18,7 @@ import webbrowser
 from server.nodekit import local_diag, system_updater
 from server.nodekit.capabilities import CapabilityError, CapabilityRegistry
 from server.nodekit.local_vault import SUPPORTED_SLOTS, VaultError
-from server.nodekit.topology_plan import assert_plan_has_no_raw_secrets
+from server.nodekit.topology_plan import INTENT_PRESETS, assert_plan_has_no_raw_secrets, build_intent_blueprint
 
 ROOT = Path(__file__).resolve().parents[1]
 _PEM_HEADER_RE = re.compile(r"-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----")
@@ -509,6 +509,12 @@ def build_parser():
     p_apply.add_argument("--dry-run", action="store_true")
     p_apply.add_argument("--json", action="store_true")
 
+    p_plan = sub.add_parser("plan", help="将自然语言使用需求映射为确定性拓扑编排蓝图（只读无密钥）")
+    pgroup = p_plan.add_mutually_exclusive_group(required=True)
+    pgroup.add_argument("--intent", help="用户自然语言需求或预设名（如 budget_basic / ai_clean_ip / peak_stable / full_stack）")
+    pgroup.add_argument("--list", action="store_true", help="列出全部内置拓扑预设蓝图")
+    p_plan.add_argument("--json", action="store_true")
+
     return parser
 
 
@@ -710,6 +716,14 @@ def main(argv=None, *, state_path=None, diag_log=None, prompt_fn=input, secret_p
                     return 2 if err_code == "HOST_KEY_CONFIRMATION" else 1
                 _emit_output(res, True)
                 return 0
+
+        if args.command == "plan":
+            if args.list:
+                out_obj = {"ok": True, "presets": INTENT_PRESETS}
+            else:
+                out_obj = build_intent_blueprint(args.intent)
+            _emit_output(out_obj, True)
+            return 0
 
         if args.command == "apply":
             try:

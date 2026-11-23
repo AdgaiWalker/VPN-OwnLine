@@ -1359,9 +1359,12 @@
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var dismissed = (typeof window !== "undefined" && window.dismissedAwakening) ? window.dismissedAwakening : (typeof dismissedAwakening !== "undefined" ? dismissedAwakening : {});
 
-    // 筛选支持 HY2 但未开启、且探测发生丢包或晚高峰延迟偏高（>=220ms）的出海出口节点
+    // 筛选主动觉醒候选：1) 未开 HY2 且拥堵/受阻；2) 机房 IP 风控建议挂载住宅 IP；3) 已开 HY2 仍高延迟且无中转专线
     var candidate = null;
     var maxScore = -1;
+    var hasDomesticRelay = nodes.some(function (x) {
+      return x && (x.role === "relay" || x.country === "CN");
+    });
 
     for (var i = 0; i < nodes.length; i++) {
       var n = nodes[i];
@@ -1378,24 +1381,36 @@
       var hasHy2 = !isDomestic || (host && nodes.filter(function (x) { return (x.host || x.ip) === host; }).length > 1) || n.type === "hysteria2" || (n.name && n.name.indexOf("HY2") >= 0) || typeof n.hy2_enabled === "boolean";
       var isHy2Active = hy2Node ? (hy2Node.enabled !== false) : (n.type === "hysteria2" ? (n.enabled !== false) : (n.hy2_enabled === true));
 
-      if (!hasHy2 || isHy2Active) continue;
-
       var st = (status && status[n.name]) || {};
       var ms = (st && st.cn_ms != null) ? Number(st.cn_ms) : ((st && st.ms != null) ? Number(st.ms) : null);
       var isBlocked = (st && st.cn_ok === false);
       var isHighLatency = (ms != null && ms >= 220);
       var isDegraded = (st && st.ok === false);
 
-      if (isBlocked || isHighLatency || isDegraded) {
-        var score = isBlocked ? 1000 : (isDegraded ? 800 : (ms || 300));
-        if (score > maxScore) {
-          maxScore = score;
-          candidate = {
-            node: n,
-            ms: ms,
-            isBlocked: isBlocked,
-            isDegraded: isDegraded
-          };
+      if (hasHy2 && !isHy2Active && (isBlocked || isHighLatency || isDegraded)) {
+        var score1 = 2000 + (isBlocked ? 1000 : (isDegraded ? 800 : (ms || 300)));
+        if (score1 > maxScore) {
+          maxScore = score1;
+          candidate = { kind: "hy2", idx: i, node: n, ms: ms, isBlocked: isBlocked, isDegraded: isDegraded };
+        }
+        continue;
+      }
+
+      var hasIsp = Boolean(n.isp || n.isp_proxy);
+      if (!hasIsp && n.iphealth && (n.iphealth.hosting || n.iphealth.proxy)) {
+        var score2 = 1500;
+        if (score2 > maxScore) {
+          maxScore = score2;
+          candidate = { kind: "isp", idx: i, node: n, ms: ms, isBlocked: false, isDegraded: false };
+        }
+        continue;
+      }
+
+      if (!hasDomesticRelay && (isBlocked || isHighLatency || isDegraded)) {
+        var score3 = isBlocked ? 900 : (isDegraded ? 700 : (ms || 250));
+        if (score3 > maxScore) {
+          maxScore = score3;
+          candidate = { kind: "relay", idx: i, node: n, ms: ms, isBlocked: isBlocked, isDegraded: isDegraded };
         }
       }
     }
@@ -1408,20 +1423,40 @@
 
     var cNode = candidate.node;
     var cHost = cNode.host || cNode.ip;
-    var reasonText = "";
-    if (candidate.isBlocked) {
-      reasonText = zh ? "国内直连握手受阻" : "Direct handshake blocked from China";
-    } else if (candidate.ms != null) {
-      reasonText = zh ? ("晚高峰骨干网拥堵 · 延迟 " + Math.round(candidate.ms) + "ms") : ("Peak evening congestion · " + Math.round(candidate.ms) + "ms latency");
+    var awakeningMsg = "";
+    var btnText = "";
+    var onclickAttr = "";
+
+    if (candidate.kind === "hy2") {
+      var reasonText = "";
+      if (candidate.isBlocked) {
+        reasonText = zh ? "国内直连握手受阻" : "Direct handshake blocked from China";
+      } else if (candidate.ms != null) {
+        reasonText = zh ? ("晚高峰骨干网拥堵 · 延迟 " + Math.round(candidate.ms) + "ms") : ("Peak evening congestion · " + Math.round(candidate.ms) + "ms latency");
+      } else {
+        reasonText = zh ? "跨境链路波动" : "Cross-border route unstable";
+      }
+      awakeningMsg = zh
+        ? ('检测到【<b>' + esc(cNode.name) + '</b>】' + reasonText + '，推荐一键唤醒【HY2 极速抢跑】')
+        : ('High latency on [<b>' + esc(cNode.name) + '</b>] (' + reasonText + '). Tap to awaken HY2 Turbo.');
+      btnText = zh ? "唤醒 HY2 抢跑" : "Awaken HY2";
+      onclickAttr = 'window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')';
+    } else if (candidate.kind === "isp") {
+      awakeningMsg = zh
+        ? ('检测到【<b>' + esc(cNode.name) + '</b>】当前为机房 IP，访问 ChatGPT/Claude 易风控，建议挂载静态住宅 IP')
+        : ('Datacenter IP detected on [<b>' + esc(cNode.name) + '</b>]. Mount a static residential IP for clean AI egress.');
+      btnText = zh ? "挂载住宅 IP" : "Mount ISP";
+      onclickAttr = 'window.ownlineMountIsp(' + Number(candidate.idx) + ')';
     } else {
-      reasonText = zh ? "跨境链路波动" : "Cross-border route unstable";
+      var relayReason = candidate.ms != null
+        ? (zh ? ("直连延迟偏高（" + Math.round(candidate.ms) + "ms）") : ("High direct latency (" + Math.round(candidate.ms) + "ms)"))
+        : (zh ? "跨境直连波动" : "Unstable direct route");
+      awakeningMsg = zh
+        ? ('检测到【<b>' + esc(cNode.name) + '</b>】' + relayReason + '，建议接入一台国内轻量机作【中转专线】降丢包')
+        : ('Detected ' + relayReason + ' on [<b>' + esc(cNode.name) + '</b>]. Add a domestic relay to stabilize evening traffic.');
+      btnText = zh ? "添加中转专线" : "Add Relay";
+      onclickAttr = 'if(window.switchScene)window.switchScene(\'setup\')';
     }
-
-    var awakeningMsg = zh
-      ? ('检测到【<b>' + esc(cNode.name) + '</b>】' + reasonText + '，推荐一键唤醒【HY2 极速抢跑】')
-      : ('High latency on [<b>' + esc(cNode.name) + '</b>] (' + reasonText + '). Tap to awaken HY2 Turbo.');
-
-    var btnText = zh ? "唤醒 HY2 抢跑" : "Awaken HY2";
 
     container.innerHTML = '<div class="awakening-capsule" role="alert">' +
       '<div class="awakening-content">' +
@@ -1429,7 +1464,7 @@
         '<div class="awakening-text">' + awakeningMsg + '</div>' +
       '</div>' +
       '<div class="awakening-actions">' +
-        '<button type="button" class="awakening-btn" onclick="window.ownlineAwakenHy2(\'' + esc(cNode.name) + '\',\'' + esc(cHost) + '\')"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:4px"><use href="#i-zap"/></svg>' + btnText + '</button>' +
+        '<button type="button" class="awakening-btn" onclick="' + onclickAttr + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:4px"><use href="#i-zap"/></svg>' + btnText + '</button>' +
         '<button type="button" class="awakening-dismiss" aria-label="' + (zh ? '忽略' : 'Dismiss') + '" onclick="window.ownlineDismissAwakening(\'' + esc(cNode.name) + '\')" title="' + (zh ? '本次忽略' : 'Dismiss') + '"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>' +
       '</div>' +
     '</div>';

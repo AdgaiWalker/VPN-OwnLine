@@ -17,7 +17,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-CURRENT_VERSION = "v0.8.1"
+CURRENT_VERSION = "v0.8.2"
 
 
 def _release_stamp(base_dir=None):

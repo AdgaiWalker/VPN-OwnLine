@@ -70,5 +70,21 @@ check("海外通但国内不通 → 可能被墙", r["level"] == "bad" and "被�
 
 r = A.advise(sv, {"ok": True, "ms": 25, "cn_ok": True, "cn_ms": 180}, None)
 check("国内延迟进入依据", "国内 180ms" in r["reason"], r)
+check("低延迟且无风险无 action", r.get("action") is None, r)
+
+r = A.advise(dict(sv, hy2_enabled=False), {"ok": True, "ms": 80, "cn_ok": True, "cn_ms": 260}, None)
+check("未开 HY2 + 高延迟触发 awaken_hy2", r.get("action") == "awaken_hy2" and r.get("action_hint"), r)
+
+r = A.advise(dict(sv, hy2_enabled=True), {"ok": True, "ms": 90}, None, iphealth={"hosting": True, "proxy": False})
+check("机房 IP 未挂家宽触发 mount_isp", r.get("action") == "mount_isp" and "住宅" in r.get("action_hint", ""), r)
+
+r = A.advise(dict(sv, hy2_enabled=True, isp={"type": "socks", "server": "1.2.3.4", "server_port": 1080}), {"ok": True, "ms": 90}, None, iphealth={"hosting": True, "proxy": False})
+check("已挂住宅 IP 不再重复触发 mount_isp", r.get("action") is None, r)
+
+r = A.advise(dict(sv, hy2_enabled=True), {"ok": True, "ms": 120, "cn_ok": True, "cn_ms": 260}, None, nodes=[sv])
+check("已开 HY2 仍高延迟且无中转触发 add_relay", r.get("action") == "add_relay" and "中转" in r.get("action_hint", ""), r)
+
+r = A.advise(dict(sv, hy2_enabled=True), {"ok": True, "ms": 120, "cn_ok": True, "cn_ms": 260}, None, nodes=[sv, {"role": "relay", "country": "CN"}])
+check("已有国内中转不再触发 add_relay", r.get("action") is None, r)
 
 print("通过 %d 项" % ok)

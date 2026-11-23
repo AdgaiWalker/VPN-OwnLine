@@ -444,6 +444,42 @@ class S2CapabilitiesTests(unittest.TestCase):
                 th.join(timeout=2)
                 panel.stop()
 
+    def test_intent_to_blueprint_presets_matching_and_raw_secret_rejection(self):
+        from server.nodekit.topology_plan import build_intent_blueprint
+
+        cases = (
+            ("用 ChatGPT 防封不要被拒访问", "ai_clean_ip", ["ssh", "panel_auth", "webshare_isp"]),
+            ("晚高峰打视频太卡了要稳定中转", "peak_stable", ["ssh", "panel_auth"]),
+            ("既要晚高峰稳定又要跑 Claude 和 AI 防封", "full_stack", ["ssh", "panel_auth", "webshare_isp"]),
+            ("先搞个最便宜的基础节点", "budget_basic", ["ssh", "panel_auth"]),
+            ("full_stack", "full_stack", ["ssh", "panel_auth", "webshare_isp"]),
+        )
+        for text, expected_preset, expected_slots in cases:
+            bp = build_intent_blueprint(text)
+            self.assertTrue(bp["ok"])
+            self.assertEqual(bp["preset"], expected_preset, text)
+            self.assertEqual(bp["required_vault_slots"], expected_slots)
+            assert_plan_has_no_raw_secrets(bp["apply_plan_template"])
+
+        # CLI `plan --list --json` & `plan --intent ... --json` work without starting daemon
+        list_out = io.StringIO()
+        with contextlib.redirect_stdout(list_out):
+            rc = ownline_cli.main(["plan", "--list", "--json"])
+        self.assertEqual(rc, 0)
+        self.assertEqual(set(json.loads(list_out.getvalue())["presets"]), {"budget_basic", "ai_clean_ip", "peak_stable", "full_stack"})
+
+        intent_out = io.StringIO()
+        with contextlib.redirect_stdout(intent_out):
+            rc2 = ownline_cli.main(["plan", "--intent", "我要稳定中转加上 Webshare 防封", "--json"])
+        self.assertEqual(rc2, 0)
+        self.assertEqual(json.loads(intent_out.getvalue())["preset"], "full_stack")
+
+        bad_out = io.StringIO()
+        with contextlib.redirect_stdout(bad_out):
+            rc_bad = ownline_cli.main(["plan", "--intent", "socks5://u:secretpass@1.2.3.4:1080", "--json"])
+        self.assertEqual(rc_bad, 1)
+        self.assertEqual(json.loads(bad_out.getvalue())["code"], "RAW_SECRET_FORBIDDEN")
+
 
 if __name__ == "__main__":
     unittest.main()

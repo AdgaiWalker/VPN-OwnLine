@@ -5,7 +5,6 @@ import json
 import os
 from pathlib import Path
 import re
-import signal
 import subprocess
 import sys
 import tempfile
@@ -58,7 +57,7 @@ class S3AgentHandoffAndUiTests(unittest.TestCase):
                 origin = state_before["origin"]
                 token = state_before["token"]
 
-                # 2. Launch a simulated Agent blocking in browser vault request, then SIGKILL it mid-flight.
+                # 2. Launch a simulated Agent blocking in browser vault request, then forcefully kill it mid-flight.
                 agent = subprocess.Popen(
                     [sys.executable, str(ROOT / "ownline.py"), "vault", "request", "--slot", "ssh", "--hint", "198.51.100.44", "--mode", "browser", "--no-browser", "--timeout", "120", "--json"],
                     cwd=str(ROOT),
@@ -67,8 +66,8 @@ class S3AgentHandoffAndUiTests(unittest.TestCase):
                     stderr=subprocess.DEVNULL,
                 )
                 time.sleep(0.35)
-                self.assertIsNone(agent.poll(), "agent exited prematurely before SIGKILL")
-                os.kill(agent.pid, signal.SIGKILL)
+                self.assertIsNone(agent.poll(), "agent exited prematurely before kill")
+                agent.kill()
                 agent.wait(timeout=3)
 
                 # 3. User opens fallback UI (启动安装.command / ownline.py ui) -> must reattach without overwriting daemon!

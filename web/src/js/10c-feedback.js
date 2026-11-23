@@ -91,7 +91,7 @@
   function buildDiagnosticSnapshot() {
     var ns = (typeof NODES !== "undefined" && Array.isArray(NODES)) ? NODES : [];
     var st = (typeof STATUS !== "undefined" && STATUS) ? STATUS : {};
-    var ver = "v0.8.1";
+    var ver = "v0.8.2";
     if (typeof document !== "undefined") {
       var verEl = document.getElementById("footer-version-tag");
       if (verEl && verEl.textContent) ver = verEl.textContent.trim();

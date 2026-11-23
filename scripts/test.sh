@@ -38,7 +38,6 @@ for f in \
   server/nodekit/logger_tests.py \
   server/nodekit/repair_tests.py \
   server/nodekit/provenance_tests.py \
-  server/nodekit/jev_tests.py \
   server/nodekit/lifecycle_tests.py \
   server/nodekit/relay_guard_tests.py \
   server/nodekit/quota_guard_tests.py \

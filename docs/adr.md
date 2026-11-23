@@ -39,6 +39,7 @@
 - [ADR-034：回退交互页视觉收敛、单屏降噪与 Agent 中断无感接管](#adr-034)
 - [ADR-035：从 0 到 1 产品内嵌资源单源化、冷启动自举与旁路脚本收口](#adr-035)
 - [ADR-036：第一性原理文档收敛、Git Tag 历史封存、ADR 清洗与 CodeGraph 净化](#adr-036)
+- [ADR-037：热升级事务性收敛宿主 systemd 单元与 Caddyfile（BL-01）](#adr-037)
 
 ---
 
@@ -612,3 +613,14 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
   3. **机械门禁与图谱净化**：引入通用标准库门禁 [`scripts/zero_drift.py`](../scripts/zero_drift.py) + 声明式配置 [`zero-drift.toml`](../zero-drift.toml)（断链、兼容锚点、`AGENTS.md` 行/字节上限、`backlog.md` 与 `plans/` 状态机、ADR 有效索引一致性、`HEAD` 无历史墓地及 CodeGraph `archive/` 零污染校验），接入 `scripts/test.sh` 并重建 `.codegraph/codegraph.db`（由初始硬编码脚本收口迁移为 `zero-drift` 通用引擎）。
 - **验证证据**：
   - `tests/test_docs_harness.py` 故障注入与实库全通，`./scripts/test.sh` 全量自动化门禁与 `scripts/zero_drift.py check` 100% 通过；`codegraph index` 重建后 `archive/` 污染节点降至 `0`，配合改造前后零上下文 4 任务 A/B 盲测验收。
+
+### <a id="adr-037"></a>ADR-037 · 热升级事务性收敛宿主 systemd 单元与 Caddyfile (BL-01) [STATUS: IMPLEMENTED]
+
+- **背景与问题**：
+  - `deploy/release.py` 此前的 `upgrade_release` 仅原子交换 `/opt/web` 并重启 `admin.service`，不会把新版本引入的 `deploy/systemd/{admin,caddy,sing-box}.service` 加固规则、`ConditionPathExists=!/var/lib/ownline/quota-paused` 以及去除 `:80` / 补齐 `handle_errors { header -Server }` 的隐身 `Caddyfile` 模板同步到已运行的老节点（如 `v0.7.x`）。
+- **决策**：
+  1. **严格归属前提下的规范化升级 (`render_canonical_caddyfile`)**：在 [reset_admin_password.py](../server/reset_admin_password.py) 新增纯函数，先以 `inspect_credentials()` 强校验 `# ownline-setup-job:` 与单站点结构（自定义或共享 Caddyfile 一律抛出 `ValueError` 原样跳过不改），再保留域名、用户名、bcrypt 哈希、首次改密门锁与 `tls internal` 选项重写为当前规范隐身模板。
+  2. **幂等预检 + 前置校验 + 事务回滚 (`sync_host_config`)**：在 [release.py](../deploy/release.py) 内实现宿主配置收敛并接入 `upgrade_release`：先行按字节比对 `admin.service`、`caddy.service`、`sing-box.service` 与目标 `Caddyfile`，完全一致时零动作跳过；有漂移时先确保 `sing-box`/`caddy` 非特权系统账户与目录/配置最小权限（`0750 root:sing-box`、`0640 root:sing-box`、`0640 root:caddy`、`0700 /var/lib/caddy`），执行真实 `caddy validate` 与 `sing-box check`，保存原始文件字节与属主快照后原子 `os.replace + fsync` 与 `systemctl daemon-reload`；若 `/var/lib/ownline/quota-paused` 存在，明确执行 `systemctl stop sing-box` 绝不误拉起；任一步失败或 `probe()` 失败时先回滚宿主配置与单元，再回滚 `/opt/web`。
+- **容器实证与验证证据**：
+  - 在 `--network none` 隔离容器 `ownline-phase4-lab:latest`（真实 `sing-box 1.14.4`、`caddy 2.10.2`）运行 `scripts/verify_real_binaries.py --suite suite7_hot_upgrade_host_sync`（Suite 1–7 全pass）：`v0.7.0` 遗留 root 单元与 `:80` `Caddyfile` 升级后，非特权 `sing-box` 用户 `check` 通过（`0640 root:sing-box`）、非特权 `caddy` 用户读取 `0640 root:caddy` 配置实跑 `:8443`（`:80` 关闭、`401` 剥离 `Server`、`200` 登录正常），并验证配额暂停护栏、自定义 Caddyfile 跳过与失败全回滚。
+  - `tests/test_reset_admin_password.py` 与 `tests/test_upgrade_script_safety.py` 补充完整离线回归断言。

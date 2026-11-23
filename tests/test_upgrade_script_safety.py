@@ -350,3 +350,124 @@ release.upgrade_release('v0.6.1', web, fetch=fetch, restart=lambda: None, probe=
         with patch.object(deployment_release, "__file__", str(helper)):
             self.assertEqual(Path(deployment_release._provenance_module().__file__), verifier.resolve())
         self.assertEqual(runner.call_count, 3)
+
+    def test_sync_host_config_converges_legacy_units_caddyfile_respects_quota_and_rolls_back(self):
+        units = self.root / "host-units"
+        units.mkdir()
+        sb_dir = self.root / "host-singbox"
+        sb_dir.mkdir()
+        (sb_dir / "config.json").write_text('{"inbounds":[]}\n', encoding="utf-8")
+        sb_log = self.root / "sing-box.log"
+        quota_flag = self.root / "quota-paused"
+        caddy_lib = self.root / "var-caddy"
+
+        # Legacy units lacking hardening and ConditionPathExists=!/var/lib/ownline/quota-paused
+        (units / "admin.service").write_text("[Service]\nExecStart=/usr/bin/python3 /opt/web/admin.py\n", encoding="utf-8")
+        (units / "caddy.service").write_text("[Service]\nUser=root\n", encoding="utf-8")
+        (units / "sing-box.service").write_text("[Service]\nUser=root\nExecStart=/opt/sing-box/sing-box run\n", encoding="utf-8")
+
+        legacy_hash = "$2b$14$" + "c" * 53
+        legacy_caddy = (
+            "# ownline-setup-job:legacy1\n"
+            "(app) {\n"
+            "\tredir /p / 308\n"
+            "\tredir /p/* / 308\n"
+            "\thandle /s/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n"
+            "\thandle /join/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n"
+            "\t@blocked path /sub*\n"
+            "\thandle @blocked {\n\t\trespond 404\n\t}\n"
+            "\thandle_path /api/* {\n\t\tbasic_auth {\n\t\t\tadmin " + legacy_hash + "\n\t\t}\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n"
+            "\t@sensitive path /tc.json /nodes.json /retired-nodes-*.json\n"
+            "\thandle @sensitive {\n\t\trespond 404\n\t}\n"
+            "\t@pubjson path /status.json /servers.json /usage.json /quota.json\n"
+            "\thandle @pubjson {\n\t\tbasic_auth {\n\t\t\tadmin " + legacy_hash + "\n\t\t}\n\t\theader Cache-Control \"no-store\"\n\t\troot * /opt/web-data\n\t\tfile_server\n\t}\n"
+            "\thandle {\n\t\tbasic_auth {\n\t\t\tadmin " + legacy_hash + "\n\t\t}\n\t\theader Cache-Control \"no-store\"\n\t\troot * /opt/web\n\t\tfile_server\n\t}\n"
+            "}\n\n"
+            ":80 {\n\tredir https://legacy.test:8443{uri} 308\n}\n\n"
+            "https://legacy.test:8443 {\n\ttls internal\n\timport app\n}\n"
+        )
+        caddyfile = self.root / "host-Caddyfile"
+        caddyfile.write_text(legacy_caddy, encoding="utf-8")
+
+        cmds = []
+        def ok_runner(cmd, **kwargs):
+            cmds.append(list(cmd))
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        # 1. Quota-paused flag prevents sing-box start/restart on upgrade
+        quota_flag.write_text("paused\n", encoding="utf-8")
+        res = deployment_release.sync_host_config(
+            ROOT,
+            unit_dir=units,
+            caddyfile=caddyfile,
+            singbox_dir=sb_dir,
+            singbox_log=sb_log,
+            quota_pause_flag=quota_flag,
+            caddy_lib_dir=caddy_lib,
+            runner=ok_runner,
+            caddy_bin="/usr/local/bin/caddy",
+            ensure_accounts=False,
+        )
+        self.assertTrue(res["changed"])
+        self.assertTrue(res["caddyfile_updated"])
+        self.assertEqual(res["units_updated"], ["admin.service", "caddy.service", "sing-box.service"])
+        self.assertIn("ConditionPathExists=!/var/lib/ownline/quota-paused", (units / "sing-box.service").read_text(encoding="utf-8"))
+        self.assertNotIn(":80 {", caddyfile.read_text(encoding="utf-8"))
+        self.assertIn(["systemctl", "stop", "sing-box"], cmds)
+        self.assertNotIn(["systemctl", "restart", "sing-box"], cmds)
+
+        # 2. Second run is completely idempotent (no restarts)
+        cmds.clear()
+        res2 = deployment_release.sync_host_config(
+            ROOT,
+            unit_dir=units,
+            caddyfile=caddyfile,
+            singbox_dir=sb_dir,
+            singbox_log=sb_log,
+            quota_pause_flag=quota_flag,
+            caddy_lib_dir=caddy_lib,
+            runner=ok_runner,
+            caddy_bin="/usr/local/bin/caddy",
+            ensure_accounts=False,
+        )
+        self.assertFalse(res2["changed"])
+        self.assertEqual(cmds, [])
+
+        # 3. Custom Caddyfile is skipped safely; failure rolls back units atomically
+        caddyfile.write_text("custom.example.com {\n  respond 200\n}\n", encoding="utf-8")
+        old_sb = "[Service]\nUser=root\n"
+        (units / "sing-box.service").write_text(old_sb, encoding="utf-8")
+        def fail_on_restart(cmd, **kwargs):
+            if cmd == ["systemctl", "stop", "sing-box"]:
+                return subprocess.CompletedProcess(cmd, 0, "", "")
+            if cmd == ["systemctl", "restart", "caddy"]:
+                raise subprocess.CalledProcessError(1, cmd)
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+
+        # Force caddy.service drift to trigger restart caddy failure and verify rollback
+        old_cd = "[Service]\nUser=old\n"
+        (units / "caddy.service").write_text(old_cd, encoding="utf-8")
+        with self.assertRaises(subprocess.CalledProcessError):
+            deployment_release.sync_host_config(
+                ROOT,
+                unit_dir=units,
+                caddyfile=caddyfile,
+                singbox_dir=sb_dir,
+                singbox_log=sb_log,
+                quota_pause_flag=quota_flag,
+                caddy_lib_dir=caddy_lib,
+                runner=fail_on_restart,
+                caddy_bin="/usr/local/bin/caddy",
+                ensure_accounts=False,
+            )
+        self.assertEqual((units / "sing-box.service").read_text(encoding="utf-8"), old_sb)
+        self.assertEqual((units / "caddy.service").read_text(encoding="utf-8"), old_cd)
+        self.assertEqual(caddyfile.read_text(encoding="utf-8"), "custom.example.com {\n  respond 200\n}\n")
+
+    def test_upgrade_release_rolls_back_host_sync_when_probe_fails(self):
+        host_rolled_back = []
+        def fake_sync(active_dir):
+            return {"changed": True, "rollback": lambda: host_rolled_back.append(str(active_dir))}
+        with self.assertRaisesRegex(RuntimeError, "previous runtime restored"):
+            self.upgrade(probe=Mock(side_effect=[False, True]), sync_host=fake_sync)
+        self.assertEqual(len(host_rolled_back), 1)

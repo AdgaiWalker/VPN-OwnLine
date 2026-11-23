@@ -89,10 +89,22 @@ test('updateContextualAwakening: surfaces Cupertino capsule on congestion and hi
   assert.match(innerHTML, /window\.ownlineAwakenHy2/, 'awaken action button must be wired');
   assert.match(innerHTML, /window\.ownlineDismissAwakening/, 'dismiss button must be wired');
 
-  // 2. Once HY2 is activated, capsule disappears
+  // 2. Once HY2 is activated cleanly with low latency, capsule disappears
   nodes[0].hy2_enabled = true;
-  c.updateContextualAwakening(nodes, highLatencyStatus);
-  assert.equal(display, 'none', 'container must be hidden when HY2 is active');
+  c.updateContextualAwakening(nodes, { '美西 · 硅谷': { ok: true, cn_ok: true, cn_ms: 120 } });
+  assert.equal(display, 'none', 'container must be hidden when HY2 is active and healthy');
+
+  // 3. Datacenter hosting IP risk without residential ISP triggers mount_isp awakening
+  nodes[0].iphealth = { hosting: true, proxy: false };
+  c.updateContextualAwakening(nodes, { '美西 · 硅谷': { ok: true, cn_ok: true, cn_ms: 120 } });
+  assert.equal(display, 'block', 'container must surface ISP risk awakening');
+  assert.match(innerHTML, /window\.ownlineMountIsp\(0\)/, 'mount ISP action button must be wired');
+
+  // 4. Mounted ISP + active HY2 + peak latency with no relay triggers relay awakening
+  nodes[0].isp = { type: 'socks', server: '198.51.100.1', server_port: 1080 };
+  c.updateContextualAwakening(nodes, { '美西 · 硅谷': { ok: true, cn_ok: true, cn_ms: 260 } });
+  assert.equal(display, 'block', 'container must surface relay awakening when HY2 is active yet congested');
+  assert.match(innerHTML, /switchScene\('setup'\)/, 'add relay action button must be wired');
 });
 
 test('refreshState: anti-race protection pauses during user operations', () => {

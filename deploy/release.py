@@ -4,14 +4,17 @@ import ast
 import ctypes
 import errno
 import fcntl
+import grp
 import hashlib
 import importlib.util
 import json
 import os
 from pathlib import Path, PurePosixPath
+import pwd
 import re
 import shutil
 import signal
+import stat
 import subprocess
 import sys
 import tarfile
@@ -162,6 +165,291 @@ def _provenance_module():
     return module
 
 
+def _reset_module(source_dir=None):
+    directory = Path(__file__).resolve().parent
+    candidates = []
+    if source_dir is not None:
+        src = Path(source_dir)
+        candidates.extend((src / "reset_admin_password.py", src / "server/reset_admin_password.py"))
+    candidates.extend((directory / "reset_admin_password.py", directory.parent / "reset_admin_password.py",
+                       directory.parent / "server/reset_admin_password.py"))
+    source = next((path for path in candidates if path.is_file()), None)
+    if source is None:
+        raise FileNotFoundError("missing reset_admin_password.py helper")
+    spec = importlib.util.spec_from_file_location("ownline_upgrade_reset_admin", source)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _atomic_file_write(path, data_bytes, mode, uid=-1, gid=-1):
+    path = Path(path)
+    descriptor, temporary = tempfile.mkstemp(prefix=".ownline-cfg-", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "wb") as output:
+            output.write(data_bytes)
+            output.flush()
+            os.fsync(output.fileno())
+        os.chmod(temporary, mode)
+        if uid >= 0 or gid >= 0:
+            try:
+                os.chown(temporary, uid, gid)
+            except PermissionError:
+                pass
+        os.replace(temporary, path)
+        _fsync_directory(path.parent)
+    finally:
+        Path(temporary).unlink(missing_ok=True)
+
+
+def _lookup_ugid(user_name, group_name):
+    uid, gid = -1, -1
+    try:
+        uid = pwd.getpwnam(user_name).pw_uid
+    except KeyError:
+        pass
+    try:
+        gid = grp.getgrnam(group_name).gr_gid
+    except KeyError:
+        pass
+    return uid, gid
+
+
+def _ensure_service_accounts(runner, *, need_singbox, need_caddy, singbox_dir, singbox_log, caddy_lib_dir):
+    if need_singbox:
+        sb_uid, sb_gid = _lookup_ugid("sing-box", "sing-box")
+        if sb_gid < 0:
+            runner(["groupadd", "--system", "sing-box"], check=True, capture_output=True, timeout=15)
+        if sb_uid < 0:
+            runner(["useradd", "--system", "--gid", "sing-box", "--home-dir", "/nonexistent",
+                    "--no-create-home", "--shell", "/usr/sbin/nologin", "sing-box"],
+                   check=True, capture_output=True, timeout=15)
+        sb_uid, sb_gid = _lookup_ugid("sing-box", "sing-box")
+        log_path = Path(singbox_log)
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        log_path.touch(exist_ok=True)
+        if sb_uid >= 0 and sb_gid >= 0:
+            try:
+                os.chown(log_path, sb_uid, sb_gid)
+            except PermissionError:
+                pass
+        os.chmod(log_path, 0o640)
+        sb_dir = Path(singbox_dir)
+        if sb_dir.is_dir():
+            if sb_gid >= 0:
+                try:
+                    os.chown(sb_dir, 0, sb_gid)
+                except PermissionError:
+                    pass
+            os.chmod(sb_dir, 0o750)
+            for rel, mode in (("config.json", 0o640), ("hy2.key", 0o640), ("hy2.crt", 0o644)):
+                target = sb_dir / rel
+                if target.is_file():
+                    if sb_gid >= 0:
+                        try:
+                            os.chown(target, 0, sb_gid)
+                        except PermissionError:
+                            pass
+                    os.chmod(target, mode)
+    if need_caddy:
+        cd_uid, cd_gid = _lookup_ugid("caddy", "caddy")
+        if cd_gid < 0:
+            runner(["groupadd", "--system", "caddy"], check=True, capture_output=True, timeout=15)
+        if cd_uid < 0:
+            runner(["useradd", "--system", "--gid", "caddy", "--home-dir", str(caddy_lib_dir),
+                    "--shell", "/usr/sbin/nologin", "caddy"],
+                   check=True, capture_output=True, timeout=15)
+        cd_uid, cd_gid = _lookup_ugid("caddy", "caddy")
+        for rel in ("", ".local", ".local/share", ".local/share/caddy", ".config", ".config/caddy"):
+            dpath = Path(caddy_lib_dir) / rel if rel else Path(caddy_lib_dir)
+            dpath.mkdir(parents=True, exist_ok=True)
+            if cd_uid >= 0 and cd_gid >= 0:
+                try:
+                    os.chown(dpath, cd_uid, cd_gid)
+                except PermissionError:
+                    pass
+            os.chmod(dpath, 0o700)
+
+
+def sync_host_config(
+    source_dir="/opt/web",
+    *,
+    unit_dir="/etc/systemd/system",
+    caddyfile="/etc/caddy/Caddyfile",
+    singbox_dir="/opt/sing-box",
+    singbox_log="/var/log/sing-box.log",
+    quota_pause_flag="/var/lib/ownline/quota-paused",
+    caddy_lib_dir="/var/lib/caddy",
+    runner=None,
+    caddy_bin=None,
+    singbox_bin="/opt/sing-box/sing-box",
+    ensure_accounts=True,
+    reset_module=None,
+):
+    """Converge systemd units and project-owned Caddyfile atomically during hot upgrade."""
+    runner = runner or subprocess.run
+    source = Path(source_dir)
+    templates_dir = source / "deploy" / "systemd"
+    units_path = Path(unit_dir)
+    caddy_path = Path(caddyfile)
+    effective_caddy = caddy_bin or shutil.which("caddy") or "/usr/local/bin/caddy"
+
+    desired_units = {}
+    for name in ("admin.service", "caddy.service", "sing-box.service"):
+        tpl = templates_dir / name
+        if not tpl.is_file():
+            continue
+        raw_tpl = tpl.read_text(encoding="utf-8")
+        if name == "caddy.service" and effective_caddy != "/usr/local/bin/caddy":
+            raw_tpl = raw_tpl.replace("/usr/local/bin/caddy", effective_caddy)
+        desired_units[name] = raw_tpl.encode("utf-8")
+
+    changed_units = {}
+    for name, desired_bytes in desired_units.items():
+        dst = units_path / name
+        current_bytes = dst.read_bytes() if dst.is_file() else None
+        if current_bytes != desired_bytes:
+            changed_units[name] = desired_bytes
+
+    caddyfile_changed = False
+    caddyfile_skipped_custom = False
+    desired_caddy_bytes = None
+    if caddy_path.is_file() and not caddy_path.is_symlink():
+        raw_caddy = caddy_path.read_text(encoding="utf-8")
+        reset_mod = reset_module or _reset_module(source)
+        try:
+            canonical_caddy = reset_mod.render_canonical_caddyfile(raw_caddy)
+        except ValueError:
+            caddyfile_skipped_custom = True
+        else:
+            cand_bytes = canonical_caddy.encode("utf-8")
+            if cand_bytes != raw_caddy.encode("utf-8"):
+                caddyfile_changed = True
+                desired_caddy_bytes = cand_bytes
+
+    quota_paused = Path(quota_pause_flag).exists()
+    if not changed_units and not caddyfile_changed:
+        return {
+            "changed": False,
+            "units_updated": [],
+            "caddyfile_updated": False,
+            "caddyfile_skipped_custom": caddyfile_skipped_custom,
+            "quota_paused": quota_paused,
+            "rollback": lambda: False,
+        }
+
+    if ensure_accounts:
+        _ensure_service_accounts(
+            runner,
+            need_singbox="sing-box.service" in desired_units,
+            need_caddy="caddy.service" in desired_units or caddyfile_changed,
+            singbox_dir=singbox_dir,
+            singbox_log=singbox_log,
+            caddy_lib_dir=caddy_lib_dir,
+        )
+
+    # Validate staged config BEFORE touching active host files.
+    if caddyfile_changed and desired_caddy_bytes is not None:
+        fd, staged_caddy = tempfile.mkstemp(prefix=".ownline-Caddyfile-", dir=caddy_path.parent)
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(desired_caddy_bytes)
+                handle.flush()
+            val = runner([effective_caddy, "validate", "--config", staged_caddy, "--adapter", "caddyfile"],
+                         check=False, capture_output=True, text=True, timeout=30)
+            if val.returncode != 0:
+                raise RuntimeError("Caddyfile upgrade failed validation: " + (val.stderr or val.stdout or "")[:200])
+        finally:
+            Path(staged_caddy).unlink(missing_ok=True)
+
+    sb_cfg = Path(singbox_dir) / "config.json"
+    if "sing-box.service" in changed_units and Path(singbox_bin).is_file() and sb_cfg.is_file():
+        chk = runner([singbox_bin, "check", "-c", str(sb_cfg)],
+                     check=False, capture_output=True, text=True, timeout=30)
+        if chk.returncode != 0:
+            raise RuntimeError("sing-box config incompatible with upgraded unit: " + (chk.stderr or chk.stdout or "")[:200])
+
+    # Snapshot originals before atomic replacement.
+    unit_backups = {}
+    for name in changed_units:
+        dst = units_path / name
+        if dst.is_file():
+            st = dst.stat()
+            unit_backups[name] = (dst.read_bytes(), stat.S_IMODE(st.st_mode), st.st_uid, st.st_gid)
+        else:
+            unit_backups[name] = None
+
+    caddy_backup = None
+    if caddyfile_changed:
+        st = caddy_path.stat()
+        caddy_backup = (caddy_path.read_bytes(), stat.S_IMODE(st.st_mode), st.st_uid, st.st_gid)
+
+    def rollback():
+        if not unit_backups and caddy_backup is None:
+            return False
+        for name, snap in unit_backups.items():
+            dst = units_path / name
+            if snap is None:
+                dst.unlink(missing_ok=True)
+            else:
+                orig_bytes, mode, uid, gid = snap
+                _atomic_file_write(dst, orig_bytes, mode, uid, gid)
+        if caddy_backup is not None:
+            orig_bytes, mode, uid, gid = caddy_backup
+            _atomic_file_write(caddy_path, orig_bytes, mode, uid, gid)
+        if unit_backups:
+            runner(["systemctl", "daemon-reload"], check=False, capture_output=True, timeout=30)
+        if "caddy.service" in unit_backups:
+            runner(["systemctl", "restart", "caddy"], check=False, capture_output=True, timeout=30)
+        elif caddy_backup is not None:
+            runner(["systemctl", "reload", "caddy"], check=False, capture_output=True, timeout=30)
+        if "sing-box.service" in unit_backups:
+            if Path(quota_pause_flag).exists():
+                runner(["systemctl", "stop", "sing-box"], check=False, capture_output=True, timeout=30)
+            else:
+                runner(["systemctl", "restart", "sing-box"], check=False, capture_output=True, timeout=30)
+        return True
+
+    try:
+        units_path.mkdir(parents=True, exist_ok=True)
+        for name, desired_bytes in changed_units.items():
+            _atomic_file_write(units_path / name, desired_bytes, 0o644)
+
+        if caddyfile_changed and desired_caddy_bytes is not None:
+            _, cd_gid = _lookup_ugid("caddy", "caddy")
+            if cd_gid >= 0:
+                _atomic_file_write(caddy_path, desired_caddy_bytes, 0o640, 0, cd_gid)
+            else:
+                _atomic_file_write(caddy_path, desired_caddy_bytes, 0o644)
+
+        if changed_units:
+            runner(["systemctl", "daemon-reload"], check=True, capture_output=True, timeout=30)
+        if "caddy.service" in changed_units:
+            runner(["systemctl", "restart", "caddy"], check=True, capture_output=True, timeout=30)
+        elif caddyfile_changed:
+            runner(["systemctl", "reload", "caddy"], check=True, capture_output=True, timeout=30)
+        if "sing-box.service" in changed_units:
+            if quota_paused:
+                runner(["systemctl", "stop", "sing-box"], check=False, capture_output=True, timeout=30)
+            else:
+                runner(["systemctl", "restart", "sing-box"], check=True, capture_output=True, timeout=30)
+    except BaseException:
+        try:
+            rollback()
+        except BaseException:
+            pass
+        raise
+
+    return {
+        "changed": True,
+        "units_updated": sorted(changed_units),
+        "caddyfile_updated": caddyfile_changed,
+        "caddyfile_skipped_custom": caddyfile_skipped_custom,
+        "quota_paused": quota_paused,
+        "rollback": rollback,
+    }
+
+
 def authorize_restart(data_dir=None, cfg_path="/opt/sing-box/config.json", manifest_path=None, provenance_module=None):
     """A release update never adopts an unsigned existing proxy installation."""
     provenance = provenance_module or _provenance_module()
@@ -308,7 +596,7 @@ def recover_release(web_dir="/opt/web", *, restart=None, probe=None, exchange=No
         return _recover_locked(active, restart or restart_admin, probe or probe_runtime, exchange or atomic_exchange)
 
 
-def upgrade_release(target, web_dir="/opt/web", *, fetch=None, restart=None, probe=None, stage=None, exchange=None, rename=None):
+def upgrade_release(target, web_dir="/opt/web", *, fetch=None, restart=None, probe=None, stage=None, exchange=None, rename=None, sync_host=None):
     """Stage completely, journal durably, atomically exchange, then verify or recover."""
     production_restart = restart is None
     fetch, restart, probe = fetch or download_official, restart or restart_admin, probe or probe_runtime
@@ -351,12 +639,16 @@ def upgrade_release(target, web_dir="/opt/web", *, fetch=None, restart=None, pro
                        "job_id": os.environ.get("OWNLINE_UPGRADE_JOB_ID"),
                        "status_dir": os.environ.get("OWNLINE_UPGRADE_STATUS_DIR")}
             _atomic_json(_journal_path(active), journal)
+            host_sync = None
             try:
                 exchange(active, candidate)
                 _fsync_directory(active.parent)
                 _fsync_directory(candidate.parent)
                 journal["phase"] = "switched"
                 _atomic_json(_journal_path(active), journal)
+                if sync_host is not None or production_restart:
+                    sync_fn = sync_host or sync_host_config
+                    host_sync = sync_fn(active)
                 restart()
                 if not probe(expected):
                     raise RuntimeError("new runtime failed version verification")
@@ -364,6 +656,11 @@ def upgrade_release(target, web_dir="/opt/web", *, fetch=None, restart=None, pro
                 _atomic_json(_journal_path(active), journal)
                 _finish_transaction(active, journal, "succeeded")
             except BaseException as failure:
+                if host_sync and callable(host_sync.get("rollback")):
+                    try:
+                        host_sync["rollback"]()
+                    except BaseException:
+                        pass
                 try:
                     restored = _recover_locked(active, restart, probe, exchange)
                 except BaseException as rollback_error:

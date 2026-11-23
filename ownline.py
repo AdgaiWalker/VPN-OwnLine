@@ -211,6 +211,12 @@ def ensure_runtime_python(
 
 
 if __name__ == "__main__":
+    for _stream in (sys.stdout, sys.stderr):
+        if hasattr(_stream, "reconfigure"):
+            try:
+                _stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
     rc = ensure_runtime_python(sys.argv[1:])
     if rc is not None:
         sys.exit(rc)

@@ -455,7 +455,7 @@ def _inspect_codegraph_db(
 
     stats["present"] = True
     try:
-        con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+        con = sqlite3.connect(db_path.resolve().as_uri() + "?mode=ro", uri=True)
         try:
             for table, default_col in (("files", "path"), ("nodes", "file_path")):
                 cols = {r[1] for r in con.execute(f"PRAGMA table_info({table})").fetchall()}

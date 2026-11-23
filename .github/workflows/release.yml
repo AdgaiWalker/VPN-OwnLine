@@ -16,21 +16,25 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install locked Python preflight dependencies
         run: |
           pip install --no-input --disable-pip-version-check --require-hashes -r requirements.lock
+
+      - name: Install CI-only property fuzzing engine (hypothesis)
+        run: |
+          pip install --no-input --disable-pip-version-check hypothesis==6.170.17
 
       - name: Run Test Gate (Must Pass 100%)
         run: |
@@ -47,11 +51,13 @@ jobs:
               --exclude='__pycache__' \
               --exclude='*.pyc' \
               -czf "$ARCHIVE_NAME" \
-              server deploy web scripts skills requirements.lock README.md LICENSE ownline.py "启动安装.command" "启动安装.bat"
+              server deploy web skills \
+              scripts/drift.py scripts/verify.sh scripts/ops/cf_origin_lock.sh \
+              requirements.lock README.md LICENSE ownline.py "启动安装.command" "启动安装.bat"
           echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> "$GITHUB_ENV"
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: ${{ env.ARCHIVE_NAME }}
           generate_release_notes: true

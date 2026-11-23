@@ -117,6 +117,37 @@ class ResetConfigTests(unittest.TestCase):
                         reset_tool.reset(config, 'example long password')
                 self.assertEqual(config.read_text(encoding='utf-8'), template())
 
+    def test_render_canonical_caddyfile_upgrades_legacy_and_rejects_custom(self):
+        legacy_plain = (
+            '# ownline-setup-job:job77\n'
+            '(app) {\n'
+            '\tredir /p / 308\n'
+            '\tredir /p/* / 308\n'
+            '\thandle /s/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n'
+            '\thandle /join/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n'
+            '\t@blocked path /sub*\n'
+            '\thandle @blocked {\n\t\trespond 404\n\t}\n'
+            '\thandle_path /api/* {\n\t\tbasic_auth {\n\t\t\twalker ' + OLD + '\n\t\t}\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n'
+            '\t@sensitive path /tc.json /nodes.json /retired-nodes-*.json\n'
+            '\thandle @sensitive {\n\t\trespond 404\n\t}\n'
+            '\t@pubjson path /status.json /servers.json /usage.json /quota.json\n'
+            '\thandle @pubjson {\n\t\tbasic_auth {\n\t\t\twalker ' + OLD + '\n\t\t}\n\t\theader Cache-Control "no-store"\n\t\troot * /opt/web-data\n\t\tfile_server\n\t}\n'
+            '\thandle {\n\t\tbasic_auth {\n\t\t\twalker ' + OLD + '\n\t\t}\n\t\theader Cache-Control "no-store"\n\t\troot * /opt/web\n\t\tfile_server\n\t}\n'
+            '}\n\n'
+            ':80 {\n\tredir https://example.test:8443{uri} 308\n}\n\n'
+            'https://example.test:8443 {\n\ttls internal\n\timport app\n}\n'
+        )
+        upgraded = reset_tool.render_canonical_caddyfile(legacy_plain)
+        self.assertNotIn(':80 {', upgraded)
+        self.assertIn('handle_errors {\n\t\theader -Server', upgraded)
+        self.assertIn('auto_https disable_redirects', upgraded)
+        self.assertIn('\ttls internal\n\timport app', upgraded)
+        self.assertEqual(reset_tool.inspect_credentials(upgraded), ('example.test', 'walker', OLD))
+        # Idempotent on already canonical output
+        self.assertEqual(reset_tool.render_canonical_caddyfile(upgraded), upgraded)
+        with self.assertRaises(ValueError):
+            reset_tool.render_canonical_caddyfile('example.test {\n respond 200\n}\n')
+
 
 if __name__ == '__main__':
     unittest.main()

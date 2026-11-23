@@ -246,6 +246,7 @@ class BypassScriptsHardeningTests(unittest.TestCase):
         self.assertIn("AtomicJsonStore.update", cd_text)
         self.assertIn("AtomicJsonStore.update", rot_text)
 
+    @unittest.skipIf(os.name == "nt", "POSIX shell scripts run on Linux target servers")
     def test_change_domain_and_rotate_offline_preserve_permissions_and_lock(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -304,6 +305,34 @@ class BypassScriptsHardeningTests(unittest.TestCase):
             rotated = json.loads(settings.read_text(encoding="utf-8"))
             self.assertEqual(rotated["sub_token"], "0123456789abcdef" * 4)
             self.assertEqual(stat.S_IMODE(settings.stat().st_mode), 0o600)
+
+    def test_release_bundle_and_ci_hygiene_contracts(self):
+        ci_text = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        rel_text = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
+
+        self.assertIn("macos-latest", ci_text)
+        self.assertIn("windows-latest", ci_text)
+        self.assertIn("hypothesis==", ci_text)
+        self.assertNotIn("@v4", ci_text)
+        self.assertNotIn("@v5", ci_text)
+        self.assertNotIn("node-version: \"20\"", ci_text)
+
+        self.assertNotIn("\n              scripts ", rel_text)
+        self.assertNotIn("scripts/ops/同步源代码.sh", rel_text)
+        self.assertNotIn("scripts/verify_real_binaries.py", rel_text)
+        self.assertIn("scripts/drift.py", rel_text)
+        self.assertIn("scripts/ops/cf_origin_lock.sh", rel_text)
+
+        for dead_rel in (
+            "scripts/decide_next_step.py",
+            "scripts/evaluate_user_segmentation.py",
+            "scripts/predict_journey.py",
+            "scripts/predict_risks.py",
+            "server/nodekit/jev.py",
+            "server/nodekit/jev_tests.py",
+            "docs/plans/2026-11-23-onboarding-resource-integration.md",
+        ):
+            self.assertFalse((ROOT / dead_rel).exists(), f"dead file still exists: {dead_rel}")
 
 
 if __name__ == "__main__":

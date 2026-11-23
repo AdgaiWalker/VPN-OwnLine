@@ -13,8 +13,17 @@ description: Orchestrate Evergreen OwnLine across macOS, Windows, and Linux usin
 
 ## Standard End-to-End Lifecycle
 
-### 0. Zero-to-One Resource Lookup (If the User Has No Server Yet)
-Read [web/src/data/onboarding.json](../../web/src/data/onboarding.json) before recommending any VPS provider, port rule, domestic relay, Webshare static residential proxy, client download, Apple ID path, or optional custom domain. Do not invent prices or third-party links; cite only the official URLs, historical price ranges, and `checked_at` date recorded in that file. (On Windows, invoke `py -3 ownline.py` or `python ownline.py` instead of `python3`.)
+### 0. Zero-to-One Resource Lookup & Intent Mapping
+1. Map the user's goal deterministically to a topology blueprint before prompting for credentials:
+```bash
+python3 ownline.py plan --intent "<user_goal>" --json
+```
+Built-in presets (`python3 ownline.py plan --list --json`):
+- `budget_basic`: Single overseas node (Reality + HY2), slots `ssh`, `panel_auth`.
+- `ai_clean_ip`: Overseas node + Webshare static residential ISP, slots `ssh`, `panel_auth`, `webshare_isp`.
+- `peak_stable`: Overseas landing + domestic relay for peak congestion, slots `ssh`, `panel_auth` (+ `relay.method = reverse_join`).
+- `full_stack`: Domestic relay + overseas landing + Webshare residential ISP, slots `ssh`, `panel_auth`, `webshare_isp`.
+2. Read [web/src/data/onboarding.json](../../web/src/data/onboarding.json) before recommending any VPS provider, port rule, domestic relay, Webshare static residential proxy, client download, Apple ID path, or optional custom domain. Do not invent prices or third-party links; cite only the official URLs, historical price ranges, and `checked_at` date recorded in that file. (On Windows, invoke `py -3 ownline.py` or `python ownline.py` instead of `python3`.)
 
 ### 1. Preflight
 ```bash

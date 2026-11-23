@@ -1006,18 +1006,245 @@ sys.exit(0)
         shutil.rmtree(mihomo_dir, ignore_errors=True)
 
 
+def run_suite_7_hot_upgrade_host_sync(priv1, pub1):
+    """Prove v0.7.0 -> v0.8.2 host systemd/Caddyfile convergence inside isolated real-binary Linux container."""
+    import grp
+    import pwd
+    import stat
+    sys.path.insert(0, "/opt/web/deploy")
+    import release as deployment_release  # noqa: E402
+
+    # 1. Seed legacy v0.7.0 /opt/sing-box/config.json (root:root 0644) & nodes.json
+    node = {
+        "name": "sv-exit",
+        "host": "localhost",
+        "port": 10443,
+        "uuid": "11111111-1111-4111-8111-111111111111",
+        "pbk": pub1,
+        "priv": priv1,
+        "sid": "abcd1234",
+        "sni": "camouflage.local",
+        "role": "exit",
+        "source": "builtin",
+        "local": True,
+    }
+    cfg = templates.exit_config(10443, node["uuid"], "camouflage.local", priv1, "abcd1234")
+    Path("/opt/sing-box").chmod(0o755)
+    sb_cfg = Path("/opt/sing-box/config.json")
+    sb_cfg.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
+    os.chown(sb_cfg, 0, 0)
+    sb_cfg.chmod(0o644)
+    Path("/opt/web/index.html").write_text("<html>OwnLine-Suite7</html>", encoding="utf-8")
+    Path("/opt/web-data/nodes.json").write_text(json.dumps([node]), encoding="utf-8")
+    Path("/opt/web-data/settings.json").write_text(json.dumps({"sub_token": "suite7token123456"}), encoding="utf-8")
+    Path("/opt/web-data/status.json").write_text("{}", encoding="utf-8")
+
+    # 2. Seed legacy v0.7.0 Caddyfile (:80 open, missing handle_errors & auto_https, root:root 0644)
+    pw_hash = run_cmd(["/usr/local/bin/caddy", "hash-password"], input_text="suite7-secret\n").stdout.strip()
+    legacy_caddy = (
+        "# ownline-setup-job:suite7\n"
+        "(app) {\n"
+        "\tredir /p / 308\n"
+        "\tredir /p/* / 308\n"
+        "\thandle /s/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n"
+        "\thandle /join/* {\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n"
+        "\t@blocked path /sub*\n"
+        "\thandle @blocked {\n\t\trespond 404\n\t}\n"
+        "\thandle_path /api/* {\n\t\tbasic_auth {\n\t\t\tadmin " + pw_hash + "\n\t\t}\n\t\treverse_proxy 127.0.0.1:8099\n\t}\n"
+        "\t@sensitive path /tc.json /nodes.json /retired-nodes-*.json\n"
+        "\thandle @sensitive {\n\t\trespond 404\n\t}\n"
+        "\t@pubjson path /status.json /servers.json /usage.json /quota.json\n"
+        "\thandle @pubjson {\n\t\tbasic_auth {\n\t\t\tadmin " + pw_hash + "\n\t\t}\n\t\theader Cache-Control \"no-store\"\n\t\troot * /opt/web-data\n\t\tfile_server\n\t}\n"
+        "\thandle {\n\t\tbasic_auth {\n\t\t\tadmin " + pw_hash + "\n\t\t}\n\t\theader Cache-Control \"no-store\"\n\t\troot * /opt/web\n\t\tfile_server\n\t}\n"
+        "}\n\n"
+        ":80 {\n\tredir https://localhost:8443{uri} 308\n}\n\n"
+        "https://localhost:8443 {\n\ttls internal\n\timport app\n}\n"
+    )
+    caddy_path = Path("/etc/caddy/Caddyfile")
+    caddy_path.write_text(legacy_caddy, encoding="utf-8")
+    os.chown(caddy_path, 0, 0)
+    caddy_path.chmod(0o644)
+
+    # 3. Seed legacy v0.7.0 root-owned systemd units
+    units_dir = Path("/tmp/suite7-units")
+    shutil.rmtree(units_dir, ignore_errors=True)
+    units_dir.mkdir(parents=True)
+    (units_dir / "admin.service").write_text("[Service]\nExecStart=/usr/bin/python3 /opt/web/admin.py\n", encoding="utf-8")
+    (units_dir / "caddy.service").write_text("[Service]\nUser=root\nExecStart=/usr/local/bin/caddy run --config /etc/caddy/Caddyfile\n", encoding="utf-8")
+    (units_dir / "sing-box.service").write_text("[Service]\nUser=root\nExecStart=/opt/sing-box/sing-box run -c /opt/sing-box/config.json\n", encoding="utf-8")
+
+    sys_cmds = []
+    def hybrid_runner(cmd, **kwargs):
+        if cmd and cmd[0] == "systemctl":
+            sys_cmds.append(list(cmd))
+            return subprocess.CompletedProcess(cmd, 0, "", "")
+        return subprocess.run(cmd, **kwargs)
+
+    quota_flag = Path("/var/lib/ownline/quota-paused")
+    quota_flag.unlink(missing_ok=True)
+    admin_proc = None
+    caddy_proc = None
+    try:
+        res = deployment_release.sync_host_config(
+            "/opt/web",
+            unit_dir=units_dir,
+            caddyfile=caddy_path,
+            singbox_dir="/opt/sing-box",
+            singbox_log="/var/log/sing-box.log",
+            quota_pause_flag=quota_flag,
+            caddy_lib_dir="/var/lib/caddy",
+            runner=hybrid_runner,
+            caddy_bin="/usr/local/bin/caddy",
+            singbox_bin="/opt/sing-box/sing-box",
+            ensure_accounts=True,
+        )
+        assert res["changed"] is True and res["caddyfile_updated"] is True, res
+        assert res["units_updated"] == ["admin.service", "caddy.service", "sing-box.service"], res
+
+        sb_unit = (units_dir / "sing-box.service").read_text(encoding="utf-8")
+        assert "ConditionPathExists=!/var/lib/ownline/quota-paused" in sb_unit
+        assert "User=sing-box" in sb_unit
+
+        st_sb = sb_cfg.stat()
+        assert stat.S_IMODE(st_sb.st_mode) == 0o640, oct(st_sb.st_mode)
+        assert grp.getgrgid(st_sb.st_gid).gr_name == "sing-box"
+        st_log = Path("/var/log/sing-box.log").stat()
+        assert stat.S_IMODE(st_log.st_mode) == 0o640
+        assert pwd.getpwuid(st_log.st_uid).pw_name == "sing-box"
+
+        # Non-root sing-box user executes real check against 0640 root:sing-box config.json
+        nonroot_sb = run_cmd(["su", "-s", "/bin/sh", "sing-box", "-c", "/opt/sing-box/sing-box check -c /opt/sing-box/config.json"], check=False)
+        assert nonroot_sb.returncode == 0, nonroot_sb.stderr + nonroot_sb.stdout
+
+        st_cf = caddy_path.stat()
+        assert stat.S_IMODE(st_cf.st_mode) == 0o640, oct(st_cf.st_mode)
+        assert grp.getgrgid(st_cf.st_gid).gr_name == "caddy"
+        upgraded_caddy = caddy_path.read_text(encoding="utf-8")
+        assert ":80 {" not in upgraded_caddy
+        assert "handle_errors {" in upgraded_caddy
+
+        # Start admin.py + unprivileged caddy user process reading upgraded 0640 root:caddy Caddyfile
+        admin_proc = start_proc(["python3", "/opt/web/admin.py"], "/tmp/suite7-admin.log")
+        wait_tcp("127.0.0.1", 8099, timeout=8)
+        lf = open("/tmp/suite7-caddy.log", "w", encoding="utf-8")
+        p_cad = subprocess.Popen(
+            ["su", "-s", "/bin/sh", "caddy", "-c",
+             "HOME=/var/lib/caddy XDG_DATA_HOME=/var/lib/caddy/.local/share XDG_CONFIG_HOME=/var/lib/caddy/.config /usr/local/bin/caddy run --config /etc/caddy/Caddyfile --adapter caddyfile"],
+            stdout=lf, stderr=subprocess.STDOUT,
+        )
+        caddy_proc = (p_cad, lf)
+        wait_tcp("127.0.0.1", 8443, timeout=8)
+
+        port80_closed = False
+        try:
+            with socket.create_connection(("127.0.0.1", 80), timeout=0.6):
+                port80_closed = False
+        except OSError:
+            port80_closed = True
+        assert port80_closed, "Port 80 unexpectedly open after Suite 7 upgrade"
+
+        ctx = ssl._create_unverified_context()
+        def https_get(path, auth=False):
+            conn = http.client.HTTPSConnection("localhost", 8443, context=ctx, timeout=5)
+            conn._create_connection = lambda a, timeout=None, *ar: socket.create_connection(("127.0.0.1", 8443), timeout)
+            hdrs = {"Host": "localhost:8443"}
+            if auth:
+                hdrs["Authorization"] = "Basic " + base64.b64encode(b"admin:suite7-secret").decode()
+            conn.request("GET", path, headers=hdrs)
+            r = conn.getresponse()
+            rh = {k.lower(): v for k, v in r.getheaders()}
+            body = r.read().decode("utf-8", errors="replace")
+            conn.close()
+            return r.status, rh, body
+
+        st401, h401, _ = https_get("/", auth=False)
+        assert st401 == 401 and "server" not in h401, (st401, h401)
+        st200, _, body200 = https_get("/", auth=True)
+        assert st200 == 200 and "OwnLine-Suite7" in body200, (st200, body200[:100])
+        stop_proc(caddy_proc)
+        caddy_proc = None
+        stop_proc(admin_proc)
+        admin_proc = None
+
+        # Quota-paused safety: never start sing-box during upgrade while paused
+        quota_flag.write_text("1", encoding="utf-8")
+        (units_dir / "sing-box.service").write_text("[Service]\nUser=root\n", encoding="utf-8")
+        sys_cmds.clear()
+        res_q = deployment_release.sync_host_config(
+            "/opt/web", unit_dir=units_dir, caddyfile=caddy_path, singbox_dir="/opt/sing-box",
+            singbox_log="/var/log/sing-box.log", quota_pause_flag=quota_flag, caddy_lib_dir="/var/lib/caddy",
+            runner=hybrid_runner, caddy_bin="/usr/local/bin/caddy", singbox_bin="/opt/sing-box/sing-box", ensure_accounts=False,
+        )
+        assert res_q["quota_paused"] is True
+        assert ["systemctl", "stop", "sing-box"] in sys_cmds
+        assert ["systemctl", "restart", "sing-box"] not in sys_cmds
+        quota_flag.unlink(missing_ok=True)
+
+        # Custom Caddyfile is untouched (fail-closed)
+        custom_cf = "custom.example.com {\n\trespond 200\n}\n"
+        caddy_path.write_text(custom_cf, encoding="utf-8")
+        res_cust = deployment_release.sync_host_config(
+            "/opt/web", unit_dir=units_dir, caddyfile=caddy_path, singbox_dir="/opt/sing-box",
+            singbox_log="/var/log/sing-box.log", quota_pause_flag=quota_flag, caddy_lib_dir="/var/lib/caddy",
+            runner=hybrid_runner, caddy_bin="/usr/local/bin/caddy", singbox_bin="/opt/sing-box/sing-box", ensure_accounts=False,
+        )
+        assert res_cust["caddyfile_skipped_custom"] is True
+        assert caddy_path.read_text(encoding="utf-8") == custom_cf
+
+        # Rollback on systemctl restart caddy failure restores exact old unit & Caddyfile
+        caddy_path.write_text(legacy_caddy, encoding="utf-8")
+        caddy_path.chmod(0o644)
+        old_caddy_unit = "[Service]\nUser=root\n"
+        (units_dir / "caddy.service").write_text(old_caddy_unit, encoding="utf-8")
+        def fail_restart_caddy(cmd, **kwargs):
+            if cmd == ["systemctl", "restart", "caddy"]:
+                raise subprocess.CalledProcessError(1, cmd)
+            return hybrid_runner(cmd, **kwargs)
+        failed_as_expected = False
+        try:
+            deployment_release.sync_host_config(
+                "/opt/web", unit_dir=units_dir, caddyfile=caddy_path, singbox_dir="/opt/sing-box",
+                singbox_log="/var/log/sing-box.log", quota_pause_flag=quota_flag, caddy_lib_dir="/var/lib/caddy",
+                runner=fail_restart_caddy, caddy_bin="/usr/local/bin/caddy", singbox_bin="/opt/sing-box/sing-box", ensure_accounts=False,
+            )
+        except subprocess.CalledProcessError:
+            failed_as_expected = True
+        assert failed_as_expected
+        assert (units_dir / "caddy.service").read_text(encoding="utf-8") == old_caddy_unit
+        assert caddy_path.read_text(encoding="utf-8") == legacy_caddy
+
+        return {
+            "ok": True,
+            "nonroot_singbox_check": True,
+            "unprivileged_caddy_401_stealth": True,
+            "port80_closed": port80_closed,
+            "quota_paused_respected": True,
+            "custom_caddyfile_skipped": True,
+            "rollback_restored": True,
+        }
+    finally:
+        quota_flag.unlink(missing_ok=True)
+        stop_proc(caddy_proc)
+        stop_proc(admin_proc)
+        shutil.rmtree(units_dir, ignore_errors=True)
+
+
 setup_loopback_addrs()
 priv1, pub1 = gen_reality_pair()
 priv2, pub2 = gen_reality_pair()
 
+ONLY_SUITE = os.environ.get("OWNLINE_PHASE4_SUITE", "all")
+suites_out = {}
+if ONLY_SUITE == "all":
+    suites_out["suite1_singbox_reconcile"] = run_suite_1_singbox_and_reconcile(priv1, pub1, priv2, pub2)
+    suites_out["suite2_caddy_stealth_admin"] = run_suite_2_caddy_stealth_and_admin()
+    suites_out["suite3_mihomo_profiles"] = run_suite_3_mihomo_profiles(pub1)
+    suites_out["suites4_5_6_dataplane_chaos"] = run_suites_4_5_6_dataplane_and_chaos(priv1, pub1, priv2, pub2)
+suites_out["suite7_hot_upgrade_host_sync"] = run_suite_7_hot_upgrade_host_sync(priv1, pub1)
+
 report = {
     "ok": True,
-    "suites": {
-        "suite1_singbox_reconcile": run_suite_1_singbox_and_reconcile(priv1, pub1, priv2, pub2),
-        "suite2_caddy_stealth_admin": run_suite_2_caddy_stealth_and_admin(),
-        "suite3_mihomo_profiles": run_suite_3_mihomo_profiles(pub1),
-        "suites4_5_6_dataplane_chaos": run_suites_4_5_6_dataplane_and_chaos(priv1, pub1, priv2, pub2),
-    },
+    "suites": suites_out,
 }
 print("PHASE4_REPORT_JSON:" + json.dumps(report, ensure_ascii=False))
 '''
@@ -1041,18 +1268,31 @@ def _build_bundle() -> bytes:
             if p.exists():
                 tf.add(p, arcname=html)
         tf.add(ROOT / "deploy" / "install.sh", arcname="install.sh")
+        deploy_src = ROOT / "deploy"
+        tf.add(
+            deploy_src,
+            arcname="deploy",
+            filter=lambda ti: None if "__pycache__" in ti.name or ti.name.endswith(".pyc") else ti,
+        )
     return buf.getvalue()
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run Phase 4 real-binary Docker chaos lab verification.")
     parser.add_argument("--image", default="ownline-phase4-lab:latest", help="Docker image built from Dockerfile.phase4")
+    parser.add_argument(
+        "--suite",
+        default="all",
+        choices=("all", "suite7_hot_upgrade_host_sync"),
+        help="Run all suites or only Suite 7 hot-upgrade proof",
+    )
     parser.add_argument("--json", action="store_true", help="Print full JSON report")
     args = parser.parse_args()
 
     payload_b64 = base64.b64encode(_build_bundle()).decode("ascii")
     runner = (
-        "import base64, pathlib\n"
+        "import base64, os, pathlib\n"
+        f"os.environ['OWNLINE_PHASE4_SUITE'] = {args.suite!r}\n"
         f"pathlib.Path('/tmp/ownline-src.tgz').write_bytes(base64.b64decode({payload_b64!r}))\n"
         + _CONTAINER_SCRIPT
     )
@@ -1092,16 +1332,23 @@ def main() -> int:
     if args.json:
         print(json.dumps(report, ensure_ascii=False, indent=2))
     else:
-        s1 = report["suites"]["suite1_singbox_reconcile"]
-        s2 = report["suites"]["suite2_caddy_stealth_admin"]
-        s3 = report["suites"]["suite3_mihomo_profiles"]
-        s456 = report["suites"]["suites4_5_6_dataplane_chaos"]
-        print(f"[PASS] Suite 1: sing-box 1.14.4 check + reconcile ({s1['checked_configs']} configs)")
-        print(f"[PASS] Suite 2: caddy 2.10.2 stealth + admin.py (port80_closed={s2['port80_closed']}, server_header_stripped={s2['server_header_stripped']})")
-        print(f"[PASS] Suite 3: mihomo v1.19.34 -t profiles={','.join(s3['validated_profiles'])}")
-        print(f"[PASS] Suite 4: E2E mihomo+sing-box -> ISP SOCKS5/HTTP & UDP blocked (udp_escaped={s456['suite4']['udp_escaped']})")
-        print(f"[PASS] Suite 5: iptables + tcpdump fail-closed proof (native_leak_bytes={s456['suite5']['native_leak_bytes']}, modes={','.join(s456['suite5']['modes_tested'])})")
-        print(f"[PASS] Suite 6: chaos ({s456['suite6']['chaos_method']}) HY2+failover + real verify/repair (honest_fail={s456['suite6']['repair_fail_honest']})")
+        if "suite1_singbox_reconcile" in report["suites"]:
+            s1 = report["suites"]["suite1_singbox_reconcile"]
+            s2 = report["suites"]["suite2_caddy_stealth_admin"]
+            s3 = report["suites"]["suite3_mihomo_profiles"]
+            s456 = report["suites"]["suites4_5_6_dataplane_chaos"]
+            print(f"[PASS] Suite 1: sing-box 1.14.4 check + reconcile ({s1['checked_configs']} configs)")
+            print(f"[PASS] Suite 2: caddy 2.10.2 stealth + admin.py (port80_closed={s2['port80_closed']}, server_header_stripped={s2['server_header_stripped']})")
+            print(f"[PASS] Suite 3: mihomo v1.19.34 -t profiles={','.join(s3['validated_profiles'])}")
+            print(f"[PASS] Suite 4: E2E mihomo+sing-box -> ISP SOCKS5/HTTP & UDP blocked (udp_escaped={s456['suite4']['udp_escaped']})")
+            print(f"[PASS] Suite 5: iptables + tcpdump fail-closed proof (native_leak_bytes={s456['suite5']['native_leak_bytes']}, modes={','.join(s456['suite5']['modes_tested'])})")
+            print(f"[PASS] Suite 6: chaos ({s456['suite6']['chaos_method']}) HY2+failover + real verify/repair (honest_fail={s456['suite6']['repair_fail_honest']})")
+        s7 = report["suites"]["suite7_hot_upgrade_host_sync"]
+        print(
+            f"[PASS] Suite 7: hot-upgrade host sync (nonroot_singbox={s7['nonroot_singbox_check']}, "
+            f"caddy_401_stealth={s7['unprivileged_caddy_401_stealth']}, quota_paused={s7['quota_paused_respected']}, "
+            f"rollback={s7['rollback_restored']})"
+        )
     return 0
 
 

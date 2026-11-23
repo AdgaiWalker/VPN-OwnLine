@@ -18,23 +18,62 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v7
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install locked Python preflight dependencies
         run: |
           pip install --no-input --disable-pip-version-check --require-hashes -r requirements.lock
 
+      - name: Install CI-only property fuzzing engine (hypothesis)
+        run: |
+          pip install --no-input --disable-pip-version-check hypothesis==6.170.17
+          python -c "import hypothesis; print('hypothesis', hypothesis.__version__)"
+
       - name: Run Full Offline Quality Gate
         run: |
           chmod +x scripts/test.sh
           ./scripts/test.sh
+
+  local-engine-cross-platform:
+    name: Local Engine Cross-Platform (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install locked Python preflight dependencies
+        run: |
+          pip install --no-input --disable-pip-version-check --require-hashes -r requirements.lock
+
+      - name: Run Cross-Platform Local Engine & Docs Gate
+        run: |
+          python -m unittest tests/test_s1_local_engine.py tests/test_s2_capabilities.py tests/test_s3_handoff_and_ui.py tests/test_onboarding_and_coldstart.py tests/test_docs_harness.py -v
+
+      - name: Smoke Test Local CLI & Zero-Drift Gate
+        run: |
+          python ownline.py doctor --json
+          python ownline.py plan --list --json
+          python scripts/zero_drift.py check --json

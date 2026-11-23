@@ -148,6 +148,130 @@ def inspect_config(raw):
     return domain, hash_val
 
 
+def render_canonical_caddyfile(raw):
+    """Upgrade a verified OwnLine Caddyfile to the latest stealth template, preserving credentials and domain."""
+    domain, username, hash_val = inspect_credentials(raw)
+    lines = [' '.join(line.strip().split()) for line in raw.splitlines()
+             if line.strip() and not line.strip().startswith('#')]
+    header_line = raw.splitlines()[0].rstrip()
+    initial_gate = '# ownline-managed-password-v1\n' in raw
+    has_tls_internal = 'tls internal' in lines
+    cred_line = f'\t\t\t{username} {hash_val}'
+
+    out = [header_line]
+    if initial_gate:
+        out.append('# ownline-managed-password-v1')
+    out.extend([
+        '{',
+        '\tauto_https disable_redirects',
+        '\tservers {',
+        '\t\tprotocols h1 h2',
+        '\t}',
+        '}',
+        '',
+        '(app) {',
+        '\theader -Server',
+        '\theader X-Content-Type-Options "nosniff"',
+        '\theader X-Frame-Options "DENY"',
+        '\theader Referrer-Policy "no-referrer"',
+        '\thandle_errors {',
+        '\t\theader -Server',
+        '\t}',
+        '',
+        '\tredir /p / 308',
+        '\tredir /p/* / 308',
+        '',
+        '\thandle /s/* {',
+        '\t\treverse_proxy 127.0.0.1:8099',
+        '\t}',
+        '',
+        '\thandle /join/* {',
+        '\t\treverse_proxy 127.0.0.1:8099',
+        '\t}',
+        '',
+        '\t@blocked path /sub*',
+        '\thandle @blocked {',
+        '\t\trespond 404',
+        '\t}',
+    ])
+
+    def _gate_block():
+        if not initial_gate:
+            return []
+        return [
+            '\t\tforward_auth 127.0.0.1:8099 {',
+            '\t\t\turi /password-gate',
+            '\t\t}',
+        ]
+
+    if initial_gate:
+        out.extend([
+            '',
+            '\thandle /change-password {',
+            '\t\tbasic_auth {',
+            cred_line,
+            '\t\t}',
+            '\t\troot * /opt/web',
+            '\t\trewrite * /change-password.html',
+            '\t\tfile_server',
+            '\t}',
+            '',
+            '\thandle /api/password/* {',
+            '\t\tbasic_auth {',
+            cred_line,
+            '\t\t}',
+            '\t\treverse_proxy 127.0.0.1:8099',
+            '\t}',
+        ])
+
+    out.extend([
+        '',
+        '\thandle_path /api/* {',
+        '\t\tbasic_auth {',
+        cred_line,
+        '\t\t}',
+        *_gate_block(),
+        '\t\treverse_proxy 127.0.0.1:8099',
+        '\t}',
+        '',
+        '\t@sensitive path /tc.json /nodes.json /retired-nodes-*.json',
+        '\thandle @sensitive {',
+        '\t\trespond 404',
+        '\t}',
+        '',
+        '\t@pubjson path /status.json /servers.json /usage.json /quota.json',
+        '\thandle @pubjson {',
+        '\t\tbasic_auth {',
+        cred_line,
+        '\t\t}',
+        *_gate_block(),
+        '\t\theader Cache-Control "no-store"',
+        '\t\treverse_proxy 127.0.0.1:8099',
+        '\t}',
+        '',
+        '\thandle {',
+        '\t\tbasic_auth {',
+        cred_line,
+        '\t\t}',
+        *_gate_block(),
+        '\t\theader Cache-Control "no-store"',
+        '\t\troot * /opt/web',
+        '\t\tfile_server',
+        '\t}',
+        '}',
+        '',
+        f'https://{domain}:8443 {{',
+    ])
+    if has_tls_internal:
+        out.append('\ttls internal')
+    out.extend(['\timport app', '}', ''])
+
+    rendered = '\n'.join(out)
+    if inspect_credentials(rendered) != (domain, username, hash_val):
+        raise ValueError('规范化 Caddyfile 凭据校验失败')
+    return rendered
+
+
 def replace_hash(raw, new_hash, new_user=None):
     domain, old_user, old_hash = inspect_credentials(raw)
     if not re.fullmatch(HASH, new_hash):
