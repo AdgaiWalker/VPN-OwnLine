@@ -8,13 +8,17 @@ header.topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding-block-end: 22px;
-  margin-block-end: 36px;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  border-bottom: 1px solid var(--line-light);
+  padding-block-end: 18px;
+  margin-block-end: 28px;
 }
 .topbar-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 12px;
 }
 
@@ -23,8 +27,12 @@ header.topbar {
     padding-bottom: 12px;
     margin-bottom: 18px;
   }
+  .evergreen-icon {
+    width: 28px;
+    height: 28px;
+  }
   .brand-title {
-    font-size: 18px;
+    font-size: 17px;
     letter-spacing: -0.5px;
   }
   .brand-pill {
@@ -208,9 +216,11 @@ input::placeholder, textarea::placeholder {
 
 /* Site Footer Meta Links */
 .site-footer {
-  margin-top: 56px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-light);
+  opacity: 0.78;
+  transition: opacity .15s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;

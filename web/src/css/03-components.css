@@ -93,74 +93,152 @@
   box-shadow: 0 1px 2px rgba(31, 29, 24, 0.08);
 }
 
-/* Quota Hero Summary Banner */
-.quota-hero-card {
-  margin-top: 24px;
-  padding: 24px 26px;
+/* Unified Hero Stage Card & 1-Line Quota Strip */
+.hero-stage-card {
   background: var(--paper-card);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
+  padding: 26px 28px;
   box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition: border-color .18s ease, box-shadow .18s ease;
 }
-.quota-hero-card:hover {
-  border-color: var(--navy);
-  box-shadow: var(--shadow-card-hover);
-}
-.quota-hero-head {
+.hero-stage-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px 24px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
 }
-.quota-hero-title {
-  font-size: 15px;
+.hero-stage-top .sub-header {
+  margin-block-end: 0;
+}
+#import-note:empty {
+  display: none;
+}
+.quota-hero-card {
+  margin-top: 22px;
+  padding: 18px 0 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--line-light);
+  border-radius: 0;
+  box-shadow: none;
+}
+.quota-strip-trigger {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  border-radius: 8px;
+}
+.quota-strip-trigger:hover .quota-strip-label {
+  color: var(--navy);
+}
+.quota-strip-trigger:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 4px;
+}
+.quota-strip-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.quota-strip-label {
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ink);
+  transition: color .15s ease;
 }
-.quota-hero-usage {
-  font-size: 14px;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-.quota-hero-usage b {
-  font-size: 16px;
-  color: var(--ink);
-}
-.quota-hero-card .bar {
-  height: 8px;
+.quota-strip-bar {
+  flex: 1 1 160px;
+  min-width: 90px;
+  height: 6px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
   overflow: hidden;
 }
-.quota-hero-card .bar i {
+.quota-strip-bar i {
   display: block;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
   transition: width .3s ease;
 }
-.quota-hero-meta {
+.quota-strip-usage {
+  font-size: 13px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: none;
+}
+.quota-strip-usage b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.quota-strip-chevron {
+  flex: none;
+  color: var(--ink-muted);
+  transition: transform .2s ease, color .15s ease;
+}
+.quota-strip-trigger[aria-expanded="true"] .quota-strip-chevron {
+  transform: rotate(180deg);
+  color: var(--navy);
+}
+.quota-strip-alert {
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.quota-details-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+.quota-details-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px 16px;
   flex-wrap: wrap;
-  margin-top: 12px;
   font-size: 13px;
   color: var(--ink-muted);
+}
+.quiet-inline-link, .quiet-toggle-link {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 5px;
+  transition: color .15s ease, background-color .15s ease;
+}
+.quiet-inline-link:hover, .quiet-toggle-link:hover {
+  color: var(--ink);
+  background: var(--paper-card-secondary);
+}
+.quiet-inline-link:focus-visible, .quiet-toggle-link:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
 }
 .quota-breakdown-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--line);
-  text-align: center;
+  margin-top: 14px;
 }
 .quota-stat-tile {
   padding: 12px 10px;
@@ -170,6 +248,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+  text-align: center;
 }
 .quota-stat-label {
   font-size: 12px;
@@ -183,23 +262,45 @@
   color: var(--ink);
 }
 .quota-guidance-box {
-  margin-top: 16px;
-  padding: 14px 16px;
+  margin-top: 14px;
+  padding: 12px 14px;
   background: var(--paper-card-subtle);
   border: 1px solid var(--line-light);
   border-radius: 10px;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.55;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 14px;
 }
-@media (max-width: 560px) {
-  .quota-hero-card {
-    padding: 18px 16px;
+@media (max-width: 600px) {
+  .hero-stage-card {
+    padding: 20px 18px;
     border-radius: 14px;
+  }
+  .hero-stage-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .quota-strip-trigger {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .quota-strip-left {
+    order: 1;
+  }
+  .quota-strip-usage {
+    order: 2;
+    margin-left: auto;
+  }
+  .quota-strip-chevron {
+    order: 3;
+  }
+  .quota-strip-bar {
+    order: 4;
+    flex-basis: 100%;
   }
   .quota-breakdown-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -213,11 +314,12 @@
   align-items: center;
   flex-wrap: nowrap;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 .apple-hero-connect {
-  height: 48px;
-  padding: 0 24px;
+  min-height: 48px;
+  height: auto;
+  padding: 8px 24px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
@@ -226,9 +328,13 @@
   cursor: pointer;
   min-width: 0;
 }
+.apple-hero-title {
+  white-space: nowrap;
+}
 @media (max-width: 480px) {
   .apple-hero-bar { gap: 8px; }
-  .apple-hero-connect { flex: 1 1 auto; height: 46px; padding: 0 14px; font-size: 14.5px; }
+  .apple-hero-connect { flex: 1 1 auto; min-height: 44px; padding: 8px 12px; font-size: 14px; gap: 6px; }
+  .icon-btn-round { width: 32px; height: 32px; }
 }
 .apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
@@ -257,7 +363,11 @@
   transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
 }
 @media (max-width: 480px) {
-  .apple-hero-copy, .apple-hero-qr { width: 46px; height: 46px; }
+  .apple-hero-copy, .apple-hero-qr { width: 44px; height: 44px; }
+}
+@media (max-width: 360px) {
+  .apple-device-pill { display: none; }
+  .apple-hero-copy, .apple-hero-qr { width: 42px; height: 42px; }
 }
 .apple-hero-copy:hover, .apple-hero-qr:hover {
   background: var(--paper-card-secondary);
@@ -799,7 +909,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
-  margin-top: 36px;
+  margin-top: 32px;
 }
 #nodes-section > summary {
   list-style: none;
@@ -807,11 +917,13 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px 14px;
-  font-size: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 2px 12px;
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.25px;
+  letter-spacing: -0.2px;
 }
 #nodes-section > summary::-webkit-details-marker { display: none; }
 #nodes-section > summary::before { content: none !important; }
@@ -819,11 +931,13 @@ dialog.apple-action-sheet[open]::backdrop {
 #nodes {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  gap: 0;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
   padding: 0;
+  overflow: hidden;
 }
 
 /* Quick Feedback Dialog Components (Apple HIG Style) */

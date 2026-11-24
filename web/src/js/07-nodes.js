@@ -363,15 +363,18 @@
       }
 
       var ispPill = "";
+      var ispCompactPill = "";
       if (n.isp) {
         var ispHost = esc(n.isp.server) + ":" + (n.isp.server_port || "");
         if (canRemoteMutate) {
-          ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
+          ispCompactPill = '<span class="tag ok" style="cursor:pointer" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1.5px;margin-right:3px"><use href="#i-home"/></svg>' + (zh ? '住宅 IP' : 'Residential IP') + '</span>';
+          ispPill = '<span class="tag ok" style="cursor:pointer" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
         } else {
+          ispCompactPill = '<span class="tag" title="' + (zh ? '已挂载静态住宅 IP 出口' : 'Mounted static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1.5px;margin-right:3px"><use href="#i-home"/></svg>' + (zh ? '住宅 IP' : 'Residential IP') + '</span>';
           ispPill = '<span class="tag"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
         }
       } else if (n.role !== "relay" && canRemoteMutate) {
-        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
+        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
       }
 
       var qInfo = m.qInfo;
@@ -486,13 +489,11 @@
         '</div>';
       }
 
-      var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
+      var statusBadges = (n.isp ? ispCompactPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var warpPill = "";
       if (canRemoteMutate && !isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
         var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
-        if (n.isp && isWarp) {
-          statusBadges += '<span class="tag" style="font-size:11px;opacity:0.7" title="' + (zh ? '已挂载静态住宅 IP，全量流量优先走住宅出口；解绑后自动恢复 WARP' : 'Residential ISP mounted; WARP standby') + '">' + (zh ? 'WARP 待命' : 'WARP Standby') + '</span>';
-        } else if (isWarp) {
+        if (!n.isp && isWarp) {
           statusBadges += '<span class="tag ok" style="font-size:11px" title="' + (zh ? 'WARP 清洁出网已开启' : 'WARP Active') + '">WARP</span>';
         }
         warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
@@ -501,7 +502,7 @@
           '</button>';
       }
       var ispDrawerBtn = canRemoteMutate
-        ? (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'))
+        ? (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')"><svg class="ico" width="12" height="12" style="vertical-align:-1.5px;margin-right:3px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</button>'))
         : (n.isp ? ispPill : "");
       var drawerActions = protoBadges + relayPill + warpPill + ispDrawerBtn;
       if (n.cleanup_pending) {
@@ -1785,6 +1786,18 @@
     }
   }
   window.ownlineToggleNodeDrawer = toggleNodeDrawer;
+
+  function toggleQuotaDetails(btn) {
+    var panel = document.getElementById("quota-details-panel");
+    var toggleBtn = btn || document.getElementById("quota-strip-toggle");
+    if (!panel) return;
+    var nextOpen = Boolean(panel.hidden);
+    panel.hidden = !nextOpen;
+    if (toggleBtn && typeof toggleBtn.setAttribute === "function") {
+      toggleBtn.setAttribute("aria-expanded", String(nextOpen));
+    }
+  }
+  window.ownlineToggleQuotaDetails = toggleQuotaDetails;
 
   function toggleQuota() {
     var qs = document.getElementById("quota-section");

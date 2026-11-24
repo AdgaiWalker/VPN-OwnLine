@@ -404,3 +404,47 @@ test('dashboard, setup, and vault use Alpine Mist canvas theme, forced-colors fa
   assert.match(indexHtml, /\.page\s*\{\s*max-inline-size:\s*960px;/);
   assert.equal(indexHtml.includes('8-11 8-11-8z"'), false, 'broken eye SVG path should be fixed');
 });
+
+test('progressive disclosure: quota details and backup drawer stay hidden by default, and collapsed node rows hide raw ISP endpoints and inactive WARP tags', () => {
+  assert.match(indexHtml, /<div[^>]*id="quota-details-panel"[^>]*\shidden\b/);
+  const nodesSectionMatch = indexHtml.match(/<details[^>]*id="nodes-section"[^>]*>([\s\S]*?)<\/details>/);
+  assert.ok(nodesSectionMatch, 'missing #nodes-section');
+  assert.match(nodesSectionMatch[1], /<div[^>]*id="backup-drawer"[^>]*\shidden\b/);
+
+  const match = indexHtml.match(/^  function renderNodes\([^\n]*\)\s*\{[\s\S]*?^  \}/m);
+  assert.ok(match, 'missing renderNodes in index.html');
+  const box = { innerHTML: '' };
+  const ctx = vm.createContext({
+    document: { getElementById: (id) => (id === 'nodes' ? box : null) },
+    esc: (s) => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'),
+    isZh: () => true,
+    paintStatus: () => {},
+    STATE: null,
+    STATUS: {},
+    NODES: [],
+    window: {},
+  });
+  vm.runInContext(match[0], ctx);
+
+  ctx.renderNodes([
+    {
+      name: 'walker-sv',
+      host: '43.153.56.137',
+      port: 443,
+      role: 'exit',
+      warp_enabled: true,
+      isp: { type: 'socks', server: '198.51.100.22', server_port: 8080 },
+    },
+  ], {});
+
+  const drawerIdx = box.innerHTML.indexOf('class="node-drawer"');
+  assert.ok(drawerIdx > 0, 'node-drawer must exist');
+  const mainHtml = box.innerHTML.slice(0, drawerIdx);
+  const drawerHtml = box.innerHTML.slice(drawerIdx);
+
+  assert.ok(mainHtml.includes('住宅 IP'), 'collapsed node row should show compact Residential IP pill');
+  assert.equal(mainHtml.includes('198.51.100.22:8080'), false, 'collapsed node row must hide raw ISP endpoint');
+  assert.equal(mainHtml.includes('WARP 待命'), false, 'collapsed node row must hide inactive WARP standby badge');
+  assert.ok(drawerHtml.includes('住宅 IP · 198.51.100.22:8080'), 'node-drawer should show full ISP endpoint on demand');
+  assert.ok(drawerHtml.includes('WARP 待命'), 'node-drawer should keep WARP standby control');
+});

@@ -32,15 +32,24 @@
     if (elSafe) {
       if (anyTripped) {
         elSafe.textContent = zh ? "部分节点已触发保护熔断" : "Quota protection tripped on some nodes";
-        if (elSafe.style) elSafe.style.color = "var(--apple-red)";
+        if (elSafe.style) {
+          elSafe.style.display = "block";
+          elSafe.style.color = "var(--apple-red)";
+        }
       } else if (bottleneck && bottleneck.is_relay_bottleneck) {
         elSafe.textContent = zh
           ? ("落地机尚足，但中转跳板「" + bottleneck.relay_name + "」仅余 " + bottleneck.relay_remaining_gb + " GB")
           : ("Egress ample, but relay \"" + bottleneck.relay_name + "\" has " + bottleneck.relay_remaining_gb + " GB left");
-        if (elSafe.style) elSafe.style.color = "var(--apple-amber, #b45309)";
+        if (elSafe.style) {
+          elSafe.style.display = "block";
+          elSafe.style.color = "var(--apple-amber, #b45309)";
+        }
       } else {
-        elSafe.textContent = zh ? "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板" : "All egress servers within safe quota";
-        if (elSafe.style) elSafe.style.color = "var(--apple-muted)";
+        elSafe.textContent = "";
+        if (elSafe.style) {
+          elSafe.style.display = "none";
+          elSafe.style.color = "";
+        }
       }
     }
   }

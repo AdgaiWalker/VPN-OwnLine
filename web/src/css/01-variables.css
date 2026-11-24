@@ -1,8 +1,8 @@
 :root {
   color-scheme: light dark;
   /* Evergreen Alpine Mist Palette */
-  --paper: #f2f6fa;
-  --canvas-bg: radial-gradient(ellipse 85% 55% at 10% -8%, rgba(16, 185, 129, 0.12) 0%, transparent 58%), radial-gradient(ellipse 75% 50% at 92% -6%, rgba(14, 165, 233, 0.11) 0%, transparent 56%), radial-gradient(ellipse 70% 45% at 50% 108%, rgba(99, 102, 241, 0.05) 0%, transparent 60%), linear-gradient(180deg, #f5f8fc 0%, #eef3f8 100%);
+  --paper: #f5f7fa;
+  --canvas-bg: radial-gradient(ellipse 80% 50% at 15% -12%, rgba(16, 185, 129, 0.08) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 88% -10%, rgba(56, 189, 248, 0.08) 0%, transparent 56%), linear-gradient(180deg, #f7f9fc 0%, #eff3f8 100%);
   --paper-card: #ffffff;
   --paper-card-subtle: #f7f9fc;
   --paper-card-secondary: #edf2f7;
@@ -12,12 +12,12 @@
   --navy: #163a5f;
   --navy-hover: #0f2b48;
   --navy-soft: rgba(22, 58, 95, 0.09);
-  --line: #d8e2ec;
-  --line-light: #e7eef5;
+  --line: #dde4ed;
+  --line-light: #ebf0f6;
   --green: #15803d;
   --amber: #b45309;
   --red: #c2410c;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -10px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -12px rgba(15, 23, 42, 0.07);
   --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.12);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -58,19 +58,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0d1219;
-    --canvas-bg: radial-gradient(ellipse 85% 50% at 12% -10%, rgba(16, 185, 129, 0.15) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 90% -8%, rgba(56, 189, 248, 0.12) 0%, transparent 56%), linear-gradient(180deg, #0d1219 0%, #101722 100%);
-    --paper-card: #141c26;
-    --paper-card-subtle: #1a2432;
-    --paper-card-secondary: #212d3d;
+    --paper: #0b0f14;
+    --canvas-bg: radial-gradient(ellipse 80% 48% at 14% -12%, rgba(16, 185, 129, 0.11) 0%, transparent 58%), radial-gradient(ellipse 72% 45% at 88% -10%, rgba(56, 189, 248, 0.09) 0%, transparent 56%), linear-gradient(180deg, #0b0f14 0%, #0e141d 100%);
+    --paper-card: #121821;
+    --paper-card-subtle: #18202c;
+    --paper-card-secondary: #1f2937;
     --ink: #edf2f7;
     --ink-muted: #96a6bc;
     --ink-subtle: #6b7c93;
     --navy: #60a5fa;
     --navy-hover: #84bbff;
     --navy-soft: rgba(96, 165, 250, 0.16);
-    --line: #273446;
-    --line-light: #1e2938;
+    --line: #232e3e;
+    --line-light: #1b2432;
     --green: #4ade80;
     --amber: #fbbf24;
     --red: #f87171;
@@ -90,6 +90,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html {
   background: var(--paper);
   color: var(--ink);

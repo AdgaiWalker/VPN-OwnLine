@@ -199,8 +199,14 @@
           </div>
         </summary>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
-        <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:16px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-light);flex-wrap:wrap;gap:10px 14px">
+        <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:18px 22px" data-i18n="nodes_loading">正在加载节点列表...</div></div>
+        <div class="quiet-ops-row">
+          <button type="button" class="quiet-toggle-link" id="btn-toggle-backup" aria-expanded="false" aria-controls="backup-drawer" onclick="var d=document.getElementById('backup-drawer');var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open));">
+            <span data-i18n="nodes_backup_toggle">备份与恢复配置</span>
+            <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          </button>
+        </div>
+        <div id="backup-drawer" class="backup-drawer" hidden>
           <div style="display:flex;gap:10px;align-items:center">
             <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
             <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
@@ -209,9 +215,11 @@
           <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
       </details>
-      <details class="inner apple-disclosure" id="quota-section" style="margin-top:22px;border:none;background:transparent;padding:0">
-        <summary style="cursor:pointer;font-size:13.5px;color:var(--apple-muted);padding:8px 2px;display:inline-flex;align-items:center;gap:6px">
+      <div class="maintenance-band">
+      <details class="inner apple-disclosure maintenance-row" id="quota-section">
+        <summary class="maintenance-summary">
           <span data-i18n="quota_section_title">流量熔断保护设置</span>
+          <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
         </summary>
         <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none" data-i18n="quota_heading">服务器流量</h2><div class="small muted" data-i18n="quota_loading">正在加载流量统计...</div></div>
         <div class="inner" id="quota-settings" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
@@ -444,11 +452,12 @@
   </section>
 
   <!-- Runtime & Diagnostic Logs -->
-  <details class="panel-card inner" id="section-logs">
-    <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-      <span class="log-heading" style="font-size:16px;margin:0" data-i18n="logs_heading">运行与诊断日志</span>
+  <details class="panel-card inner maintenance-row" id="section-logs">
+    <summary class="maintenance-summary">
+      <span data-i18n="logs_heading">运行与诊断日志</span>
+      <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
     </summary>
-    <div style="margin-top:14px">
+    <div class="maintenance-log-body">
       <div class="log-section-head" style="margin-top:0">
         <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -484,4 +493,5 @@
       </details>
     </div>
   </details>
+  </div>
 

@@ -11,8 +11,8 @@
 :root {
   color-scheme: light dark;
   /* Evergreen Alpine Mist Palette */
-  --paper: #f2f6fa;
-  --canvas-bg: radial-gradient(ellipse 85% 55% at 10% -8%, rgba(16, 185, 129, 0.12) 0%, transparent 58%), radial-gradient(ellipse 75% 50% at 92% -6%, rgba(14, 165, 233, 0.11) 0%, transparent 56%), radial-gradient(ellipse 70% 45% at 50% 108%, rgba(99, 102, 241, 0.05) 0%, transparent 60%), linear-gradient(180deg, #f5f8fc 0%, #eef3f8 100%);
+  --paper: #f5f7fa;
+  --canvas-bg: radial-gradient(ellipse 80% 50% at 15% -12%, rgba(16, 185, 129, 0.08) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 88% -10%, rgba(56, 189, 248, 0.08) 0%, transparent 56%), linear-gradient(180deg, #f7f9fc 0%, #eff3f8 100%);
   --paper-card: #ffffff;
   --paper-card-subtle: #f7f9fc;
   --paper-card-secondary: #edf2f7;
@@ -22,12 +22,12 @@
   --navy: #163a5f;
   --navy-hover: #0f2b48;
   --navy-soft: rgba(22, 58, 95, 0.09);
-  --line: #d8e2ec;
-  --line-light: #e7eef5;
+  --line: #dde4ed;
+  --line-light: #ebf0f6;
   --green: #15803d;
   --amber: #b45309;
   --red: #c2410c;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -10px rgba(15, 23, 42, 0.08);
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -12px rgba(15, 23, 42, 0.07);
   --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.12);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
@@ -68,19 +68,19 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0d1219;
-    --canvas-bg: radial-gradient(ellipse 85% 50% at 12% -10%, rgba(16, 185, 129, 0.15) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 90% -8%, rgba(56, 189, 248, 0.12) 0%, transparent 56%), linear-gradient(180deg, #0d1219 0%, #101722 100%);
-    --paper-card: #141c26;
-    --paper-card-subtle: #1a2432;
-    --paper-card-secondary: #212d3d;
+    --paper: #0b0f14;
+    --canvas-bg: radial-gradient(ellipse 80% 48% at 14% -12%, rgba(16, 185, 129, 0.11) 0%, transparent 58%), radial-gradient(ellipse 72% 45% at 88% -10%, rgba(56, 189, 248, 0.09) 0%, transparent 56%), linear-gradient(180deg, #0b0f14 0%, #0e141d 100%);
+    --paper-card: #121821;
+    --paper-card-subtle: #18202c;
+    --paper-card-secondary: #1f2937;
     --ink: #edf2f7;
     --ink-muted: #96a6bc;
     --ink-subtle: #6b7c93;
     --navy: #60a5fa;
     --navy-hover: #84bbff;
     --navy-soft: rgba(96, 165, 250, 0.16);
-    --line: #273446;
-    --line-light: #1e2938;
+    --line: #232e3e;
+    --line-light: #1b2432;
     --green: #4ade80;
     --amber: #fbbf24;
     --red: #f87171;
@@ -100,6 +100,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html {
   background: var(--paper);
   color: var(--ink);
@@ -129,13 +130,17 @@ header.topbar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid var(--line);
-  padding-block-end: 22px;
-  margin-block-end: 36px;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  border-bottom: 1px solid var(--line-light);
+  padding-block-end: 18px;
+  margin-block-end: 28px;
 }
 .topbar-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 12px;
 }
 
@@ -144,8 +149,12 @@ header.topbar {
     padding-bottom: 12px;
     margin-bottom: 18px;
   }
+  .evergreen-icon {
+    width: 28px;
+    height: 28px;
+  }
   .brand-title {
-    font-size: 18px;
+    font-size: 17px;
     letter-spacing: -0.5px;
   }
   .brand-pill {
@@ -329,9 +338,11 @@ input::placeholder, textarea::placeholder {
 
 /* Site Footer Meta Links */
 .site-footer {
-  margin-top: 56px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-light);
+  opacity: 0.78;
+  transition: opacity .15s ease;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -466,74 +477,152 @@ button.pill-preview:hover {
   box-shadow: 0 1px 2px rgba(31, 29, 24, 0.08);
 }
 
-/* Quota Hero Summary Banner */
-.quota-hero-card {
-  margin-top: 24px;
-  padding: 24px 26px;
+/* Unified Hero Stage Card & 1-Line Quota Strip */
+.hero-stage-card {
   background: var(--paper-card);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
+  padding: 26px 28px;
   box-shadow: var(--shadow-card);
-  cursor: pointer;
-  transition: border-color .18s ease, box-shadow .18s ease;
 }
-.quota-hero-card:hover {
-  border-color: var(--navy);
-  box-shadow: var(--shadow-card-hover);
-}
-.quota-hero-head {
+.hero-stage-top {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 16px 24px;
   flex-wrap: wrap;
-  margin-bottom: 14px;
 }
-.quota-hero-title {
-  font-size: 15px;
+.hero-stage-top .sub-header {
+  margin-block-end: 0;
+}
+#import-note:empty {
+  display: none;
+}
+.quota-hero-card {
+  margin-top: 22px;
+  padding: 18px 0 0;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--line-light);
+  border-radius: 0;
+  box-shadow: none;
+}
+.quota-strip-trigger {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  border-radius: 8px;
+}
+.quota-strip-trigger:hover .quota-strip-label {
+  color: var(--navy);
+}
+.quota-strip-trigger:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 4px;
+}
+.quota-strip-left {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.quota-strip-label {
+  font-size: 13.5px;
   font-weight: 600;
   color: var(--ink);
+  transition: color .15s ease;
 }
-.quota-hero-usage {
-  font-size: 14px;
-  font-family: var(--mono);
-  font-variant-numeric: tabular-nums;
-}
-.quota-hero-usage b {
-  font-size: 16px;
-  color: var(--ink);
-}
-.quota-hero-card .bar {
-  height: 8px;
+.quota-strip-bar {
+  flex: 1 1 160px;
+  min-width: 90px;
+  height: 6px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
   overflow: hidden;
 }
-.quota-hero-card .bar i {
+.quota-strip-bar i {
   display: block;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
   transition: width .3s ease;
 }
-.quota-hero-meta {
+.quota-strip-usage {
+  font-size: 13px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  flex: none;
+}
+.quota-strip-usage b {
+  font-weight: 600;
+  color: var(--ink);
+}
+.quota-strip-chevron {
+  flex: none;
+  color: var(--ink-muted);
+  transition: transform .2s ease, color .15s ease;
+}
+.quota-strip-trigger[aria-expanded="true"] .quota-strip-chevron {
+  transform: rotate(180deg);
+  color: var(--navy);
+}
+.quota-strip-alert {
+  margin-top: 8px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.quota-details-panel {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+.quota-details-meta {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 10px 16px;
   flex-wrap: wrap;
-  margin-top: 12px;
   font-size: 13px;
   color: var(--ink-muted);
+}
+.quiet-inline-link, .quiet-toggle-link {
+  background: transparent;
+  border: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 5px;
+  transition: color .15s ease, background-color .15s ease;
+}
+.quiet-inline-link:hover, .quiet-toggle-link:hover {
+  color: var(--ink);
+  background: var(--paper-card-secondary);
+}
+.quiet-inline-link:focus-visible, .quiet-toggle-link:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
 }
 .quota-breakdown-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px dashed var(--line);
-  text-align: center;
+  margin-top: 14px;
 }
 .quota-stat-tile {
   padding: 12px 10px;
@@ -543,6 +632,7 @@ button.pill-preview:hover {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  text-align: center;
 }
 .quota-stat-label {
   font-size: 12px;
@@ -556,23 +646,45 @@ button.pill-preview:hover {
   color: var(--ink);
 }
 .quota-guidance-box {
-  margin-top: 16px;
-  padding: 14px 16px;
+  margin-top: 14px;
+  padding: 12px 14px;
   background: var(--paper-card-subtle);
   border: 1px solid var(--line-light);
   border-radius: 10px;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.55;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px 14px;
 }
-@media (max-width: 560px) {
-  .quota-hero-card {
-    padding: 18px 16px;
+@media (max-width: 600px) {
+  .hero-stage-card {
+    padding: 20px 18px;
     border-radius: 14px;
+  }
+  .hero-stage-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .quota-strip-trigger {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .quota-strip-left {
+    order: 1;
+  }
+  .quota-strip-usage {
+    order: 2;
+    margin-left: auto;
+  }
+  .quota-strip-chevron {
+    order: 3;
+  }
+  .quota-strip-bar {
+    order: 4;
+    flex-basis: 100%;
   }
   .quota-breakdown-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -586,11 +698,12 @@ button.pill-preview:hover {
   align-items: center;
   flex-wrap: nowrap;
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 0;
 }
 .apple-hero-connect {
-  height: 48px;
-  padding: 0 24px;
+  min-height: 48px;
+  height: auto;
+  padding: 8px 24px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
@@ -599,9 +712,13 @@ button.pill-preview:hover {
   cursor: pointer;
   min-width: 0;
 }
+.apple-hero-title {
+  white-space: nowrap;
+}
 @media (max-width: 480px) {
   .apple-hero-bar { gap: 8px; }
-  .apple-hero-connect { flex: 1 1 auto; height: 46px; padding: 0 14px; font-size: 14.5px; }
+  .apple-hero-connect { flex: 1 1 auto; min-height: 44px; padding: 8px 12px; font-size: 14px; gap: 6px; }
+  .icon-btn-round { width: 32px; height: 32px; }
 }
 .apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
@@ -630,7 +747,11 @@ button.pill-preview:hover {
   transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
 }
 @media (max-width: 480px) {
-  .apple-hero-copy, .apple-hero-qr { width: 46px; height: 46px; }
+  .apple-hero-copy, .apple-hero-qr { width: 44px; height: 44px; }
+}
+@media (max-width: 360px) {
+  .apple-device-pill { display: none; }
+  .apple-hero-copy, .apple-hero-qr { width: 42px; height: 42px; }
 }
 .apple-hero-copy:hover, .apple-hero-qr:hover {
   background: var(--paper-card-secondary);
@@ -1172,7 +1293,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
-  margin-top: 36px;
+  margin-top: 32px;
 }
 #nodes-section > summary {
   list-style: none;
@@ -1180,11 +1301,13 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 2px 14px;
-  font-size: 16px;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 2px 12px;
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.25px;
+  letter-spacing: -0.2px;
 }
 #nodes-section > summary::-webkit-details-marker { display: none; }
 #nodes-section > summary::before { content: none !important; }
@@ -1192,11 +1315,13 @@ dialog.apple-action-sheet[open]::backdrop {
 #nodes {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  background: transparent;
-  border: none;
-  box-shadow: none;
+  gap: 0;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
   padding: 0;
+  overflow: hidden;
 }
 
 /* Quick Feedback Dialog Components (Apple HIG Style) */
@@ -1268,22 +1393,23 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 76px;
-  padding: 20px 22px;
-  background: var(--paper-card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  box-shadow: var(--shadow-card);
-  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.15s ease;
+  min-height: 72px;
+  padding: 20px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line-light);
+  border-radius: 0;
+  box-shadow: none;
+  transition: background 0.15s ease;
+}
+.node:last-child {
+  border-bottom: none;
 }
 .node:hover {
-  background: var(--paper-card);
-  border-color: var(--navy);
-  box-shadow: var(--shadow-card-hover);
+  background: var(--paper-card-subtle);
 }
 .node.active {
-  background: var(--paper-card);
-  border-color: var(--navy);
+  background: var(--paper-card-subtle);
 }
 .node-main {
   display: flex;
@@ -1343,7 +1469,7 @@ dialog.apple-action-sheet[open]::backdrop {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 16px;
+  font-size: 15.5px;
   font-weight: 600;
   color: var(--ink);
   letter-spacing: -0.25px;
@@ -1354,17 +1480,17 @@ dialog.apple-action-sheet[open]::backdrop {
   font-size: 13px;
   font-family: var(--font);
   font-variant-numeric: tabular-nums;
-  margin-top: 6px;
-  line-height: 1.55;
+  margin-top: 5px;
+  line-height: 1.5;
 }
-.adv { margin-top: 14px; font-size: 13px; line-height: 1.5; }
+.adv { margin-top: 12px; font-size: 13px; line-height: 1.5; }
 .adv.error {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   flex-wrap: wrap;
-  padding: 12px 16px;
+  padding: 11px 14px;
   border-radius: 10px;
   background: var(--paper-card-subtle);
   border: 1px solid var(--line);
@@ -1374,7 +1500,7 @@ dialog.apple-action-sheet[open]::backdrop {
 .adv.error.warn {
   border-left-color: var(--amber, #b45309);
 }
-.adv-text { flex: 1; min-width: 180px; }
+.adv-text { flex: 1 1 150px; min-width: 0; }
 .adv-title {
   font-weight: 600;
   display: flex;
@@ -1456,7 +1582,7 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 
 .node-quota-row {
-  margin-top: 10px;
+  margin-top: 8px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -1526,12 +1652,12 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   flex: none;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--paper-card);
+  border: 1px solid transparent;
+  background: transparent;
   color: var(--ink-muted);
   cursor: pointer;
   padding: 0;
@@ -1540,7 +1666,7 @@ dialog.apple-action-sheet[open]::backdrop {
 .more:hover {
   background: var(--paper-card-secondary);
   color: var(--ink);
-  border-color: var(--ink-muted);
+  border-color: var(--line);
 }
 .more:active { transform: scale(0.94); }
 .node-chevron {
@@ -1665,13 +1791,74 @@ dialog.apple-action-sheet[open]::backdrop {
 .hitem.bad b { color: var(--red); font-weight: 500; }
 .hitem i { display: block; margin-top: 3px; color: var(--ink-muted); font-size: 12px; font-style: normal; }
 
-/* Logs & Diagnostics */
-#section-logs {
-  margin-top: 28px;
-  padding: 16px 20px;
+/* Quiet Maintenance Band (Backup, Quota Rules, Diagnostics) */
+.quiet-ops-row {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 2px;
+}
+.quiet-toggle-chevron {
+  transition: transform .18s ease;
+}
+.quiet-toggle-link[aria-expanded="true"] .quiet-toggle-chevron {
+  transform: rotate(180deg);
+}
+.backup-drawer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding: 12px 16px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+}
+.maintenance-band {
+  margin-top: 22px;
+}
+.maintenance-row {
+  background: transparent !important;
+  border: none !important;
+  border-top: 1px solid var(--line-light) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 12px 2px !important;
+  margin: 0 !important;
+}
+.maintenance-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  padding: 2px 0;
+  transition: color .15s ease;
+}
+.maintenance-summary::-webkit-details-marker { display: none; }
+.maintenance-summary::before { content: none !important; }
+.maintenance-summary:hover { color: var(--ink); }
+.maintenance-summary:focus-visible { outline: 2px solid var(--navy); outline-offset: 3px; border-radius: 4px; }
+.maintenance-row[open] > .maintenance-summary {
+  color: var(--ink);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+.maintenance-row[open] > .maintenance-summary .quiet-toggle-chevron {
+  transform: rotate(180deg);
+}
+#section-logs[open] > .maintenance-log-body {
   background: var(--paper-card);
   border: 1px solid var(--line);
   border-radius: 14px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-card);
 }
 .log-section-head { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; margin-bottom: 12px; }
@@ -1725,9 +1912,9 @@ dialog.apple-action-sheet[open]::backdrop {
 
 /* Footer */
 footer.site-footer {
-  margin-top: 56px;
-  padding-top: 24px;
-  border-top: 1px solid var(--line);
+  margin-top: 40px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-light);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -1735,6 +1922,11 @@ footer.site-footer {
   gap: 10px;
   font-size: 13px;
   color: var(--ink-muted);
+  opacity: 0.78;
+  transition: opacity .15s ease;
+}
+footer.site-footer:hover {
+  opacity: 1;
 }
 .check-result-box {
   padding: 14px;
@@ -1748,13 +1940,18 @@ footer.site-footer {
 
 /* Responsive adjustments */
 @media (max-width: 680px) {
-  .node { padding: 16px; border-radius: 12px; }
-  #section-logs { padding: 14px 16px; border-radius: 12px; }
+  .node { padding: 16px 18px; }
+  #section-logs[open] > .maintenance-log-body { padding: 14px 16px; border-radius: 12px; }
   .quota-table-head { display: none; }
   .quota-table-row { grid-template-columns: 1fr auto; gap: 6px; }
   .quota-col-progress { grid-column: 1 / -1; }
   .log-row { grid-template-columns: 1fr auto; }
   .log-time { grid-column: 1 / -1; font-size: 12px; }
+}
+@media (max-width: 480px) {
+  .node-main { gap: 12px; }
+  .node-quota-text { white-space: normal; }
+  .btn-ping { width: 32px; height: 32px; }
 }
 
 /* Quota Glance Capsule */
@@ -1960,6 +2157,7 @@ footer.site-footer {
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
   <symbol id="i-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
+  <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
   <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/><circle cx="5" cy="12" r="1.5"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
@@ -2045,83 +2243,90 @@ footer.site-footer {
 
     <!-- State A: Main Dashboard -->
     <div id="view-dashboard">
-      <div class="sub-header">
-        <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
-        <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
-      </div>
+      <div class="hero-stage-card">
+        <div class="hero-stage-top">
+          <div class="sub-header">
+            <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
+            <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
+          </div>
 
-      <!-- Unready State Box -->
-      <div id="client-unready-box" style="margin-top:14px;padding:18px 16px;background:var(--surface-soft);border:1px dashed var(--line);text-align:center">
-        <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:4px" data-i18n="connecting_svc">正在连接服务...</div>
-        <div class="small muted" id="unready-note"></div>
-      </div>
+          <!-- Unready State Box -->
+          <div id="client-unready-box" style="padding:14px 16px;background:var(--surface-soft);border:1px dashed var(--line);border-radius:10px;text-align:center">
+            <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:2px" data-i18n="connecting_svc">正在连接服务...</div>
+            <div class="small muted" id="unready-note"></div>
+          </div>
 
-      <!-- Primary Client Actions (Hero CTA) -->
-      <div id="client-ready-box" style="display:none;margin-top:18px">
-        <div class="apple-hero-bar" style="margin-top:0">
-          <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
-            <svg class="ico apple-hero-icon" width="15" height="15" aria-hidden="true"><use href="#i-zap"/></svg>
-            <span class="apple-hero-title" data-i18n="connect_device">连接本机</span>
-            <span id="client-device-badge" class="apple-device-pill">检测中...</span>
+          <!-- Primary Client Actions (Hero CTA) -->
+          <div id="client-ready-box" style="display:none">
+            <div class="apple-hero-bar" style="margin-top:0">
+              <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
+                <svg class="ico apple-hero-icon" width="15" height="15" aria-hidden="true"><use href="#i-zap"/></svg>
+                <span class="apple-hero-title" data-i18n="connect_device">连接本机</span>
+                <span id="client-device-badge" class="apple-device-pill">检测中...</span>
+              </button>
+              <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="复制链接" aria-label="复制链接">
+                <svg class="ico" width="16" height="16"><use href="#i-copy"/></svg>
+              </button>
+              <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="扫码连接" aria-label="扫码连接">
+                <svg class="ico" width="16" height="16"><use href="#i-qr"/></svg>
+              </button>
+            </div>
+            <div id="copy-note" class="small" role="status" style="display:none;margin-top:6px;color:var(--ok)"></div>
+            <p id="import-note" class="small muted" role="status" style="margin:6px 0 0"></p>
+          </div>
+        </div>
+
+        <!-- Quota Hero Summary Strip (1-line calm view; details collapsed until clicked) -->
+        <div id="quota-hero-banner" class="quota-hero-card" style="display:none">
+          <button type="button" class="quota-strip-trigger" id="quota-strip-toggle" aria-expanded="false" aria-controls="quota-details-panel" onclick="window.ownlineToggleQuotaDetails(this)">
+            <span class="quota-strip-left">
+              <span class="quota-strip-label" data-i18n="quota_hero_title">本月出海总流量</span>
+              <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 7px" data-i18n="quota_status_ok">充足</span>
+            </span>
+            <span class="bar quota-strip-bar" aria-hidden="true"><i id="quota-hero-fill" style="width:0%"></i></span>
+            <span class="quota-strip-usage">
+              <b id="quota-hero-used">0</b> / <span id="quota-hero-total" class="muted">0 GB</span>
+              <span id="quota-hero-percent" class="muted">(0%)</span>
+            </span>
+            <svg class="ico quota-strip-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
           </button>
-          <button class="btn apple-hero-copy" type="button" id="btn-copy-sub" title="复制链接" aria-label="复制链接">
-            <svg class="ico" width="16" height="16"><use href="#i-copy"/></svg>
-          </button>
-          <button class="btn apple-hero-qr" type="button" id="btn-hero-qr" onclick="window.ownlineOpenQrModal()" title="扫码连接" aria-label="扫码连接">
-            <svg class="ico" width="16" height="16"><use href="#i-qr"/></svg>
-          </button>
-        </div>
-        <div id="copy-note" class="small" role="status" style="display:none;margin-top:6px;color:var(--ok)"></div>
-        <p id="import-note" class="small muted" role="status" style="margin:6px 0 0"></p>
-      </div>
+          <div id="quota-hero-nodes-safe" class="quota-strip-alert" style="display:none" data-i18n="quota_safe_lbl"></div>
 
-      <!-- Quota Hero Summary Banner -->
-      <div id="quota-hero-banner" class="quota-hero-card" style="display:none" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
-        <div class="quota-hero-head">
-          <div style="display:flex;align-items:center;gap:10px">
-            <span class="quota-hero-title" data-i18n="quota_hero_title">本月出海总流量</span>
-            <span id="quota-hero-status" class="tag ok" style="font-size:11.5px;padding:2px 8px" data-i18n="quota_status_ok">充足</span>
-          </div>
-          <div class="quota-hero-usage">
-            <b id="quota-hero-used">0</b> / <span id="quota-hero-total" class="muted">0 GB</span>
-            <span id="quota-hero-percent" class="small muted" style="margin-left:4px">(0%)</span>
-          </div>
-        </div>
-        <div class="bar">
-          <i id="quota-hero-fill" style="width:0%"></i>
-        </div>
-        <div class="quota-hero-meta">
-          <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--ink);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
-          <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
-        </div>
+          <div id="quota-details-panel" class="quota-details-panel" hidden>
+            <div class="quota-details-meta">
+              <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--ink);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
+              <button type="button" class="quiet-inline-link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
+            </div>
 
-        <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
-        <div id="traffic-breakdown-row" class="quota-breakdown-grid">
-          <div class="quota-stat-tile">
-            <div class="quota-stat-label" data-i18n="stat_today">今日已用</div>
-            <div id="traffic-stat-today" class="quota-stat-value">--</div>
-          </div>
-          <div class="quota-stat-tile">
-            <div class="quota-stat-label" data-i18n="stat_yesterday">昨日已用</div>
-            <div id="traffic-stat-yesterday" class="quota-stat-value">--</div>
-          </div>
-          <div class="quota-stat-tile">
-            <div class="quota-stat-label" data-i18n="stat_week">本周累计</div>
-            <div id="traffic-stat-week" class="quota-stat-value">--</div>
-          </div>
-          <div class="quota-stat-tile">
-            <div class="quota-stat-label" data-i18n="stat_year">年度消耗</div>
-            <div id="traffic-stat-year" class="quota-stat-value">--</div>
-          </div>
-        </div>
+            <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
+            <div id="traffic-breakdown-row" class="quota-breakdown-grid">
+              <div class="quota-stat-tile">
+                <div class="quota-stat-label" data-i18n="stat_today">今日已用</div>
+                <div id="traffic-stat-today" class="quota-stat-value">--</div>
+              </div>
+              <div class="quota-stat-tile">
+                <div class="quota-stat-label" data-i18n="stat_yesterday">昨日已用</div>
+                <div id="traffic-stat-yesterday" class="quota-stat-value">--</div>
+              </div>
+              <div class="quota-stat-tile">
+                <div class="quota-stat-label" data-i18n="stat_week">本周累计</div>
+                <div id="traffic-stat-week" class="quota-stat-value">--</div>
+              </div>
+              <div class="quota-stat-tile">
+                <div class="quota-stat-label" data-i18n="stat_year">年度消耗</div>
+                <div id="traffic-stat-year" class="quota-stat-value">--</div>
+              </div>
+            </div>
 
-        <!-- Intelligent Pacing Guidance Box -->
-        <div id="traffic-guidance-box" class="quota-guidance-box">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <span id="traffic-guidance-badge" class="tag ok" style="font-size:11px;padding:2px 8px;white-space:nowrap">节奏充裕</span>
-            <span id="traffic-guidance-text" style="color:var(--ink)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
+            <!-- Intelligent Pacing Guidance Box -->
+            <div id="traffic-guidance-box" class="quota-guidance-box">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <span id="traffic-guidance-badge" class="tag ok" style="font-size:11px;padding:2px 8px;white-space:nowrap">节奏充裕</span>
+                <span id="traffic-guidance-text" style="color:var(--ink)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
+              </div>
+              <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:12px;color:var(--ink-muted)"></span>
+            </div>
           </div>
-          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:12px;color:var(--ink-muted)"></span>
         </div>
       </div>
 
@@ -2327,8 +2532,14 @@ footer.site-footer {
           </div>
         </summary>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
-        <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:16px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-light);flex-wrap:wrap;gap:10px 14px">
+        <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:18px 22px" data-i18n="nodes_loading">正在加载节点列表...</div></div>
+        <div class="quiet-ops-row">
+          <button type="button" class="quiet-toggle-link" id="btn-toggle-backup" aria-expanded="false" aria-controls="backup-drawer" onclick="var d=document.getElementById('backup-drawer');var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open));">
+            <span data-i18n="nodes_backup_toggle">备份与恢复配置</span>
+            <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+          </button>
+        </div>
+        <div id="backup-drawer" class="backup-drawer" hidden>
           <div style="display:flex;gap:10px;align-items:center">
             <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
             <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
@@ -2337,9 +2548,11 @@ footer.site-footer {
           <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
       </details>
-      <details class="inner apple-disclosure" id="quota-section" style="margin-top:22px;border:none;background:transparent;padding:0">
-        <summary style="cursor:pointer;font-size:13.5px;color:var(--apple-muted);padding:8px 2px;display:inline-flex;align-items:center;gap:6px">
+      <div class="maintenance-band">
+      <details class="inner apple-disclosure maintenance-row" id="quota-section">
+        <summary class="maintenance-summary">
           <span data-i18n="quota_section_title">流量熔断保护设置</span>
+          <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
         </summary>
         <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none" data-i18n="quota_heading">服务器流量</h2><div class="small muted" data-i18n="quota_loading">正在加载流量统计...</div></div>
         <div class="inner" id="quota-settings" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
@@ -2572,11 +2785,12 @@ footer.site-footer {
   </section>
 
   <!-- Runtime & Diagnostic Logs -->
-  <details class="panel-card inner" id="section-logs">
-    <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
-      <span class="log-heading" style="font-size:16px;margin:0" data-i18n="logs_heading">运行与诊断日志</span>
+  <details class="panel-card inner maintenance-row" id="section-logs">
+    <summary class="maintenance-summary">
+      <span data-i18n="logs_heading">运行与诊断日志</span>
+      <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
     </summary>
-    <div style="margin-top:14px">
+    <div class="maintenance-log-body">
       <div class="log-section-head" style="margin-top:0">
         <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -2612,6 +2826,7 @@ footer.site-footer {
       </details>
     </div>
   </details>
+  </div>
   <footer class="site-footer">
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-weight:600">Evergreen</span>
@@ -3120,6 +3335,7 @@ function initAccessibleValidation(root) {
       nodes_empty: "No nodes connected yet.",
       nodes_export_backup: "Backup Nodes",
       nodes_restore_backup: "Restore Config",
+      nodes_backup_toggle: "Backup & Restore",
       backup_note_desc: "Restoring will only update node configurations.",
       btn_speedtest: "Speedtest",
       quota_section_title: "Quota & Circuit Breaker Settings",
@@ -3343,6 +3559,7 @@ function initAccessibleValidation(root) {
       nodes_empty: "暂未连接任何节点。",
       nodes_export_backup: "备份节点",
       nodes_restore_backup: "恢复配置",
+      nodes_backup_toggle: "备份与恢复配置",
       backup_note_desc: "恢复操作只会替换节点配置。",
       btn_speedtest: "测速",
       quota_section_title: "流量熔断保护设置",
@@ -4797,15 +5014,24 @@ function initAccessibleValidation(root) {
     if (elSafe) {
       if (anyTripped) {
         elSafe.textContent = zh ? "部分节点已触发保护熔断" : "Quota protection tripped on some nodes";
-        if (elSafe.style) elSafe.style.color = "var(--apple-red)";
+        if (elSafe.style) {
+          elSafe.style.display = "block";
+          elSafe.style.color = "var(--apple-red)";
+        }
       } else if (bottleneck && bottleneck.is_relay_bottleneck) {
         elSafe.textContent = zh
           ? ("落地机尚足，但中转跳板「" + bottleneck.relay_name + "」仅余 " + bottleneck.relay_remaining_gb + " GB")
           : ("Egress ample, but relay \"" + bottleneck.relay_name + "\" has " + bottleneck.relay_remaining_gb + " GB left");
-        if (elSafe.style) elSafe.style.color = "var(--apple-amber, #b45309)";
+        if (elSafe.style) {
+          elSafe.style.display = "block";
+          elSafe.style.color = "var(--apple-amber, #b45309)";
+        }
       } else {
-        elSafe.textContent = zh ? "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板" : "All egress servers within safe quota";
-        if (elSafe.style) elSafe.style.color = "var(--apple-muted)";
+        elSafe.textContent = "";
+        if (elSafe.style) {
+          elSafe.style.display = "none";
+          elSafe.style.color = "";
+        }
       }
     }
   }
@@ -5719,15 +5945,18 @@ function initAccessibleValidation(root) {
       }
 
       var ispPill = "";
+      var ispCompactPill = "";
       if (n.isp) {
         var ispHost = esc(n.isp.server) + ":" + (n.isp.server_port || "");
         if (canRemoteMutate) {
-          ispPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
+          ispCompactPill = '<span class="tag ok" style="cursor:pointer" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1.5px;margin-right:3px"><use href="#i-home"/></svg>' + (zh ? '住宅 IP' : 'Residential IP') + '</span>';
+          ispPill = '<span class="tag ok" style="cursor:pointer" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')" title="' + (zh ? '已挂载静态住宅 IP 出口（点击修改或解绑）' : 'Mounted static residential IP egress (click to edit/unmount)') + '"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
         } else {
+          ispCompactPill = '<span class="tag" title="' + (zh ? '已挂载静态住宅 IP 出口' : 'Mounted static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1.5px;margin-right:3px"><use href="#i-home"/></svg>' + (zh ? '住宅 IP' : 'Residential IP') + '</span>';
           ispPill = '<span class="tag"><svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</span>';
         }
       } else if (n.role !== "relay" && canRemoteMutate) {
-        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
+        ispPill = '<span class="tag isp-add" style="cursor:pointer" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')" title="' + (zh ? '点击绑定静态住宅 IP 出口' : 'Click to mount static residential IP egress') + '"><svg class="ico" width="12" height="12" style="vertical-align:-1px;margin-right:3px"><use href="#i-plus"/></svg>' + (zh ? '绑定住宅 IP' : 'Mount ISP') + '</span>';
       }
 
       var qInfo = m.qInfo;
@@ -5842,13 +6071,11 @@ function initAccessibleValidation(root) {
         '</div>';
       }
 
-      var statusBadges = (n.isp ? ispPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
+      var statusBadges = (n.isp ? ispCompactPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var warpPill = "";
       if (canRemoteMutate && !isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
         var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
-        if (n.isp && isWarp) {
-          statusBadges += '<span class="tag" style="font-size:11px;opacity:0.7" title="' + (zh ? '已挂载静态住宅 IP，全量流量优先走住宅出口；解绑后自动恢复 WARP' : 'Residential ISP mounted; WARP standby') + '">' + (zh ? 'WARP 待命' : 'WARP Standby') + '</span>';
-        } else if (isWarp) {
+        if (!n.isp && isWarp) {
           statusBadges += '<span class="tag ok" style="font-size:11px" title="' + (zh ? 'WARP 清洁出网已开启' : 'WARP Active') + '">WARP</span>';
         }
         warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
@@ -5857,7 +6084,7 @@ function initAccessibleValidation(root) {
           '</button>';
       }
       var ispDrawerBtn = canRemoteMutate
-        ? (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')">' + (zh ? '住宅 IP 详情' : 'ISP Config') + '</button>'))
+        ? (!n.isp ? ispPill : ('<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineMountIsp(' + i + ')"><svg class="ico" width="12" height="12" style="vertical-align:-1.5px;margin-right:3px"><use href="#i-home"/></svg>' + (zh ? ('住宅 IP · ' + ispHost) : ('Residential Egress: ' + ispHost)) + '</button>'))
         : (n.isp ? ispPill : "");
       var drawerActions = protoBadges + relayPill + warpPill + ispDrawerBtn;
       if (n.cleanup_pending) {
@@ -7141,6 +7368,18 @@ function initAccessibleValidation(root) {
     }
   }
   window.ownlineToggleNodeDrawer = toggleNodeDrawer;
+
+  function toggleQuotaDetails(btn) {
+    var panel = document.getElementById("quota-details-panel");
+    var toggleBtn = btn || document.getElementById("quota-strip-toggle");
+    if (!panel) return;
+    var nextOpen = Boolean(panel.hidden);
+    panel.hidden = !nextOpen;
+    if (toggleBtn && typeof toggleBtn.setAttribute === "function") {
+      toggleBtn.setAttribute("aria-expanded", String(nextOpen));
+    }
+  }
+  window.ownlineToggleQuotaDetails = toggleQuotaDetails;
 
   function toggleQuota() {
     var qs = document.getElementById("quota-section");
