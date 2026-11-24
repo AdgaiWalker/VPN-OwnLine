@@ -311,7 +311,11 @@ class BypassScriptsHardeningTests(unittest.TestCase):
         rel_text = (ROOT / ".github/workflows/release.yml").read_text(encoding="utf-8")
 
         self.assertIn("macos-latest", ci_text)
+        self.assertIn("macos-15-intel", ci_text)
         self.assertIn("windows-latest", ci_text)
+        self.assertIn("macos-15-intel", rel_text)
+        self.assertNotIn("macos-13", ci_text)
+        self.assertNotIn("macos-13", rel_text)
         self.assertIn("hypothesis==", ci_text)
         self.assertNotIn("@v4", ci_text)
         self.assertNotIn("@v5", ci_text)
@@ -333,6 +337,14 @@ class BypassScriptsHardeningTests(unittest.TestCase):
             "docs/plans/2026-11-23-onboarding-resource-integration.md",
         ):
             self.assertFalse((ROOT / dead_rel).exists(), f"dead file still exists: {dead_rel}")
+
+    def test_installer_arch_normalization_covers_arm64_and_intel_x64(self):
+        from scripts import build_installer
+
+        self.assertEqual(build_installer._normalize_installer_arch("arm64"), "arm64")
+        self.assertEqual(build_installer._normalize_installer_arch("aarch64"), "arm64")
+        self.assertEqual(build_installer._normalize_installer_arch("x86_64"), "x64")
+        self.assertEqual(build_installer._normalize_installer_arch("AMD64"), "x64")
 
 
 if __name__ == "__main__":

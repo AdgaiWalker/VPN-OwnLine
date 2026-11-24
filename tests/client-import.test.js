@@ -30,7 +30,16 @@ function context(ua = '', opts = {}) {
       appendChild(el) { appendedFrames.push(el); el.parentNode = this; },
       removeChild(el) { el.removedFromBody = true; }
     };
-    doc.createElement = tag => ({ tagName: tag.toUpperCase(), style: {}, setAttribute(){}, src: '' });
+    doc.createElement = tag => ({
+      tagName: tag.toUpperCase(),
+      style: {},
+      setAttribute() {},
+      href: '',
+      target: '',
+      rel: '',
+      clicked: false,
+      click() { this.clicked = true; },
+    });
   }
   const c = vm.createContext({BASE_SUB_URL: '', navigator: {userAgent: ua, maxTouchPoints: 0},
     document: doc,
@@ -78,7 +87,7 @@ test('device-specific clients and official download links stay separate', () => 
   }
 });
 
-test('client clicks prevent navigation, launch hidden iframe, prioritize Clash on macOS and hide desktop downloads on iOS', () => {
+test('client clicks prevent navigation, launch synthetic blank anchor without tab lock, prioritize Clash on macOS and hide desktop downloads on iOS', () => {
   const mac = context('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
   mac.c.detectClient();
   assert.doesNotMatch(mac.els['btn-sr'].className, /\bprimary\b/);
@@ -98,7 +107,11 @@ test('client clicks prevent navigation, launch hidden iframe, prioritize Clash o
   ios.els['btn-sr'].onclick({ preventDefault() { prevented = true; } });
   assert.equal(prevented, true);
   assert.equal(ios.appendedFrames.length, 1);
-  assert.equal(ios.appendedFrames[0].tagName, 'IFRAME');
-  assert.match(ios.appendedFrames[0].src, /^shadowrocket:\/\/add\/sub:\/\//);
+  assert.equal(ios.appendedFrames[0].tagName, 'A');
+  assert.equal(ios.appendedFrames[0].target, '_blank');
+  assert.equal(ios.appendedFrames[0].rel, 'noopener noreferrer');
+  assert.equal(ios.appendedFrames[0].clicked, true);
+  assert.equal(ios.appendedFrames[0].removedFromBody, true);
+  assert.match(ios.appendedFrames[0].href, /^shadowrocket:\/\/add\/sub:\/\//);
   assert.equal(ios.els['assist-sr'].style.display, 'block');
 });

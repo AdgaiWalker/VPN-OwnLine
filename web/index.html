@@ -2348,7 +2348,7 @@ footer.site-footer {
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-weight:600">Evergreen</span>
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
-      <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.9.1</span>
+      <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.9.2</span>
     </div>
     <div class="site-footer-links" style="display:flex;gap:6px;align-items:center">
       <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
@@ -2388,7 +2388,7 @@ footer.site-footer {
     <div style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <label style="font-size:13px;font-weight:600;margin:0" id="settings-lbl-version" data-i18n="settings_version_lbl">System Version</label>
-        <span class="tag" id="current-version-tag" style="font-family:var(--mono);font-size:11.5px">v0.9.1</span>
+        <span class="tag" id="current-version-tag" style="font-family:var(--mono);font-size:11.5px">v0.9.2</span>
       </div>
       <div id="update-info-card" style="padding:10px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="min-width:0;flex:1">
@@ -4361,17 +4361,16 @@ async function copySetupText(text) {
         return;
       }
       try {
-        var frame = document.createElement("iframe");
-        frame.style.display = "none";
-        frame.setAttribute("aria-hidden", "true");
-        frame.src = uri;
-        document.body.appendChild(frame);
-        if (typeof setTimeout === "function") {
-          setTimeout(function () {
-            try {
-              if (frame.parentNode) frame.parentNode.removeChild(frame);
-            } catch (_) {}
-          }, 1500);
+        var link = document.createElement("a");
+        link.href = uri;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.style.display = "none";
+        link.setAttribute("aria-hidden", "true");
+        document.body.appendChild(link);
+        if (typeof link.click === "function") link.click();
+        if (link.parentNode && typeof link.parentNode.removeChild === "function") {
+          link.parentNode.removeChild(link);
         }
       } catch (_) {}
     }
@@ -4706,13 +4705,15 @@ async function copySetupText(text) {
     Promise.allSettled([
       jsonRequest("/api/settings", { signal: signal }),
       jsonRequest("/api/nodes", { signal: signal }),
-      jsonRequest("/api/quota/guard", { signal: signal })
+      jsonRequest("/api/quota/guard", { signal: signal }),
+      jsonRequest("/api/status.json?_t=" + Date.now(), { signal: signal })
     ]).then(function (res) {
       if (signal && signal.aborted) return;
       if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
       var settings = res[0].status === "fulfilled" ? res[0].value : null;
       var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
       var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
+      STATUS = res[3].status === "fulfilled" && res[3].value ? res[3].value : { _unavailable: true };
       var setup = null;
       var mh = document.getElementById("management-help");
       if (mh) mh.style.display = settings && settings.ok === true ? "" : "none";
@@ -4734,16 +4735,6 @@ async function copySetupText(text) {
           document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
         }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
       }
-      jsonRequest("/api/status.json?_t=" + Date.now(), { signal: signal }).then(function (st) {
-        if (signal && signal.aborted) return;
-        if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
-        STATUS = st || {};
-        paintStatus();
-      }).catch(function () {
-        if (signal && signal.aborted) return;
-        STATUS = { _unavailable: true };
-        paintStatus();
-      });
       jsonRequest("/api/traffic/stats", { signal: signal }).then(function (ts) {
         if (signal && signal.aborted) return;
         renderTrafficBreakdown(ts);
@@ -4826,6 +4817,7 @@ async function copySetupText(text) {
         if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "暂无流量统计");
       }
       renderNodes(NODES, STATUS, quota);
+      if ((!NODES || !NODES.length) && typeof paintStatus === "function") paintStatus();
       if (NODES && NODES.length) {
         if (typeof ownlineProbeLocalPing === "function") {
           setTimeout(function () { ownlineProbeLocalPing(); }, 150);

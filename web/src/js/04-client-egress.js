@@ -109,17 +109,16 @@
         return;
       }
       try {
-        var frame = document.createElement("iframe");
-        frame.style.display = "none";
-        frame.setAttribute("aria-hidden", "true");
-        frame.src = uri;
-        document.body.appendChild(frame);
-        if (typeof setTimeout === "function") {
-          setTimeout(function () {
-            try {
-              if (frame.parentNode) frame.parentNode.removeChild(frame);
-            } catch (_) {}
-          }, 1500);
+        var link = document.createElement("a");
+        link.href = uri;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.style.display = "none";
+        link.setAttribute("aria-hidden", "true");
+        document.body.appendChild(link);
+        if (typeof link.click === "function") link.click();
+        if (link.parentNode && typeof link.parentNode.removeChild === "function") {
+          link.parentNode.removeChild(link);
         }
       } catch (_) {}
     }

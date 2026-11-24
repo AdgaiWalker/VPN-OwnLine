@@ -257,6 +257,16 @@ def smoke_test_binary(target: Path, *, timeout_sec: float = 20.0) -> dict:
                 proc.wait(timeout=5)
 
 
+def _normalize_installer_arch(raw_arch: str) -> str:
+    """Normalize host architecture tags for cross-platform release archives."""
+    norm = (raw_arch or "").strip().lower()
+    if norm in ("arm64", "aarch64"):
+        return "arm64"
+    if norm in ("x86_64", "amd64", "x64"):
+        return "x64"
+    return norm or "unknown"
+
+
 def build_installer(*, root: Path, version: str, out_dir: Path) -> tuple[Path, Path]:
     """Build macOS .app.zip or Windows .exe.zip via PyInstaller and return (binary_or_app, zip_path)."""
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -328,8 +338,7 @@ def build_installer(*, root: Path, version: str, out_dir: Path) -> tuple[Path, P
             app_bundle = dist_dir / "OwnLine-Setup.app"
             if not app_bundle.is_dir():
                 raise RuntimeError(f"missing macOS app bundle: {app_bundle}")
-            raw_arch = platform.machine().lower()
-            arch = "arm64" if raw_arch in ("arm64", "aarch64") else ("x64" if raw_arch in ("x86_64", "amd64") else raw_arch)
+            arch = _normalize_installer_arch(platform.machine())
             zip_path = out_dir / f"OwnLine-Setup-{version}-macOS-{arch}.zip"
             copied_app = out_dir / "OwnLine-Setup.app"
             if copied_app.exists():
@@ -343,8 +352,7 @@ def build_installer(*, root: Path, version: str, out_dir: Path) -> tuple[Path, P
         if not built_bin.is_file():
             raise RuntimeError(f"missing standalone binary: {built_bin}")
         os_tag = "Windows" if os.name == "nt" else platform.system()
-        raw_arch = platform.machine().lower()
-        arch = "x64" if raw_arch in ("amd64", "x86_64") else raw_arch
+        arch = _normalize_installer_arch(platform.machine())
         zip_path = out_dir / f"OwnLine-Setup-{version}-{os_tag}-{arch}.zip"
         copied_bin = out_dir / exe_name
         shutil.copy2(built_bin, copied_bin)
@@ -358,7 +366,7 @@ def main(argv=None) -> int:
     parser.add_argument("--check-stage", action="store_true", help="Verify clean payload staging and emit_bundle offline")
     parser.add_argument("--build", action="store_true", help="Build standalone executable with PyInstaller")
     parser.add_argument("--smoke", help="Smoke-test built executable/.app with blank PATH")
-    parser.add_argument("--version", default=os.environ.get("GITHUB_REF_NAME") or "v0.9.0")
+    parser.add_argument("--version", default=os.environ.get("GITHUB_REF_NAME") or "v0.9.2")
     parser.add_argument("--out-dir", default="dist-installer")
     args = parser.parse_args(argv)
 

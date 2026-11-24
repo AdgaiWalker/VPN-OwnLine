@@ -281,13 +281,15 @@
     Promise.allSettled([
       jsonRequest("/api/settings", { signal: signal }),
       jsonRequest("/api/nodes", { signal: signal }),
-      jsonRequest("/api/quota/guard", { signal: signal })
+      jsonRequest("/api/quota/guard", { signal: signal }),
+      jsonRequest("/api/status.json?_t=" + Date.now(), { signal: signal })
     ]).then(function (res) {
       if (signal && signal.aborted) return;
       if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
       var settings = res[0].status === "fulfilled" ? res[0].value : null;
       var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
       var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
+      STATUS = res[3].status === "fulfilled" && res[3].value ? res[3].value : { _unavailable: true };
       var setup = null;
       var mh = document.getElementById("management-help");
       if (mh) mh.style.display = settings && settings.ok === true ? "" : "none";
@@ -309,16 +311,6 @@
           document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
         }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
       }
-      jsonRequest("/api/status.json?_t=" + Date.now(), { signal: signal }).then(function (st) {
-        if (signal && signal.aborted) return;
-        if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
-        STATUS = st || {};
-        paintStatus();
-      }).catch(function () {
-        if (signal && signal.aborted) return;
-        STATUS = { _unavailable: true };
-        paintStatus();
-      });
       jsonRequest("/api/traffic/stats", { signal: signal }).then(function (ts) {
         if (signal && signal.aborted) return;
         renderTrafficBreakdown(ts);
@@ -401,6 +393,7 @@
         if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "暂无流量统计");
       }
       renderNodes(NODES, STATUS, quota);
+      if ((!NODES || !NODES.length) && typeof paintStatus === "function") paintStatus();
       if (NODES && NODES.length) {
         if (typeof ownlineProbeLocalPing === "function") {
           setTimeout(function () { ownlineProbeLocalPing(); }, 150);

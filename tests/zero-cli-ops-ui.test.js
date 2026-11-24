@@ -254,3 +254,12 @@ test('v0.9.1 regressions: auto locale detection, zero /api/setup 404, 80/TCP in 
   assert.equal(els['ssh-credential'].value, 'KeepMyPass123!');
   assert.match(els['status'].textContent, /纯公网 IPv4/);
 });
+
+test('v0.9.2 regressions: refreshState awaits /api/status.json before renderNodes', () => {
+  const stateSyncSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/05-state-sync.js'), 'utf8');
+  const settledIdx = stateSyncSrc.indexOf('Promise.allSettled([');
+  const statusReqIdx = stateSyncSrc.indexOf('jsonRequest("/api/status.json?_t="', settledIdx);
+  const renderIdx = stateSyncSrc.indexOf('renderNodes(NODES, STATUS, quota);', settledIdx);
+  assert(settledIdx >= 0 && statusReqIdx > settledIdx && statusReqIdx < renderIdx, 'status.json must settle inside Promise.allSettled before renderNodes');
+  assert.equal(stateSyncSrc.includes('STATUS = st || {};\n        paintStatus();'), false);
+});
