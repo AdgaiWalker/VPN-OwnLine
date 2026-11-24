@@ -39,6 +39,7 @@
       const el = $(id);
       if (el) el.value = '';
     }
+    if (typeof resetSecretToggles === 'function') resetSecretToggles(document);
     setSSHKey('');
   }
 
@@ -196,5 +197,7 @@
     }
   }
 
+  if (typeof initSecretToggles === 'function') initSecretToggles(document);
+  if (typeof initAccessibleValidation === 'function') initAccessibleValidation(document);
   init();
 })();

@@ -1,5 +1,19 @@
+  function initDialogLightDismiss() {
+    if (typeof HTMLDialogElement === "undefined" || ("closedBy" in HTMLDialogElement.prototype)) return;
+    var outside = function (e, dlg) {
+      var r = dlg.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    document.querySelectorAll('dialog[closedby="any"]').forEach(function (dlg) {
+      var pressedOutside = false;
+      dlg.addEventListener("pointerdown", function (e) { pressedOutside = outside(e, dlg); });
+      dlg.addEventListener("pointerup", function (e) { if (pressedOutside && outside(e, dlg)) dlg.close(); });
+    });
+  }
+
   // 11. Initialization & refresh
   function init() {
+    initDialogLightDismiss();
     applyLanguage();
     fetchUserInfo();
     setupInputHighlights();

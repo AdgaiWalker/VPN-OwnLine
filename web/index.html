@@ -470,7 +470,7 @@ button.pill-preview:hover {
 .apple-hero-bar {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
   margin-top: 14px;
 }
@@ -483,8 +483,13 @@ button.pill-preview:hover {
   letter-spacing: -0.15px;
   gap: 9px;
   cursor: pointer;
+  min-width: 0;
 }
-.apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; }
+@media (max-width: 480px) {
+  .apple-hero-bar { gap: 8px; }
+  .apple-hero-connect { flex: 1 1 auto; padding: 0 12px; font-size: 14.5px; }
+}
+.apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
   font-size: 11.5px;
   font-weight: 500;
@@ -493,6 +498,7 @@ button.pill-preview:hover {
   background: rgba(255, 255, 255, 0.2);
   color: #ffffff;
   margin-left: 2px;
+  white-space: nowrap;
 }
 .apple-hero-copy, .apple-hero-qr {
   width: 44px;
@@ -507,7 +513,7 @@ button.pill-preview:hover {
   justify-content: center;
   flex: none;
   cursor: pointer;
-  transition: all .15s ease;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
 }
 .apple-hero-copy:hover, .apple-hero-qr:hover {
   background: var(--paper-card-secondary);
@@ -516,6 +522,10 @@ button.pill-preview:hover {
   transform: translateY(-1px);
 }
 .apple-hero-copy:active, .apple-hero-qr:active { transform: scale(0.96); }
+:where(.btn, .btn-outline, .apple-hero-copy, .apple-hero-qr, .apple-client-row, .apple-sheet-close, .icon-btn-round, .user-pill-btn):focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
 
 .icon-btn-round {
   width: 30px;
@@ -724,7 +734,7 @@ dialog:modal {
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
-  background: rgba(31, 29, 24, 0.45);
+  background-color: rgba(31, 29, 24, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -734,6 +744,72 @@ dialog::backdrop {
   background: transparent;
   max-width: 100vw;
   max-height: 100vh;
+}
+dialog.sheet,
+dialog.apple-action-sheet {
+  opacity: 0;
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.22s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+dialog.sheet[open],
+dialog.apple-action-sheet[open] {
+  opacity: 1;
+}
+@starting-style {
+  dialog.sheet[open],
+  dialog.apple-action-sheet[open] {
+    opacity: 0;
+  }
+}
+dialog.sheet::backdrop,
+dialog.apple-action-sheet::backdrop {
+  background-color: rgba(31, 29, 24, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, display, overlay;
+  transition-duration: 0.22s;
+  transition-timing-function: ease-out;
+  transition-behavior: allow-discrete;
+}
+dialog.sheet[open]::backdrop,
+dialog.apple-action-sheet[open]::backdrop {
+  background-color: rgba(31, 29, 24, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+@starting-style {
+  dialog.sheet[open]::backdrop,
+  dialog.apple-action-sheet[open]::backdrop {
+    background-color: rgba(31, 29, 24, 0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  dialog.sheet,
+  dialog.apple-action-sheet {
+    transform: translateY(8px) scale(0.98);
+  }
+  dialog.sheet[open],
+  dialog.apple-action-sheet[open] {
+    transform: none;
+  }
+  @starting-style {
+    dialog.sheet[open],
+    dialog.apple-action-sheet[open] {
+      transform: translateY(8px) scale(0.98);
+    }
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.sheet,
+  dialog.apple-action-sheet,
+  dialog.sheet::backdrop,
+  dialog.apple-action-sheet::backdrop {
+    transition-duration: 0.1s;
+  }
 }
 .sheet-inner, .apple-sheet-box {
   width: min(440px, calc(100vw - 32px));
@@ -772,8 +848,8 @@ dialog::backdrop {
   margin: 0;
 }
 .apple-sheet-close {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: var(--paper-card-secondary);
@@ -785,9 +861,19 @@ dialog::backdrop {
   font-size: 13px;
   transition: all .15s ease;
 }
+@media (pointer: coarse) {
+  .apple-sheet-close {
+    width: 44px;
+    height: 44px;
+  }
+}
 .apple-sheet-close:hover {
   background: var(--line);
   color: var(--ink);
+}
+.apple-sheet-close:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
 }
 .apple-client-list {
   display: flex;
@@ -815,9 +901,57 @@ dialog::backdrop {
   transform: translateY(-1px);
 }
 .apple-client-row:active { transform: scale(0.985); }
+.apple-client-row:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
 .apple-client-row.primary {
   border-color: var(--navy);
   background: var(--navy-soft);
+  box-shadow: inset 3px 0 0 var(--navy), 0 2px 6px rgba(27, 54, 93, 0.08);
+}
+.hub-secondary-disclosure {
+  margin-top: 4px;
+  margin-bottom: 10px;
+  border-top: 1px dashed var(--line);
+  padding-top: 10px;
+}
+.hub-secondary-disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  padding: 6px 8px;
+  border-radius: 6px;
+  user-select: none;
+  transition: color .15s ease, background-color .15s ease;
+}
+.hub-secondary-disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.hub-secondary-disclosure > summary:hover {
+  color: var(--ink);
+  background: var(--paper-card-secondary);
+}
+.hub-secondary-disclosure > summary:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.hub-secondary-disclosure[open] > summary {
+  color: var(--ink);
+  margin-bottom: 8px;
+}
+.hub-secondary-disclosure .apple-client-download-guide {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 0 8px;
 }
 .apple-client-icon-wrap {
   width: 36px;
@@ -1794,6 +1928,7 @@ footer.site-footer {
       <div id="client-ready-box" style="display:none;margin-top:14px">
         <div class="apple-hero-bar" style="margin-top:0">
           <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
+            <svg class="ico apple-hero-icon" width="15" height="15" aria-hidden="true"><use href="#i-zap"/></svg>
             <span class="apple-hero-title" data-i18n="connect_device">连接本机</span>
             <span id="client-device-badge" class="apple-device-pill">检测中...</span>
           </button>
@@ -1859,14 +1994,14 @@ footer.site-footer {
       </div>
 
       <!-- Apple Client Hub Dialog (Action Sheet) -->
-      <dialog id="client-hub-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+      <dialog id="client-hub-dialog" class="sheet apple-action-sheet" aria-labelledby="hub-device-title" closedby="any">
         <div class="sheet-inner apple-sheet-box">
           <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header">
             <div class="apple-sheet-title-group">
               <h2 class="apple-sheet-title" id="hub-device-title">选择客户端</h2>
             </div>
-            <button class="apple-sheet-close" type="button" onclick="document.getElementById('client-hub-dialog').close()" aria-label="关闭"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
+            <button class="apple-sheet-close" type="button" onclick="document.getElementById('client-hub-dialog').close()" aria-label="关闭"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
 
           <div class="apple-client-list">
@@ -1912,7 +2047,7 @@ footer.site-footer {
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/clash.png" alt="Clash" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">Clash</b>
-                  <span class="apple-client-desc" data-i18n="clash_badge">全平台通用</span>
+                  <span class="apple-client-desc" data-i18n="clash_badge">桌面推荐</span>
                 </div>
                 <span class="apple-client-action-pill" id="pill-clash" data-i18n="btn_open">打开</span>
               </a>
@@ -1942,7 +2077,7 @@ footer.site-footer {
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/flclash.svg" alt="FL Clash" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">FL Clash</b>
-                  <span class="apple-client-desc" data-i18n="flclash_badge">全平台通用</span>
+                  <span class="apple-client-desc" data-i18n="flclash_badge">轻量跨平台</span>
                 </div>
                 <span class="apple-client-action-pill" id="pill-flclash" data-i18n="btn_open">打开</span>
               </a>
@@ -1963,26 +2098,28 @@ footer.site-footer {
             </div>
           </div>
 
-          <div class="apple-client-download-guide" style="margin-top:14px;padding:10px 12px;background:var(--paper-card-subtle);border-radius:10px;border:1px solid var(--line-light)">
-            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">
-              <svg class="ico" width="13" height="13"><use href="#i-download"/></svg>
-              <span data-i18n="client_install_hint">首次使用？点击下载官方客户端：</span>
+          <details class="inner apple-disclosure hub-secondary-disclosure" id="hub-download-disclosure">
+            <summary>
+              <svg class="ico" width="13" height="13" aria-hidden="true"><use href="#i-download"/></svg>
+              <span data-i18n="client_install_hint">未安装客户端？查看官方下载</span>
+            </summary>
+            <div class="apple-client-download-guide">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+                <a class="btn tiny" id="hub-dl-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer">
+                  <svg class="ico" width="11" height="11" aria-hidden="true"><use href="#i-external-link"/></svg>
+                  <span>Clash Verge</span>
+                </a>
+                <a class="btn tiny" id="hub-dl-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer">
+                  <svg class="ico" width="11" height="11" aria-hidden="true"><use href="#i-external-link"/></svg>
+                  <span>FL Clash</span>
+                </a>
+                <a class="btn tiny" id="hub-dl-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer">
+                  <svg class="ico" width="11" height="11" aria-hidden="true"><use href="#i-external-link"/></svg>
+                  <span>Shadowrocket</span>
+                </a>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <a class="btn tiny" id="hub-dl-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
-                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
-                <span>Clash Verge</span>
-              </a>
-              <a class="btn tiny" id="hub-dl-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
-                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
-                <span>FL Clash</span>
-              </a>
-              <a class="btn tiny" id="hub-dl-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
-                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
-                <span>Shadowrocket</span>
-              </a>
-            </div>
-          </div>
+          </details>
 
           <div class="apple-sheet-footer">
             <details class="inner apple-disclosure" id="download-help" style="border:none;background:transparent;padding:0">
@@ -2000,26 +2137,25 @@ footer.site-footer {
       </dialog>
 
       <!-- Subscription QR Code Dialog -->
-      <dialog id="qr-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+      <dialog id="qr-dialog" class="sheet apple-action-sheet" aria-labelledby="qr-dialog-title" closedby="any">
         <div class="sheet-inner qr-modal-box">
           <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header" style="justify-content:center;position:relative">
             <div>
-              <h2 class="apple-sheet-title" style="font-size:17px" data-i18n="scan_qr_title">扫码导入订阅</h2>
+              <h2 class="apple-sheet-title" id="qr-dialog-title" style="font-size:17px" data-i18n="scan_qr_title">扫码导入订阅</h2>
             </div>
-            <button class="apple-sheet-close" type="button" onclick="document.getElementById('qr-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
+            <button class="apple-sheet-close" type="button" onclick="document.getElementById('qr-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用 Shadowrocket（小火箭）或 Clash 等客户端内置扫码功能添加。</p>
           <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
-            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px"><use href="#i-alert"/></svg>
-            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">提示：请使用 Shadowrocket / Clash 等代理客户端内置相机扫码，不要使用微信直接扫码。</span>
+            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px" aria-hidden="true"><use href="#i-alert"/></svg>
+            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。</span>
           </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
-              <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
+              <svg class="ico" width="13" height="13" aria-hidden="true"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
             </button>
             <div id="qr-sub-url-text" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
           </div>
@@ -2730,6 +2866,79 @@ async function copySetupText(text) {
   }
 }
 
+function _setSecretToggleState(btn, visible) {
+  btn.setAttribute("aria-pressed", String(visible));
+  btn.setAttribute("aria-label", visible ? "隐藏密码" : "显示密码");
+  const useEl = typeof btn.querySelector === "function" ? btn.querySelector("use") : null;
+  if (useEl && typeof useEl.setAttribute === "function") {
+    useEl.setAttribute("href", visible ? "#i-eye-off" : "#i-eye");
+  }
+}
+
+function initSecretToggles(root) {
+  if (!root || typeof root.querySelectorAll !== "function") return;
+  const doc = typeof document !== "undefined" ? document : root;
+  const buttons = root.querySelectorAll("[data-toggle-secret]");
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const targetId = btn.getAttribute("data-toggle-secret");
+      const input = targetId && typeof doc.getElementById === "function" ? doc.getElementById(targetId) : null;
+      if (!input) return;
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      _setSecretToggleState(btn, show);
+    });
+  });
+}
+
+function resetSecretToggles(root) {
+  if (!root || typeof root.querySelectorAll !== "function") return;
+  const doc = typeof document !== "undefined" ? document : root;
+  root.querySelectorAll("[data-toggle-secret]").forEach(function (btn) {
+    const targetId = btn.getAttribute("data-toggle-secret");
+    const input = targetId && typeof doc.getElementById === "function" ? doc.getElementById(targetId) : null;
+    if (input && input.type === "text") input.type = "password";
+    _setSecretToggleState(btn, false);
+  });
+}
+
+function initAccessibleValidation(root) {
+  if (!root || typeof root.querySelectorAll !== "function" || typeof root.addEventListener !== "function") return;
+  const flagged = typeof WeakSet !== "undefined" ? new WeakSet() : null;
+  const syncAria = function (el) {
+    if (!el || typeof el.matches !== "function" || !el.matches("input, select, textarea")) return;
+    let invalid = false;
+    try {
+      invalid = el.matches(":user-invalid");
+    } catch (_) {
+      return;
+    }
+    if (invalid) {
+      el.setAttribute("aria-invalid", "true");
+      if (flagged) flagged.add(el);
+    } else if ((flagged && flagged.has(el)) || el.getAttribute("aria-invalid") !== "true") {
+      el.setAttribute("aria-invalid", "false");
+      if (flagged) flagged.delete(el);
+    }
+  };
+  root.querySelectorAll("input, select, textarea").forEach(function (el) { syncAria(el); });
+  root.addEventListener("blur", function (e) { syncAria(e.target); }, true);
+  root.addEventListener("input", function (e) {
+    if (e.target && typeof e.target.hasAttribute === "function" && e.target.hasAttribute("aria-invalid")) {
+      syncAria(e.target);
+    }
+  });
+  root.addEventListener("change", function (e) { syncAria(e.target); }, true);
+  root.addEventListener("invalid", function (e) { syncAria(e.target); }, true);
+  root.addEventListener("reset", function (e) {
+    const form = e.target;
+    if (!form || !form.elements) return;
+    setTimeout(function () {
+      Array.prototype.forEach.call(form.elements, function (el) { syncAria(el); });
+    }, 0);
+  }, true);
+}
+
   var I18N = {
     en: {
       brand_sub: "OwnLine",
@@ -2753,8 +2962,8 @@ async function copySetupText(text) {
       scan_qr: "Scan QR",
       select_client: "Select Client",
       sr_badge: "Recommended for iOS",
-      clash_badge: "Cross-platform",
-      flclash_badge: "Cross-platform",
+      clash_badge: "Desktop Recommended",
+      flclash_badge: "Lightweight",
       btn_open: "Open",
       btn_download: "Download",
       launching_client: "Launching client…",
@@ -2877,8 +3086,8 @@ async function copySetupText(text) {
       feedback_type_client: "Client & Import",
       feedback_type_suggest: "Suggestions",
       feedback_type_bug: "Bugs & Other",
-      client_install_hint: "Tip: If the client does not pop up, please install one below first:",
-      scan_qr_tip: "Please scan with Shadowrocket / Clash app camera, not WeChat directly.",
+      client_install_hint: "Need a client? Official downloads",
+      scan_qr_tip: "Use Shadowrocket or Clash in-app scanner, not WeChat.",
       author_email_lbl: "Author Email:",
       warp_toggle_btn: "WARP Clean Egress",
       tag_node_unreachable: "Node Unreachable",
@@ -2976,8 +3185,8 @@ async function copySetupText(text) {
       scan_qr: "扫码连接",
       select_client: "选择客户端",
       sr_badge: "iOS 推荐",
-      clash_badge: "全平台通用",
-      flclash_badge: "全平台通用",
+      clash_badge: "桌面推荐",
+      flclash_badge: "轻量跨平台",
       btn_open: "打开",
       btn_download: "前往下载",
       launching_client: "正在唤起客户端...",
@@ -3100,8 +3309,8 @@ async function copySetupText(text) {
       feedback_type_client: "客户端与导入",
       feedback_type_suggest: "功能建议",
       feedback_type_bug: "缺陷与其他",
-      client_install_hint: "提示：若未能直接调起客户端，请先下载安装：",
-      scan_qr_tip: "请使用 Shadowrocket / Clash 等客户端内置扫码，不要使用微信直接扫码。",
+      client_install_hint: "未安装客户端？查看官方下载",
+      scan_qr_tip: "请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。",
       author_email_lbl: "作者邮箱：",
       warp_toggle_btn: "WARP 清洁出口",
       tag_node_unreachable: "节点连不上",
@@ -8331,8 +8540,22 @@ async function copySetupText(text) {
   }
 })();
 
+  function initDialogLightDismiss() {
+    if (typeof HTMLDialogElement === "undefined" || ("closedBy" in HTMLDialogElement.prototype)) return;
+    var outside = function (e, dlg) {
+      var r = dlg.getBoundingClientRect();
+      return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+    };
+    document.querySelectorAll('dialog[closedby="any"]').forEach(function (dlg) {
+      var pressedOutside = false;
+      dlg.addEventListener("pointerdown", function (e) { pressedOutside = outside(e, dlg); });
+      dlg.addEventListener("pointerup", function (e) { if (pressedOutside && outside(e, dlg)) dlg.close(); });
+    });
+  }
+
   // 11. Initialization & refresh
   function init() {
+    initDialogLightDismiss();
     applyLanguage();
     fetchUserInfo();
     setupInputHighlights();

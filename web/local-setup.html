@@ -1,20 +1,61 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>:root {
-  color-scheme: light;
-  font: 16px/1.55 -apple-system, BlinkMacSystemFont, sans-serif;
-  color: #202822;
-  background: #f6f6f0;
-  --muted: #535f55;
-  --line: #cfd5c9;
-  --soft: #eaece3;
-  --accent: #203f35;
-  --accent-hover: #162e26;
+  color-scheme: light dark;
+  --paper: #f5f4ed;
+  --surface: #fdfcf9;
+  --soft: #eeebe1;
+  --ink: #1f1d18;
+  --muted: #5e5a50;
+  --line: #d4d1c5;
+  --line-strong: #b6b2a4;
+  --accent: #1b365d;
+  --accent-hover: #142c4d;
+  --accent-fg: #ffffff;
+  --accent-soft: rgba(27, 54, 93, 0.08);
+  --danger: #b43c24;
+  --danger-bg: #fdf1ec;
+  --danger-border: #c96c55;
+  --shadow-card: 0 1px 3px rgba(31, 29, 24, 0.04), 0 8px 24px rgba(31, 29, 24, 0.05);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #141517;
+    --surface: #1c1d22;
+    --soft: #262830;
+    --ink: #ede9e0;
+    --muted: #a09b90;
+    --line: #2e313b;
+    --line-strong: #3f4350;
+    --accent: #5d93d2;
+    --accent-hover: #75a7e3;
+    --accent-fg: #0b1626;
+    --accent-soft: rgba(93, 147, 210, 0.16);
+    --danger: #f87171;
+    --danger-bg: rgba(248, 113, 113, 0.12);
+    --danger-border: rgba(248, 113, 113, 0.45);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.35);
+  }
 }
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; overflow-x: clip; }
-main { max-inline-size: 640px; margin-inline: auto; padding: 44px 24px 32px; }
+body {
+  margin: 0;
+  overflow-x: clip;
+  background: var(--paper);
+  color: var(--ink);
+  min-height: 100vh;
+}
+main {
+  max-inline-size: 560px;
+  margin-inline: auto;
+  padding: 28px 20px 36px;
+}
+
 .ico {
   width: 15px;
   height: 15px;
@@ -27,8 +68,8 @@ main { max-inline-size: 640px; margin-inline: auto; padding: 44px 24px 32px; }
   vertical-align: -2px;
 }
 h1 .ico {
-  width: 22px;
-  height: 22px;
+  width: 21px;
+  height: 21px;
   color: var(--accent);
   vertical-align: -3px;
   margin-inline-end: 8px;
@@ -39,46 +80,117 @@ h1 .ico {
 @media (prefers-reduced-motion: no-preference) {
   .spin-ico { animation: ownline-spin 1.2s linear infinite; }
 }
+
 header {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
+  align-items: center;
   gap: 8px 16px;
-  padding-bottom: 18px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
   border-bottom: 1px solid var(--line);
 }
-header span, small { color: var(--muted); font-size: 13px; }
-header strong { white-space: nowrap; }
-h1 {
-  font-size: clamp(30px, 5vw, 38px);
-  line-height: 1.16;
-  letter-spacing: -.025em;
-  margin: 36px 0 12px;
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-inline-size: 0;
 }
-h2 { font-size: 20px; margin: 0 0 12px; }
-p { margin: 0 0 16px; color: var(--muted); }
+.brand-lockup svg {
+  flex: none;
+}
+header span, small { color: var(--muted); font-size: 13px; }
+header strong {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+header strong small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+.stage-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px 22px;
+  box-shadow: var(--shadow-card);
+}
+
+h1 {
+  font-size: clamp(24px, 4.5vw, 30px);
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin: 0 0 8px;
+  color: var(--ink);
+}
+h2 { font-size: 18px; margin: 0 0 12px; color: var(--ink); }
+p { margin: 0 0 14px; color: var(--muted); }
+.intro-sub { margin-bottom: 18px; font-size: 14px; }
 a { color: var(--accent); text-underline-offset: 3px; }
+a:hover { text-decoration-thickness: 2px; }
 fieldset { border: 0; margin: 0; min-inline-size: 0; padding: 0; }
-label { display: block; font-size: 14px; font-weight: 600; }
+label { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); }
 input {
   display: block;
   inline-size: 100%;
-  min-block-size: 48px;
-  border: 1px solid #aab4a7;
+  min-block-size: 46px;
+  border: 1px solid var(--line-strong);
   border-radius: 8px;
   padding: 10px 12px;
   margin-top: 6px;
-  background: #fff;
-  color: inherit;
+  background: var(--surface);
+  color: var(--ink);
   font: inherit;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 400;
+  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
 }
-input::placeholder { color: #626d62; }
+input::placeholder { color: var(--muted); opacity: 0.78; }
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.secret-field {
+  position: relative;
+  margin-top: 6px;
+}
+.secret-field input {
+  margin-top: 0;
+  padding-inline-end: 46px;
+}
+.pw-toggle {
+  position: absolute;
+  inset-block: 3px;
+  inset-inline-end: 3px;
+  inline-size: 40px;
+  min-block-size: 40px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
+.pw-toggle:hover:not(:disabled) {
+  background: var(--soft);
+  color: var(--ink);
+  box-shadow: none;
+}
+
 :where(button, a, input, summary):focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
 }
+
 button, .primary-link {
   display: inline-flex;
   align-items: center;
@@ -89,90 +201,128 @@ button, .primary-link {
   border: 1px solid transparent;
   border-radius: 8px;
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-fg);
   cursor: pointer;
   font: inherit;
   font-size: 14px;
   font-weight: 600;
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 100ms ease;
 }
 .primary-link { display: inline-flex; align-items: center; text-decoration: none; }
 :is(input:user-invalid, input.user-invalid-fallback) {
-  border-color: #9b4c2a;
-  background-color: #fbefe6;
+  border-color: var(--danger-border);
+  background-color: var(--danger-bg);
 }
 input:user-valid {
   border-color: var(--accent);
 }
-button:hover:not(:disabled), .primary-link:hover { background: var(--accent-hover); }
-button:disabled { cursor: default; opacity: .55; }
-button.secondary { background: var(--soft); color: #202822; }
-button.secondary:hover:not(:disabled) { background: #e0e5d9; }
+button:hover:not(:disabled), .primary-link:hover {
+  background: var(--accent-hover);
+  box-shadow: 0 2px 8px var(--accent-soft);
+}
+@media (prefers-reduced-motion: no-preference) {
+  button:active:not(:disabled), .primary-link:active { transform: scale(0.98); }
+}
+button:disabled { cursor: default; opacity: .55; box-shadow: none; }
+button.secondary { background: var(--soft); color: var(--ink); border-color: var(--line); }
+button.secondary:hover:not(:disabled) { background: var(--line); }
 button.text-button {
   justify-content: flex-start;
+  min-block-size: 36px;
   background: transparent;
   color: var(--accent);
-  padding: 6px 0;
+  padding: 6px 8px;
+  margin-inline: -8px;
   text-align: left;
   text-decoration: underline;
   text-underline-offset: 3px;
+  box-shadow: none;
 }
-button.text-button:hover:not(:disabled) { background: transparent; color: var(--accent-hover); }
+button.text-button:hover:not(:disabled) {
+  background: var(--soft);
+  color: var(--accent-hover);
+  box-shadow: none;
+}
 summary { cursor: pointer; color: var(--accent); }
 details { font-size: 14px; }
-details > p { margin: 12px 0; }
-.row, .actions, .help-links { display: flex; gap: 12px; flex-wrap: wrap; }
+details > p { margin: 10px 0; }
+.row, .actions, .help-links { display: flex; gap: 10px; flex-wrap: wrap; }
 .row label { flex: 1 1 140px; min-inline-size: 0; }
-.actions { margin-top: 24px; }
+.actions { margin-top: 20px; }
 .help-links { align-items: center; column-gap: 16px; }
-.field-note { font-size: 14px; }
-.notice { background: var(--soft); padding: 14px 16px; border-radius: 8px; }
+.field-note { font-size: 13.5px; }
+.notice { background: var(--soft); padding: 12px 14px; border-radius: 8px; color: var(--ink); }
+
+.vault-context {
+  font-size: 13.5px;
+  color: var(--muted);
+  margin: -2px 0 12px;
+}
 .vault-badge {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  margin-bottom: 18px;
-  border-radius: 8px;
-  background: var(--soft);
+  gap: 7px;
+  padding: 6px 11px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: var(--accent-soft);
   color: var(--accent);
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 600;
 }
+
 .step-rail {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 0;
   list-style: none;
-  margin: 20px 0 4px;
+  margin: 0 0 18px;
   padding: 0;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--muted);
 }
 .step-rail li {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 11px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: transparent;
+  background: var(--surface);
+  white-space: nowrap;
+}
+.step-rail li + li {
+  margin-inline-start: 22px;
+  position: relative;
+}
+.step-rail li + li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: -22px;
+  top: 50%;
+  inline-size: 22px;
+  block-size: 1px;
+  background: var(--line);
 }
 .step-rail li[data-state="active"] {
   color: var(--accent);
-  background: #fff;
+  background: var(--accent-soft);
   border-color: var(--accent);
   font-weight: 600;
 }
 .step-rail li[data-state="done"] {
-  color: #fff;
+  color: var(--accent-fg);
   background: var(--accent);
   border-color: var(--accent);
   font-weight: 600;
 }
-#ssh-help-details { margin-top: 4px; }
+.step-rail li[data-state="done"] + li::before {
+  background: var(--accent);
+}
+
+#ssh-help-details { margin-top: 6px; }
 #ssh-help-details summary { padding: 6px 0; font-weight: 600; }
-.guide-disclosure { margin-top: 12px; }
+.guide-disclosure { margin-top: 10px; }
 .guide-disclosure summary { padding: 6px 0; font-weight: 600; }
 .guide-body {
   background: var(--soft);
@@ -191,34 +341,53 @@ details > p { margin: 12px 0; }
   margin: 2px 4px 2px 0;
   padding: 2px 6px;
   border-radius: 4px;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
-  font-size: 13px;
+  color: var(--ink);
+  font-size: 12.5px;
 }
 
 #connection-methods {
-  display: inline-flex;
+  display: flex;
+  inline-size: 100%;
   gap: 4px;
-  margin: 8px 0 24px;
+  margin: 0 0 18px;
   padding: 4px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--soft);
 }
-#connection-methods button { background: transparent; color: var(--muted); }
+#connection-methods button {
+  flex: 1 1 0;
+  min-block-size: 40px;
+  padding: 8px 12px;
+  background: transparent;
+  color: var(--muted);
+  box-shadow: none;
+}
 #connection-methods button[aria-pressed="true"] {
-  background: #fff;
+  background: var(--surface);
   border-color: var(--line);
   color: var(--accent);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
-#connection-methods button:hover:not(:disabled) { color: #14291f; }
-#connection-fields > label + label { margin-top: 16px; }
-#connection-fields .target-card + label { margin-top: 16px; }
-#ssh-options { margin-top: 12px; }
-#ssh-options summary { padding: 8px 0; }
+#connection-methods button:hover:not(:disabled) { color: var(--ink); }
+#connection-fields > label + label,
+#connection-fields > .secret-label { margin-top: 14px; }
+#connection-fields .target-card + label,
+#connection-fields .target-card + .secret-label { margin-top: 14px; }
+#ssh-options { margin-top: 10px; }
+#ssh-options summary { padding: 8px 0; font-size: 13.5px; color: var(--muted); }
 #ssh-options > label, #ssh-options .row { margin-top: 12px; }
-#ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
-#check, #tencent-read { display: block; margin-top: 20px; inline-size: 100%; }
+.key-status-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.key-status-row:has(#ssh-key-status:empty) #ssh-key-status { display: none; }
+#ssh-key-status:not(:empty) { color: var(--accent); font-size: 13.5px; font-weight: 500; }
+#check, #tencent-read { display: flex; margin-top: 18px; inline-size: 100%; }
 #tencent-results { margin-bottom: 8px; }
 #tencent-instances, #progress-stages, #setup-events { padding-inline-start: 20px; color: var(--muted); }
 #tencent-instances {
@@ -231,61 +400,51 @@ details > p { margin: 12px 0; }
 #tencent-instances li + li { margin-top: 8px; }
 #tencent-instances button, .target-card {
   overflow-wrap: anywhere;
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 8px;
-  color: #202822;
+  color: var(--ink);
   padding: 12px 14px;
 }
 #tencent-instances button { display: block; inline-size: 100%; text-align: left; }
 #tencent-instances button:hover:not(:disabled) { background: var(--soft); }
 .target-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .target-card div { min-inline-size: 0; }
-#selected-address { display: block; color: var(--muted); font-size: 14px; }
+#selected-address { display: block; color: var(--muted); font-size: 13.5px; }
 #change-instance { flex: none; }
 #progress-stage { font-weight: 600; color: var(--accent); }
 #progress-time { font-variant-numeric: tabular-nums; }
 #progress-time:empty, #progress-stage:empty { margin: 0; }
 #progress-stages li, #setup-events li { padding-block: 4px; }
 #progress-stages [data-state="running"] { color: var(--accent); font-weight: 600; }
-#progress-stages [data-state="attention"] { color: #85391d; font-weight: 600; }
+#progress-stages [data-state="attention"] { color: var(--danger); font-weight: 600; }
 #progress-details, #setup-diagnostics { margin-top: 12px; }
-#status, #vault-status { white-space: pre-wrap; margin-top: 16px; }
-#status:empty, #vault-status:empty { margin: 0; }
+#status, #vault-status { white-space: pre-wrap; margin: 14px 0 0; }
+#status:empty, #vault-status:empty { display: none; margin: 0; }
 #status[data-kind="error"], #vault-status[data-kind="error"] {
-  border-inline-start: 3px solid #9b4c2a;
+  border-inline-start: 3px solid var(--danger);
   padding: 10px 12px;
-  border-radius: 3px;
-  color: #702d15;
-  background: #fbefe6;
+  border-radius: 6px;
+  color: var(--danger);
+  background: var(--danger-bg);
 }
-#vault-card fieldset > label + label { margin-top: 16px; }
-#vault-ssh-options { margin-top: 12px; }
-#vault-ssh-options summary { padding: 8px 0; }
+#vault-card fieldset > label + label { margin-top: 14px; }
+#vault-ssh-options { margin-top: 10px; }
+#vault-ssh-options summary { padding: 8px 0; font-size: 13.5px; color: var(--muted); }
 #vault-ssh-options > label, #vault-ssh-options .row { margin-top: 12px; }
-#vault-ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 14px; }
+#vault-ssh-key-status:not(:empty) { display: block; margin-top: 6px; color: var(--accent); font-size: 13.5px; }
 #vault-handle-out { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-.footer-left { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; min-inline-size: 0; }
-#check-update { color: var(--muted); font-weight: 400; text-decoration: none; }
-#check-update:hover:not(:disabled) { text-decoration: underline; }
-#update-status:not(:empty) { color: var(--muted); }
-.delivery-credentials { border-block: 1px solid var(--line); margin: 20px 0; padding: 16px 0 0; }
+.footer-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-inline-size: 0; }
+#check-update { color: var(--muted); font-weight: 500; text-decoration: none; font-size: 13px; }
+#check-update:hover:not(:disabled) { color: var(--ink); text-decoration: underline; }
+#update-status:not(:empty) { color: var(--muted); font-size: 13px; }
+.delivery-credentials { border-block: 1px solid var(--line); margin: 18px 0; padding: 14px 0 8px; }
 .delivery-credentials input { max-inline-size: 25rem; }
 #ssh-help {
-  margin-top: 28px;
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  font-size: 14px;
+  margin-top: 18px;
+  padding-inline: 2px;
+  font-size: 13.5px;
 }
-.help-heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 8px 16px;
-  margin-bottom: 12px;
-}
-.help-heading h2 { margin: 0; }
 #copy-ssh-prompt { border-color: var(--line); }
 #ssh-copy-status:empty { display: none; }
 #ssh-prompt {
@@ -294,29 +453,31 @@ details > p { margin: 12px 0; }
   background: var(--soft);
   border-radius: 8px;
   padding: 12px;
-  font: inherit;
+  font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--ink);
 }
 .update-note { margin: 8px 0 0; }
 footer {
-  border-top: 1px solid var(--line);
-  margin-top: 32px;
-  padding-top: 8px;
+  margin-top: 18px;
+  padding: 10px 2px 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   flex-wrap: wrap;
 }
 footer:has(#quit[hidden]) { display: none; }
-#quit { color: var(--muted); text-decoration: none; font-weight: 400; flex: none; }
-#quit:hover:not(:disabled) { text-decoration: underline; }
+#quit { color: var(--muted); text-decoration: none; font-weight: 500; font-size: 13px; flex: none; }
+#quit:hover:not(:disabled) { color: var(--ink); text-decoration: underline; }
 
 @media (max-width: 480px) {
-  main { padding: 24px 16px; }
-  h1 { margin-top: 24px; }
+  main { padding: 18px 14px 28px; }
+  .stage-card { padding: 20px 16px; border-radius: 12px; }
   .row label { flex-basis: 100%; }
-  #connection-methods { display: flex; inline-size: 100%; }
-  #connection-methods button { flex: 1 1 0; }
+  .step-rail { font-size: 12px; }
+  .step-rail li { padding: 4px 9px; }
+  .step-rail li + li { margin-inline-start: 14px; }
+  .step-rail li + li::before { inset-inline-start: -14px; inline-size: 14px; }
   .actions { flex-direction: column; }
   .actions button, .actions .primary-link { inline-size: 100%; }
 }
@@ -330,15 +491,36 @@ footer:has(#quit[hidden]) { display: none; }
   <symbol id="i-copy" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></symbol>
   <symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></symbol>
   <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></symbol>
 </svg>
-<main><header><strong>Evergreen <small>OwnLine</small></strong><span>本地安装</span></header>
+<main>
+<header>
+  <div class="brand-lockup">
+    <svg width="22" height="22" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+      <defs>
+        <linearGradient id="eg-loop-s" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#34d399"/>
+          <stop offset="55%" stop-color="#10b981"/>
+          <stop offset="100%" stop-color="#0284c7"/>
+        </linearGradient>
+      </defs>
+      <rect width="32" height="32" rx="8" fill="#132620"/>
+      <path d="M9.5 12C7.3 12 5.8 13.7 5.8 16C5.8 18.3 7.3 20 9.5 20C12.8 20 15.6 16 16 16C16.4 16 19.2 20 22.5 20C24.7 20 26.2 18.3 26.2 16C26.2 13.7 24.7 12 22.5 12C19.2 12 16.4 16 16 16C15.6 16 12.8 12 9.5 12Z" stroke="url(#eg-loop-s)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="16" cy="16" r="1.9" fill="#ffffff"/>
+    </svg>
+    <strong>Evergreen <small>OwnLine</small></strong>
+  </div>
+  <span>本地安装</span>
+</header>
+<div class="stage-card">
 <ol id="step-rail" class="step-rail" aria-label="安装步骤" hidden>
 <li id="step-1" data-state="active">1 连接</li>
 <li id="step-2" data-state="pending">2 确认</li>
 <li id="step-3" data-state="pending">3 完成</li>
 </ol>
 <div id="connection-intro">
-<h1>创建节点</h1><p>用一台空白 Linux 服务器，从本机完成配置。</p>
+<h1>创建节点</h1><p class="intro-sub">填入空白 Linux 服务器，一键自动装配。</p>
 </div>
 <p id="startup-fallback" class="notice" role="status">页面尚未就绪。请确认浏览器未禁用 JavaScript，然后重新双击 OwnLine 安装器打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
@@ -351,19 +533,23 @@ footer:has(#quit[hidden]) { display: none; }
 <div><strong id="selected-name"></strong><span id="selected-address"></span></div>
 <button id="change-instance" class="text-button" type="button">更换实例</button>
 </div>
-<label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required placeholder="输入密码，或直接粘贴整段 SSH 私钥" autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
-<div class="actions" style="margin-top:4px;gap:8px;align-items:center"><span id="ssh-key-status" role="status"></span><button id="clear-ssh-key" class="text-button" type="button" hidden>清除私钥</button></div>
-<details id="ssh-options"><summary>连接设置（非 root 账号或非 22 端口点此）</summary>
-<p class="field-note">默认尝试 root；使用 Oracle Cloud 或腾讯云轻量 Ubuntu 镜像时可填写 ubuntu（自动提权，无需配置）。</p>
+<label for="ssh-credential" class="secret-label">服务器密码或 SSH 私钥</label>
+<div class="secret-field">
+  <input id="ssh-credential" name="password" type="password" required placeholder="输入密码，或直接粘贴整段 SSH 私钥" autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status">
+  <button type="button" class="pw-toggle" data-toggle-secret="ssh-credential" aria-label="显示密码" aria-pressed="false"><svg class="ico" aria-hidden="true"><use href="#i-eye"/></svg></button>
+</div>
+<div class="key-status-row"><span id="ssh-key-status" role="status"></span><button id="clear-ssh-key" class="text-button" type="button" hidden>清除私钥</button></div>
+<details id="ssh-options"><summary>连接设置（非 root 账号或非 22 端口）</summary>
+<p class="field-note">默认尝试 root；Oracle Cloud 或腾讯云轻量 Ubuntu 可填 ubuntu（自动提权）。</p>
 <div class="row"><label>用户名<input name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
-<label>私钥密码（如私钥无加密可留空）<input name="passphrase" type="password" autocomplete="off"></label>
+<label>私钥密码（如无加密可留空）<input name="passphrase" type="password" autocomplete="off"></label>
 </details>
 <button id="check" type="submit">测试连接</button>
 </fieldset></form>
 <section id="tencent" hidden aria-label="选择腾讯云实例">
 <form id="tencent-credentials" method="post">
 <fieldset id="tencent-fields" aria-label="腾讯云 API 密钥">
-<p class="field-note">用只读 API 密钥查找你的轻量应用服务器或 CVM 云服务器实例。</p>
+<p class="field-note">用只读 API 密钥读取你的轻量应用服务器或 CVM 实例。</p>
 <p class="field-note"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <a href="https://console.cloud.tencent.com/cam/user/userList" target="_blank" rel="noopener noreferrer">新建只读 CAM 密钥</a>：请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。</p>
 <div class="row">
 <label>SecretId<input id="tencent-secret-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
@@ -380,7 +566,7 @@ footer:has(#quit[hidden]) { display: none; }
 </section>
 <section id="fingerprint" hidden aria-labelledby="fingerprint-title">
 <h1 id="fingerprint-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>首次连接 · 锁定服务器指纹</h1>
-<p>确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改（如云控制台提供了 SSH 指纹也可顺手核对）。</p>
+<p>确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改。</p>
 <code id="fingerprint-value" class="target-card"></code>
 <div class="actions">
 <button id="trust-host" type="button" aria-describedby="fingerprint-value">信任并锁定，继续检查</button>
@@ -413,17 +599,15 @@ footer:has(#quit[hidden]) { display: none; }
 <button id="copy-password" class="text-button" type="button" aria-describedby="copy-password-status">复制密码</button>
 </div>
 <span id="copy-password-status" class="field-note" role="status"></span>
-<p class="field-note">建议先复制保存或在浏览器保存密码；关闭本地服务后，本页将清除初始密码。</p>
+<p class="field-note">建议先复制保存或在浏览器保存密码；安装完毕点击页脚「关闭本地服务」即可清空内存凭据。</p>
 </div>
 <a id="dashboard" class="primary-link" target="_blank" rel="noreferrer"><span>打开管理后台</span><svg class="ico" aria-hidden="true"><use href="#i-external-link"/></svg></a>
 </section>
 <p id="status" role="status" aria-live="polite"></p>
 <details id="setup-diagnostics" hidden><summary>查看连接诊断</summary><ol id="setup-events"></ol></details>
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
-<section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
-<div class="help-heading">
-<h2 id="ssh-help-title">准备工作与选型参考</h2>
 </div>
+<section id="ssh-help" aria-label="准备工作与选型参考" hidden>
 <details id="no-server-guide" class="guide-disclosure"><summary>还没有服务器？查看 0~99 元/年选型与必开端口</summary><div class="guide-body"><ul class="guide-list"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p><strong>系统与端口：</strong>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，支持 root 或云商默认免密 sudo 账号如 ubuntu，且有公网 IPv4）；在云防火墙放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需：默认 sslip.io 与自定义域名均需放行）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）。</p><p><strong>单机 vs 中转：</strong>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。<br>双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p><strong>家宽与自定义域名：</strong>防 AI 封控可选 <a href="https://www.webshare.io/" target="_blank" rel="noopener noreferrer">Webshare Static Residential</a>（约 $12/年区间（以官方为准））；默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 如需自有域名可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后，在管理后台「偏好设置 -&gt; 自定义域名」即可一键绑定。）。</p><p class="field-note">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
 <details id="ssh-help-details"><summary>端口放行清单与开发者 / AI 助手自动装配（可选）</summary>
 <p>使用空白 Ubuntu 22.04+ 或 Debian 12+（支持 root 或云商默认账号如 ubuntu）。在云控制台防火墙 / 安全组放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需）、8443/TCP、443/TCP 和 443/UDP。</p>
@@ -446,11 +630,10 @@ footer:has(#quit[hidden]) { display: none; }
 </section>
 <footer>
 <div class="footer-left">
-<button id="check-update" class="text-button" type="button" hidden>检查更新</button>
+<button id="check-update" class="text-button" type="button" hidden><svg class="ico" aria-hidden="true"><use href="#i-refresh"/></svg><span>检查更新</span></button>
 <span id="update-status" class="field-note" role="status" hidden></span>
 </div>
-<button id="quit" class="text-button" type="button" hidden>关闭本地服务</button>
-<p class="field-note" style="flex-basis:100%;margin:4px 0 0">安装并保存初始密码后，点击「关闭本地服务」即可清空内存凭据。</p>
+<button id="quit" class="text-button" type="button" title="安装并保存密码后点击此项关闭本机服务并清空内存凭据" hidden>关闭本地服务</button>
 </footer></main><script>function hasSSHPrivateKeyHeader(text) {
   return /-----BEGIN (?:[A-Z]+ )?PRIVATE KEY-----/.test(text);
 }
@@ -485,6 +668,79 @@ async function copySetupText(text) {
       input.remove();
     }
   }
+}
+
+function _setSecretToggleState(btn, visible) {
+  btn.setAttribute("aria-pressed", String(visible));
+  btn.setAttribute("aria-label", visible ? "隐藏密码" : "显示密码");
+  const useEl = typeof btn.querySelector === "function" ? btn.querySelector("use") : null;
+  if (useEl && typeof useEl.setAttribute === "function") {
+    useEl.setAttribute("href", visible ? "#i-eye-off" : "#i-eye");
+  }
+}
+
+function initSecretToggles(root) {
+  if (!root || typeof root.querySelectorAll !== "function") return;
+  const doc = typeof document !== "undefined" ? document : root;
+  const buttons = root.querySelectorAll("[data-toggle-secret]");
+  buttons.forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      const targetId = btn.getAttribute("data-toggle-secret");
+      const input = targetId && typeof doc.getElementById === "function" ? doc.getElementById(targetId) : null;
+      if (!input) return;
+      const show = input.type === "password";
+      input.type = show ? "text" : "password";
+      _setSecretToggleState(btn, show);
+    });
+  });
+}
+
+function resetSecretToggles(root) {
+  if (!root || typeof root.querySelectorAll !== "function") return;
+  const doc = typeof document !== "undefined" ? document : root;
+  root.querySelectorAll("[data-toggle-secret]").forEach(function (btn) {
+    const targetId = btn.getAttribute("data-toggle-secret");
+    const input = targetId && typeof doc.getElementById === "function" ? doc.getElementById(targetId) : null;
+    if (input && input.type === "text") input.type = "password";
+    _setSecretToggleState(btn, false);
+  });
+}
+
+function initAccessibleValidation(root) {
+  if (!root || typeof root.querySelectorAll !== "function" || typeof root.addEventListener !== "function") return;
+  const flagged = typeof WeakSet !== "undefined" ? new WeakSet() : null;
+  const syncAria = function (el) {
+    if (!el || typeof el.matches !== "function" || !el.matches("input, select, textarea")) return;
+    let invalid = false;
+    try {
+      invalid = el.matches(":user-invalid");
+    } catch (_) {
+      return;
+    }
+    if (invalid) {
+      el.setAttribute("aria-invalid", "true");
+      if (flagged) flagged.add(el);
+    } else if ((flagged && flagged.has(el)) || el.getAttribute("aria-invalid") !== "true") {
+      el.setAttribute("aria-invalid", "false");
+      if (flagged) flagged.delete(el);
+    }
+  };
+  root.querySelectorAll("input, select, textarea").forEach(function (el) { syncAria(el); });
+  root.addEventListener("blur", function (e) { syncAria(e.target); }, true);
+  root.addEventListener("input", function (e) {
+    if (e.target && typeof e.target.hasAttribute === "function" && e.target.hasAttribute("aria-invalid")) {
+      syncAria(e.target);
+    }
+  });
+  root.addEventListener("change", function (e) { syncAria(e.target); }, true);
+  root.addEventListener("invalid", function (e) { syncAria(e.target); }, true);
+  root.addEventListener("reset", function (e) {
+    const form = e.target;
+    if (!form || !form.elements) return;
+    setTimeout(function () {
+      Array.prototype.forEach.call(form.elements, function (el) { syncAria(el); });
+    }, 0);
+  }, true);
 }
 
 (() => {
@@ -566,6 +822,7 @@ async function copySetupText(text) {
   }
   function clearSecrets() {
     sshCredential.value = sshForm.elements.passphrase.value = '';
+    if (typeof resetSecretToggles === 'function') resetSecretToggles(document);
     setSSHKey('');
   }
   function invalidate() {
@@ -971,6 +1228,8 @@ async function copySetupText(text) {
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
   };
+  if (typeof initSecretToggles === 'function') initSecretToggles(document);
+  if (typeof initAccessibleValidation === 'function') initAccessibleValidation(document);
   $('startup-fallback').hidden = true;
   showConnectionStep(true);
   $('quit').hidden = false;

@@ -115,3 +115,21 @@ test('client clicks prevent navigation, launch synthetic blank anchor without ta
   assert.match(ios.appendedFrames[0].href, /^shadowrocket:\/\/add\/sub:\/\//);
   assert.equal(ios.els['assist-sr'].style.display, 'block');
 });
+
+(require('node:test'))('client hub and QR dialogs use native accessible top-layer semantics, light-dismiss fallback, collapsed download disclosure, and discrete animations', () => {
+  const localFs = require('node:fs');
+  const localPath = require('node:path');
+  const localAssert = require('node:assert/strict');
+  const builtIndex = localFs.readFileSync(localPath.join(__dirname, '../web/index.html'), 'utf8');
+
+  localAssert.match(builtIndex, /<dialog[^>]*id="client-hub-dialog"[^>]*aria-labelledby="hub-device-title"[^>]*closedby="any"/);
+  localAssert.match(builtIndex, /<dialog[^>]*id="qr-dialog"[^>]*aria-labelledby="qr-dialog-title"[^>]*closedby="any"/);
+  localAssert.match(builtIndex, /<h2[^>]*id="qr-dialog-title"/);
+  localAssert.equal(builtIndex.includes('data-i18n="scan_qr_desc"'), false, 'duplicate scan_qr_desc helper should be removed');
+  localAssert.match(builtIndex, /<details[^>]*id="hub-download-disclosure"(?![^>]*\sopen\b)/);
+
+  localAssert.ok(builtIndex.includes('@starting-style'), 'top-layer dialog entry should use @starting-style');
+  localAssert.ok(builtIndex.includes('transition-behavior: allow-discrete'), 'discrete dialog transition should be declared outside shorthand');
+  localAssert.ok(builtIndex.includes('initDialogLightDismiss'), 'init script should register progressive light-dismiss fallback');
+  localAssert.ok(builtIndex.includes('getBoundingClientRect') && builtIndex.includes('closedBy'), 'fallback should feature-detect native closedBy and check backdrop bounds');
+});

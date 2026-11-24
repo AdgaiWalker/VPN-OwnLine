@@ -1,11 +1,11 @@
-      <dialog id="client-hub-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+      <dialog id="client-hub-dialog" class="sheet apple-action-sheet" aria-labelledby="hub-device-title" closedby="any">
         <div class="sheet-inner apple-sheet-box">
           <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header">
             <div class="apple-sheet-title-group">
               <h2 class="apple-sheet-title" id="hub-device-title">选择客户端</h2>
             </div>
-            <button class="apple-sheet-close" type="button" onclick="document.getElementById('client-hub-dialog').close()" aria-label="关闭"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
+            <button class="apple-sheet-close" type="button" onclick="document.getElementById('client-hub-dialog').close()" aria-label="关闭"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
 
           <div class="apple-client-list">
@@ -51,7 +51,7 @@
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/clash.png" alt="Clash" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">Clash</b>
-                  <span class="apple-client-desc" data-i18n="clash_badge">全平台通用</span>
+                  <span class="apple-client-desc" data-i18n="clash_badge">桌面推荐</span>
                 </div>
                 <span class="apple-client-action-pill" id="pill-clash" data-i18n="btn_open">打开</span>
               </a>
@@ -81,7 +81,7 @@
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/flclash.svg" alt="FL Clash" width="28" height="28"></span>
                 <div class="apple-client-meta">
                   <b class="card-label apple-client-name">FL Clash</b>
-                  <span class="apple-client-desc" data-i18n="flclash_badge">全平台通用</span>
+                  <span class="apple-client-desc" data-i18n="flclash_badge">轻量跨平台</span>
                 </div>
                 <span class="apple-client-action-pill" id="pill-flclash" data-i18n="btn_open">打开</span>
               </a>
@@ -102,26 +102,28 @@
             </div>
           </div>
 
-          <div class="apple-client-download-guide" style="margin-top:14px;padding:10px 12px;background:var(--paper-card-subtle);border-radius:10px;border:1px solid var(--line-light)">
-            <div style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px">
-              <svg class="ico" width="13" height="13"><use href="#i-download"/></svg>
-              <span data-i18n="client_install_hint">首次使用？点击下载官方客户端：</span>
+          <details class="inner apple-disclosure hub-secondary-disclosure" id="hub-download-disclosure">
+            <summary>
+              <svg class="ico" width="13" height="13" aria-hidden="true"><use href="#i-download"/></svg>
+              <span data-i18n="client_install_hint">未安装客户端？查看官方下载</span>
+            </summary>
+            <div class="apple-client-download-guide">
+              <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+                <a class="btn tiny" id="hub-dl-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer">
+                  <svg class="ico" width="11" height="11" aria-hidden="true"><use href="#i-external-link"/></svg>
+                  <span>Clash Verge</span>
+                </a>
+                <a class="btn tiny" id="hub-dl-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer">
+                  <svg class="ico" width="11" height="11" aria-hidden="true"><use href="#i-external-link"/></svg>
+                  <span>FL Clash</span>
+                </a>
+                <a class="btn tiny" id="hub-dl-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer">
+                  <svg class="ico" width="11" height="11" aria-hidden="true"><use href="#i-external-link"/></svg>
+                  <span>Shadowrocket</span>
+                </a>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <a class="btn tiny" id="hub-dl-clash" href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
-                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
-                <span>Clash Verge</span>
-              </a>
-              <a class="btn tiny" id="hub-dl-flclash" href="https://github.com/chen08209/FlClash/releases" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
-                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
-                <span>FL Clash</span>
-              </a>
-              <a class="btn tiny" id="hub-dl-sr" href="https://apps.apple.com/app/shadowrocket/id932747118" target="_blank" rel="noopener noreferrer" style="font-size:11.5px;padding:4px 9px">
-                <svg class="ico" width="11" height="11"><use href="#i-external-link"/></svg>
-                <span>Shadowrocket</span>
-              </a>
-            </div>
-          </div>
+          </details>
 
           <div class="apple-sheet-footer">
             <details class="inner apple-disclosure" id="download-help" style="border:none;background:transparent;padding:0">
@@ -139,26 +141,25 @@
       </dialog>
 
       <!-- Subscription QR Code Dialog -->
-      <dialog id="qr-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+      <dialog id="qr-dialog" class="sheet apple-action-sheet" aria-labelledby="qr-dialog-title" closedby="any">
         <div class="sheet-inner qr-modal-box">
           <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header" style="justify-content:center;position:relative">
             <div>
-              <h2 class="apple-sheet-title" style="font-size:17px" data-i18n="scan_qr_title">扫码导入订阅</h2>
+              <h2 class="apple-sheet-title" id="qr-dialog-title" style="font-size:17px" data-i18n="scan_qr_title">扫码导入订阅</h2>
             </div>
-            <button class="apple-sheet-close" type="button" onclick="document.getElementById('qr-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
+            <button class="apple-sheet-close" type="button" onclick="document.getElementById('qr-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14" aria-hidden="true"><use href="#i-x"/></svg></button>
           </div>
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用 Shadowrocket（小火箭）或 Clash 等客户端内置扫码功能添加。</p>
           <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
-            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px"><use href="#i-alert"/></svg>
-            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">提示：请使用 Shadowrocket / Clash 等代理客户端内置相机扫码，不要使用微信直接扫码。</span>
+            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px" aria-hidden="true"><use href="#i-alert"/></svg>
+            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。</span>
           </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
-              <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
+              <svg class="ico" width="13" height="13" aria-hidden="true"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
             </button>
             <div id="qr-sub-url-text" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
           </div>

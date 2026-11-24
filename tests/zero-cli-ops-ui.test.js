@@ -263,3 +263,127 @@ test('v0.9.2 regressions: refreshState awaits /api/status.json before renderNode
   assert(settledIdx >= 0 && statusReqIdx > settledIdx && statusReqIdx < renderIdx, 'status.json must settle inside Promise.allSettled before renderNodes');
   assert.equal(stateSyncSrc.includes('STATUS = st || {};\n        paintStatus();'), false);
 });
+
+test('client setup and vault pages enforce Paper & Ink light/dark tokens, stage cards, secret toggles, ARIA validation, and zero emojis', () => {
+  const localVaultHtml = fs.readFileSync(path.join(__dirname, '../web/local-vault.html'), 'utf8');
+  for (const [name, docHtml] of [
+    ['local-setup.html', localSetupHtml],
+    ['local-vault.html', localVaultHtml],
+  ]) {
+    assert.ok(docHtml.includes('color-scheme: light dark'), `${name} should declare light/dark color-scheme`);
+    assert.ok(docHtml.includes('@media (prefers-color-scheme: dark)'), `${name} should support dark mode`);
+    assert.ok(docHtml.includes('.stage-card') && docHtml.includes('class="stage-card'), `${name} should render focused .stage-card container`);
+    assert.ok(docHtml.includes('initSecretToggles') && docHtml.includes('resetSecretToggles'), `${name} should wire secret toggle lifecycle`);
+    assert.ok(docHtml.includes('initAccessibleValidation') && docHtml.includes('aria-invalid'), `${name} should wire accessible ARIA validation`);
+    assert.equal(/[\u{1F300}-\u{1FAFF}]/u.test(docHtml), false, `${name} must not contain emoji characters`);
+  }
+
+  assert.ok(localSetupHtml.includes('data-toggle-secret="ssh-credential"'));
+  assert.match(localSetupHtml, /<details[^>]*id="ssh-help-details"(?![^>]*\sopen\b)/);
+  assert.ok(localVaultHtml.includes('data-toggle-secret="vault-ssh-credential"'));
+  assert.ok(localVaultHtml.includes('data-toggle-secret="vault-isp-proxy"'));
+  assert.ok(localVaultHtml.includes('data-toggle-secret="vault-panel-password"'));
+  assert.equal(/[\u{1F300}-\u{1FAFF}]/u.test(indexHtml), false, 'index.html must not contain emoji characters');
+});
+
+test('00-setup-input secret toggle and accessible validation helpers handle reveal, reset, and aria-invalid transitions', () => {
+  const src = fs.readFileSync(path.join(__dirname, '../web/src/js/00-setup-input.js'), 'utf8');
+
+  function makeDomElement(id, initialType = 'text', selectorMatch = 'input') {
+    const attrs = {};
+    const listeners = {};
+    let userInvalid = false;
+    const useEl = {
+      attributes: { href: '#i-eye' },
+      setAttribute(k, v) { this.attributes[k] = String(v); },
+      getAttribute(k) { return this.attributes[k]; },
+    };
+    return {
+      id,
+      type: initialType,
+      _setUserInvalid(val) { userInvalid = Boolean(val); },
+      attributes: attrs,
+      setAttribute(k, v) { attrs[k] = String(v); },
+      getAttribute(k) { return Object.prototype.hasOwnProperty.call(attrs, k) ? attrs[k] : null; },
+      hasAttribute(k) { return Object.prototype.hasOwnProperty.call(attrs, k); },
+      addEventListener(evt, fn) {
+        listeners[evt] = listeners[evt] || [];
+        listeners[evt].push(fn);
+      },
+      dispatch(evt, extra = {}) {
+        (listeners[evt] || []).forEach((fn) => fn({ target: this, ...extra }));
+      },
+      querySelector(sel) { return sel === 'use' ? useEl : null; },
+      _useEl: useEl,
+      matches(sel) {
+        if (sel === ':user-invalid') return userInvalid;
+        return sel.split(',').map((s) => s.trim()).includes(selectorMatch);
+      },
+    };
+  }
+
+  const secretInput = makeDomElement('ssh-credential', 'password', 'input');
+  const toggleBtn = makeDomElement('toggle-ssh', 'button', 'button');
+  toggleBtn.setAttribute('data-toggle-secret', 'ssh-credential');
+  toggleBtn.setAttribute('aria-pressed', 'false');
+
+  const rootListeners = {};
+  const fakeDoc = {
+    getElementById(id) { return id === 'ssh-credential' ? secretInput : null; },
+    querySelectorAll(sel) {
+      if (sel === '[data-toggle-secret]') return [toggleBtn];
+      if (sel === 'input, select, textarea') return [secretInput];
+      return [];
+    },
+    addEventListener(evt, fn) {
+      rootListeners[evt] = rootListeners[evt] || [];
+      rootListeners[evt].push(fn);
+    },
+  };
+
+  const ctx = {
+    document: fakeDoc,
+    WeakSet,
+    setTimeout: (fn) => { fn(); return 0; },
+  };
+  vm.runInNewContext(src, ctx);
+
+  ctx.initSecretToggles(fakeDoc);
+  ctx.initAccessibleValidation(fakeDoc);
+
+  assert.equal(secretInput.getAttribute('aria-invalid'), 'false');
+  assert.equal(secretInput.type, 'password');
+
+  toggleBtn.dispatch('click');
+  assert.equal(secretInput.type, 'text');
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'true');
+  assert.equal(toggleBtn._useEl.getAttribute('href'), '#i-eye-off');
+
+  toggleBtn.dispatch('click');
+  assert.equal(secretInput.type, 'password');
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(toggleBtn._useEl.getAttribute('href'), '#i-eye');
+
+  toggleBtn.dispatch('click');
+  assert.equal(secretInput.type, 'text');
+  ctx.resetSecretToggles(fakeDoc);
+  assert.equal(secretInput.type, 'password');
+  assert.equal(toggleBtn.getAttribute('aria-pressed'), 'false');
+  assert.equal(toggleBtn._useEl.getAttribute('href'), '#i-eye');
+
+  secretInput._setUserInvalid(true);
+  (rootListeners.blur || []).forEach((fn) => fn({ target: secretInput }));
+  assert.equal(secretInput.getAttribute('aria-invalid'), 'true');
+
+  secretInput._setUserInvalid(false);
+  (rootListeners.input || []).forEach((fn) => fn({ target: secretInput }));
+  assert.equal(secretInput.getAttribute('aria-invalid'), 'false');
+
+  secretInput._setUserInvalid(true);
+  (rootListeners.invalid || []).forEach((fn) => fn({ target: secretInput }));
+  assert.equal(secretInput.getAttribute('aria-invalid'), 'true');
+
+  secretInput._setUserInvalid(false);
+  (rootListeners.reset || []).forEach((fn) => fn({ target: { elements: [secretInput] } }));
+  assert.equal(secretInput.getAttribute('aria-invalid'), 'false');
+});

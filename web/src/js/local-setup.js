@@ -77,6 +77,7 @@
   }
   function clearSecrets() {
     sshCredential.value = sshForm.elements.passphrase.value = '';
+    if (typeof resetSecretToggles === 'function') resetSecretToggles(document);
     setSSHKey('');
   }
   function invalidate() {
@@ -482,6 +483,8 @@
       status('本地服务已关闭，可以关闭此页面和启动窗口。');
     } catch (error) { status(error.message); }
   };
+  if (typeof initSecretToggles === 'function') initSecretToggles(document);
+  if (typeof initAccessibleValidation === 'function') initAccessibleValidation(document);
   $('startup-fallback').hidden = true;
   showConnectionStep(true);
   $('quit').hidden = false;
