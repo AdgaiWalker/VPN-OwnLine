@@ -185,6 +185,8 @@ def ensure_runtime_python(
     subprocess_runner=subprocess.run,
 ):
     """Switch headless/system Python to repo .venv when locked deps are missing."""
+    if getattr(sys, "frozen", False):
+        return None
     argv_list = list(sys.argv[1:] if argv is None else argv)
     env = os.environ if environ is None else environ
     if "-h" in argv_list or "--help" in argv_list:
@@ -210,16 +212,29 @@ def ensure_runtime_python(
     return _reexec_into_venv(ready_py, argv_list, root=root, environ=env, exec_fn=exec_fn, subprocess_runner=subprocess_runner)
 
 
-if __name__ == "__main__":
+def _prepare_stdio_and_argv(argv=None):
+    """Guard --noconsole None streams and default frozen launch args to ['ui']."""
+    if sys.stdout is None:
+        sys.stdout = open(os.devnull, "w", encoding="utf-8", errors="replace")
+    if sys.stderr is None:
+        sys.stderr = open(os.devnull, "w", encoding="utf-8", errors="replace")
     for _stream in (sys.stdout, sys.stderr):
         if hasattr(_stream, "reconfigure"):
             try:
                 _stream.reconfigure(encoding="utf-8", errors="replace")
             except Exception:
                 pass
-    rc = ensure_runtime_python(sys.argv[1:])
+    argv_list = list(sys.argv[1:] if argv is None else argv)
+    if getattr(sys, "frozen", False) and not argv_list:
+        return ["ui"]
+    return argv_list
+
+
+if __name__ == "__main__":
+    _argv = _prepare_stdio_and_argv()
+    rc = ensure_runtime_python(_argv)
     if rc is not None:
         sys.exit(rc)
     from server.ownline_cli import main
 
-    sys.exit(main())
+    sys.exit(main(_argv))

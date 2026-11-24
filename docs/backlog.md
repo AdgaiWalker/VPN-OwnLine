@@ -4,6 +4,6 @@
 
 | ID | Priority | Status | Item | Entrypoint | Last-Reviewed |
 |---|---|---|---|---|---|
-| BL-02 | P1 | VERIFYING | 7 天外网拨测、月底腾讯云账单实对账与 3-5 人盲测（Phase 4 外部核验） | `scripts/ops/external_probe.py, docs/plans/2026-11-23-phase4-external-verification.md` | 2026-11-24 |
+| BL-02 | P1 | VERIFYING | 7 天外网自动拨测数据累积、月底云账单面板实对账与 3–5 名非 CLI 用户零终端盲测（指标：终端打开次数=0，记录停顿超15秒断崖） | `.github/workflows/external-probe.yml, scripts/ops/external_probe.py, server/nodekit/quota_guard.py, docs/plans/2026-11-23-phase4-external-verification.md` | 2026-11-24 |
 | BL-06 | P2 | OPEN | 客户端终端到各节点真实直连 RTT（超越控制台网关 RTT） | `web/src/js/07b-local-ping.js, server/probe.py` | 2026-11-24 |
 | BL-07 | P2 | OPEN | 国内弱网环境前置测速与无感切换镜像加速 | `deploy/install.sh, ownline.py` | 2026-11-24 |

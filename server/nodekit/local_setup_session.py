@@ -68,9 +68,16 @@ class LocalSetupSession:
                 self._finished = self._clock()
         except Exception as exc:
             # Never expose external exception text: it may contain credentials.
-            reasons = {'SSH_TIMEOUT': '服务器响应超时', 'SSH_UNAVAILABLE': 'SSH 连接不可用',
-                       'SSH_AUTH_FAILED': 'SSH 认证失败', 'HOST_KEY_CHANGED': '服务器指纹发生变化'}
-            code = exc.code if isinstance(exc, Problem) and exc.code in reasons else 'INSTALL_FAILED'
+            reasons = {
+                'SSH_TIMEOUT': '服务器响应超时',
+                'SSH_UNAVAILABLE': 'SSH 连接不可用',
+                'SSH_AUTH_FAILED': 'SSH 认证失败',
+                'HOST_KEY_CHANGED': '服务器指纹发生变化',
+                'DELIVERY_TLS_CERT': 'HTTPS 证书尚未签发，请确认云安全组已放行 80/TCP 与 8443/TCP 端口',
+                'DELIVERY_UNREACHABLE': '管理端口暂不可达，请确认云安全组已放行 8443/TCP 与 80/TCP 端口',
+            }
+            raw_code = getattr(exc, 'code', None) if isinstance(exc, (Problem, InstallError)) else None
+            code = raw_code if raw_code in reasons else 'INSTALL_FAILED'
             with self._lock:
                 label = STAGES[self._history[-1][0]]
                 self._state = {"state": "attention", 'error_code': code,

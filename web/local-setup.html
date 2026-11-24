@@ -340,7 +340,7 @@ footer:has(#quit[hidden]) { display: none; }
 <div id="connection-intro">
 <h1>创建节点</h1><p>用一台空白 Linux 服务器，从本机完成配置。</p>
 </div>
-<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再通过仓库根目录的「启动安装.command」（macOS）、「启动安装.bat」（Windows）或 python3 ownline.py ui 重新打开。</p>
+<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请确认浏览器未禁用 JavaScript，然后重新双击 OwnLine 安装器打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
 <button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection"><svg class="ico" aria-hidden="true"><use href="#i-terminal"/></svg><span>SSH 直连</span></button>
 <button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg><span>腾讯云</span></button>
@@ -353,7 +353,8 @@ footer:has(#quit[hidden]) { display: none; }
 </div>
 <label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
 <span id="ssh-key-status" role="status"></span>
-<details id="ssh-options"><summary>连接设置</summary>
+<details id="ssh-options"><summary>连接设置（非 root 账号或非 22 端口点此）</summary>
+<p class="field-note">默认尝试 root；使用 Oracle Cloud 或腾讯云轻量 Ubuntu 镜像时可填写 ubuntu（支持免密 sudo 自动提权）。</p>
 <div class="row"><label>用户名<input name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
 <label>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
 </details>
@@ -377,11 +378,11 @@ footer:has(#quit[hidden]) { display: none; }
 <button id="tencent-retry" class="text-button" type="button" hidden>重新读取</button>
 </section>
 <section id="fingerprint" hidden aria-labelledby="fingerprint-title">
-<h1 id="fingerprint-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>核对服务器指纹</h1>
-<p>在云控制台或其他可信渠道核对这台服务器的 SSH 指纹。</p>
+<h1 id="fingerprint-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>首次连接 · 锁定服务器指纹</h1>
+<p>确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改（如云控制台提供了 SSH 指纹也可顺手核对）。</p>
 <code id="fingerprint-value" class="target-card"></code>
 <div class="actions">
-<button id="trust-host" type="button" aria-describedby="fingerprint-value">一致，继续检查</button>
+<button id="trust-host" type="button" aria-describedby="fingerprint-value">信任并锁定，继续检查</button>
 <button id="reject-host" class="secondary" type="button">返回修改</button>
 </div>
 </section>
@@ -406,8 +407,12 @@ footer:has(#quit[hidden]) { display: none; }
 <div class="delivery-credentials">
 <p>账号 <strong>admin</strong></p>
 <label>初始密码<input id="initial-password" type="password" readonly></label>
+<div class="actions">
 <button id="reveal" class="text-button" type="button" aria-controls="initial-password" aria-pressed="false">显示密码</button>
-<p class="field-note">请先保存密码，关闭本地服务后本页将清除交付信息。</p>
+<button id="copy-password" class="text-button" type="button" aria-describedby="copy-password-status">复制密码</button>
+</div>
+<span id="copy-password-status" class="field-note" role="status"></span>
+<p class="field-note">建议先复制保存或在浏览器保存密码；关闭本地服务后，本页将清除初始密码。</p>
 </div>
 <a id="dashboard" class="primary-link" target="_blank" rel="noreferrer"><span>打开管理后台</span><svg class="ico" aria-hidden="true"><use href="#i-external-link"/></svg></a>
 </section>
@@ -416,24 +421,24 @@ footer:has(#quit[hidden]) { display: none; }
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
 <section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
 <div class="help-heading">
-<h2 id="ssh-help-title">安装帮助</h2>
+<h2 id="ssh-help-title">准备工作与选型参考</h2>
 <button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span>复制 Agent 任务书</span></button>
 </div>
-<p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 Cursor、Claude、Codex 或 Antigravity。密码和私钥请在本页填写。</p>
+<details id="no-server-guide" class="guide-disclosure"><summary>还没有服务器？查看 0~99 元/年选型与必开端口</summary><div class="guide-body"><ul class="guide-list"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p><strong>系统与端口：</strong>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，支持 root 或云商默认免密 sudo 账号如 ubuntu，且有公网 IPv4）；在云防火墙放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需：默认 sslip.io 与自定义域名均需放行）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）。</p><p><strong>单机 vs 中转：</strong>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。<br>双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p><strong>家宽与自定义域名：</strong>防 AI 封控可选 <a href="https://www.webshare.io/" target="_blank" rel="noopener noreferrer">Webshare Static Residential</a>（约 $12/年区间（以官方为准））；默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 如需自有域名可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后，在管理后台「偏好设置 -&gt; 自定义域名」即可一键绑定。）。</p><p class="field-note">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
+<p id="ssh-agent-purpose">如有本地 AI 编程助手，也可复制任务书由助手协作完成；密码和私钥请始终在本机网页填写。</p>
 <p id="ssh-copy-status" class="field-note" role="status"></p>
-<details id="no-server-guide" class="guide-disclosure"><summary>还没有服务器？查看 0~99 元/年选型与必开端口</summary><div class="guide-body"><ul class="guide-list"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p><strong>系统与端口：</strong>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，root SSH 登录与公网 IPv4）；在云防火墙放行 SSH 端口（默认 22）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）、80/TCP（仅绑定自定义域名自动申请 HTTPS 证书时需要）。</p><p><strong>单机 vs 中转：</strong>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。<br>双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p><strong>家宽与自定义域名：</strong>防 AI 封控可选 <a href="https://www.webshare.io/" target="_blank" rel="noopener noreferrer">Webshare Static Residential</a>（约 $12/年区间（以官方为准））；默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 如需自有域名可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后在服务器运行 sudo bash /opt/web/change_domain.sh &lt;域名&gt;。）。</p><p class="field-note">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
-<details id="ssh-help-details"><summary>查看完整任务书与端口说明</summary>
+<details id="ssh-help-details"><summary>查看端口放行清单与 Agent 任务书</summary>
+<p>使用空白 Ubuntu 22.04+ 或 Debian 12+（支持 root 或云商默认账号如 ubuntu）。在云控制台防火墙 / 安全组放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需）、8443/TCP、443/TCP 和 443/UDP。</p>
+<p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
 <pre id="ssh-prompt" aria-label="Agent 任务书">请协助我用 Evergreen · OwnLine 的跨平台本地引擎（macOS / Windows / Linux），从 0 完成专属节点配置（规范见 skills/ownline-local/SKILL.md，选型与准备清单见 web/src/data/onboarding.json）：
 1. 在仓库根目录运行 python3 ownline.py doctor --json 检查与自举环境（Windows 可用 py -3 ownline.py 或 python ownline.py；图形回退入口为「启动安装.command」/「启动安装.bat」或 ownline.py ui）。如我尚未购买服务器，先读取 web/src/data/onboarding.json 为我对比方案与必开端口（Ubuntu 22.04+ 或 Debian 12+，放行 SSH、8443/TCP、443/TCP、443/UDP）。
 2. 需要 SSH、腾讯云只读 API、Webshare 家宽或面板密码时，调用 ownline.py vault request --slot &lt;ssh|tencent_api|webshare_isp|panel_auth&gt; 弹起本机盲签卡（无桌面环境自动退回终端隐身输入），让我本人在本地页面输入，严禁让我在对话中发送任何明文凭据。
 3. 拿到句柄后先用 ownline.py check --vault-handle 预检（首次连接请我核对 SSH 指纹）并通过 ownline.py install 完成首装，再按需用 ownline.py apply 串联改密、Webshare 静态住宅与中转扩容验真。
 4. 交付后清理本机句柄（ownline.py vault clear --json），告知管理后台地址并提醒仅靠本机内存交付初始密码；严禁索取、复制或输出密码、私钥、密钥、订阅链接或含凭据截图。</pre>
-<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、8443/TCP、443/TCP 和 443/UDP（使用域名自动签发 HTTPS 证书时另放行 80/TCP）。</p>
-<p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
 <div class="help-links">
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noopener noreferrer">查看版本发布</a>
 </div>
-<p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
+<p class="field-note update-note">已安装的服务可在管理后台的偏好设置一键检查更新。</p>
 </details>
 </section>
 <footer>
@@ -780,7 +785,8 @@ async function copySetupText(text) {
       if (jobStarted || stopped) return;
       if (!data.check_token) {
         record('服务器条件检查未通过', true);
-        status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : ''), 'error');
+        const noPriv = data.result.root === false && data.result.sudo_nopasswd !== true;
+        status(data.result.message + (noPriv ? '\n请在连接设置改用 root，或使用云商默认带免密权限的账号（如 ubuntu）。' : ''), 'error');
         return;
       }
       record('SSH 连接检查通过');
@@ -891,6 +897,15 @@ async function copySetupText(text) {
     $('reveal').textContent = show ? '隐藏密码' : '显示密码';
     $('reveal').setAttribute('aria-pressed', String(show));
   };
+  if ($('copy-password')) {
+    $('copy-password').onclick = async () => {
+      const value = $('initial-password') ? $('initial-password').value : '';
+      const copied = value ? await copySetupText(value) : false;
+      if ($('copy-password-status')) {
+        $('copy-password-status').textContent = copied ? '初始密码已复制，请妥善保存。' : '请先点击“显示密码”后手动复制。';
+      }
+    };
+  }
   if ($('check-update')) {
     $('check-update').onclick = async () => {
       const btn = $('check-update');

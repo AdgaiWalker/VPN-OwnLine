@@ -2,6 +2,7 @@
 import io
 import json
 import secrets
+import shlex
 
 import bcrypt
 
@@ -22,9 +23,14 @@ print(json.dumps({'ok':services and len(results)>=2 and all(r.get('health')=='ok
 '''
 
 
+def _wrap_sudo(command, use_sudo):
+    return ('sudo -n bash -c ' + shlex.quote(command)) if use_sudo else command
+
+
 def install(checked, source, on_progress=None):
     """No SSH credentials leave process memory or enter remote command text."""
     login, identity = checked['login'], checked['identity']
+    use_sudo = (login.get('username') or 'root') != 'root'
     report = on_progress or (lambda stage: None)
     report('connect')
     ssh = SSH(normalize(login), credentials(login))
@@ -38,7 +44,7 @@ def install(checked, source, on_progress=None):
 test "$(cat /etc/machine-id)" = '%s'
 mkdir /run/ownline-local-install.lock
 """ % identity[2]
-        code, _, _ = ssh.run(command)
+        code, _, _ = ssh.run(_wrap_sudo(command, use_sudo))
         if code:
             raise InstallError('目标身份变化或已有安装任务，未安装')
         result = None
@@ -64,12 +70,13 @@ done
 '''
             payload = '\n'.join((jid, token, bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode(), domain, identity[0])) + '\n'
             report('preflight')
-            code, _, _ = ssh.run(guard + "\nbash '%s/deploy/install.sh' --setup-stdin" % directory,
-                                  payload.encode(), timeout=1800, on_stdout=StageReader(report))
+            install_cmd = _wrap_sudo(guard + "\nbash '%s/deploy/install.sh' --setup-stdin" % directory, use_sudo)
+            code, _, _ = ssh.run(install_cmd, payload.encode(), timeout=1800, on_stdout=StageReader(report))
             if code:
                 raise InstallError('目标安装未完成，请检查原服务器状态')
             report('server_verify')
-            if ssh.python(VERIFY, timeout=180).get('ok') is not True:
+            verify_res = ssh.python(VERIFY, timeout=180, sudo=True) if use_sudo else ssh.python(VERIFY, timeout=180)
+            if verify_res.get('ok') is not True:
                 raise InstallError('服务端代理验收未通过')
             report('delivery_verify')
             delivery = verify_delivery({'domain': domain, 'sub_token': token}, identity[0], password)
@@ -79,7 +86,12 @@ done
             if result is not None:
                 report('cleanup')
             try:
-                code, _, _ = ssh.run("rm -rf '%s'; rmdir /run/ownline-local-install.lock" % directory, timeout=20)
+                cleanup_cmd = (
+                    "sudo -n rm -rf '%s'; sudo -n rmdir /run/ownline-local-install.lock" % directory
+                    if use_sudo
+                    else "rm -rf '%s'; rmdir /run/ownline-local-install.lock" % directory
+                )
+                code, _, _ = ssh.run(cleanup_cmd, timeout=20)
                 if code:
                     raise InstallError('临时安装文件清理未完成')
             except Exception:

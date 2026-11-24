@@ -15,12 +15,13 @@ import time
 import urllib.parse
 import webbrowser
 
-from server.nodekit import local_diag, system_updater
+from server.nodekit import local_diag, runtime_paths, system_updater
 from server.nodekit.capabilities import CapabilityError, CapabilityRegistry
+from server.nodekit.installations import emit_bundle
 from server.nodekit.local_vault import SUPPORTED_SLOTS, VaultError
 from server.nodekit.topology_plan import INTENT_PRESETS, assert_plan_has_no_raw_secrets, build_intent_blueprint
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = runtime_paths.bundle_root()
 _PEM_HEADER_RE = re.compile(r"-----BEGIN (?:[A-Z0-9]+ )?PRIVATE KEY-----")
 
 
@@ -37,8 +38,7 @@ def default_state_path(root=None):
     override = os.environ.get("OWNLINE_LOCAL_STATE", "").strip()
     if override:
         return Path(override)
-    base = Path(root) if root is not None else ROOT
-    return base / ".ops-private" / "local_agent.json"
+    return runtime_paths.writable_state_dir(root) / "local_agent.json"
 
 
 def is_gui_available():
@@ -132,15 +132,23 @@ def ensure_daemon(state_path=None, *, autostart=True, diag_log=None, timeout=10.
         raise CliError("DAEMON_NOT_RUNNING", "本地守护进程未运行，请先执行 python3 ownline.py serve 或 ui。")
 
     target_state.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [
-        sys.executable,
-        "-B",
-        "-m",
-        "server.local_setup",
-        "--no-browser",
-        "--state-file",
-        str(target_state),
-    ]
+    if runtime_paths.is_frozen():
+        cmd = [
+            sys.executable,
+            "serve",
+            "--state-file",
+            str(target_state),
+        ]
+    else:
+        cmd = [
+            sys.executable,
+            "-B",
+            "-m",
+            "server.local_setup",
+            "--no-browser",
+            "--state-file",
+            str(target_state),
+        ]
     if diag_log is not None:
         cmd.extend(["--diag-log", str(diag_log)])
 
@@ -371,19 +379,29 @@ def run_doctor(*, check_update=False, state_path=None, diag_log=None):
         name: (ROOT / "web" / name).is_file()
         for name in ("index.html", "local-setup.html", "local-vault.html")
     }
+    bundle_ready = False
+    try:
+        import io
+        buf = io.BytesIO()
+        emit_bundle(ROOT / "server", buf)
+        bundle_ready = buf.tell() > 0
+    except Exception:
+        bundle_ready = False
     version_info = system_updater.get_version_info(base_dir=ROOT)
     resolved_state = Path(state_path) if state_path is not None else default_state_path()
     daemon_running = _connect_existing(resolved_state) is not None
-    resolved_diag = Path(diag_log) if diag_log is not None else local_diag.default_log_path(ROOT)
+    resolved_diag = Path(diag_log) if diag_log is not None else local_diag.default_log_path()
 
     result = {
-        "ok": py_ok and all(deps.values()) and all(web_files.values()),
+        "ok": py_ok and all(deps.values()) and all(web_files.values()) and bundle_ready,
         "platform": sys.platform,
         "python": py_ver,
         "python_ok": py_ok,
+        "frozen": runtime_paths.is_frozen(),
         "gui_available": is_gui_available(),
         "dependencies": deps,
         "web_bundles": web_files,
+        "bundle_ready": bundle_ready,
         "version": version_info.get("version"),
         "commit": version_info.get("commit"),
         "daemon_running": daemon_running,
@@ -394,7 +412,13 @@ def run_doctor(*, check_update=False, state_path=None, diag_log=None):
     with suppress(Exception):
         local_diag.emit_event(
             "local_cli_doctor",
-            {"ok": result["ok"], "platform": sys.platform, "gui_available": result["gui_available"]},
+            {
+                "ok": result["ok"],
+                "frozen": result["frozen"],
+                "bundle_ready": bundle_ready,
+                "platform": sys.platform,
+                "gui_available": result["gui_available"],
+            },
             log_path=resolved_diag,
         )
     return result
@@ -431,10 +455,14 @@ def build_parser():
     p_ui.add_argument("--port", type=int, default=0)
     p_ui.add_argument("--no-browser", action="store_true")
     p_ui.add_argument("--force-new", action="store_true")
+    p_ui.add_argument("--state-file", default=None)
+    p_ui.add_argument("--diag-log", default=None)
 
     p_srv = sub.add_parser("serve", help="仅启动本机守护进程（不自动弹浏览器）")
     p_srv.add_argument("--port", type=int, default=0)
     p_srv.add_argument("--force-new", action="store_true")
+    p_srv.add_argument("--state-file", default=None)
+    p_srv.add_argument("--diag-log", default=None)
 
     p_stop = sub.add_parser("stop", help="关闭本机守护进程并清空全部内存凭据")
     p_stop.add_argument("--json", action="store_true")
@@ -581,15 +609,17 @@ def main(argv=None, *, state_path=None, diag_log=None, prompt_fn=input, secret_p
         if args.command in ("ui", "serve"):
             from server import local_setup
 
+            effective_state = state_path or getattr(args, "state_file", None)
+            effective_diag = diag_log or getattr(args, "diag_log", None)
             ls_args = ["--port", str(args.port)]
             if args.command == "serve" or getattr(args, "no_browser", False):
                 ls_args.append("--no-browser")
             if getattr(args, "force_new", False):
                 ls_args.append("--force-new")
-            if state_path is not None:
-                ls_args.extend(["--state-file", str(state_path)])
-            if diag_log is not None:
-                ls_args.extend(["--diag-log", str(diag_log)])
+            if effective_state is not None:
+                ls_args.extend(["--state-file", str(effective_state)])
+            if effective_diag is not None:
+                ls_args.extend(["--diag-log", str(effective_diag)])
             return int(local_setup.main(ls_args) or 0)
 
         if args.command == "stop":

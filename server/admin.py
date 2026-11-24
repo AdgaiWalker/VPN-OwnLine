@@ -963,6 +963,78 @@ class H(BaseHTTPRequestHandler):
                 return self._json(500, {"ok": False, "error": "保护阈值保存失败"})
             return self._json(200, {"ok": True, "threshold": quota_mod.quota_threshold()})
 
+        if norm_path == "/quota/reconcile":
+            from nodekit import traffic_stats as traffic_stats_mod
+
+            raw_off = body.get("official_gb")
+            if isinstance(raw_off, bool) or raw_off in (None, ""):
+                return self._json(400, {"ok": False, "error": "请输入云控制台账单已用流量（GB）"})
+            try:
+                official_gb = float(raw_off)
+            except (TypeError, ValueError):
+                return self._json(400, {"ok": False, "error": "流量数值格式无效"})
+            raw_rday = body.get("official_reset_day")
+            official_rday = None
+            if raw_rday not in (None, ""):
+                official_rday = quota_mod.parse_reset_day(raw_rday)
+                if official_rday is None:
+                    return self._json(400, {"ok": False, "error": "账单重置日须为 1 到 31 的整数"})
+
+            host_filter = (body.get("host") or "").strip() or None
+            usage = _load_json("usage.json", {})
+            history = _load_json("traffic_history.json", {})
+            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=load_nodes())
+            panel_gb = float((report.get("total") or {}).get("this_month_gb") or 0.0)
+            panel_rday = None
+            nodes_map = report.get("nodes") if isinstance(report.get("nodes"), dict) else {}
+            if host_filter and isinstance(nodes_map.get(host_filter), dict):
+                panel_gb = float(nodes_map[host_filter].get("used_gb") or 0.0)
+                panel_rday = quota_mod.parse_reset_day(nodes_map[host_filter].get("end"))
+            elif nodes_map:
+                for item in nodes_map.values():
+                    if isinstance(item, dict) and item.get("end"):
+                        panel_rday = quota_mod.parse_reset_day(item.get("end"))
+                        if panel_rday is not None:
+                            break
+            if panel_rday is None and isinstance(usage, dict):
+                for k, v in usage.items():
+                    if not str(k).startswith("_") and isinstance(v, dict):
+                        if host_filter and k != host_filter:
+                            continue
+                        panel_rday = quota_mod.parse_reset_day(v.get("reset_day") or v.get("end"))
+                        if panel_rday is not None:
+                            break
+            try:
+                rec = quota_mod.reconcile_billing(
+                    panel_gb,
+                    official_gb,
+                    panel_reset_day=panel_rday,
+                    official_reset_day=official_rday,
+                )
+            except ValueError as e:
+                return self._json(400, {"ok": False, "error": str(e)})
+            return self._json(200, {"ok": True, **rec})
+
+        if norm_path == "/domain/change":
+            raw_domain = (body.get("domain") or "").strip()
+            skip_dns = bool(body.get("skip_dns_check"))
+            try:
+                res_dom = password_mod.change_domain(
+                    password_mod.CADDYFILE,
+                    raw_domain,
+                    settings_path=os.path.join(DATA, "settings.json"),
+                    qr_out=os.path.join(WEB, "qr-sub.png"),
+                    skip_dns_check=skip_dns,
+                )
+                logger.log("INFO", "DOMAIN", f"管理域名已切换为 {res_dom['domain']}")
+                return self._json(200, {"ok": True, **res_dom})
+            except ValueError as e:
+                return self._json(400, {"ok": False, "error": str(e)})
+            except RuntimeError as e:
+                return self._json(409, {"ok": False, "error": str(e)})
+            except OSError:
+                return self._json(500, {"ok": False, "error": "域名切换未能完成，原配置保持不变"})
+
         if norm_path == "/rotate":
             msg = "旧订阅地址已失效；已连接的设备不受影响（要踢人请用「更换密钥」）"
             if body.get("dry_run"):

@@ -2081,6 +2081,16 @@ footer.site-footer {
             <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
+        <div class="inner" id="billing-reconcile-card" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
+          <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:4px" data-i18n="billing_reconcile_title">账单流量核对</div>
+          <p class="small muted" style="margin:0 0 8px" data-i18n="billing_reconcile_desc">输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。</p>
+          <form id="billing-reconcile-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <button class="btn tiny" id="btn-billing-reconcile" type="submit" data-i18n="billing_reconcile_btn">核对账单</button>
+          </form>
+          <div id="billing-reconcile-result" class="small muted" role="status" style="margin-top:6px"></div>
+        </div>
       </details>
     </div>
 
@@ -2095,16 +2105,16 @@ footer.site-footer {
         </button>
       </div>
 
-      <!-- Segment Switching: One-Click Join vs Direct SSH vs Tencent Cloud -->
-      <div class="seg" role="group" aria-label="连接方式" style="max-width:440px;margin-bottom:16px">
-        <button class="segbtn active" type="button" id="tab-btn-reverse-join" aria-pressed="true">
-          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入</span>
-        </button>
-        <button class="segbtn" type="button" id="tab-btn-ssh-direct" aria-pressed="false">
-          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">SSH 直连配置</span>
+      <!-- Segment Switching: Direct SSH (Default) vs Tencent Cloud vs Terminal Join (Advanced) -->
+      <div class="seg" role="group" aria-label="连接方式" style="max-width:480px;margin-bottom:16px">
+        <button class="segbtn active" type="button" id="tab-btn-ssh-direct" aria-pressed="true">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">填写服务器信息（推荐）</span>
         </button>
         <button class="segbtn" type="button" id="tab-tc" aria-pressed="false">
           <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-cloud"/></svg><span data-i18n="tab_tc">腾讯云 API</span>
+        </button>
+        <button class="segbtn" type="button" id="tab-btn-reverse-join" aria-pressed="false">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入（高级）</span>
         </button>
       </div>
       <button id="tab-other" type="button" style="display:none"></button>
@@ -2141,11 +2151,11 @@ footer.site-footer {
           <div class="small muted" style="margin-top:6px;line-height:1.6">
             <p style="margin:2px 0">1. 注意续费规则与每月流量限制。</p>
             <p style="margin:2px 0">2. 操作系统选择原版 Ubuntu 22.04。</p>
-            <p style="margin:2px 0">3. 防火墙放行 TCP 8443 及节点端口。</p>
+            <p style="margin:2px 0">3. 防火墙放行 TCP 80（证书必需）、TCP 8443 及 443 端口（TCP 与 UDP）。</p>
           </div>
         </details>
 
-        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary data-i18n="tc_cloud_install">通过云终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
+        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary data-i18n="tc_cloud_install">高级：通过云终端脚本安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
 
         <!-- Tencent Server List -->
         <div id="tc-srv-section" style="margin-top:12px;display:none">
@@ -2172,10 +2182,10 @@ footer.site-footer {
         </div>
       </div>
 
-      <!-- Panel Other: Direct SSH Connection & Reverse Join -->
+      <!-- Panel Other: Direct SSH Connection (Default) & Reverse Join (Advanced) -->
       <div id="panel-other">
-        <!-- Mode 1: Pre-Auth Reverse Join -->
-        <div id="box-reverse-join">
+        <!-- Mode 1: Pre-Auth Reverse Join (Advanced) -->
+        <div id="box-reverse-join" style="display:none">
           <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
             无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。
           </p>
@@ -2215,9 +2225,9 @@ footer.site-footer {
           </div>
         </div>
 
-        <!-- Mode 2: Direct SSH Connection (Advanced) -->
-        <div id="box-ssh-direct" style="display:none">
-        <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写两项信息，先检测连接，再确认安装。</p>
+        <!-- Mode 2: Direct SSH Connection (Default) -->
+        <div id="box-ssh-direct" style="display:block">
+        <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
         <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
 我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
 目标说明：
@@ -2237,7 +2247,7 @@ footer.site-footer {
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
         <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
-        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；其他账号或加密私钥请展开连接设置。</p>
+        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；若是 Oracle / 腾讯云轻量 Ubuntu 可展开连接设置填 ubuntu（免密 sudo 自动提权）。</p>
         <details class="inner other-advanced" id="ssh-advanced-settings">
           <summary data-i18n="ssh_advanced_summary">连接设置（账号、端口、私钥密码）</summary>
           <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
@@ -2245,6 +2255,15 @@ footer.site-footer {
           <div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off"></div>
         </details>
         <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status" data-i18n="status_web_test_ready">仅测试连接，尚未安装节点。</span></div>
+        <div id="other-fingerprint-box" class="check-result-box" role="region" aria-label="服务器指纹确认" style="display:none;margin-top:10px">
+          <div style="font-weight:600;font-size:13.5px;margin-bottom:4px" data-i18n="fp_title">首次连接 · 锁定服务器指纹</div>
+          <p class="small muted" style="margin:0 0 8px;line-height:1.5" data-i18n="fp_desc">确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改。</p>
+          <code id="other-fingerprint-value" style="display:block;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12px;word-break:break-all;margin-bottom:10px"></code>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn primary tiny" id="other-trust-host" type="button" data-i18n="fp_trust">信任并锁定，继续检查</button>
+            <button class="btn tiny" id="other-reject-host" type="button" data-i18n="fp_reject">取消</button>
+          </div>
+        </div>
         <div class="check-result-box" id="other-check-result" role="status" style="display:none"></div>
         <div id="node-install-confirm-box" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px">
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
@@ -2275,7 +2294,7 @@ footer.site-footer {
         </div>
         </div></div>
         </div>
-        <details class="inner" id="panel-onboarding-guide" style="margin-top:10px"><summary>还没有服务器或想看选型与可选域名？</summary><div class="small muted" style="margin-top:8px;line-height:1.6"><ul style="margin:0 0 8px;padding-left:18px"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p style="margin:4px 0"><b>系统与端口：</b>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，root SSH 登录与公网 IPv4）；放行 SSH 端口（默认 22）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）、80/TCP（仅绑定自定义域名自动申请 HTTPS 证书时需要）。</p><p style="margin:4px 0"><b>方案参考：</b>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。 双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p style="margin:4px 0"><b>自定义域名（可选）：</b>默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后在服务器运行 sudo bash /opt/web/change_domain.sh &lt;域名&gt;。）。</p><p style="margin:6px 0 0">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
+        <details class="inner" id="panel-onboarding-guide" style="margin-top:10px"><summary>还没有服务器或想看选型与可选域名？</summary><div class="small muted" style="margin-top:8px;line-height:1.6"><ul style="margin:0 0 8px;padding-left:18px"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p style="margin:4px 0"><b>系统与端口：</b>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，支持 root 或云商默认免密 sudo 账号如 ubuntu，且有公网 IPv4）；放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需：默认 sslip.io 与自定义域名均需放行）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）。</p><p style="margin:4px 0"><b>方案参考：</b>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。 双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p style="margin:4px 0"><b>自定义域名（可选）：</b>默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后，在管理后台「偏好设置 -&gt; 自定义域名」即可一键绑定。）。</p><p style="margin:6px 0 0">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
       </div>
     </div>
   </section>
@@ -2290,12 +2309,14 @@ footer.site-footer {
         <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
+          <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
           <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
           <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
           <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
         </div>
       </div>
       <div id="health" aria-live="polite"></div>
+      <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
 
       <div class="log-tabs">
         <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
@@ -2323,7 +2344,7 @@ footer.site-footer {
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-weight:600">Evergreen</span>
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
-      <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.8.2</span>
+      <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.9.0</span>
     </div>
     <div class="site-footer-links" style="display:flex;gap:6px;align-items:center">
       <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
@@ -2363,7 +2384,7 @@ footer.site-footer {
     <div style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <label style="font-size:13px;font-weight:600;margin:0" id="settings-lbl-version" data-i18n="settings_version_lbl">System Version</label>
-        <span class="tag" id="current-version-tag" style="font-family:var(--mono);font-size:11.5px">v0.8.2</span>
+        <span class="tag" id="current-version-tag" style="font-family:var(--mono);font-size:11.5px">v0.9.0</span>
       </div>
       <div id="update-info-card" style="padding:10px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="min-width:0;flex:1">
@@ -2393,6 +2414,27 @@ footer.site-footer {
         <div class="small muted" style="font-size:11.5px;line-height:1.4" id="update-progress-desc" data-i18n="update_progress_desc">正在下载核心代码并热重启服务，数据完全保留，请稍候...</div>
       </div>
     </div>
+
+    <!-- Custom Domain Binding (Optional) -->
+    <details id="domain-settings-box" style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
+      <summary style="font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+        <span data-i18n="domain_settings_title">自定义域名（可选）</span>
+        <span id="current-domain-tag" class="small muted" style="font-family:var(--mono);font-size:11px;font-weight:normal"></span>
+      </summary>
+      <p class="small muted" style="margin:8px 0;font-size:11.5px;line-height:1.5" data-i18n="domain_settings_desc">先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。</p>
+      <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px">
+        <input id="custom-domain-input" type="text" placeholder="vpn.example.com" autocomplete="off" autocapitalize="none" spellcheck="false" required style="width:100%;box-sizing:border-box;padding:7px 10px;border-radius:6px;border:1px solid var(--line);font-size:13px">
+        <label class="small muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
+          <input id="custom-domain-skip-dns" type="checkbox">
+          <span data-i18n="domain_skip_dns">跳过 DNS 预检（如刚改解析或使用 CDN 代理时勾选）</span>
+        </label>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button class="btn tiny" id="btn-save-domain" type="submit" data-i18n="domain_save_btn">绑定域名</button>
+          <span id="custom-domain-status" class="small muted" role="status"></span>
+        </div>
+      </form>
+    </details>
+
     <div style="display:flex;justify-content:flex-end">
       <button class="btn tiny primary" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-done" data-i18n="settings_btn_done">Done</button>
     </div>
@@ -2741,6 +2783,10 @@ async function copySetupText(text) {
       quota_threshold_lbl: "Circuit breaker threshold (1–100%)",
       quota_threshold_desc: "When monthly traffic reaches this threshold, egress is automatically halted to prevent overages.",
       quota_save_btn: "Save",
+      billing_reconcile_title: "Billing Reconciliation",
+      billing_reconcile_desc: "Enter your cloud provider's monthly used GB to verify alignment with panel statistics.",
+      billing_reconcile_btn: "Reconcile",
+      logs_reconcile_btn: "Verify Config Alignment",
       setup_title: "Add Server",
       tab_ssh: "Direct SSH",
       tab_tc: "Tencent Cloud API",
@@ -2752,11 +2798,11 @@ async function copySetupText(text) {
       tc_copy_ai_prompt: "Copy AI Prompt",
       tc_btn_read: "List Instances",
       tc_guide_summary: "Purchasing & Environment Setup",
-      tc_cloud_install: "Install via Cloud Terminal",
+      tc_cloud_install: "Advanced: Install via Cloud Terminal",
       tc_run_as_root: "Run as root on Ubuntu 22.04 or Debian 12:",
       btn_copy_install_cmd: "Copy Install Command",
-      tab_reverse_join: "One-Click Terminal Join (Recommended)",
-      tab_ssh_direct: "SSH Direct Connection",
+      tab_reverse_join: "Terminal Join (Advanced)",
+      tab_ssh_direct: "Direct SSH (Recommended)",
       reverse_join_desc: "Zero SSH password or private key needed. Run the generated command on your target VPS to bootstrap in observe-only mode (local ops on target host).",
       lbl_relay_target_landing: "Pair Overseas Exit (Landing)",
       tip_relay_port_8443: "Domestic non-ICP servers automatically listen on port 8443 and forward to this landing node.",
@@ -2766,10 +2812,14 @@ async function copySetupText(text) {
       btn_copy_cmd: "Copy Command",
       ssh_need_assist: "Need autonomous onboarding with local Agent?",
       ssh_copy_ai_prompt: "Copy Agent Task Brief",
-      ssh_input_guide: "Enter two details, test the connection, then confirm installation.",
+      ssh_input_guide: "Enter server IP and password (or paste private key) to test and auto-deploy.",
       lbl_pub_ip: "Public IP",
       lbl_root_pwd: "Server Password or SSH Private Key",
-      ssh_defaults_note: "Defaults: root account, port 22. Open connection settings for another account or an encrypted key.",
+      ssh_defaults_note: "Defaults: root account, port 22. For Oracle or Tencent Lighthouse Ubuntu, open connection settings and use ubuntu (auto sudo).",
+      fp_title: "First Connection · Pin Server Fingerprint",
+      fp_desc: "Verify the IP matches your server, then pin this unique host fingerprint to detect tampering on future connections.",
+      fp_trust: "Trust, Pin & Continue",
+      fp_reject: "Cancel",
       ssh_advanced_summary: "Connection Settings (Account, Port, Key Passphrase)",
       lbl_ssh_user: "Username",
       lbl_ssh_port: "SSH Port",
@@ -2878,6 +2928,10 @@ async function copySetupText(text) {
       settings_btn_cancel: "Cancel",
       settings_btn_save: "Save Changes",
       settings_version_lbl: "System Version",
+      domain_settings_title: "Custom Domain (Optional)",
+      domain_settings_desc: "Point an A record to this server IP first, then bind the domain here with one click.",
+      domain_skip_dns: "Skip DNS pre-check (if recently updated or proxied)",
+      domain_save_btn: "Bind Domain",
       update_status_latest: "Up to Date",
       update_desc_latest: "Running the latest release",
       btn_check_update: "Check for Updates",
@@ -2947,6 +3001,10 @@ async function copySetupText(text) {
       quota_threshold_lbl: "超额熔断阈值 (1–100%)",
       quota_threshold_desc: "当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。",
       quota_save_btn: "保存",
+      billing_reconcile_title: "账单流量核对",
+      billing_reconcile_desc: "输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。",
+      billing_reconcile_btn: "核对账单",
+      logs_reconcile_btn: "核验配置一致性",
       setup_title: "添加服务器",
       tab_ssh: "SSH 直连",
       tab_tc: "腾讯云 API",
@@ -2958,11 +3016,11 @@ async function copySetupText(text) {
       tc_copy_ai_prompt: "复制 AI 提示词",
       tc_btn_read: "读取实例列表",
       tc_guide_summary: "选购与环境准备",
-      tc_cloud_install: "通过云终端安装",
+      tc_cloud_install: "高级：通过云终端脚本安装",
       tc_run_as_root: "以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：",
       btn_copy_install_cmd: "复制安装命令",
-      tab_reverse_join: "免密终端接入 (推荐)",
-      tab_ssh_direct: "SSH 直连配置",
+      tab_reverse_join: "免密终端接入（高级）",
+      tab_ssh_direct: "填写服务器信息（推荐）",
       reverse_join_desc: "无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令即可完成自举接入（仅观测与订阅分发，配置请在目标机本地维护）。",
       lbl_relay_target_landing: "绑定海外出口 (落地节点)",
       tip_relay_port_8443: "国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。",
@@ -2972,10 +3030,14 @@ async function copySetupText(text) {
       btn_copy_cmd: "复制命令",
       ssh_need_assist: "借助本地 Agent 全自动装配？",
       ssh_copy_ai_prompt: "复制 Agent 任务书",
-      ssh_input_guide: "填写两项信息，先检测连接，再确认安装。",
+      ssh_input_guide: "填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。",
       lbl_pub_ip: "公网 IP",
       lbl_root_pwd: "服务器密码或 SSH 私钥",
-      ssh_defaults_note: "默认使用 root 账号、22 端口；其他账号或加密私钥请展开连接设置。",
+      ssh_defaults_note: "默认使用 root 账号、22 端口；若是 Oracle / 腾讯云轻量 Ubuntu 可展开连接设置填 ubuntu（免密 sudo 自动提权）。",
+      fp_title: "首次连接 · 锁定服务器指纹",
+      fp_desc: "确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改。",
+      fp_trust: "信任并锁定，继续检查",
+      fp_reject: "取消",
       ssh_advanced_summary: "连接设置（账号、端口、私钥密码）",
       lbl_ssh_user: "用户名",
       lbl_ssh_port: "SSH 端口",
@@ -3084,6 +3146,10 @@ async function copySetupText(text) {
       settings_btn_cancel: "取消",
       settings_btn_save: "保存更改",
       settings_version_lbl: "系统版本",
+      domain_settings_title: "自定义域名（可选）",
+      domain_settings_desc: "先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。",
+      domain_skip_dns: "跳过 DNS 预检（如刚改解析或使用 CDN 代理时勾选）",
+      domain_save_btn: "绑定域名",
       update_status_latest: "已是最新版本",
       update_desc_latest: "当前正在运行最新稳定版本",
       btn_check_update: "检查更新",
@@ -3499,8 +3565,43 @@ async function copySetupText(text) {
     return path;
   }
 
+  var resolveOtherFingerprint = null;
+
+  function confirmOtherFingerprint(fingerprint) {
+    var box = document.getElementById("other-fingerprint-box");
+    var valEl = document.getElementById("other-fingerprint-value");
+    var trustBtn = document.getElementById("other-trust-host");
+    var rejectBtn = document.getElementById("other-reject-host");
+    if (!box || !valEl || !trustBtn || !rejectBtn) {
+      return Promise.resolve(
+        typeof window !== "undefined" && typeof window.confirm === "function"
+          ? window.confirm("首次连接此服务器，请确认目标 IP 无误后锁定服务器指纹：\n\n" + fingerprint)
+          : false
+      );
+    }
+    valEl.textContent = fingerprint;
+    box.style.display = "block";
+    trustBtn.focus();
+    return new Promise(function (resolve) {
+      function done(accepted) {
+        resolveOtherFingerprint = null;
+        box.style.display = "none";
+        valEl.textContent = "";
+        trustBtn.onclick = null;
+        rejectBtn.onclick = null;
+        resolve(accepted);
+      }
+      resolveOtherFingerprint = done;
+      trustBtn.onclick = function () { done(true); };
+      rejectBtn.onclick = function () { done(false); };
+    });
+  }
+
   function clearOtherSecret() {
     otherPrivateKey = "";
+    if (resolveOtherFingerprint) {
+      resolveOtherFingerprint(false);
+    }
     if (otherCheckController) {
       otherCheckController.abort();
       document.getElementById("other-connect-status").textContent = "已取消连接检查。";
@@ -3670,7 +3771,7 @@ async function copySetupText(text) {
 
     if (tabOther) {
       tabOther.onclick = function () {
-        if (tabReverse) tabReverse.click();
+        if (tabSsh) tabSsh.click();
       };
     }
   }
@@ -3921,10 +4022,13 @@ async function copySetupText(text) {
         if (controller.signal.aborted) return;
         if (data.code === "HOST_KEY_CONFIRMATION" && /^SHA256:[A-Za-z0-9+/]{43}$/.test(data.fingerprint || "")) {
           if (document.getElementById("view-setup").style.display !== "block") return;
-          if (!window.confirm("请通过云控制台或可信渠道核对服务器 SSH 指纹：\n\n" + data.fingerprint + "\n\n确认无误后继续连接？")) {
-            note.textContent = "未确认服务器指纹，已停止连接。";
+          note.textContent = zh ? "首次连接，请确认并锁定服务器指纹。" : "First connection: confirm and pin host fingerprint.";
+          var trusted = await confirmOtherFingerprint(data.fingerprint);
+          if (controller.signal.aborted || !trusted) {
+            note.textContent = zh ? "未确认服务器指纹，已停止连接。" : "Host fingerprint not confirmed; connection stopped.";
             return;
           }
+          note.textContent = zh ? "正在只读检测服务器连接..." : "Checking server connection...";
           body.fingerprint = data.fingerprint;
           data = await requestCheck();
           if (controller.signal.aborted) return;
@@ -3943,8 +4047,10 @@ async function copySetupText(text) {
           return;
         }
         var item = data.result;
-        var serviceNote = item.existing_singbox ? "检测到已有 sing-box 服务，未作改动。" : (!item.root || item.singbox_service === "unknown") ? "未能确认服务状态，尚未安装。" : "未检测到已有 sing-box，尚未安装。";
-        resultBox.textContent = "连接检测通过 · " + (item.os || "未知系统") + " " + (item.version || "") + " · " + (item.architecture || "未知架构") + " · " + (item.root ? "root" : "非 root") + "。" + serviceNote + " " + (item.message || "");
+        var hasPriv = !!(item.root || item.sudo_nopasswd);
+        var privLabel = item.root ? "root" : (item.sudo_nopasswd ? "sudo 提权" : "无提权权限");
+        var serviceNote = item.existing_singbox ? "检测到已有 sing-box 服务，未作改动。" : (!hasPriv || item.singbox_service === "unknown") ? "未能确认服务状态，尚未安装。" : "未检测到已有 sing-box，尚未安装。";
+        resultBox.textContent = "连接检测通过 · " + (item.os || "未知系统") + " " + (item.version || "") + " · " + (item.architecture || "未知架构") + " · " + privLabel + "。" + serviceNote + " " + (item.message || "");
         resultBox.style.display = "block";
         note.textContent = "只读检测已完成。";
 
@@ -4492,6 +4598,8 @@ async function copySetupText(text) {
       var zh = (typeof isZh === 'function') ? isZh() : true;
       if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = zh ? "当前服务器后端不支持备份恢复。" : "Backup restore is not supported by current server backend.";
       if (settings && settings.ok === true) {
+        var domTag = document.getElementById("current-domain-tag");
+        if (domTag && settings.domain) domTag.textContent = settings.domain;
         if (settings.version && typeof window.ownlineUpdateVersionBadges === "function") {
           window.ownlineUpdateVersionBadges(settings.version);
         }
@@ -4521,7 +4629,7 @@ async function copySetupText(text) {
       setOtherCheckBusy(!!otherCheckController);
       document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
         ? (zh ? "仅测试连接，尚未安装节点。" : "Testing connection only, node not installed yet.")
-        : (zh ? "网页连接检测不可用（推荐使用免密终端接入）。" : "Web connection check unavailable (terminal join recommended).");
+        : (zh ? "网页连接检测暂不可用，可核对后端状态或使用高级终端接入。" : "Web connection check unavailable; check backend status or use advanced terminal join.");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
       if (STATE.tencentConfigured) {
@@ -4576,16 +4684,19 @@ async function copySetupText(text) {
         else if (settings && settings.ok) setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
         else setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
       }
+      var recCard = document.getElementById("billing-reconcile-card");
       if (quota) {
         STATE.quota = quota;
         var threshold = quota.watermarks && quota.watermarks.tripped;
         quotaSettings.style.display = modernBackend && Number.isInteger(threshold) && threshold >= 1 && threshold <= 100 ? "" : "none";
+        if (recCard) recCard.style.display = modernBackend ? "" : "none";
         var input = document.getElementById("quota-threshold");
         if (document.activeElement !== input && quotaSettings.style.display !== "none") input.value = threshold;
         renderQuotaList(NODES, quota);
       } else {
         STATE.quota = null;
         quotaSettings.style.display = "none";
+        if (recCard) recCard.style.display = "none";
         if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "暂无流量统计");
       }
       renderNodes(NODES, STATUS, quota);
@@ -4620,6 +4731,57 @@ async function copySetupText(text) {
         .then(function(result){ if (!result.ok) throw new Error("Save failed"); note.textContent = "阈值已保存，节点保护状态已刷新。"; refreshState(); })
         .catch(function(){note.textContent = "保存失败，请稍后重试";});
     };
+    var recForm = document.getElementById("billing-reconcile-form");
+    if (recForm) {
+      recForm.onsubmit = function (event) {
+        event.preventDefault();
+        var zh = (typeof isZh === "function") ? isZh() : true;
+        var offInput = document.getElementById("billing-official-gb");
+        var rdayInput = document.getElementById("billing-reset-day");
+        var resBox = document.getElementById("billing-reconcile-result");
+        var btn = document.getElementById("btn-billing-reconcile");
+        var officialGb = Number(offInput ? offInput.value : "");
+        if (!Number.isFinite(officialGb) || officialGb < 0 || (offInput && offInput.value.trim() === "")) {
+          if (resBox) resBox.textContent = zh ? "请输入有效的云控制台已用流量（GB）。" : "Enter valid cloud billing GB.";
+          return;
+        }
+        var payload = { official_gb: officialGb };
+        if (rdayInput && rdayInput.value.trim() !== "") {
+          payload.official_reset_day = Number(rdayInput.value);
+        }
+        if (btn) btn.disabled = true;
+        if (resBox) resBox.textContent = zh ? "正在核对..." : "Reconciling...";
+        fetch(safeUrl("/api/quota/reconcile"), {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data || !data.ok) {
+              if (resBox) resBox.textContent = (data && data.error) || (zh ? "核对未完成。" : "Reconcile failed.");
+              return;
+            }
+            var verdict = data.status === "aligned"
+              ? (zh ? "已对齐" : "Aligned")
+              : (data.status === "minor_drift" ? (zh ? "轻微偏差" : "Minor drift") : (zh ? "差异偏大" : "Discrepancy"));
+            var sign = Number(data.delta_gb) >= 0 ? "+" : "";
+            var resetText = data.reset_day_match === true
+              ? (zh ? " · 重置日一致" : " · Reset day matches")
+              : (data.reset_day_match === false ? (zh ? " · 重置日不一致" : " · Reset day mismatch") : "");
+            if (resBox) {
+              resBox.textContent = verdict + "：面板 " + data.panel_gb + " GB / 云账单 " + data.official_gb + " GB（差 " + sign + data.delta_gb + " GB，" + data.delta_pct + "%）" + resetText;
+            }
+          })
+          .catch(function () {
+            if (resBox) resBox.textContent = zh ? "账单核对失败，请稍后重试。" : "Failed to reconcile billing.";
+          })
+          .finally(function () {
+            if (btn) btn.disabled = false;
+          });
+      };
+    }
   }
 
   function mountSheet(content, resolve, initialSelector) {
@@ -7172,6 +7334,120 @@ async function copySetupText(text) {
     }
   }
 
+  function ownlineApplyReconcile(nodeName, btn) {
+    var box = document.getElementById("reconcile-box");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var url = (typeof safeUrl === "function") ? safeUrl("/api/reconcile/apply") : "/api/reconcile/apply";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = zh ? "正在对齐..." : "Aligning...";
+    }
+    return fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nodeName, dry_run: false }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || !res.ok) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = zh ? "重试对齐" : "Retry";
+          }
+          if (box) {
+            var errEl = document.createElement("div");
+            errEl.className = "small";
+            errEl.style.color = "var(--bad)";
+            errEl.style.marginTop = "6px";
+            errEl.textContent = (res && res.error) || (zh ? "对齐未完成，请检查服务器连接状态。" : "Alignment did not finish.");
+            box.appendChild(errEl);
+          }
+          return;
+        }
+        return ownlineCheckReconcile(document.getElementById("btn-reconcile-check"));
+      })
+      .catch(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = zh ? "重试对齐" : "Retry";
+        }
+      });
+  }
+
+  function ownlineCheckReconcile(btn) {
+    var box = document.getElementById("reconcile-box");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    if (!box) return Promise.resolve();
+    box.style.display = "block";
+    box.textContent = zh ? "正在核验各节点配置一致性..." : "Checking configuration alignment...";
+    if (btn) btn.disabled = true;
+    var url = (typeof safeUrl === "function") ? safeUrl("/api/reconcile/status") : "/api/reconcile/status";
+    return fetch(url, { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var results = Array.isArray(data && data.results) ? data.results : [];
+        box.textContent = "";
+        if (!results.length) {
+          box.textContent = zh ? "当前暂无可核验的受控节点。" : "No managed nodes to inspect.";
+          return;
+        }
+        results.forEach(function (item) {
+          var row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.alignItems = "center";
+          row.style.gap = "8px";
+          row.style.padding = "4px 0";
+
+          var left = document.createElement("span");
+          left.className = "small";
+          var name = item.name || item.host || (zh ? "节点" : "Node");
+          var st = item.status;
+          var label = st === "in_sync" || st === "converged"
+            ? (zh ? "同步一致" : "In Sync")
+            : st === "drifted"
+              ? (zh ? ("存在 " + (item.diff_count || 1) + " 处偏差") : ((item.diff_count || 1) + " drift(s)"))
+              : st === "unmanaged"
+                ? (zh ? "只读节点（不自动修改）" : "Read-only")
+                : (zh ? ("核验未通过" + (item.error ? "：" + item.error : "")) : ("Check failed" + (item.error ? ": " + item.error : "")));
+          left.textContent = name + " · " + label;
+          row.appendChild(left);
+
+          var right = document.createElement("span");
+          if (st === "drifted") {
+            var alignBtn = document.createElement("button");
+            alignBtn.type = "button";
+            alignBtn.className = "btn tiny primary";
+            alignBtn.textContent = zh ? "一键对齐" : "Align Now";
+            alignBtn.onclick = function () { return ownlineApplyReconcile(name, alignBtn); };
+            right.appendChild(alignBtn);
+          } else {
+            var tag = document.createElement("span");
+            tag.className = "tag " + ((st === "in_sync" || st === "converged") ? "ok" : (st === "unmanaged" ? "" : "bad"));
+            tag.textContent = (st === "in_sync" || st === "converged") ? "OK" : (st === "unmanaged" ? (zh ? "只读" : "RO") : "!");
+            right.appendChild(tag);
+          }
+          row.appendChild(right);
+          box.appendChild(row);
+        });
+      })
+      .catch(function () {
+        box.textContent = zh ? "暂时无法获取配置一致性状态，请稍后重试。" : "Failed to inspect configuration alignment.";
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  if (typeof window !== "undefined") {
+    window.ownlineCheckReconcile = ownlineCheckReconcile;
+    window.ownlineApplyReconcile = ownlineApplyReconcile;
+  }
+
 (function () {
   var _latestUpdateData = null;
   var _isUpgrading = false;
@@ -7345,10 +7621,58 @@ async function copySetupText(text) {
     }, 1500);
   }
 
+  function ownlineChangeDomain(event) {
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    var input = document.getElementById("custom-domain-input");
+    var skipEl = document.getElementById("custom-domain-skip-dns");
+    var btn = document.getElementById("btn-save-domain");
+    var statusEl = document.getElementById("custom-domain-status");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var domain = input ? String(input.value || "").trim().toLowerCase() : "";
+    if (!domain) {
+      if (statusEl) statusEl.textContent = zh ? "请输入域名（例如 vpn.example.com）。" : "Please enter a domain.";
+      return;
+    }
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.textContent = zh ? "正在校验解析并切换管理域名..." : "Validating DNS & binding domain...";
+    fetch("/api/domain/change", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: domain, skip_dns_check: !!(skipEl && skipEl.checked) })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || !res.ok) {
+          if (statusEl) statusEl.textContent = (res && res.error) || (zh ? "域名绑定未完成。" : "Failed to bind domain.");
+          return;
+        }
+        setElementText("current-domain-tag", res.domain);
+        if (statusEl) {
+          statusEl.textContent = zh ? "已切换至新地址：" : "Switched to: ";
+          if (res.dashboard_url && /^https:\/\//.test(res.dashboard_url)) {
+            var a = document.createElement("a");
+            a.href = res.dashboard_url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = res.dashboard_url;
+            statusEl.appendChild(a);
+          }
+        }
+      })
+      .catch(function () {
+        if (statusEl) statusEl.textContent = zh ? "域名切换未完成或连接已断开，请尝试打开新域名访问。" : "Request interrupted; check your new domain URL.";
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }
+
   function initUpdater() {
     window.ownlineCheckUpdate = ownlineCheckUpdate;
     window.ownlinePerformUpgrade = ownlinePerformUpgrade;
     window.ownlineUpdateVersionBadges = updateVersionBadges;
+    window.ownlineChangeDomain = ownlineChangeDomain;
 
     // Quiet background update check (with 1-hour cache)
     setTimeout(function () {
@@ -7361,6 +7685,7 @@ async function copySetupText(text) {
     window.ownlineCheckUpdate = ownlineCheckUpdate;
     window.ownlinePerformUpgrade = ownlinePerformUpgrade;
     window.ownlineUpdateVersionBadges = updateVersionBadges;
+    window.ownlineChangeDomain = ownlineChangeDomain;
   }
 })();
 

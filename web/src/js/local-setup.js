@@ -300,7 +300,8 @@
       if (jobStarted || stopped) return;
       if (!data.check_token) {
         record('服务器条件检查未通过', true);
-        status(data.result.message + (data.result.root === false ? '\n当前账号没有 root 权限，请使用 root 账号。' : ''), 'error');
+        const noPriv = data.result.root === false && data.result.sudo_nopasswd !== true;
+        status(data.result.message + (noPriv ? '\n请在连接设置改用 root，或使用云商默认带免密权限的账号（如 ubuntu）。' : ''), 'error');
         return;
       }
       record('SSH 连接检查通过');
@@ -411,6 +412,15 @@
     $('reveal').textContent = show ? '隐藏密码' : '显示密码';
     $('reveal').setAttribute('aria-pressed', String(show));
   };
+  if ($('copy-password')) {
+    $('copy-password').onclick = async () => {
+      const value = $('initial-password') ? $('initial-password').value : '';
+      const copied = value ? await copySetupText(value) : false;
+      if ($('copy-password-status')) {
+        $('copy-password-status').textContent = copied ? '初始密码已复制，请妥善保存。' : '请先点击“显示密码”后手动复制。';
+      }
+    };
+  }
   if ($('check-update')) {
     $('check-update').onclick = async () => {
       const btn = $('check-update');

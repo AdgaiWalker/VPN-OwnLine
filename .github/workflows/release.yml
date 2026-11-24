@@ -10,8 +10,8 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Build & Publish Release
+  source-bundle:
+    name: Test & Build Source Archives
     runs-on: ubuntu-latest
 
     steps:
@@ -41,23 +41,98 @@ jobs:
           chmod +x scripts/test.sh
           ./scripts/test.sh
 
-      - name: Package Distribution Bundle
+      - name: Package Source Distribution Bundles (.tar.gz + .zip)
         run: |
-          VERSION="${GITHUB_REF_NAME:-v0.0.0}"
-          ARCHIVE_NAME="vpn-ownline-${VERSION}.tar.gz"
+          VERSION="${GITHUB_REF_NAME:-v0.9.0}"
+          TAR_NAME="vpn-ownline-${VERSION}.tar.gz"
+          ZIP_NAME="vpn-ownline-${VERSION}.zip"
+          mkdir -p dist-release
           tar --exclude='.git' \
               --exclude='.pytest_cache' \
               --exclude='.ruff_cache' \
               --exclude='__pycache__' \
               --exclude='*.pyc' \
-              -czf "$ARCHIVE_NAME" \
+              -czf "dist-release/$TAR_NAME" \
               server deploy web skills \
               scripts/drift.py scripts/verify.sh scripts/ops/cf_origin_lock.sh \
               requirements.lock README.md LICENSE ownline.py "启动安装.command" "启动安装.bat"
-          echo "ARCHIVE_NAME=$ARCHIVE_NAME" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          import os, tarfile, zipfile
+          ver = os.environ.get("GITHUB_REF_NAME") or "v0.9.0"
+          tar_path = f"dist-release/vpn-ownline-{ver}.tar.gz"
+          zip_path = f"dist-release/vpn-ownline-{ver}.zip"
+          with tarfile.open(tar_path, "r:gz") as tf, zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+              for member in tf.getmembers():
+                  if member.isfile():
+                      zf.writestr(member.name, tf.extractfile(member).read())
+          PY
+
+      - name: Upload Source Archives
+        uses: actions/upload-artifact@v7
+        with:
+          name: source-bundles
+          path: dist-release/*
+
+  standalone-installers:
+    name: Build Standalone Installer (${{ matrix.os }})
+    needs: source-bundle
+    runs-on: ${{ matrix.os }}
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Install locked dependencies and PyInstaller
+        run: |
+          pip install --no-input --disable-pip-version-check --require-hashes -r requirements.lock
+          pip install --no-input --disable-pip-version-check pyinstaller==6.22.3
+
+      - name: Build Standalone Installer
+        run: |
+          python scripts/build_installer.py --build --out-dir dist-installer
+
+      - name: Blank-PATH Frozen Installer Smoke Test
+        run: |
+          python scripts/build_installer.py --smoke dist-installer
+
+      - name: Upload Packaged Installer Archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-${{ matrix.os }}
+          path: dist-installer/OwnLine-Setup-*.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [source-bundle, standalone-installers]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate SHA256SUMS.txt
+        working-directory: release-assets
+        run: |
+          sha256sum * > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
         with:
-          files: ${{ env.ARCHIVE_NAME }}
+          files: release-assets/*
           generate_release_notes: true

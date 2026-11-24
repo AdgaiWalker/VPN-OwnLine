@@ -6,7 +6,7 @@
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
 </svg>
 <main><header><strong>Evergreen <small>OwnLine</small></strong><span>本机盲签凭据</span></header>
-<p id="vault-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，或在无图形界面终端改用 python3 ownline.py vault request --mode tty。</p>
+<p id="vault-fallback" class="notice" role="status">页面尚未就绪。请确认浏览器未禁用 JavaScript，然后从本地助手续接重新打开此页面。</p>
 <section id="vault-card" hidden aria-labelledby="vault-title">
 <h1 id="vault-title" tabindex="-1">输入本机凭据</h1>
 <p id="vault-context" class="notice" hidden></p>
@@ -17,6 +17,7 @@
 <label>服务器密码或 SSH 私钥<input id="vault-ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="vault-ssh-key-status"></label>
 <span id="vault-ssh-key-status" role="status"></span>
 <details id="vault-ssh-options"><summary>连接设置</summary>
+<p class="field-note">默认尝试 root；使用 Oracle / 腾讯云轻量 Ubuntu 镜像时可填写 ubuntu。</p>
 <div class="row"><label>用户名<input id="vault-ssh-user" name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input id="vault-ssh-port" name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
 <label>私钥密码（可选）<input id="vault-ssh-passphrase" name="passphrase" type="password" autocomplete="off"></label>
 </details>
@@ -46,7 +47,7 @@
 </section>
 <section id="vault-done" hidden aria-labelledby="vault-done-title">
 <h1 id="vault-done-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-check"/></svg>已存入本机内存</h1>
-<p>明文凭据未写入磁盘，也未发送给 AI。你可以关闭此页面并返回命令行继续执行。</p>
+<p>明文凭据未写入磁盘，也未发送给 AI。现在可以关闭此页面，回到刚才的界面继续。</p>
 <div class="target-card">
 <div><strong id="vault-handle-out"></strong><span id="vault-summary-out"></span></div>
 </div>

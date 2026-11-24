@@ -4,27 +4,26 @@
 """
 import re
 
-DEFAULT = "看下面的原始输出。常见原因：密码错、22 端口没开、服务器不是 Linux、或者这台机器不接受密码登录。"
+DEFAULT = "请核对服务器密码或私钥、用户名（root 或免密 ubuntu），并确认云安全组已放行 22、80、443 与 8443 端口且系统为 Ubuntu 22.04+ / Debian 12+。"
 
 # 顺序即优先级：越具体的越靠前
 RULES = [
-    ("配置校验失败", "生成的配置没通过 sing-box 校验，机器没被动过。\n把上面那行报错贴给我，多半是链接里的 sid 或密钥不对。"),
-    ("安装失败：服务没有启动成功", "文件装上了，但服务起不来。\n先看日志：journalctl -u sing-box -n 30 --no-pager"),
-    ("address already in use", "端口已被占用（常见于残留的 3x-ui / xray 或 Web 服务）。\n可在节点菜单点击「一键自愈修复」自动清理冲突进程，或更换端口。"),
-    ("wsaeaddrinuse", "Windows 端口冲突：目标端口已被其他进程占用。\n可换用 8443 端口或使用一键自愈清理残留。"),
-    ("全部下载源都失败", "四个下载源都下不动。\n这台机器可能连不上任何外网，也可能是 DNS 坏了。\n先手动试：curl -I https://www.baidu.com"),
-    ("permission denied (publickey", "这台机器不接受这把私钥。\n"
-     "要么把公钥贴到目标机的 ~/.ssh/authorized_keys，要么改用 root 密码（若是 Windows 请用 Administrator）。"),
-    ("permission denied", "密码不对，或者这台机器不允许 root 用密码登录。\n去云控制台 → 实例 → 重置密码（Linux 选 root，Windows 选 Administrator），再用新密码试；或者改用私钥。"),
-    ("sudo: a password is required", "登录的这个用户不是 root，而且 sudo 要密码。\n把用户名改成 root，或者用它自己的账号配 sudo 免密。"),
-    ("host key verification failed", "这台机器的主机指纹变了（可能重装过系统）。"),
-    ("unsupported arch", "这台机器的 CPU 架构不支持，目前只支持 x86_64 和 arm64。"),
-    ("no space left", "服务器磁盘满了。清一下再装。"),
-    ("curl:", "服务器下载 sing-box 失败。\n多半是这台机器连不上 GitHub（国内机器常见）。"),
-    ("recv failure", "服务器下载 sing-box 失败。\n多半是这台机器连不上 GitHub（国内机器常见）。"),
-    ("could not resolve host", "服务器解析不了域名，DNS 有问题。"),
-    ("ssh: connect", "连不上这台机器的 22 端口。\n可能是防火墙没放行，或者机器没开机。"),
-    ("connection timed out", "网络超时，中途断了。\n换一台机器或换个网络再试。"),
+    ("配置校验失败", "生成的配置未通过服务校验，服务器未改动。\n可在管理后台点「复制诊断」并提交反馈，多半是参数或密钥格式异常。"),
+    ("安装失败：服务没有启动成功", "程序已传输，但服务器核心服务未能启动。\n请在管理后台展开「运行与诊断日志 -> 核心服务日志 -> sing-box」查看详细原因。"),
+    ("address already in use", "目标端口已被其他服务占用（常见于服务器原有的 80 / 443 / 8443 Web 或代理程序）。\n请换一台空白 Linux 服务器，或在云控制台重装为纯净 Ubuntu 22.04 / Debian 12 后重试。"),
+    ("wsaeaddrinuse", "端口冲突：目标端口已被其他进程占用。\n可更换节点端口（如 8443 之外的其他端口）或使用空白服务器后重试。"),
+    ("全部下载源都失败", "服务器无法连通任何安装下载源。\n请检查云主机是否分配了公网出网带宽，或稍后重新检测重试。"),
+    ("permission denied (publickey", "服务器拒绝了当前提供的 SSH 私钥。\n请确认粘贴的是与云控制台绑定这台机器匹配的完整私钥，或去云控制台「重置密码」后改用密码连接。"),
+    ("permission denied", "密码或账号不对，或云主机禁止该账号直接密码登录。\n去云控制台 → 实例 → 重置密码，或改用创建实例时绑定的 SSH 私钥；若用 root 被拒，可尝试云商默认账号（如 ubuntu）。"),
+    ("sudo: a password is required", "当前账号不是 root，且 sudo 需要二次密码。\n请在连接设置里将用户名改为 root，或换用云商原厂自带免密权限的镜像与账号（如 Oracle / 腾讯云轻量 Ubuntu 的 ubuntu）。"),
+    ("host key verification failed", "这台机器的主机指纹与此前记录不一致（可能刚重装过系统）。请先核对服务器 IP 后重新测试连接。"),
+    ("unsupported arch", "这台机器的 CPU 架构不支持，目前只支持 x86_64（amd64）和 arm64。"),
+    ("no space left", "服务器系统盘剩余空间不足。请清理空间或重装系统后再试。"),
+    ("curl:", "服务器下载核心组件超时或受阻。\n请确认海外节点出网正常（如国内中继请确认云防火墙与网络可用），或稍后重试。"),
+    ("recv failure", "服务器下载核心组件中途断开，请稍后重试。"),
+    ("could not resolve host", "服务器域名解析（DNS）异常，请更换系统镜像或检查云主机网络配置后重试。"),
+    ("ssh: connect", "连不上这台机器的 22 端口。\n请确认机器处于开机状态，并在云控制台安全组 / 防火墙放行 22 端口。"),
+    ("connection timed out", "网络超时，中途断开。\n请确认公网 IP 无误、安全组已放行对应端口，或换个网络环境再试。"),
 ]
 
 
@@ -33,7 +32,7 @@ def hint_from_log(lines):
     # 预检的中文原因自己就够清楚，原样带出来
     m = re.search(r"预检未通过：(.+)", "\n".join(lines or []))
     if m:
-        return "预检没通过：%s\n换一台机器，或者先手动装好系统依赖再试。" % m.group(1).strip()
+        return "预检没通过：%s\n请更换符合条件的空白 Ubuntu 22.04+ / Debian 12+ 服务器后重试。" % m.group(1).strip()
     for key, text in RULES:
         if key in txt:
             return text

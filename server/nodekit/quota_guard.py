@@ -119,6 +119,48 @@ def parse_reset_day(val):
     return None
 
 
+def reconcile_billing(panel_gb, official_gb, *, panel_reset_day=None, official_reset_day=None):
+    """Compare panel-measured monthly GB against official cloud billing usage."""
+    panel_r = round(float(panel_gb), 3)
+    official_r = round(float(official_gb), 3)
+    if not math.isfinite(panel_r) or not math.isfinite(official_r) or panel_r < 0 or official_r < 0:
+        raise ValueError("流量数值必须是非负数字")
+    delta_gb = round(panel_r - official_r, 3)
+    if official_r > 0:
+        delta_pct = round((abs(delta_gb) / official_r) * 100.0, 2)
+    else:
+        delta_pct = 0.0 if panel_r == 0 else 100.0
+
+    p_day = parse_reset_day(panel_reset_day) if panel_reset_day not in (None, "") else None
+    o_day = None
+    if official_reset_day not in (None, ""):
+        o_day = parse_reset_day(official_reset_day)
+        if o_day is None:
+            raise ValueError("账单重置日须为 1 到 31 的整数")
+
+    reset_match = None
+    if p_day is not None and o_day is not None:
+        reset_match = (p_day == o_day)
+
+    if delta_pct <= 5.0 and reset_match is not False:
+        status = "aligned"
+    elif delta_pct <= 15.0:
+        status = "minor_drift"
+    else:
+        status = "discrepancy"
+
+    return {
+        "panel_gb": panel_r,
+        "official_gb": official_r,
+        "delta_gb": delta_gb,
+        "delta_pct": delta_pct,
+        "panel_reset_day": p_day,
+        "official_reset_day": o_day,
+        "reset_day_match": reset_match,
+        "status": status,
+    }
+
+
 def supports_quota_control(node):
     # 外部节点、免密反向接入节点及已冻结的 Windows 分支不开放自动配额停启。
     return (

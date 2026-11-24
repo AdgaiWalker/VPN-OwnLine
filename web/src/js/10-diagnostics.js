@@ -139,3 +139,117 @@
     }
   }
 
+  function ownlineApplyReconcile(nodeName, btn) {
+    var box = document.getElementById("reconcile-box");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var url = (typeof safeUrl === "function") ? safeUrl("/api/reconcile/apply") : "/api/reconcile/apply";
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = zh ? "正在对齐..." : "Aligning...";
+    }
+    return fetch(url, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: nodeName, dry_run: false }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || !res.ok) {
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = zh ? "重试对齐" : "Retry";
+          }
+          if (box) {
+            var errEl = document.createElement("div");
+            errEl.className = "small";
+            errEl.style.color = "var(--bad)";
+            errEl.style.marginTop = "6px";
+            errEl.textContent = (res && res.error) || (zh ? "对齐未完成，请检查服务器连接状态。" : "Alignment did not finish.");
+            box.appendChild(errEl);
+          }
+          return;
+        }
+        return ownlineCheckReconcile(document.getElementById("btn-reconcile-check"));
+      })
+      .catch(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = zh ? "重试对齐" : "Retry";
+        }
+      });
+  }
+
+  function ownlineCheckReconcile(btn) {
+    var box = document.getElementById("reconcile-box");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    if (!box) return Promise.resolve();
+    box.style.display = "block";
+    box.textContent = zh ? "正在核验各节点配置一致性..." : "Checking configuration alignment...";
+    if (btn) btn.disabled = true;
+    var url = (typeof safeUrl === "function") ? safeUrl("/api/reconcile/status") : "/api/reconcile/status";
+    return fetch(url, { cache: "no-store", credentials: "same-origin" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var results = Array.isArray(data && data.results) ? data.results : [];
+        box.textContent = "";
+        if (!results.length) {
+          box.textContent = zh ? "当前暂无可核验的受控节点。" : "No managed nodes to inspect.";
+          return;
+        }
+        results.forEach(function (item) {
+          var row = document.createElement("div");
+          row.style.display = "flex";
+          row.style.justifyContent = "space-between";
+          row.style.alignItems = "center";
+          row.style.gap = "8px";
+          row.style.padding = "4px 0";
+
+          var left = document.createElement("span");
+          left.className = "small";
+          var name = item.name || item.host || (zh ? "节点" : "Node");
+          var st = item.status;
+          var label = st === "in_sync" || st === "converged"
+            ? (zh ? "同步一致" : "In Sync")
+            : st === "drifted"
+              ? (zh ? ("存在 " + (item.diff_count || 1) + " 处偏差") : ((item.diff_count || 1) + " drift(s)"))
+              : st === "unmanaged"
+                ? (zh ? "只读节点（不自动修改）" : "Read-only")
+                : (zh ? ("核验未通过" + (item.error ? "：" + item.error : "")) : ("Check failed" + (item.error ? ": " + item.error : "")));
+          left.textContent = name + " · " + label;
+          row.appendChild(left);
+
+          var right = document.createElement("span");
+          if (st === "drifted") {
+            var alignBtn = document.createElement("button");
+            alignBtn.type = "button";
+            alignBtn.className = "btn tiny primary";
+            alignBtn.textContent = zh ? "一键对齐" : "Align Now";
+            alignBtn.onclick = function () { return ownlineApplyReconcile(name, alignBtn); };
+            right.appendChild(alignBtn);
+          } else {
+            var tag = document.createElement("span");
+            tag.className = "tag " + ((st === "in_sync" || st === "converged") ? "ok" : (st === "unmanaged" ? "" : "bad"));
+            tag.textContent = (st === "in_sync" || st === "converged") ? "OK" : (st === "unmanaged" ? (zh ? "只读" : "RO") : "!");
+            right.appendChild(tag);
+          }
+          row.appendChild(right);
+          box.appendChild(row);
+        });
+      })
+      .catch(function () {
+        box.textContent = zh ? "暂时无法获取配置一致性状态，请稍后重试。" : "Failed to inspect configuration alignment.";
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  if (typeof window !== "undefined") {
+    window.ownlineCheckReconcile = ownlineCheckReconcile;
+    window.ownlineApplyReconcile = ownlineApplyReconcile;
+  }
+

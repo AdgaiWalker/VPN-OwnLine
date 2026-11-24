@@ -4,11 +4,11 @@
 > 💡 **核心成本**：搭建普通节点每年仅需 **0 ~ 99 元**（服务器可完全白嫖），在此基础上只需再加 **85 元/年**（12 美元）挂载美国家宽 IP，即可升级为彻底防封的家庭住宅节点。  
 > 资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，2 分钟全自动装配，一个私有网页多端同步。
 
-[![Release: v0.8.2](https://img.shields.io/badge/Release-v0.8.2-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.8.2)
+[![Release: v0.9.0](https://img.shields.io/badge/Release-v0.9.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.0)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 1003 Passed](https://img.shields.io/badge/Tests-1003%20Passed%20(100%25)-success.svg)]()
+[![Tests: 1021 Passed](https://img.shields.io/badge/Tests-1021%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](docs/adr.md#adr-018)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](docs/adr.md#adr-018)
 [![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](docs/adr.md#adr-032)
@@ -49,11 +49,25 @@ flowchart LR
 
 ## 2 分钟极速装配
 
-材料就绪后，系统提供统一跨平台（macOS / Windows / Linux）本地控制引擎，所有选型、端口、家宽、客户端与可选域名指南均已内嵌产品界面并单源维护于 [web/src/data/onboarding.json](web/src/data/onboarding.json)；按以下任一方式完成从 0 到 1 部署：
+材料就绪后，所有选型、端口、家宽、客户端与可选域名指南均已内嵌产品界面并单源维护于 [web/src/data/onboarding.json](web/src/data/onboarding.json)；按以下任一方式完成从 0 到 1 部署：
+
+### 方式 1：免 Python 独立安装包（零命令行 · 推荐小白）
+
+直接前往 [v0.9.0 发布页](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.0) 下载对应系统的独立安装包（内置全部依赖，无需安装 Python，无终端黑框）：
+
+- **macOS（Apple Silicon）**：下载并解压 `OwnLine-Setup-v0.9.0-macOS-arm64.zip`，双击 **`OwnLine-Setup.app`**
+- **Windows 10 / 11**：下载并解压 `OwnLine-Setup-v0.9.0-Windows-x64.zip`，双击 **`OwnLine-Setup.exe`**
+- **源码运行 / Linux**：解压源码包 `vpn-ownline-v0.9.0.zip`（或 `.tar.gz`），macOS 双击 **`启动安装.command`**、Windows 双击 **`启动安装.bat`**、Linux 运行 `python3 ownline.py ui`
+
+> 首次打开提示说明：因开源项目未采购商业签名证书，首次双击若被系统安全策略拦截属于正常现象：**macOS** 打开「系统设置 -> 隐私与安全性」点击「仍要打开」；**Windows** 在蓝屏防护框点击「更多信息 -> 仍要运行」（安装包均随 `SHA256SUMS.txt` 发布校验）。
+
+打开本机网页后支持「SSH 直连」（支持 `root` 或 Oracle / 腾讯云轻量 Ubuntu 默认的 `ubuntu` 免密 sudo 账号，同一栏可填密码或粘贴完整私钥）与「腾讯云（轻量与 CVM）只读发现」，未买机器时可在页内展开「还没有服务器」选型与端口指引；首次连接会弹窗锁定服务器身份指纹，再显式确认安装并实时展示真实阶段与耗时。安装期间保持本机运行；一键复制或保存初始密码并点击「关闭本地服务」后，内存中的任务与凭据随即清空。
+
+> 安全组端口要求：在云控制台防火墙 / 安全组放行 `SSH 端口（默认 22）`、`80/TCP`（自动申请 HTTPS 证书必需）、`8443/TCP`、`443/TCP`、`443/UDP`。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器。
 
 <a id="ai-assisted-setup"></a>
 
-### 方式 1：本地 AI Agent + 本机盲签凭据库（推荐 · 全平台）
+### 方式 2：本地 AI Agent + 本机盲签凭据库（开发者 / 全平台）
 
 不用学 Linux 命令，也**不要把服务器密码、SSH 私钥、腾讯云 API 密钥或 Webshare 口令发进聊天框**。  
 解压或克隆仓库后，在 **Cursor / Claude Code / Codex / Antigravity** 等具备本机终端权限的工具中，输入下面这段提示词（没买服务器可直接写“还没买服务器”；Windows 用户将 `python3` 换为 `py -3` 或 `python`，工具首次运行会自动按 `requirements.lock` 校验安装 `.venv`）：
@@ -65,18 +79,6 @@ flowchart LR
 - 桌面系统会自动在浏览器打开仅监听 `127.0.0.1` 的单屏盲签卡片；无桌面 SSH/终端环境自动回退为本机隐藏输入（`getpass`）。
 - 密码与私钥仅存于本机临时内存句柄（`vh_...`），不落盘、不进诊断日志、不进 AI 对话上下文。
 
-### 方式 2：无 Agent 兜底 · 本机图形安装页（全平台）
-
-解压 [v0.8.2 发布包](https://github.com/AdgaiWalker/VPN-OwnLine/releases/download/v0.8.2/vpn-ownline-v0.8.2.tar.gz) 或克隆仓库（需 Python 3.10+，首次启动自动按 `requirements.lock` 校验安装依赖）：
-
-- **macOS**：双击根目录 **`启动安装.command`**
-- **Windows**：双击根目录 **`启动安装.bat`**
-- **Linux / 命令行**：在仓库根目录运行 `python3 ownline.py ui`
-
-页面支持「SSH 直连」（同一输入栏填密码或粘贴完整 PEM 私钥）与「腾讯云（轻量与 CVM）只读发现」，未买机器时可在页内展开「还没有服务器」选型与端口指引；连接前先弹窗核对 SSH 指纹，再显式确认安装并实时展示真实阶段与耗时。安装期间保持本机与启动窗口运行；保存初始密码并关闭本地服务后，内存中的任务与凭据随即清空。[首版 Mac 验收记录](https://github.com/AdgaiWalker/VPN-OwnLine/blob/archive/pre-cleanup-20261123/research/plans/2026-11-18-mac-install-acceptance.md)
-
-> 安全组端口要求：在云控制台放行 `SSH 端口`、`8443/TCP`、`443/TCP`、`443/UDP`（若使用自定义域名自动签发 HTTPS 证书，另放行 `80/TCP`）。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器。
-
 ### 方式 3：自备服务器终端一行命令装配（极客备选）
 
 登录云服务器终端（Ubuntu 22.04+ / Debian 12+），以 root 权限执行：
@@ -85,7 +87,7 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
 ```
 * **运行完毕后，屏幕直接打出你的专属管理后台网址与初始密码**：
   ```text
-  专属管理地址: https://43.153.56.137:8443/
+  专属管理地址: https://服务器IP短横线.sslip.io:8443/
   面板账号:   admin
   初始密码:   xxxxxxxxxxxxxxxxxxxx
   ```
@@ -94,19 +96,17 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
 
 ### 共同的下一步：登录后台，一键连接上网
 
-用浏览器打开上述得到的管理网址（`https://服务器IP:8443/`），输入账号密码登录：
+用浏览器打开上述交付的专属 `https://...:8443/` 管理网址（系统已自动签发可信 HTTPS 证书，浏览器默认无警告），输入账号密码并按引导修改初始密码后即可进入面板；新增节点、查看配置一致性、核对云账单流量或绑定自有域名均可直接在网页内一键完成。
 
 * **页面正上方会提供你的专属订阅链接和二维码**：
   ```text
-  专属订阅链接: https://43.153.56.137:8443/s/c2763f350db2d011
+  专属订阅链接: https://服务器域名:8443/s/xxxxxxxxxxxxxxxx
   ```
   > **如何连通**：
-  > * **手机（小火箭）**：点网页上的【一键连接本机】或手机扫码，App 自动唤醒并写入线路，轻按开关即通。
-  > * **电脑（FlClash）**：点【复制订阅链接】，在软件里粘贴保存，就会自动刷出绿色可用线路，点连接即通。
+  > * **手机（小火箭）**：点网页上的【一键连接本机】或用小火箭内置相机扫码，轻按开关即通。
+  > * **电脑（FlClash / Clash Verge）**：点【复制订阅链接】或一键导入，自动刷出可用线路，点连接即通。
 
-> 💡 **避坑提示**：  
-> 1. 第一次用 IP 网址打开时，浏览器提示“证书不安全”属于正常现象，点击「高级 ➔ 继续访问」即可。  
-> 2. 如果网页一直转圈打不开，是因为云厂商默认关了端口，去云控制台把防火墙（安全组）的 **8443** 和 **443** 端口放行即可。
+> **排障提示**：如果管理网页转圈打不开或首次验收提示证书/端口未就绪，通常是因为云厂商默认拦截了入站端口，前往云控制台防火墙 / 安全组放行 **80/TCP、8443/TCP、443/TCP 与 443/UDP** 后重试即可。
 
 ---
 

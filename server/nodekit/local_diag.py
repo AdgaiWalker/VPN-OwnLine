@@ -207,19 +207,20 @@ _INLINE_SECRET_RE = re.compile(
     r"(?i)\b(password|passwd|passphrase|secret_key|secret_id|secret|private_key|temp_password|sub_token|token)\s*([=:])\s*(['\"]?)([^\s,;'\"]{1,256})\3"
 )
 
+from . import runtime_paths
+
 _LOG_LOCK = threading.Lock()
 
 
 def _repo_root():
-    return Path(__file__).resolve().parents[2]
+    return runtime_paths.bundle_root()
 
 
 def default_log_path(root=None):
     override = os.environ.get("OWNLINE_DIAG_LOG", "").strip()
     if override:
         return Path(override)
-    base = Path(root) if root is not None else _repo_root()
-    return base / ".ops-private" / "local_diag.jsonl"
+    return runtime_paths.writable_state_dir(root) / "local_diag.jsonl"
 
 
 def _is_secret_key(key):

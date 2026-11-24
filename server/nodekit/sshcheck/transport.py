@@ -86,7 +86,7 @@ class PinPolicy(paramiko.MissingHostKeyPolicy):
         if not self.expected:
             raise Problem(
                 "HOST_KEY_CONFIRMATION",
-                "首次连接，请通过云控制台等可信途径核对服务器指纹。",
+                "首次连接此服务器，请确认目标 IP 无误后锁定服务器指纹。",
                 409,
                 {"fingerprint": actual},
             )
@@ -190,10 +190,10 @@ class SSH:
         finally:
             channel.close()
 
-    def python(self, source, payload=None, timeout=30):
+    def python(self, source, payload=None, timeout=30, sudo=False):
         import shlex
 
-        command = "python3 -c " + shlex.quote(source)
+        command = ("sudo -n " if sudo else "") + "python3 -c " + shlex.quote(source)
         code, out, _ = self.run(
             command,
             json.dumps(payload).encode() if payload is not None else b"",

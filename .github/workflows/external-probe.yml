@@ -1,0 +1,71 @@
+name: Ops - 7-Day External SLA & Stealth Probe
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Optional HTTPS dashboard URL (defaults to repository variable OWNLINE_PROBE_URL)"
+        required: false
+        type: string
+
+jobs:
+  external-probe:
+    name: External Stealth & Availability Probe
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+
+      - name: Restore Rolling 7-Day Probe History
+        id: probe-cache
+        uses: actions/cache@v6
+        with:
+          path: .ops-private/external_probe_history.jsonl
+          key: external-probe-${{ github.run_id }}
+          restore-keys: |
+            external-probe-
+
+      - name: Run External Probe & Generate 7-Day SLA Report
+        env:
+          INPUT_URL: ${{ inputs.url }}
+          VAR_URL: ${{ vars.OWNLINE_PROBE_URL }}
+        run: |
+          TARGET_URL="${INPUT_URL:-$VAR_URL}"
+          if [ -z "$TARGET_URL" ]; then
+            {
+              echo "### External Probe Not Configured"
+              echo "Set repository variable \`OWNLINE_PROBE_URL\` or supply \`url\` in workflow_dispatch to run hands-free 7-day SLA & stealth tracking."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          set +e
+          OUT_JSON="$(python3 scripts/ops/external_probe.py --url "$TARGET_URL" --report --json)"
+          RC=$?
+          set -e
+          printf '%s\n' "$OUT_JSON"
+          python3 - <<'PY' "$OUT_JSON" >> "$GITHUB_STEP_SUMMARY"
+          import json, sys
+          data = json.loads(sys.argv[1])
+          p = data.get("probe") or {}
+          s = data.get("summary") or {}
+          print("### OwnLine External Probe & 7-Day SLA")
+          print("")
+          print("| Metric | Value |")
+          print("| :--- | :--- |")
+          print(f"| Probe OK | {p.get('ok')} (HTTP {p.get('status')}) |")
+          print(f"| Server Header | `{p.get('server_header') or '<hidden>'}` (stealth={p.get('stealth_ok')}) |")
+          print(f"| Probe RTT | {p.get('rtt_ms')} ms |")
+          print(f"| 7d Samples | {s.get('sample_count')} (ok={s.get('ok_count')}, fail={s.get('fail_count')}) |")
+          print(f"| 7d Availability | {s.get('availability_pct')}% |")
+          print(f"| 7d p50 / p95 | {s.get('p50_ms')} ms / {s.get('p95_ms')} ms |")
+          print(f"| 7d Stealth Pass Rate | {s.get('stealth_pass_rate_pct')}% |")
+          PY
+          exit "$RC"

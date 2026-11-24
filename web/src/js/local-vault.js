@@ -162,7 +162,7 @@
     const params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '');
     reqId = params.get('req') || '';
     if (!reqId) {
-      setStatus('缺少凭据请求编号，请从 Agent 或命令行重新打开此页面。', 'error');
+      setStatus('缺少凭据请求编号，请回到刚才的界面重新发起授权页。', 'error');
       return;
     }
     try {
@@ -172,7 +172,7 @@
         return;
       }
       if (info.state !== 'pending') {
-        setStatus(info.state === 'expired' ? '凭据输入请求已超时，请在终端重新发起。' : '该凭据输入请求已取消。', 'error');
+        setStatus(info.state === 'expired' ? '凭据输入请求已超时，请回到刚才的界面重新发起。' : '该凭据输入请求已取消。', 'error');
         return;
       }
       activeSlot = info.slot;

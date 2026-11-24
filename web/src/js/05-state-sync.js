@@ -262,6 +262,8 @@
       var zh = (typeof isZh === 'function') ? isZh() : true;
       if (backupNote && settings && settings.ok === true && !canRestore) backupNote.textContent = zh ? "当前服务器后端不支持备份恢复。" : "Backup restore is not supported by current server backend.";
       if (settings && settings.ok === true) {
+        var domTag = document.getElementById("current-domain-tag");
+        if (domTag && settings.domain) domTag.textContent = settings.domain;
         if (settings.version && typeof window.ownlineUpdateVersionBadges === "function") {
           window.ownlineUpdateVersionBadges(settings.version);
         }
@@ -291,7 +293,7 @@
       setOtherCheckBusy(!!otherCheckController);
       document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
         ? (zh ? "仅测试连接，尚未安装节点。" : "Testing connection only, node not installed yet.")
-        : (zh ? "网页连接检测不可用（推荐使用免密终端接入）。" : "Web connection check unavailable (terminal join recommended).");
+        : (zh ? "网页连接检测暂不可用，可核对后端状态或使用高级终端接入。" : "Web connection check unavailable; check backend status or use advanced terminal join.");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
       if (STATE.tencentConfigured) {
@@ -346,16 +348,19 @@
         else if (settings && settings.ok) setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
         else setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
       }
+      var recCard = document.getElementById("billing-reconcile-card");
       if (quota) {
         STATE.quota = quota;
         var threshold = quota.watermarks && quota.watermarks.tripped;
         quotaSettings.style.display = modernBackend && Number.isInteger(threshold) && threshold >= 1 && threshold <= 100 ? "" : "none";
+        if (recCard) recCard.style.display = modernBackend ? "" : "none";
         var input = document.getElementById("quota-threshold");
         if (document.activeElement !== input && quotaSettings.style.display !== "none") input.value = threshold;
         renderQuotaList(NODES, quota);
       } else {
         STATE.quota = null;
         quotaSettings.style.display = "none";
+        if (recCard) recCard.style.display = "none";
         if (nodes && nodes.length) renderQuotaList(nodes, null); else setQuotaMessage(quotaBox, "暂无流量统计");
       }
       renderNodes(NODES, STATUS, quota);
@@ -390,6 +395,57 @@
         .then(function(result){ if (!result.ok) throw new Error("Save failed"); note.textContent = "阈值已保存，节点保护状态已刷新。"; refreshState(); })
         .catch(function(){note.textContent = "保存失败，请稍后重试";});
     };
+    var recForm = document.getElementById("billing-reconcile-form");
+    if (recForm) {
+      recForm.onsubmit = function (event) {
+        event.preventDefault();
+        var zh = (typeof isZh === "function") ? isZh() : true;
+        var offInput = document.getElementById("billing-official-gb");
+        var rdayInput = document.getElementById("billing-reset-day");
+        var resBox = document.getElementById("billing-reconcile-result");
+        var btn = document.getElementById("btn-billing-reconcile");
+        var officialGb = Number(offInput ? offInput.value : "");
+        if (!Number.isFinite(officialGb) || officialGb < 0 || (offInput && offInput.value.trim() === "")) {
+          if (resBox) resBox.textContent = zh ? "请输入有效的云控制台已用流量（GB）。" : "Enter valid cloud billing GB.";
+          return;
+        }
+        var payload = { official_gb: officialGb };
+        if (rdayInput && rdayInput.value.trim() !== "") {
+          payload.official_reset_day = Number(rdayInput.value);
+        }
+        if (btn) btn.disabled = true;
+        if (resBox) resBox.textContent = zh ? "正在核对..." : "Reconciling...";
+        fetch(safeUrl("/api/quota/reconcile"), {
+          method: "POST",
+          credentials: "same-origin",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (!data || !data.ok) {
+              if (resBox) resBox.textContent = (data && data.error) || (zh ? "核对未完成。" : "Reconcile failed.");
+              return;
+            }
+            var verdict = data.status === "aligned"
+              ? (zh ? "已对齐" : "Aligned")
+              : (data.status === "minor_drift" ? (zh ? "轻微偏差" : "Minor drift") : (zh ? "差异偏大" : "Discrepancy"));
+            var sign = Number(data.delta_gb) >= 0 ? "+" : "";
+            var resetText = data.reset_day_match === true
+              ? (zh ? " · 重置日一致" : " · Reset day matches")
+              : (data.reset_day_match === false ? (zh ? " · 重置日不一致" : " · Reset day mismatch") : "");
+            if (resBox) {
+              resBox.textContent = verdict + "：面板 " + data.panel_gb + " GB / 云账单 " + data.official_gb + " GB（差 " + sign + data.delta_gb + " GB，" + data.delta_pct + "%）" + resetText;
+            }
+          })
+          .catch(function () {
+            if (resBox) resBox.textContent = zh ? "账单核对失败，请稍后重试。" : "Failed to reconcile billing.";
+          })
+          .finally(function () {
+            if (btn) btn.disabled = false;
+          });
+      };
+    }
   }
 
 

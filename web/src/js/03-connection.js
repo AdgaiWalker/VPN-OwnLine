@@ -16,8 +16,43 @@
     return path;
   }
 
+  var resolveOtherFingerprint = null;
+
+  function confirmOtherFingerprint(fingerprint) {
+    var box = document.getElementById("other-fingerprint-box");
+    var valEl = document.getElementById("other-fingerprint-value");
+    var trustBtn = document.getElementById("other-trust-host");
+    var rejectBtn = document.getElementById("other-reject-host");
+    if (!box || !valEl || !trustBtn || !rejectBtn) {
+      return Promise.resolve(
+        typeof window !== "undefined" && typeof window.confirm === "function"
+          ? window.confirm("首次连接此服务器，请确认目标 IP 无误后锁定服务器指纹：\n\n" + fingerprint)
+          : false
+      );
+    }
+    valEl.textContent = fingerprint;
+    box.style.display = "block";
+    trustBtn.focus();
+    return new Promise(function (resolve) {
+      function done(accepted) {
+        resolveOtherFingerprint = null;
+        box.style.display = "none";
+        valEl.textContent = "";
+        trustBtn.onclick = null;
+        rejectBtn.onclick = null;
+        resolve(accepted);
+      }
+      resolveOtherFingerprint = done;
+      trustBtn.onclick = function () { done(true); };
+      rejectBtn.onclick = function () { done(false); };
+    });
+  }
+
   function clearOtherSecret() {
     otherPrivateKey = "";
+    if (resolveOtherFingerprint) {
+      resolveOtherFingerprint(false);
+    }
     if (otherCheckController) {
       otherCheckController.abort();
       document.getElementById("other-connect-status").textContent = "已取消连接检查。";
@@ -187,7 +222,7 @@
 
     if (tabOther) {
       tabOther.onclick = function () {
-        if (tabReverse) tabReverse.click();
+        if (tabSsh) tabSsh.click();
       };
     }
   }
@@ -438,10 +473,13 @@
         if (controller.signal.aborted) return;
         if (data.code === "HOST_KEY_CONFIRMATION" && /^SHA256:[A-Za-z0-9+/]{43}$/.test(data.fingerprint || "")) {
           if (document.getElementById("view-setup").style.display !== "block") return;
-          if (!window.confirm("请通过云控制台或可信渠道核对服务器 SSH 指纹：\n\n" + data.fingerprint + "\n\n确认无误后继续连接？")) {
-            note.textContent = "未确认服务器指纹，已停止连接。";
+          note.textContent = zh ? "首次连接，请确认并锁定服务器指纹。" : "First connection: confirm and pin host fingerprint.";
+          var trusted = await confirmOtherFingerprint(data.fingerprint);
+          if (controller.signal.aborted || !trusted) {
+            note.textContent = zh ? "未确认服务器指纹，已停止连接。" : "Host fingerprint not confirmed; connection stopped.";
             return;
           }
+          note.textContent = zh ? "正在只读检测服务器连接..." : "Checking server connection...";
           body.fingerprint = data.fingerprint;
           data = await requestCheck();
           if (controller.signal.aborted) return;
@@ -460,8 +498,10 @@
           return;
         }
         var item = data.result;
-        var serviceNote = item.existing_singbox ? "检测到已有 sing-box 服务，未作改动。" : (!item.root || item.singbox_service === "unknown") ? "未能确认服务状态，尚未安装。" : "未检测到已有 sing-box，尚未安装。";
-        resultBox.textContent = "连接检测通过 · " + (item.os || "未知系统") + " " + (item.version || "") + " · " + (item.architecture || "未知架构") + " · " + (item.root ? "root" : "非 root") + "。" + serviceNote + " " + (item.message || "");
+        var hasPriv = !!(item.root || item.sudo_nopasswd);
+        var privLabel = item.root ? "root" : (item.sudo_nopasswd ? "sudo 提权" : "无提权权限");
+        var serviceNote = item.existing_singbox ? "检测到已有 sing-box 服务，未作改动。" : (!hasPriv || item.singbox_service === "unknown") ? "未能确认服务状态，尚未安装。" : "未检测到已有 sing-box，尚未安装。";
+        resultBox.textContent = "连接检测通过 · " + (item.os || "未知系统") + " " + (item.version || "") + " · " + (item.architecture || "未知架构") + " · " + privLabel + "。" + serviceNote + " " + (item.message || "");
         resultBox.style.display = "block";
         note.textContent = "只读检测已完成。";
 

@@ -14,7 +14,7 @@ import urllib.parse
 import webbrowser
 
 from server import tencent_discovery
-from server.nodekit import local_diag, system_updater
+from server.nodekit import local_diag, runtime_paths, system_updater
 from server.nodekit.capabilities import CapabilityContext, CapabilityError, CapabilityRegistry, RemotePanelClient
 from server.nodekit.installations import InstallError
 from server.nodekit.local_setup_guard import LocalSetupGuard
@@ -39,7 +39,7 @@ def _lazy_install(checked, source, on_progress=None):
         raise InstallError('缺少本地 SSH 依赖（paramiko / bcrypt），请先按 requirements.lock 安装依赖。') from None
     return run_install(checked, source, on_progress=on_progress)
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = runtime_paths.bundle_root()
 TZ_CN = timezone(timedelta(hours=8))
 
 
@@ -47,7 +47,7 @@ def _default_state_path():
     override = os.environ.get('OWNLINE_LOCAL_STATE', '').strip()
     if override:
         return Path(override)
-    return ROOT / '.ops-private' / 'local_agent.json'
+    return runtime_paths.writable_state_dir() / 'local_agent.json'
 
 
 class _LoopbackHTTPServer(ThreadingHTTPServer):
@@ -67,7 +67,7 @@ def create_server(
     capability_registry=None,
     panel_client_factory=None,
 ):
-    resolved_diag = Path(diag_log) if diag_log is not None else local_diag.default_log_path(ROOT)
+    resolved_diag = Path(diag_log) if diag_log is not None else local_diag.default_log_path()
 
     def _emit(event, detail=None, severity=None):
         try:
@@ -412,7 +412,7 @@ def main(argv=None, *, open_browser_fn=None):
     args = parser.parse_args(argv)
     open_fn = open_browser_fn or webbrowser.open
     state_path = Path(args.state_file) if args.state_file else _default_state_path()
-    resolved_diag = Path(args.diag_log) if args.diag_log else local_diag.default_log_path(ROOT)
+    resolved_diag = Path(args.diag_log) if args.diag_log else local_diag.default_log_path()
 
     if not args.force_new:
         existing = _probe_running_daemon(state_path)

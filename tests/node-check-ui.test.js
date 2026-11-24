@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-function createUI(fetchImpl, confirm = () => true) {
+function createUI(fetchImpl, confirm = () => true, { inlineFp = false } = {}) {
   const html = fs.readFileSync('web/index.html', 'utf8');
   const ids = [
     'other-credential', 'other-connect', 'other-key-status', 'other-connect-status',
@@ -11,7 +11,8 @@ function createUI(fetchImpl, confirm = () => true) {
     'view-setup', 'node-install-confirm-box', 'node-name-input', 'node-role-select',
     'btn-submit-addnode', 'addnode-submit-status', 'install-task', 'install-task-title',
     'install-task-message', 'install-task-refresh', 'install-task-dismiss',
-    'ssh-advanced-settings', 'node-install-options'
+    'ssh-advanced-settings', 'node-install-options',
+    ...(inlineFp ? ['other-fingerprint-box', 'other-fingerprint-value', 'other-trust-host', 'other-reject-host'] : [])
   ];
   const elements = {};
   for (const id of ids) elements[id] = {
@@ -255,4 +256,56 @@ test('encrypted-key installation sends only the checked capability', async () =>
   assert.equal(calls[1].body.check_ticket, 'b'.repeat(64));
   assert.equal(JSON.stringify(calls[1]).includes('fixture-phrase'), false);
   assert.equal(elements['other-passphrase'].value, '');
+});
+
+test('inline fingerprint box pins key without window.confirm and supports cancel + sudo label', async () => {
+  const requests = [];
+  const fp = 'SHA256:' + 'C'.repeat(43);
+  const { elements } = createUI(
+    async (_url, opts) => {
+      requests.push(JSON.parse(opts.body));
+      if (requests.length === 1) return { json: async () => ({ ok: false, code: 'HOST_KEY_CONFIRMATION', fingerprint: fp }) };
+      return {
+        json: async () => ({
+          ok: true,
+          check_ticket: 'd'.repeat(64),
+          result: { os: 'ubuntu', version: '22.04', architecture: 'x86_64', root: false, sudo_nopasswd: true, existing_singbox: false, singbox_service: 'inactive', ready_for_install: true }
+        })
+      };
+    },
+    () => { throw new Error('window.confirm must not be called when inline card exists'); },
+    { inlineFp: true }
+  );
+  elements['other-user'].value = 'ubuntu';
+  elements['other-credential'].value = 'ubuntu-pass';
+  const pending = elements['other-connect'].onclick();
+  await new Promise(r => setImmediate(r));
+  assert.equal(elements['other-fingerprint-box'].style.display, 'block');
+  assert.equal(elements['other-fingerprint-value'].textContent, fp);
+  elements['other-trust-host'].onclick();
+  await pending;
+  assert.equal(elements['other-fingerprint-box'].style.display, 'none');
+  assert.equal(requests[1].fingerprint, fp);
+  assert.match(elements['other-check-result'].textContent, /sudo 提权/);
+});
+
+test('inline fingerprint reject aborts cleanly without second request', async () => {
+  const requests = [];
+  const fp = 'SHA256:' + 'D'.repeat(43);
+  const { elements } = createUI(
+    async (_url, opts) => {
+      requests.push(JSON.parse(opts.body));
+      return { json: async () => ({ ok: false, code: 'HOST_KEY_CONFIRMATION', fingerprint: fp }) };
+    },
+    () => { throw new Error('window.confirm must not be called'); },
+    { inlineFp: true }
+  );
+  elements['other-credential'].value = 'pass';
+  const pending = elements['other-connect'].onclick();
+  await new Promise(r => setImmediate(r));
+  elements['other-reject-host'].onclick();
+  await pending;
+  assert.equal(requests.length, 1);
+  assert.equal(elements['other-fingerprint-box'].style.display, 'none');
+  assert.match(elements['other-connect-status'].textContent, /已停止连接/);
 });

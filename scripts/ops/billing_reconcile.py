@@ -87,42 +87,7 @@ def parse_official_file(path: Path) -> Dict[str, Any]:
     return {"official_gb": gb_val, "official_reset_day": rday}
 
 
-def reconcile_billing(
-    panel_gb: float,
-    official_gb: float,
-    *,
-    panel_reset_day: Optional[int] = None,
-    official_reset_day: Optional[int] = None,
-) -> Dict[str, Any]:
-    panel_r = round(float(panel_gb), 3)
-    official_r = round(float(official_gb), 3)
-    delta_gb = round(panel_r - official_r, 3)
-    if official_r > 0:
-        delta_pct = round((abs(delta_gb) / official_r) * 100.0, 2)
-    else:
-        delta_pct = 0.0 if panel_r == 0 else 100.0
-
-    reset_match: Optional[bool] = None
-    if panel_reset_day is not None and official_reset_day is not None:
-        reset_match = int(panel_reset_day) == int(official_reset_day)
-
-    if delta_pct <= 5.0 and reset_match is not False:
-        status = "aligned"
-    elif delta_pct <= 15.0:
-        status = "minor_drift"
-    else:
-        status = "discrepancy"
-
-    return {
-        "panel_gb": panel_r,
-        "official_gb": official_r,
-        "delta_gb": delta_gb,
-        "delta_pct": delta_pct,
-        "panel_reset_day": panel_reset_day,
-        "official_reset_day": official_reset_day,
-        "reset_day_match": reset_match,
-        "status": status,
-    }
+reconcile_billing = quota_guard.reconcile_billing
 
 
 def main() -> int:

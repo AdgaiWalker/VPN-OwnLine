@@ -40,13 +40,13 @@
     }
   ],
   "server_requirements": {
-    "os": "空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，root SSH 登录与公网 IPv4）",
+    "os": "空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，支持 root 或云商默认免密 sudo 账号如 ubuntu，且有公网 IPv4）",
     "ports": [
       "SSH 端口（默认 22）",
+      "80/TCP（自动申请 HTTPS 证书必需：默认 sslip.io 与自定义域名均需放行）",
       "8443/TCP（管理后台与订阅分发）",
       "443/TCP（VLESS Reality 主通道）",
-      "443/UDP（Hysteria2 晚高峰高速通道）",
-      "80/TCP（仅绑定自定义域名自动申请 HTTPS 证书时需要）"
+      "443/UDP（Hysteria2 晚高峰高速通道）"
     ]
   },
   "topology_advice": {
@@ -93,7 +93,7 @@
     "registrar": "Spaceship",
     "url": "https://www.spaceship.com/",
     "cost_range": "约 $1–$3/首年（以官方为准）",
-    "note": "可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后在服务器运行 sudo bash /opt/web/change_domain.sh <域名>。",
+    "note": "可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后，在管理后台「偏好设置 -> 自定义域名」即可一键绑定。",
     "checked_at": "2026-11-23"
   },
   "tencent_cam_note": "请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。",

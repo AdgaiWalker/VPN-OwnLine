@@ -221,6 +221,16 @@
             <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
+        <div class="inner" id="billing-reconcile-card" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
+          <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:4px" data-i18n="billing_reconcile_title">账单流量核对</div>
+          <p class="small muted" style="margin:0 0 8px" data-i18n="billing_reconcile_desc">输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。</p>
+          <form id="billing-reconcile-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <button class="btn tiny" id="btn-billing-reconcile" type="submit" data-i18n="billing_reconcile_btn">核对账单</button>
+          </form>
+          <div id="billing-reconcile-result" class="small muted" role="status" style="margin-top:6px"></div>
+        </div>
       </details>
     </div>
 
@@ -235,16 +245,16 @@
         </button>
       </div>
 
-      <!-- Segment Switching: One-Click Join vs Direct SSH vs Tencent Cloud -->
-      <div class="seg" role="group" aria-label="连接方式" style="max-width:440px;margin-bottom:16px">
-        <button class="segbtn active" type="button" id="tab-btn-reverse-join" aria-pressed="true">
-          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入</span>
-        </button>
-        <button class="segbtn" type="button" id="tab-btn-ssh-direct" aria-pressed="false">
-          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">SSH 直连配置</span>
+      <!-- Segment Switching: Direct SSH (Default) vs Tencent Cloud vs Terminal Join (Advanced) -->
+      <div class="seg" role="group" aria-label="连接方式" style="max-width:480px;margin-bottom:16px">
+        <button class="segbtn active" type="button" id="tab-btn-ssh-direct" aria-pressed="true">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">填写服务器信息（推荐）</span>
         </button>
         <button class="segbtn" type="button" id="tab-tc" aria-pressed="false">
           <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-cloud"/></svg><span data-i18n="tab_tc">腾讯云 API</span>
+        </button>
+        <button class="segbtn" type="button" id="tab-btn-reverse-join" aria-pressed="false">
+          <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入（高级）</span>
         </button>
       </div>
       <button id="tab-other" type="button" style="display:none"></button>
@@ -281,11 +291,11 @@
           <div class="small muted" style="margin-top:6px;line-height:1.6">
             <p style="margin:2px 0">1. 注意续费规则与每月流量限制。</p>
             <p style="margin:2px 0">2. 操作系统选择原版 Ubuntu 22.04。</p>
-            <p style="margin:2px 0">3. 防火墙放行 TCP 8443 及节点端口。</p>
+            <p style="margin:2px 0">3. 防火墙放行 TCP 80（证书必需）、TCP 8443 及 443 端口（TCP 与 UDP）。</p>
           </div>
         </details>
 
-        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary data-i18n="tc_cloud_install">通过云终端安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
+        <details class="inner install-guide" id="tc-install-guide" style="margin:10px 0"><summary data-i18n="tc_cloud_install">高级：通过云终端脚本安装</summary><p class="small muted" data-i18n="tc_run_as_root">以 root 权限在 Ubuntu 22.04 或 Debian 12 运行：</p><code style="word-break:break-all">curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy/bootstrap.sh | sudo bash</code><div style="margin-top:8px"><button class="btn tiny copy-install-command" type="button" data-i18n="btn_copy_install_cmd">复制安装命令</button> <span class="small muted copy-install-status" role="status"></span></div></details>
 
         <!-- Tencent Server List -->
         <div id="tc-srv-section" style="margin-top:12px;display:none">
@@ -312,10 +322,10 @@
         </div>
       </div>
 
-      <!-- Panel Other: Direct SSH Connection & Reverse Join -->
+      <!-- Panel Other: Direct SSH Connection (Default) & Reverse Join (Advanced) -->
       <div id="panel-other">
-        <!-- Mode 1: Pre-Auth Reverse Join -->
-        <div id="box-reverse-join">
+        <!-- Mode 1: Pre-Auth Reverse Join (Advanced) -->
+        <div id="box-reverse-join" style="display:none">
           <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
             无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。
           </p>
@@ -355,9 +365,9 @@
           </div>
         </div>
 
-        <!-- Mode 2: Direct SSH Connection (Advanced) -->
-        <div id="box-ssh-direct" style="display:none">
-        <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写两项信息，先检测连接，再确认安装。</p>
+        <!-- Mode 2: Direct SSH Connection (Default) -->
+        <div id="box-ssh-direct" style="display:block">
+        <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
         <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
 我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
 目标说明：
@@ -377,7 +387,7 @@
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
         <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
-        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；其他账号或加密私钥请展开连接设置。</p>
+        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；若是 Oracle / 腾讯云轻量 Ubuntu 可展开连接设置填 ubuntu（免密 sudo 自动提权）。</p>
         <details class="inner other-advanced" id="ssh-advanced-settings">
           <summary data-i18n="ssh_advanced_summary">连接设置（账号、端口、私钥密码）</summary>
           <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
@@ -385,6 +395,15 @@
           <div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off"></div>
         </details>
         <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status" data-i18n="status_web_test_ready">仅测试连接，尚未安装节点。</span></div>
+        <div id="other-fingerprint-box" class="check-result-box" role="region" aria-label="服务器指纹确认" style="display:none;margin-top:10px">
+          <div style="font-weight:600;font-size:13.5px;margin-bottom:4px" data-i18n="fp_title">首次连接 · 锁定服务器指纹</div>
+          <p class="small muted" style="margin:0 0 8px;line-height:1.5" data-i18n="fp_desc">确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改。</p>
+          <code id="other-fingerprint-value" style="display:block;padding:8px 10px;background:var(--bg);border:1px solid var(--line);border-radius:6px;font-family:var(--mono);font-size:12px;word-break:break-all;margin-bottom:10px"></code>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn primary tiny" id="other-trust-host" type="button" data-i18n="fp_trust">信任并锁定，继续检查</button>
+            <button class="btn tiny" id="other-reject-host" type="button" data-i18n="fp_reject">取消</button>
+          </div>
+        </div>
         <div class="check-result-box" id="other-check-result" role="status" style="display:none"></div>
         <div id="node-install-confirm-box" style="display:none;margin-top:12px;padding:14px;background:var(--surface-soft);border:1px solid var(--line);border-radius:12px">
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
@@ -430,12 +449,14 @@
         <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
+          <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
           <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
           <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
           <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
         </div>
       </div>
       <div id="health" aria-live="polite"></div>
+      <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
 
       <div class="log-tabs">
         <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>

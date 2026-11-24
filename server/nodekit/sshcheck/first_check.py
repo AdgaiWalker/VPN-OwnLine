@@ -40,8 +40,9 @@ def check(body, allowed_targets=()):
     pinned = dict(body, host=result["address"], fingerprint=result["fingerprint"])
     target = normalize(pinned, allowed_targets)
     ssh = SSH(target, credentials(body))
+    use_sudo = (result.get("root") is not True) and (result.get("sudo_nopasswd") is True)
     try:
-        info = ssh.python(CONTROLLER_PROBE, timeout=20)
+        info = ssh.python(CONTROLLER_PROBE, timeout=20, sudo=True) if use_sudo else ssh.python(CONTROLLER_PROBE, timeout=20)
         if (not isinstance(info, dict) or type(info.get("existing_controller")) is not bool
                 or type(info.get("disk_ok")) is not bool
                 or info.get("machine_id") != result["machine_id"]

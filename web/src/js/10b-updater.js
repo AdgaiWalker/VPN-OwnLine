@@ -171,10 +171,58 @@
     }, 1500);
   }
 
+  function ownlineChangeDomain(event) {
+    if (event && typeof event.preventDefault === "function") event.preventDefault();
+    var input = document.getElementById("custom-domain-input");
+    var skipEl = document.getElementById("custom-domain-skip-dns");
+    var btn = document.getElementById("btn-save-domain");
+    var statusEl = document.getElementById("custom-domain-status");
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var domain = input ? String(input.value || "").trim().toLowerCase() : "";
+    if (!domain) {
+      if (statusEl) statusEl.textContent = zh ? "请输入域名（例如 vpn.example.com）。" : "Please enter a domain.";
+      return;
+    }
+    if (btn) btn.disabled = true;
+    if (statusEl) statusEl.textContent = zh ? "正在校验解析并切换管理域名..." : "Validating DNS & binding domain...";
+    fetch("/api/domain/change", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ domain: domain, skip_dns_check: !!(skipEl && skipEl.checked) })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res || !res.ok) {
+          if (statusEl) statusEl.textContent = (res && res.error) || (zh ? "域名绑定未完成。" : "Failed to bind domain.");
+          return;
+        }
+        setElementText("current-domain-tag", res.domain);
+        if (statusEl) {
+          statusEl.textContent = zh ? "已切换至新地址：" : "Switched to: ";
+          if (res.dashboard_url && /^https:\/\//.test(res.dashboard_url)) {
+            var a = document.createElement("a");
+            a.href = res.dashboard_url;
+            a.target = "_blank";
+            a.rel = "noopener noreferrer";
+            a.textContent = res.dashboard_url;
+            statusEl.appendChild(a);
+          }
+        }
+      })
+      .catch(function () {
+        if (statusEl) statusEl.textContent = zh ? "域名切换未完成或连接已断开，请尝试打开新域名访问。" : "Request interrupted; check your new domain URL.";
+      })
+      .finally(function () {
+        if (btn) btn.disabled = false;
+      });
+  }
+
   function initUpdater() {
     window.ownlineCheckUpdate = ownlineCheckUpdate;
     window.ownlinePerformUpgrade = ownlinePerformUpgrade;
     window.ownlineUpdateVersionBadges = updateVersionBadges;
+    window.ownlineChangeDomain = ownlineChangeDomain;
 
     // Quiet background update check (with 1-hour cache)
     setTimeout(function () {
@@ -187,5 +235,6 @@
     window.ownlineCheckUpdate = ownlineCheckUpdate;
     window.ownlinePerformUpgrade = ownlinePerformUpgrade;
     window.ownlineUpdateVersionBadges = updateVersionBadges;
+    window.ownlineChangeDomain = ownlineChangeDomain;
   }
 })();

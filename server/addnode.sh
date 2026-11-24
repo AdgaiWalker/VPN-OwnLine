@@ -46,6 +46,15 @@ chmod 600 "$KH" 2>/dev/null || true
 rsh() {
   python3 "$SCRIPT_DIR/nodekit/ssh_memory.py" 6 "$@" 6< <(printf '%s' "$JOB_JSON")
 }
+rsh_root() {
+  if [ "$UNAME" = "root" ]; then
+    rsh "$1"
+  else
+    local quoted
+    quoted=$(python3 -c 'import shlex,sys; print(shlex.quote(sys.argv[1]))' "$1")
+    rsh "sudo -n bash -c $quoted"
+  fi
+}
 
 if [ -n "$EXPECT_MACHINE" ] && ! rsh "test \"\$(cat /etc/machine-id 2>/dev/null)\" = '$EXPECT_MACHINE'"; then
   echo "服务器身份与检查时不同，已停止安装"; exit 3
@@ -72,7 +81,7 @@ fi
 echo "  正在预检系统"
 PF="/tmp/pf.$$.txt"
 PROBE_CMD=$(python3 -c 'import sys; sys.path.insert(0,"/opt/web"); from nodekit import preflight; print(preflight.PROBE_CMD)')
-rsh "$PROBE_CMD" > "$PF" 2>&1 || true
+rsh_root "$PROBE_CMD" > "$PF" 2>&1 || true
 if ! PF_OUT=$(python3 /opt/web/nodekit/preflight_cli.py "$PF"); then
   echo "$PF_OUT"; rm -f "$PF"; exit 1
 fi
@@ -80,20 +89,20 @@ eval "$PF_OUT"
 rm -f "$PF"
 echo "  预检通过：架构 $ARCH"
 if [ "$SELF_BOOTSTRAP" = "True" ] || [ "$SELF_BOOTSTRAP" = "true" ]; then
-  if ! rsh "for p in /opt/web /opt/web-data /etc/caddy/Caddyfile /etc/systemd/system/admin.service; do [ ! -e \"\$p\" ] || exit 3; done"; then
+  if ! rsh_root "for p in /opt/web /opt/web-data /etc/caddy/Caddyfile /etc/systemd/system/admin.service; do [ ! -e \"\$p\" ] || exit 3; done"; then
     echo "目标已有管理配置，未覆盖"; exit 3
   fi
 fi
 # 不将已有 sing-box 当作可接管服务，避免覆盖其他业务。
-if ! rsh "command -v systemctl >/dev/null 2>&1 && systemctl list-units --all --no-legend --no-pager >/dev/null 2>&1 || { echo '无法检查系统服务'; exit 3; }; for p in /opt/sing-box /etc/systemd/system/sing-box.service /lib/systemd/system/sing-box.service /usr/lib/systemd/system/sing-box.service; do if [ -e \"\$p\" ]; then echo '检测到已有 sing-box，未安装；请人工检查'; exit 3; fi; done; if systemctl is-active --quiet sing-box 2>/dev/null; then echo '检测到运行中的 sing-box，未安装'; exit 3; fi"; then
+if ! rsh_root "command -v systemctl >/dev/null 2>&1 && systemctl list-units --all --no-legend --no-pager >/dev/null 2>&1 || { echo '无法检查系统服务'; exit 3; }; for p in /opt/sing-box /etc/systemd/system/sing-box.service /lib/systemd/system/sing-box.service /usr/lib/systemd/system/sing-box.service; do if [ -e \"\$p\" ]; then echo '检测到已有 sing-box，未安装；请人工检查'; exit 3; fi; done; if systemctl is-active --quiet sing-box 2>/dev/null; then echo '检测到运行中的 sing-box，未安装'; exit 3; fi"; then
   echo "目标服务器的既有服务检查未通过，已停止安装"; exit 3
 fi
 if [ "$DRY" = "true" ]; then echo "演练模式：预检通过，未安装"; exit 0; fi
 if [ -n "$HOST_KEY" ]; then
-  if ! rsh "mkdir /run/ownline-node-install.lock"; then
+  if ! rsh_root "mkdir /run/ownline-node-install.lock"; then
     echo "目标上已有安装任务或待确认状态，请检查后再试"; exit 3
   fi
-  cleanup_remote_lock() { rsh "rmdir /run/ownline-node-install.lock 2>/dev/null || true" >/dev/null 2>&1 || true; }
+  cleanup_remote_lock() { rsh_root "rmdir /run/ownline-node-install.lock 2>/dev/null || true" >/dev/null 2>&1 || true; }
   trap cleanup_remote_lock EXIT
 fi
 read -r CTL_TYPE CTL_KEY _ < /root/.ssh/node_ctl.pub || { echo "无法读取管理公钥"; exit 6; }
@@ -105,7 +114,7 @@ fi
 # 先保证目标机有 curl，再做“能不能直连国外”的判断。
 # 否则一台没装 curl 的干净机器会被误判成“出不去”，装上不该装的中转配置。
 echo "  检查目标机依赖"
-rsh "command -v curl >/dev/null 2>&1 || (command -v apt-get >/dev/null 2>&1 && apt-get update -qq && apt-get install -y -qq curl) || (command -v yum >/dev/null 2>&1 && yum install -y -q curl) || true" >/dev/null 2>&1
+rsh_root "command -v curl >/dev/null 2>&1 || (command -v apt-get >/dev/null 2>&1 && apt-get update -qq && apt-get install -y -qq curl) || (command -v yum >/dev/null 2>&1 && yum install -y -q curl) || true" >/dev/null 2>&1
 
 echo "  检查能不能直连国外"
 EGRESS=$(rsh "curl -s --max-time 8 https://api.ipify.org 2>/dev/null || curl -s --max-time 8 https://ipinfo.io/ip 2>/dev/null || curl -s --max-time 8 http://ifconfig.me/ip 2>/dev/null" | tr -d '\r' | tail -1)
@@ -368,10 +377,10 @@ if [ "$SELF_BOOTSTRAP" = "True" ] || [ "$SELF_BOOTSTRAP" = "true" ]; then
   rsh "install -d -m 700 '$SOURCE_DIR'" || exit 7
   python3 "$SCRIPT_DIR/nodekit/installations.py" bundle "$SCRIPT_DIR" | rsh "tar xzf - -C '$SOURCE_DIR'" || exit 7
   BOOTSTRAP_JSON=$(printf '%s' "$JOB_JSON" | python3 -c 'import json,sys; j=json.load(sys.stdin); allowed=("job_id","ip","name","user","ssh_port","port","role","landing","control_secret","sub_token","panel_hash","self_bootstrap"); out={k:j.get(k) for k in allowed}; out["actual_role"]="exit" if j["role"]=="exit" or (j["role"]=="auto" and sys.argv[1]=="1") else "relay"; out["node"]={"pbk":j["node"]["pbk"]}; print(json.dumps(out))' "$DIRECT")
-  if ! printf '%s' "$BOOTSTRAP_JSON" | rsh "python3 '$SOURCE_DIR/server/bootstrap_target.py'"; then
+  if ! printf '%s' "$BOOTSTRAP_JSON" | rsh_root "python3 '$SOURCE_DIR/server/bootstrap_target.py'"; then
     echo "独立后台部署未完成，请检查服务器状态"; exit 7
   fi
-  rsh "rm -rf '$SOURCE_DIR'" >/dev/null 2>&1 || true
+  rsh_root "rm -rf '$SOURCE_DIR'" >/dev/null 2>&1 || true
 fi
 
 TARGET_DIRECT_2="$DIRECT" python3 - /dev/fd/6 6< <(printf '%s' "$JOB_JSON") <<'PYOUT'

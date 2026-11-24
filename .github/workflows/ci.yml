@@ -80,4 +80,14 @@ jobs:
         run: |
           python ownline.py doctor --json
           python ownline.py plan --list --json
+          python scripts/build_installer.py --check-stage
           python scripts/zero_drift.py check --json
+
+      - name: Install PyInstaller (Pinned) & Build Standalone Installer
+        run: |
+          pip install --no-input --disable-pip-version-check pyinstaller==6.22.3
+          python scripts/build_installer.py --build --version ci --out-dir dist-ci
+
+      - name: Blank-PATH Frozen Installer Smoke Test
+        run: |
+          python scripts/build_installer.py --smoke dist-ci

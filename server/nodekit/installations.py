@@ -17,7 +17,9 @@ import subprocess
 
 
 class InstallError(ValueError):
-    pass
+    def __init__(self, message="", *, code=None):
+        super().__init__(message)
+        self.code = code
 
 
 class CheckedTargets:
@@ -183,15 +185,33 @@ def _verify_delivery(candidate, address, password, connection_factory):
             "temp_password": password, "sub_token": token, "direct_sub_url": base + "/s/" + token}
 
 
-def verify_delivery(candidate, address, password, connection_factory=PinnedHTTPS, *, attempts=6, pause=2, sleep=time.sleep):
+def verify_delivery(candidate, address, password, connection_factory=PinnedHTTPS, *, attempts=10, pause=2, sleep=time.sleep):
     """Allow bounded certificate/startup propagation without reinstalling the host."""
+    last_kind = "other"
     for attempt in range(attempts):
         try:
             return _verify_delivery(candidate, address, password, connection_factory)
-        except (OSError, http.client.HTTPException, InstallError):
+        except ssl.SSLError:
+            last_kind = "tls"
+        except (OSError, http.client.HTTPException):
+            last_kind = "net"
+        except InstallError:
             if attempt + 1 == attempts:
-                raise InstallError("独立后台 TLS、登录或订阅验收未通过，请核对管理入口") from None
-            sleep(pause)
+                raise
+            last_kind = "other"
+        if attempt + 1 == attempts:
+            if last_kind == "tls":
+                raise InstallError(
+                    "独立后台 HTTPS 证书尚未签发，请确认云安全组已放行 80/TCP 与 8443/TCP 端口",
+                    code="DELIVERY_TLS_CERT",
+                ) from None
+            if last_kind == "net":
+                raise InstallError(
+                    "独立后台管理端口暂不可达，请确认云安全组已放行 8443/TCP 与 80/TCP 端口",
+                    code="DELIVERY_UNREACHABLE",
+                ) from None
+            raise InstallError("独立后台 TLS、登录或订阅验收未通过，请核对管理入口") from None
+        sleep(pause)
     raise InstallError("独立后台验收未通过")
 
 

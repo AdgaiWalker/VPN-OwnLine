@@ -37,8 +37,16 @@ try:
  service = p.stdout.strip() if p.returncode in (0, 3, 4) else 'unknown'
 except (OSError, subprocess.SubprocessError):
  service = 'unknown'
+is_root = os.geteuid() == 0
+sudo_nopasswd = False
+if not is_root:
+ try:
+  sudo_nopasswd = subprocess.run(['sudo', '-n', 'true'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5).returncode == 0
+ except (OSError, subprocess.SubprocessError):
+  sudo_nopasswd = False
 print(json.dumps({'os': os_info.get('ID', ''), 'version': os_info.get('VERSION_ID', ''),
- 'architecture': platform.machine(), 'root': os.geteuid() == 0,
+ 'architecture': platform.machine(), 'root': is_root,
+ 'sudo_nopasswd': sudo_nopasswd,
  'systemd': Path('/run/systemd/system').exists(),
  'existing_singbox': Path('/opt/sing-box').exists() or any(Path(path).exists() for path in paths),
  'machine_id': machine_id,
@@ -58,6 +66,10 @@ def check(body, allowed_targets=()):
         for key in ("root", "systemd", "existing_singbox"):
             if type(info.get(key)) is not bool:
                 raise ValueError("invalid probe state")
+        if "sudo_nopasswd" in info and type(info["sudo_nopasswd"]) is not bool:
+            raise ValueError("invalid probe state")
+        sudo_nopasswd = bool(info.get("sudo_nopasswd", False))
+        can_elevate = info["root"] or sudo_nopasswd
         for key in ("os", "version", "architecture", "singbox_service", "machine_id"):
             if not isinstance(info.get(key), str) or not re.fullmatch(r"[A-Za-z0-9._-]{0,64}", info[key]):
                 raise ValueError("invalid probe value")
@@ -72,8 +84,9 @@ def check(body, allowed_targets=()):
             version = ()
         supported = (info["os"] == "ubuntu" and version >= (22, 4)) or (info["os"] == "debian" and version >= (12,))
         ready = (supported and info["architecture"] in ("x86_64", "aarch64", "arm64")
-                 and info["root"] and info["systemd"] and not existing
+                 and can_elevate and info["systemd"] and not existing
                  and service == "inactive" and bool(re.fullmatch(r"[a-f0-9]{32}", info["machine_id"])))
+        msg = "只读检查完成；尚未安装。" if can_elevate else "当前账号没有 root 或免密 sudo 权限；请改用 root，或使用云商默认带免密权限的账号（如 ubuntu）。"
         return {
             "target": target["host"],
             "address": target["address"],
@@ -87,11 +100,13 @@ def check(body, allowed_targets=()):
             "version": info["version"],
             "architecture": info["architecture"],
             "root": info["root"],
+            "sudo_nopasswd": sudo_nopasswd,
+            "privileged": can_elevate,
             "systemd": info["systemd"],
             "existing_singbox": existing,
             "singbox_service": service,
             "ready_for_install": bool(ready),
-            "message": "只读检查完成；尚未安装。",
+            "message": msg,
         }
     except (KeyError, TypeError, ValueError):
         raise Problem("REMOTE_RESPONSE_INVALID", "服务器返回的检查结果无效。") from None

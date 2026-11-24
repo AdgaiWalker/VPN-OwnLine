@@ -19,7 +19,7 @@
 <div id="connection-intro">
 <h1>创建节点</h1><p>用一台空白 Linux 服务器，从本机完成配置。</p>
 </div>
-<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请启用 JavaScript，再通过仓库根目录的「启动安装.command」（macOS）、「启动安装.bat」（Windows）或 python3 ownline.py ui 重新打开。</p>
+<p id="startup-fallback" class="notice" role="status">页面尚未就绪。请确认浏览器未禁用 JavaScript，然后重新双击 OwnLine 安装器打开。</p>
 <div id="connection-methods" role="group" aria-label="服务器连接方式" hidden>
 <button id="method-ssh" type="button" aria-pressed="true" aria-controls="connection"><svg class="ico" aria-hidden="true"><use href="#i-terminal"/></svg><span>SSH 直连</span></button>
 <button id="method-cvm" type="button" aria-pressed="false" aria-controls="tencent connection"><svg class="ico" aria-hidden="true"><use href="#i-cloud"/></svg><span>腾讯云</span></button>
@@ -32,7 +32,8 @@
 </div>
 <label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
 <span id="ssh-key-status" role="status"></span>
-<details id="ssh-options"><summary>连接设置</summary>
+<details id="ssh-options"><summary>连接设置（非 root 账号或非 22 端口点此）</summary>
+<p class="field-note">默认尝试 root；使用 Oracle Cloud 或腾讯云轻量 Ubuntu 镜像时可填写 ubuntu（支持免密 sudo 自动提权）。</p>
 <div class="row"><label>用户名<input name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
 <label>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
 </details>
@@ -56,11 +57,11 @@
 <button id="tencent-retry" class="text-button" type="button" hidden>重新读取</button>
 </section>
 <section id="fingerprint" hidden aria-labelledby="fingerprint-title">
-<h1 id="fingerprint-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>核对服务器指纹</h1>
-<p>在云控制台或其他可信渠道核对这台服务器的 SSH 指纹。</p>
+<h1 id="fingerprint-title" tabindex="-1"><svg class="ico" aria-hidden="true"><use href="#i-shield"/></svg>首次连接 · 锁定服务器指纹</h1>
+<p>确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改（如云控制台提供了 SSH 指纹也可顺手核对）。</p>
 <code id="fingerprint-value" class="target-card"></code>
 <div class="actions">
-<button id="trust-host" type="button" aria-describedby="fingerprint-value">一致，继续检查</button>
+<button id="trust-host" type="button" aria-describedby="fingerprint-value">信任并锁定，继续检查</button>
 <button id="reject-host" class="secondary" type="button">返回修改</button>
 </div>
 </section>
@@ -85,8 +86,12 @@
 <div class="delivery-credentials">
 <p>账号 <strong>admin</strong></p>
 <label>初始密码<input id="initial-password" type="password" readonly></label>
+<div class="actions">
 <button id="reveal" class="text-button" type="button" aria-controls="initial-password" aria-pressed="false">显示密码</button>
-<p class="field-note">请先保存密码，关闭本地服务后本页将清除交付信息。</p>
+<button id="copy-password" class="text-button" type="button" aria-describedby="copy-password-status">复制密码</button>
+</div>
+<span id="copy-password-status" class="field-note" role="status"></span>
+<p class="field-note">建议先复制保存或在浏览器保存密码；关闭本地服务后，本页将清除初始密码。</p>
 </div>
 <a id="dashboard" class="primary-link" target="_blank" rel="noreferrer"><span>打开管理后台</span><svg class="ico" aria-hidden="true"><use href="#i-external-link"/></svg></a>
 </section>
@@ -95,20 +100,20 @@
 <details id="progress-details" hidden><summary id="progress-summary">查看安装记录</summary><ol id="progress-stages"></ol></details>
 <section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
 <div class="help-heading">
-<h2 id="ssh-help-title">安装帮助</h2>
+<h2 id="ssh-help-title">准备工作与选型参考</h2>
 <button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span>复制 Agent 任务书</span></button>
 </div>
-<p id="ssh-agent-purpose"><strong>复制后粘贴到本地 Agent</strong>，例如 Cursor、Claude、Codex 或 Antigravity。密码和私钥请在本页填写。</p>
-<p id="ssh-copy-status" class="field-note" role="status"></p>
 <!-- {{LOCAL_NO_SERVER_GUIDE}} -->
-<details id="ssh-help-details"><summary>查看完整任务书与端口说明</summary>
-<pre id="ssh-prompt" aria-label="Agent 任务书">{{AGENT_BRIEF}}</pre>
-<p>使用空白 Ubuntu 22.04+ 或 Debian 12+ 和 root 账号。在云安全组放行 SSH 端口、8443/TCP、443/TCP 和 443/UDP（使用域名自动签发 HTTPS 证书时另放行 80/TCP）。</p>
+<p id="ssh-agent-purpose">如有本地 AI 编程助手，也可复制任务书由助手协作完成；密码和私钥请始终在本机网页填写。</p>
+<p id="ssh-copy-status" class="field-note" role="status"></p>
+<details id="ssh-help-details"><summary>查看端口放行清单与 Agent 任务书</summary>
+<p>使用空白 Ubuntu 22.04+ 或 Debian 12+（支持 root 或云商默认账号如 ubuntu）。在云控制台防火墙 / 安全组放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需）、8443/TCP、443/TCP 和 443/UDP。</p>
 <p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
+<pre id="ssh-prompt" aria-label="Agent 任务书">{{AGENT_BRIEF}}</pre>
 <div class="help-links">
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noopener noreferrer">查看版本发布</a>
 </div>
-<p class="field-note update-note">本地安装器随仓库更新。已安装的服务可在管理后台的偏好设置检查更新。</p>
+<p class="field-note update-note">已安装的服务可在管理后台的偏好设置一键检查更新。</p>
 </details>
 </section>
 <footer>

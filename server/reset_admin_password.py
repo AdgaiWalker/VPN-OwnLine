@@ -9,6 +9,7 @@ import base64
 import fcntl
 import getpass
 import http.client
+import ipaddress
 import os
 from pathlib import Path
 import re
@@ -18,11 +19,13 @@ import stat
 import subprocess
 import sys
 import tempfile
+import urllib.request
 
 CADDYFILE = Path('/etc/caddy/Caddyfile')
 LOCKFILE = Path('/run/ownline-reset-admin.lock')
 INITIAL_PASSWORD_MARKER = Path('/opt/web-data/.initial-password-required')
 HASH = r'\$2[aby]\$\d{2}\$[./A-Za-z0-9]{53}'
+DOMAIN_RE = re.compile(r'^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$')
 
 
 def inspect_credentials(raw):
@@ -287,6 +290,152 @@ def replace_hash(raw, new_hash, new_user=None):
     if count != expected or inspect_credentials(new) != (domain, target_user, new_hash):
         raise ValueError('新配置检查失败')
     return domain, new
+
+
+def validate_custom_domain(raw_domain):
+    """Normalize and validate a public hostname for Caddy site binding."""
+    domain = str(raw_domain or '').strip().lower().rstrip('.')
+    if not domain or len(domain) > 253 or not DOMAIN_RE.fullmatch(domain):
+        raise ValueError('域名格式无效，请输入类似 vpn.example.com 的域名')
+    try:
+        ipaddress.ip_address(domain)
+        raise ValueError('请填写域名而不是纯 IP 地址')
+    except ValueError as exc:
+        if '纯 IP' in str(exc):
+            raise
+    return domain
+
+
+def replace_domain(raw, new_domain):
+    """Replace only the OwnLine site block hostname, preserving credentials and structure."""
+    old_domain, username, hash_val = inspect_credentials(raw)
+    target_domain = validate_custom_domain(new_domain)
+    pattern = re.compile(r'(?m)^([ \t]*)https://' + re.escape(old_domain) + r':8443([ \t]*\{[ \t]*)$')
+    new, count = pattern.subn(lambda m: f'{m.group(1)}https://{target_domain}:8443{m.group(2)}', raw)
+    if count != 1 or inspect_credentials(new) != (target_domain, username, hash_val):
+        raise ValueError('域名配置检查失败')
+    return old_domain, new
+
+
+def _detect_public_ip():
+    for url in ('https://api.ipify.org', 'https://ifconfig.me/ip'):
+        try:
+            with urllib.request.urlopen(url, timeout=4) as resp:
+                cand = resp.read(64).decode('ascii', errors='ignore').strip()
+            ip = ipaddress.ip_address(cand)
+            if ip.version == 4 and ip.is_global:
+                return str(ip)
+        except Exception:
+            continue
+    return ''
+
+
+def _resolve_domain_ipv4(domain):
+    try:
+        infos = socket.getaddrinfo(domain, 443, socket.AF_INET, socket.SOCK_STREAM)
+        return str(infos[0][4][0]) if infos else ''
+    except OSError:
+        return ''
+
+
+def _update_settings_domain(settings_path, new_domain):
+    from pathlib import Path as _Path
+    sp = _Path(settings_path)
+    try:
+        from nodekit.store import AtomicJsonStore
+    except ImportError:
+        from server.nodekit.store import AtomicJsonStore
+
+    def _mutate(current):
+        data = dict(current) if isinstance(current, dict) else {}
+        data['domain'] = new_domain
+        return data
+
+    updated = AtomicJsonStore.update(str(sp), _mutate, default={})
+    if os.name == 'posix' and sp.exists():
+        os.chmod(sp, 0o600)
+    return updated
+
+
+def change_domain(
+    caddyfile_path,
+    new_domain,
+    *,
+    settings_path='/opt/web-data/settings.json',
+    qr_out=None,
+    lock_path=LOCKFILE,
+    skip_dns_check=False,
+    resolve_ip_fn=None,
+    public_ip_fn=None,
+    runner=None,
+):
+    """Atomically bind a custom domain to Caddyfile and settings.json with validation and rollback."""
+    run = runner or run_quiet
+    target_domain = validate_custom_domain(new_domain)
+    if not skip_dns_check:
+        pub_ip = (public_ip_fn or _detect_public_ip)()
+        if not pub_ip:
+            raise RuntimeError('无法确认服务器公网 IP；如确定已解析，可勾选“跳过 DNS 预检”后重试')
+        resolved_ip = (resolve_ip_fn or _resolve_domain_ipv4)(target_domain)
+        if resolved_ip != pub_ip:
+            raise ValueError(
+                f'域名解析尚未指向当前服务器：当前为 {resolved_ip or "未解析"}，期望 {pub_ip}。请先在域名控制台添加 A 记录后重试'
+            )
+
+    path = Path(caddyfile_path)
+    with open(lock_path, 'w', encoding='utf-8') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        st = path.lstat()
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != 0 or st.st_nlink != 1:
+            raise RuntimeError('Caddyfile 不是受支持的 root 所有普通文件')
+        original = path.read_text(encoding='utf-8')
+        _, candidate = replace_domain(original, target_domain)
+        staged = private_temp(path, candidate, st)
+        try:
+            check = run(['caddy', 'validate', '--config', str(staged), '--adapter', 'caddyfile'])
+            if check.returncode:
+                raise RuntimeError('新域名配置未通过 Caddy 校验，原配置未修改')
+            current = path.lstat()
+            if (current.st_dev, current.st_ino, current.st_mode, current.st_uid, current.st_gid,
+                current.st_nlink, current.st_mtime_ns) != (st.st_dev, st.st_ino, st.st_mode,
+                st.st_uid, st.st_gid, st.st_nlink, st.st_mtime_ns) or path.read_text(encoding='utf-8') != original:
+                raise RuntimeError('配置已被其他操作修改，未执行域名切换')
+            os.replace(staged, path)
+            reload_res = run(['systemctl', 'reload', 'caddy'])
+            if reload_res.returncode:
+                if path.read_text(encoding='utf-8') != candidate:
+                    raise RuntimeError('重载失败且配置被其他操作修改，请手动检查，不自动覆盖')
+                rollback = private_temp(path, original, st)
+                try:
+                    os.replace(rollback, path)
+                finally:
+                    rollback.unlink(missing_ok=True)
+                if run(['systemctl', 'reload', 'caddy']).returncode:
+                    raise RuntimeError('已还原原域名配置，但 Caddy 重载失败，请检查服务状态')
+                raise RuntimeError('Caddy 重载新域名失败，已自动恢复原配置')
+        finally:
+            staged.unlink(missing_ok=True)
+
+        updated = _update_settings_domain(settings_path, target_domain)
+
+    sub_token = str(updated.get('sub_token', '') or '')
+    sub_port = str(updated.get('sub_port', '') or '')
+    port_part = ''
+    if sub_port and sub_port not in ('80', '443'):
+        port_part = ':' + sub_port
+    elif not sub_port:
+        port_part = ':8443'
+    sub_url = f'https://{target_domain}{port_part}/s/{sub_token}' if sub_token else ''
+    if qr_out and sub_url:
+        try:
+            run(['qrencode', '-o', str(qr_out), '-s', '12', '-m', '2', sub_url])
+        except Exception:
+            pass
+    return {
+        'domain': target_domain,
+        'dashboard_url': f'https://{target_domain}:8443/',
+        'sub_url': sub_url,
+    }
 
 
 def run_quiet(args, *, input_bytes=None):

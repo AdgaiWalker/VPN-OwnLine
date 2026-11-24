@@ -40,6 +40,7 @@
 - [ADR-035：从 0 到 1 产品内嵌资源单源化、冷启动自举与旁路脚本收口](#adr-035)
 - [ADR-036：第一性原理文档收敛、Git Tag 历史封存、ADR 清洗与 CodeGraph 净化](#adr-036)
 - [ADR-037：热升级事务性收敛宿主 systemd 单元与 Caddyfile（BL-01）](#adr-037)
+- [ADR-038：零命令行深度收敛：免 Python 独立安装器、非 root 免密提权与网页日常运维闭环](#adr-038)
 
 ---
 
@@ -624,3 +625,17 @@ Webshare 是目前海外静态住宅（Static Residential）IP 市场普及率�
 - **容器实证与验证证据**：
   - 在 `--network none` 隔离容器 `ownline-phase4-lab:latest`（真实 `sing-box 1.14.4`、`caddy 2.10.2`）运行 `scripts/verify_real_binaries.py --suite suite7_hot_upgrade_host_sync`（Suite 1–7 全pass）：`v0.7.0` 遗留 root 单元与 `:80` `Caddyfile` 升级后，非特权 `sing-box` 用户 `check` 通过（`0640 root:sing-box`）、非特权 `caddy` 用户读取 `0640 root:caddy` 配置实跑 `:8443`（`:80` 关闭、`401` 剥离 `Server`、`200` 登录正常），并验证配额暂停护栏、自定义 Caddyfile 跳过与失败全回滚。
   - `tests/test_reset_admin_password.py` 与 `tests/test_upgrade_script_safety.py` 补充完整离线回归断言。
+
+### <a id="adr-038"></a>ADR-038 · 零命令行深度收敛：免 Python 独立安装器、非 root 免密提权与网页日常运维闭环 [STATUS: IMPLEMENTED]
+
+- **背景与原始代码诊断（基线 `v0.8.2`）**：
+  1. **冷机启动断崖**：空白 macOS / Windows 11 缺乏 Python 3.10+，`启动安装.bat` 在微软商店占位符上回落英文报错，且 `.command`/`.bat` 需现场建 `.venv` 并挂载不可关闭的终端黑框；
+  2. **隐性命令行泄漏与逻辑矛盾**：选型推荐的 Oracle Cloud / 腾讯云轻量 Ubuntu 默认用户为 `ubuntu`，但 [node_check.py](../server/nodekit/sshcheck/node_check.py) 硬性要求 `euid == 0` 导致刚购机即被拒之门外；`<ip>.sslip.io` 默认 ACME 证书依赖 `80/TCP`，但多处指引错误标注「仅自定义域名需要 `80/TCP`」；添加节点默认 Tab 设为「免密终端接入」、`local-setup` 用误导文案让用户在不支持的云后台核对 SSH SHA256 指纹、`local-vault` 提示「返回命令行」、`change-password.html` 新域名下默认全英文，以及 [hints.py](../server/nodekit/hints.py) 直接吐出 `journalctl`/`curl -I`/`authorized_keys`；
+  3. **日常运维接口与界面脱节**：`/api/reconcile/status` 与 `/api/reconcile/apply` 前端零接入，账单核对与自定义域名切换（`change_domain.sh`）以及 7 天外网拨测仍需手工跑脚本。
+- **决策与最小实体收敛**：
+  1. **A 类 · 零依赖独立安装器（继续以浏览器作唯一 GUI，不引入 Electron）**：新增 [runtime_paths.py](../server/nodekit/runtime_paths.py) 与 [build_installer.py](../scripts/build_installer.py)，统一处理冻结包（`sys._MEIPASS` / macOS `.app/Contents/Resources` 无符号链接目录 / `~/.ownline` 状态区 / `--windowed` 空流防护）。[ci.yml](../.github/workflows/ci.yml) 与 [release.yml](../.github/workflows/release.yml) 通过固定版本 PyInstaller 在 `macos-latest` 与 `windows-latest` 自动构建无黑框独立包（`OwnLine-Setup-<ver>-macOS-*.zip` 与 `OwnLine-Setup-<ver>-Windows-x64.zip`）并加跑**清空 `PATH` 零系统 Python 冒烟实测**；明确诚实揭示 OS 签名物理边界（未采购商业代码签名证书时首次双击需按向导 1 步放行），同步加固 `启动安装.bat`（跳过 `WindowsApps` 假桩、UTF-8 中文提示）与 `.command` 回退入口；
+  2. **B 类 · 根除隐形断崖与 CLI 泄漏**：[node_check.py](../server/nodekit/sshcheck/node_check.py)、[first_check.py](../server/nodekit/sshcheck/first_check.py)、[local_setup_runner.py](../server/nodekit/local_setup_runner.py) 与 [addnode.sh](../server/addnode.sh) 原生支持非 root 账号 `sudo -n` 自动提权；修正 `80/TCP` 必开说明并在 [installations.py](../server/nodekit/installations.py) / [local_setup_session.py](../server/nodekit/local_setup_session.py) 区分证书未签发（`80/TCP`）与端口不可达（`8443/TCP`）报错；首连指纹改为诚实 TOFU 信任锁定（面板扩容改用内嵌卡片移除 `window.confirm`）；面板添加服务器默认设为直填表单（终端接入退居高级页签）；清理 `hints.py`、`local-setup`、`local-vault` 的 CLI 术语，交付页新增一键复制初始密码，`change-password.html` 自动识别浏览器中文语言；
+  3. **C 类 · 日常运维收归现有折叠区**：[04-modals.html](../web/src/html/04-modals.html) / [10-diagnostics.js](../web/src/js/10-diagnostics.js) 将配置漂移核验与一键对齐接进 `#section-logs`；[quota_guard.py](../server/nodekit/quota_guard.py) 收口 `reconcile_billing` 单源（`billing_reconcile.py` 复用）并在 [admin.py](../server/admin.py) 新增 `/quota/reconcile` 挂进 `#quota-section`；[reset_admin_password.py](../server/reset_admin_password.py) 新增受归属锁与失败全回滚保护的 `change_domain` 并在 `/domain/change` 与 `#settings-dialog` 开放一线绑定；新增 [external-probe.yml](../.github/workflows/external-probe.yml) 无人值守 7 天外网巡检工作流。
+- **验证证据**：
+  - 新增静态 CLI 泄漏 CI 门禁 [`tests/test_zero_cli_surface.py`](../tests/test_zero_cli_surface.py)、sudo/端口归因/对账/换域名 API 测试 [`tests/test_zero_cli_ops_and_sudo.py`](../tests/test_zero_cli_ops_and_sudo.py) 及前端交互测试 [`tests/zero-cli-ops-ui.test.js`](../tests/zero-cli-ops-ui.test.js)；
+  - `./scripts/build_installer.py --check-stage` 离线验证打包树零符号链接且 `emit_bundle` 通过，三平台 CI 实跑空 `PATH` 冻结安装包闭环。
