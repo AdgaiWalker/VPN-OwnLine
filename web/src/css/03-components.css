@@ -74,7 +74,7 @@
 }
 .segbtn {
   flex: 1;
-  padding: 7px 12px;
+  padding: 7px 10px;
   border: none;
   background: transparent;
   color: var(--ink-muted);
@@ -83,6 +83,7 @@
   font-weight: 500;
   border-radius: 4px;
   cursor: pointer;
+  word-break: keep-all;
   transition: all .12s ease;
 }
 .segbtn.active, .segbtn[aria-pressed="true"] {

@@ -425,7 +425,7 @@ button.pill-preview:hover {
 }
 .segbtn {
   flex: 1;
-  padding: 7px 12px;
+  padding: 7px 10px;
   border: none;
   background: transparent;
   color: var(--ink-muted);
@@ -434,6 +434,7 @@ button.pill-preview:hover {
   font-weight: 500;
   border-radius: 4px;
   cursor: pointer;
+  word-break: keep-all;
   transition: all .12s ease;
 }
 .segbtn.active, .segbtn[aria-pressed="true"] {
@@ -1822,35 +1823,35 @@ footer.site-footer {
         <div class="bar" style="height:6px;background:rgba(0,0,0,0.06);border-radius:999px;overflow:hidden">
           <i id="quota-hero-fill" style="display:block;height:100%;width:0%;background:var(--apple-blue);border-radius:999px;transition:width .3s ease"></i>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px;color:var(--apple-muted)">
-          <span><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono)">-- GB</b></span>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--apple-muted)">
+          <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
           <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
         </div>
 
         <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
         <div id="traffic-breakdown-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--apple-line,rgba(0,0,0,0.08));text-align:center">
           <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px">今日已用</div>
+            <div class="small muted" style="font-size:11px" data-i18n="stat_today">今日已用</div>
             <div id="traffic-stat-today" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
           </div>
           <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px">昨日已用</div>
+            <div class="small muted" style="font-size:11px" data-i18n="stat_yesterday">昨日已用</div>
             <div id="traffic-stat-yesterday" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
           </div>
           <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px">本周累计</div>
+            <div class="small muted" style="font-size:11px" data-i18n="stat_week">本周累计</div>
             <div id="traffic-stat-week" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
           </div>
           <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px">年度消耗</div>
+            <div class="small muted" style="font-size:11px" data-i18n="stat_year">年度消耗</div>
             <div id="traffic-stat-year" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
           </div>
         </div>
 
         <!-- Intelligent Pacing Guidance Box -->
-        <div id="traffic-guidance-box" style="margin-top:10px;padding:8px 10px;background:var(--surface-soft,rgba(0,0,0,0.03));border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between">
-          <div style="display:flex;align-items:center;gap:6px">
-            <span id="traffic-guidance-badge" class="tag ok" style="font-size:10.5px;padding:1px 5px">节奏充裕</span>
+        <div id="traffic-guidance-box" style="margin-top:10px;padding:8px 10px;background:var(--surface-soft,rgba(0,0,0,0.03));border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+            <span id="traffic-guidance-badge" class="tag ok" style="font-size:10.5px;padding:1px 6px;white-space:nowrap">节奏充裕</span>
             <span id="traffic-guidance-text" style="color:var(--apple-fg)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
           </div>
           <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:11px;color:var(--apple-muted)"></span>
@@ -1874,7 +1875,7 @@ footer.site-footer {
               <a class="btn action-btn apple-client-row" id="btn-sr" href="#">
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/shadowrocket.png" alt="Shadowrocket" width="28" height="28"></span>
                 <div class="apple-client-meta">
-                  <b class="card-label apple-client-name">Shadowrocket</b>
+                  <b class="card-label apple-client-name">Shadowrocket (小火箭)</b>
                   <span class="apple-client-desc" data-i18n="sr_badge">iOS 推荐</span>
                 </div>
                 <span class="apple-client-action-pill primary" id="pill-sr" data-i18n="btn_open">打开</span>
@@ -2011,7 +2012,7 @@ footer.site-footer {
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用系统相机或小火箭扫描添加。</p>
+          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用 Shadowrocket（小火箭）或 Clash 等客户端内置扫码功能添加。</p>
           <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
             <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px"><use href="#i-alert"/></svg>
             <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">提示：请使用 Shadowrocket / Clash 等代理客户端内置相机扫码，不要使用微信直接扫码。</span>
@@ -2144,7 +2145,7 @@ footer.site-footer {
             </div>
           </div>
           </details>
-          <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a> · <span class="muted">请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。</span></p>
+          <p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云轻量控制台</a> · <a href="https://console.cloud.tencent.com/cam/user/userList" target="_blank" rel="noopener noreferrer">CAM 只读子账号管理</a> · <span class="muted">请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。</span></p>
         </div>
         <details class="inner" id="tc-guide-box" style="margin-bottom:10px">
           <summary data-i18n="tc_guide_summary">选购与环境准备</summary>
@@ -2228,22 +2229,25 @@ footer.site-footer {
         <!-- Mode 2: Direct SSH Connection (Default) -->
         <div id="box-ssh-direct" style="display:block">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
-        <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
+        <details class="inner" id="ssh-agent-assist-details" style="margin:0 0 12px 0">
+          <summary class="small muted" style="cursor:pointer" data-i18n="ssh_agent_assist_summary">开发者 / AI 助手自动装配（可选）</summary>
+          <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
 我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
 目标说明：
 [仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
 
 请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
-1. 本机引擎与盲签收密：
-   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 盲签页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
+1. 本机引擎与本机收密：
+   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 安全收密页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
 2. 自动扫雷与系统加固：
-   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、443、8443 端口）、确保 root 权限畅通；
+   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、80、443、8443 端口）、确保 root 权限畅通；
    - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
 3. 一键纳管并出网验真：
    - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
    - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
 4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
-        <p class="small muted" style="margin:0 0 12px 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
+          <p class="small muted" style="margin:8px 0 0 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
+        </details>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
         <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
@@ -2344,7 +2348,7 @@ footer.site-footer {
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-weight:600">Evergreen</span>
       <span style="color:var(--apple-muted);font-size:12px">OwnLine</span>
-      <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.9.0</span>
+      <span id="footer-version-tag" style="font-size:11px;color:var(--apple-muted);font-family:var(--mono);margin-left:4px">v0.9.1</span>
     </div>
     <div class="site-footer-links" style="display:flex;gap:6px;align-items:center">
       <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
@@ -2384,7 +2388,7 @@ footer.site-footer {
     <div style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
         <label style="font-size:13px;font-weight:600;margin:0" id="settings-lbl-version" data-i18n="settings_version_lbl">System Version</label>
-        <span class="tag" id="current-version-tag" style="font-family:var(--mono);font-size:11.5px">v0.9.0</span>
+        <span class="tag" id="current-version-tag" style="font-family:var(--mono);font-size:11.5px">v0.9.1</span>
       </div>
       <div id="update-info-card" style="padding:10px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="min-width:0;flex:1">
@@ -2418,7 +2422,7 @@ footer.site-footer {
     <!-- Custom Domain Binding (Optional) -->
     <details id="domain-settings-box" style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
       <summary style="font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <span data-i18n="domain_settings_title">自定义域名（可选）</span>
+        <span><span style="color:var(--apple-muted);margin-right:4px">▸</span><span data-i18n="domain_settings_title">自定义域名（可选）</span></span>
         <span id="current-domain-tag" class="small muted" style="font-family:var(--mono);font-size:11px;font-weight:normal"></span>
       </summary>
       <p class="small muted" style="margin:8px 0;font-size:11.5px;line-height:1.5" data-i18n="domain_settings_desc">先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。</p>
@@ -2767,7 +2771,7 @@ async function copySetupText(text) {
       sub_copy_btn: "Copy Subscription Link",
       rotate_btn: "Revoke Old Subscription",
       scan_qr_title: "Scan QR to Import",
-      scan_qr_desc: "Scan with system camera or Shadowrocket to import.",
+      scan_qr_desc: "Scan with Shadowrocket or Clash in-app scanner to import.",
       relay_dialog_title: "Configure as Low-Latency Relay",
       relay_dialog_desc: "Select the overseas egress landing node directly connected by this domestic server (prevents stutter & packet loss):",
       nodes_title: "Managed Nodes",
@@ -2783,6 +2787,10 @@ async function copySetupText(text) {
       quota_threshold_lbl: "Circuit breaker threshold (1–100%)",
       quota_threshold_desc: "When monthly traffic reaches this threshold, egress is automatically halted to prevent overages.",
       quota_save_btn: "Save",
+      stat_today: "Today",
+      stat_yesterday: "Yesterday",
+      stat_week: "This Week",
+      stat_year: "This Year",
       billing_reconcile_title: "Billing Reconciliation",
       billing_reconcile_desc: "Enter your cloud provider's monthly used GB to verify alignment with panel statistics.",
       billing_reconcile_btn: "Reconcile",
@@ -2810,6 +2818,7 @@ async function copySetupText(text) {
       lbl_run_on_vps: "Run this command on target VPS (root required):",
       lbl_token_ttl: "Valid for 15 minutes",
       btn_copy_cmd: "Copy Command",
+      ssh_agent_assist_summary: "Developer / AI Assistant Auto-Setup (Optional)",
       ssh_need_assist: "Need autonomous onboarding with local Agent?",
       ssh_copy_ai_prompt: "Copy Agent Task Brief",
       ssh_input_guide: "Enter server IP and password (or paste private key) to test and auto-deploy.",
@@ -2985,7 +2994,7 @@ async function copySetupText(text) {
       sub_copy_btn: "复制订阅链接",
       rotate_btn: "撤销旧订阅",
       scan_qr_title: "扫码导入订阅",
-      scan_qr_desc: "请使用系统相机或小火箭扫描添加。",
+      scan_qr_desc: "请使用 Shadowrocket（小火箭）或 Clash 等客户端内置扫码功能添加。",
       relay_dialog_title: "设为中转加速专线",
       relay_dialog_desc: "选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：",
       nodes_title: "节点列表",
@@ -3001,6 +3010,10 @@ async function copySetupText(text) {
       quota_threshold_lbl: "超额熔断阈值 (1–100%)",
       quota_threshold_desc: "当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。",
       quota_save_btn: "保存",
+      stat_today: "今日已用",
+      stat_yesterday: "昨日已用",
+      stat_week: "本周累计",
+      stat_year: "年度消耗",
       billing_reconcile_title: "账单流量核对",
       billing_reconcile_desc: "输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。",
       billing_reconcile_btn: "核对账单",
@@ -3028,6 +3041,7 @@ async function copySetupText(text) {
       lbl_run_on_vps: "目标 VPS 终端执行命令（需 root 权限）：",
       lbl_token_ttl: "15 分钟内有效",
       btn_copy_cmd: "复制命令",
+      ssh_agent_assist_summary: "开发者 / AI 助手自动装配（可选）",
       ssh_need_assist: "借助本地 Agent 全自动装配？",
       ssh_copy_ai_prompt: "复制 Agent 任务书",
       ssh_input_guide: "填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。",
@@ -3169,7 +3183,11 @@ async function copySetupText(text) {
     if (typeof window === 'undefined' || !window.localStorage) {
       return 'zh';
     }
-    return window.localStorage.getItem('ownline_lang') || 'en';
+    var saved = window.localStorage.getItem('ownline_lang');
+    if (saved === 'zh' || saved === 'en') return saved;
+    var navLang = (typeof navigator !== 'undefined' && navigator.language) ? String(navigator.language) : '';
+    if (/^zh\b/i.test(navLang)) return 'zh';
+    return navLang ? 'en' : 'zh';
   }
 
   function isZh() {
@@ -3249,10 +3267,28 @@ async function copySetupText(text) {
       var curr = STATE.currentUsername || '';
       inputUser.placeholder = zh ? (curr ? ('保持当前用户名 (' + curr + ')') : '如不修改请留空') : (curr ? ('Keep current (' + curr + ')') : 'Leave empty to keep current');
     }
+    var btnFb = document.getElementById('btn-open-feedback');
+    if (btnFb) {
+      var fbText = zh ? '快捷反馈' : 'Feedback';
+      btnFb.title = fbText;
+      btnFb.setAttribute('aria-label', fbText);
+    }
+    var offGb = document.getElementById('billing-official-gb');
+    if (offGb) offGb.placeholder = zh ? '云后台已用 GB' : 'Cloud Billed GB';
+    var offRday = document.getElementById('billing-reset-day');
+    if (offRday) offRday.placeholder = zh ? '重置日(选填)' : 'Reset Day (opt)';
 
     if (typeof detectClient === 'function') detectClient();
+    if (typeof updateHeaderLocalPingUI === 'function') updateHeaderLocalPingUI();
     if (typeof paintStatus === 'function') paintStatus();
+    if (typeof window !== 'undefined' && typeof window.ownlineUpdateServerCountBadges === 'function') window.ownlineUpdateServerCountBadges();
     if (typeof renderNodes === 'function' && Array.isArray(NODES)) renderNodes(NODES, STATUS, STATE.quota);
+    if (typeof window !== 'undefined' && typeof window.ownlineRenderQuotaList === 'function' && Array.isArray(NODES) && NODES.length) {
+      window.ownlineRenderQuotaList(NODES, STATE.quota);
+    }
+    if (typeof window !== 'undefined' && typeof window.ownlineRenderTrafficBreakdown === 'function' && STATE.trafficReport) {
+      window.ownlineRenderTrafficBreakdown(STATE.trafficReport);
+    }
     if (typeof renderQuota === 'function' && STATE.quota) renderQuota(STATE.quota);
   }
 
@@ -3952,6 +3988,7 @@ async function copySetupText(text) {
       var field = document.getElementById(id);
       if (advanced && (id === "other-user" || id === "other-ssh-port")) advanced.open = true;
       field.setAttribute("aria-invalid", "true");
+      if (note && note.style) note.style.color = "var(--bad, #dc2626)";
       note.textContent = message;
       field.focus();
     }
@@ -3964,6 +4001,7 @@ async function copySetupText(text) {
       resultBox.style.display = "none";
       if (confirmBox) confirmBox.style.display = "none";
       pendingNodeInstall = null;
+      if (note && note.style) note.style.color = "";
       if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "仅测试连接，尚未安装节点。";
     }
     ["other-ip", "other-user", "other-ssh-port", "other-passphrase"].forEach(function (id) {
@@ -3990,6 +4028,10 @@ async function copySetupText(text) {
         fieldError("other-ip", zh ? "请填写服务器公网 IP。" : "Enter the server public IP.");
         return;
       }
+      if (/:\/\/|[\/\s：]/.test(host) || /^[^\[\]]+:\d+$/.test(host)) {
+        fieldError("other-ip", zh ? "请输入纯公网 IPv4 或域名（不要包含 https://、空格或端口号）。" : "Enter a plain IPv4 or hostname (no https://, spaces, or port).");
+        return;
+      }
       if (!password && !otherPrivateKey) {
         fieldError("other-credential", zh ? "请输入服务器密码，或粘贴完整的 SSH 私钥。" : "Enter the server password or paste the complete SSH private key.");
         return;
@@ -4011,6 +4053,7 @@ async function copySetupText(text) {
       var controller = otherCheckController;
       setOtherCheckBusy(true);
       resultBox.style.display = "none";
+      if (note && note.style) note.style.color = "";
       note.textContent = "正在只读检测服务器连接...";
       async function requestCheck() {
         var checkUrl = typeof safeUrl === "function" ? safeUrl("/api/node/check") : "/api/node/check";
@@ -4043,6 +4086,7 @@ async function copySetupText(text) {
           } else if (/no route to host|network unreachable/i.test(msg)) {
             msg = "网络不可达：请检查公网 IP 或确认实例已开机。";
           }
+          if (note && note.style) note.style.color = "var(--bad, #dc2626)";
           note.textContent = msg;
           return;
         }
@@ -4052,6 +4096,7 @@ async function copySetupText(text) {
         var serviceNote = item.existing_singbox ? "检测到已有 sing-box 服务，未作改动。" : (!hasPriv || item.singbox_service === "unknown") ? "未能确认服务状态，尚未安装。" : "未检测到已有 sing-box，尚未安装。";
         resultBox.textContent = "连接检测通过 · " + (item.os || "未知系统") + " " + (item.version || "") + " · " + (item.architecture || "未知架构") + " · " + privLabel + "。" + serviceNote + " " + (item.message || "");
         resultBox.style.display = "block";
+        if (note && note.style) note.style.color = "";
         note.textContent = "只读检测已完成。";
 
         if (confirmBox && item.ready_for_install === true && /^[a-f0-9]{64}$/.test(data.check_ticket || "")) {
@@ -4064,7 +4109,10 @@ async function copySetupText(text) {
           confirmBox.style.display = "block";
         }
       } catch (error) {
-        if (error.name !== "AbortError") note.textContent = "连接检测未完成，请检查网络后重试。";
+        if (error.name !== "AbortError") {
+          if (note && note.style) note.style.color = "var(--bad, #dc2626)";
+          note.textContent = "连接检测未完成，请检查网络后重试。";
+        }
       } finally {
         body.password = ""; body.private_key = ""; body.passphrase = "";
         if (otherCheckController === controller) {
@@ -4213,11 +4261,15 @@ async function copySetupText(text) {
     else if (/Windows/.test(ua)) os = "win";
     else if (/Linux/.test(ua)) os = "linux";
     var apple = os === "ios" || os === "mac";
+    var isIos = os === "ios";
     var flSupported = os === "mac" || os === "android" || os === "win" || os === "linux";
     var sr = document.getElementById("btn-sr"), cl = document.getElementById("btn-clash");
     sr.style.display = apple ? "" : "none";
-    sr.className = apple ? "btn action-btn apple-client-row primary" : "btn action-btn apple-client-row";
-    cl.className = apple ? "btn action-btn apple-client-row" : "btn action-btn apple-client-row primary";
+    sr.className = isIos ? "btn action-btn apple-client-row primary" : "btn action-btn apple-client-row";
+    cl.className = isIos ? "btn action-btn apple-client-row" : "btn action-btn apple-client-row primary";
+    var pillSr = document.getElementById("pill-sr"), pillCl = document.getElementById("pill-clash");
+    if (pillSr) pillSr.className = isIos ? "apple-client-action-pill primary" : "apple-client-action-pill";
+    if (pillCl) pillCl.className = isIos ? "apple-client-action-pill" : "apple-client-action-pill primary";
     document.getElementById("btn-flclash").style.display = flSupported ? "" : "none";
     document.getElementById("apple-store-help").style.display = apple ? "" : "none";
     document.getElementById("download-sr").style.display = apple ? "" : "none";
@@ -4227,9 +4279,23 @@ async function copySetupText(text) {
     dc.href = os === "android" ? "https://github.com/MetaCubeX/ClashMetaForAndroid/releases" : "https://github.com/clash-verge-rev/clash-verge-rev/releases";
     document.getElementById("clash-ios-help").style.display = os === "ios" ? "" : "none";
     var itemSr = document.getElementById("client-item-sr");
-    if (itemSr) itemSr.style.display = apple ? "" : "none";
+    if (itemSr) {
+      itemSr.style.display = apple ? "" : "none";
+      itemSr.style.order = isIos ? "" : "3";
+    }
+    var itemCl = document.getElementById("client-item-clash");
+    if (itemCl) itemCl.style.order = isIos ? "" : "1";
     var itemFl = document.getElementById("client-item-flclash");
-    if (itemFl) itemFl.style.display = flSupported ? "" : "none";
+    if (itemFl) {
+      itemFl.style.display = flSupported ? "" : "none";
+      itemFl.style.order = isIos ? "" : "2";
+    }
+    var hubDlClash = document.getElementById("hub-dl-clash");
+    if (hubDlClash) hubDlClash.style.display = flSupported ? "" : "none";
+    var hubDlFl = document.getElementById("hub-dl-flclash");
+    if (hubDlFl) hubDlFl.style.display = flSupported ? "" : "none";
+    var hubDlSr = document.getElementById("hub-dl-sr");
+    if (hubDlSr) hubDlSr.style.display = apple ? "" : "none";
     var devBadge = document.getElementById("client-device-badge");
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var devName = os === "ios" ? "iPhone / iPad" : (os === "mac" ? "macOS" : (os === "android" ? "Android" : (os === "win" ? "Windows" : (os === "linux" ? "Linux" : (zh ? "当前设备" : "This Device")))));
@@ -4289,6 +4355,27 @@ async function copySetupText(text) {
   }
 
   function wireLinks(importAvailable) {
+    function launchSchemeSafely(uri) {
+      if (!uri || uri === "#") return;
+      if (typeof document === "undefined" || typeof document.createElement !== "function" || !document.body || typeof document.body.appendChild !== "function") {
+        return;
+      }
+      try {
+        var frame = document.createElement("iframe");
+        frame.style.display = "none";
+        frame.setAttribute("aria-hidden", "true");
+        frame.src = uri;
+        document.body.appendChild(frame);
+        if (typeof setTimeout === "function") {
+          setTimeout(function () {
+            try {
+              if (frame.parentNode) frame.parentNode.removeChild(frame);
+            } catch (_) {}
+          }, 1500);
+        }
+      } catch (_) {}
+    }
+
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var sub = BASE_SUB_URL, code = document.getElementById("suburl");
     if (!sub) { code.textContent = zh ? "订阅链接暂不可用" : "Subscription link unavailable"; return; }
@@ -4316,7 +4403,9 @@ async function copySetupText(text) {
       if (!button) return;
       button.setAttribute("aria-disabled", String(!importAvailable));
       button.onclick = function (event) {
-        if (!importAvailable) { event.preventDefault(); return; }
+        if (event && typeof event.preventDefault === "function") event.preventDefault();
+        if (!importAvailable) return;
+        launchSchemeSafely(button.href);
         var note = document.getElementById("import-note");
         if (note) note.textContent = zh
           ? "正在尝试打开客户端。若未自动拉起，请先下载客户端或手动复制链接导入。"
@@ -4343,8 +4432,47 @@ async function copySetupText(text) {
     });
   }
 
+  function syncHeroQuotaSummary() {
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var overallPct = (typeof STATE !== "undefined" && STATE && typeof STATE.heroOverallPct === "number") ? STATE.heroOverallPct : 0;
+    var anyTripped = !!(typeof STATE !== "undefined" && STATE && STATE.heroAnyTripped);
+    var bottleneck = (typeof STATE !== "undefined" && STATE) ? STATE.relayBottleneck : null;
+    var elStatus = document.getElementById("quota-hero-status");
+    var elSafe = document.getElementById("quota-hero-nodes-safe");
+    if (elStatus) {
+      if (anyTripped || overallPct >= 85) {
+        elStatus.textContent = zh ? "已熔断" : "Tripped";
+        elStatus.className = "tag bad";
+      } else if (bottleneck && bottleneck.is_relay_bottleneck) {
+        elStatus.textContent = zh ? "跳板受限" : "Relay Bottleneck";
+        elStatus.className = "tag warn";
+      } else if (overallPct >= 75) {
+        elStatus.textContent = zh ? "预警" : "Warning";
+        elStatus.className = "tag warn";
+      } else {
+        elStatus.textContent = zh ? "充足" : "Healthy";
+        elStatus.className = "tag ok";
+      }
+    }
+    if (elSafe) {
+      if (anyTripped) {
+        elSafe.textContent = zh ? "部分节点已触发保护熔断" : "Quota protection tripped on some nodes";
+        if (elSafe.style) elSafe.style.color = "var(--apple-red)";
+      } else if (bottleneck && bottleneck.is_relay_bottleneck) {
+        elSafe.textContent = zh
+          ? ("落地机尚足，但中转跳板「" + bottleneck.relay_name + "」仅余 " + bottleneck.relay_remaining_gb + " GB")
+          : ("Egress ample, but relay \"" + bottleneck.relay_name + "\" has " + bottleneck.relay_remaining_gb + " GB left");
+        if (elSafe.style) elSafe.style.color = "var(--apple-amber, #b45309)";
+      } else {
+        elSafe.textContent = zh ? "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板" : "All egress servers within safe quota";
+        if (elSafe.style) elSafe.style.color = "var(--apple-muted)";
+      }
+    }
+  }
+
   function renderTrafficBreakdown(report) {
     if (!report) return;
+    if (typeof STATE !== "undefined" && STATE) STATE.trafficReport = report;
     var tot = report.total || {};
     var todayEl = document.getElementById("traffic-stat-today");
     var yestEl = document.getElementById("traffic-stat-yesterday");
@@ -4356,15 +4484,19 @@ async function copySetupText(text) {
     if (yearEl && tot.this_year_gb != null) yearEl.textContent = tot.this_year_gb + " GB";
 
     var guide = tot.guidance || {};
+    if (typeof STATE !== "undefined" && STATE) {
+      STATE.relayBottleneck = (guide.bottleneck && guide.bottleneck.is_relay_bottleneck) ? guide.bottleneck : null;
+    }
     var gBadge = document.getElementById("traffic-guidance-badge");
     var gText = document.getElementById("traffic-guidance-text");
     if (gBadge && guide.badge) {
       gBadge.textContent = guide.badge;
-      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : (guide.pace === "heavy" ? "warn" : "ok"));
+      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : ((guide.pace === "heavy" || guide.pace === "warn") ? "warn" : "ok"));
     }
     if (gText && guide.text) {
       gText.textContent = guide.text;
     }
+    syncHeroQuotaSummary();
   }
 
   function setQuotaMessage(box, message) {
@@ -4439,15 +4571,14 @@ async function copySetupText(text) {
     if (heroBanner) {
       if (egressCap > 0) {
         var overallPct = Math.min(100, Math.round((egressUsed / egressCap) * 100));
-        var remGb = Math.max(0, Math.round((egressCap - egressUsed) * 10) / 10);
-        var usedFmt = (Math.round(egressUsed * 10) / 10).toString();
+        var remGb = Math.max(0, Math.round((egressCap - egressUsed) * 100) / 100);
+        var usedFmt = (Math.round(egressUsed * 100) / 100).toString();
         var totalFmt = Math.round(egressCap).toString() + " GB";
         var elUsed = document.getElementById("quota-hero-used");
         var elTotal = document.getElementById("quota-hero-total");
         var elPct = document.getElementById("quota-hero-percent");
         var elRem = document.getElementById("quota-hero-rem");
         var elFill = document.getElementById("quota-hero-fill");
-        var elStatus = document.getElementById("quota-hero-status");
         if (elUsed) elUsed.textContent = usedFmt;
         if (elTotal) elTotal.textContent = totalFmt;
         if (elPct) elPct.textContent = "(" + overallPct + "%)";
@@ -4456,16 +4587,12 @@ async function copySetupText(text) {
           elFill.style.width = overallPct + "%";
           elFill.style.background = overallPct >= 85 ? "var(--apple-red)" : (overallPct >= 75 ? "var(--apple-amber)" : "var(--apple-blue)");
         }
-        if (elStatus) {
-          elStatus.textContent = overallPct >= 85 ? "已熔断" : (overallPct >= 75 ? "预警" : "充足");
-          elStatus.className = "tag " + (overallPct >= 85 ? "bad" : (overallPct >= 75 ? "warn" : "ok"));
-        }
         var anyTripped = groups.some(function(g){ return g.status === "tripped" || (g.percent && g.percent >= 85); });
-        var elSafe = document.getElementById("quota-hero-nodes-safe");
-        if (elSafe) {
-          elSafe.textContent = anyTripped ? "部分节点已触发保护熔断" : "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板";
-          elSafe.style.color = anyTripped ? "var(--apple-red)" : "var(--apple-muted)";
+        if (typeof STATE !== "undefined" && STATE) {
+          STATE.heroOverallPct = overallPct;
+          STATE.heroAnyTripped = anyTripped;
         }
+        syncHeroQuotaSummary();
         heroBanner.style.display = "block";
       } else {
         heroBanner.style.display = "none";
@@ -4579,15 +4706,14 @@ async function copySetupText(text) {
     Promise.allSettled([
       jsonRequest("/api/settings", { signal: signal }),
       jsonRequest("/api/nodes", { signal: signal }),
-      jsonRequest("/api/quota/guard", { signal: signal }),
-      jsonRequest("/api/setup", { signal: signal })
+      jsonRequest("/api/quota/guard", { signal: signal })
     ]).then(function (res) {
       if (signal && signal.aborted) return;
       if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
       var settings = res[0].status === "fulfilled" ? res[0].value : null;
       var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
       var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
-      var setup = res[3].status === "fulfilled" ? res[3].value : null;
+      var setup = null;
       var mh = document.getElementById("management-help");
       if (mh) mh.style.display = settings && settings.ok === true ? "" : "none";
       var modernBackend = !!(settings && Number.isInteger(settings.quota_threshold));
@@ -4707,17 +4833,29 @@ async function copySetupText(text) {
           setTimeout(function () { window.ownlineProbeLocalPing(); }, 150);
         }
       }
-      var distinctHosts = {};
-      (nodes || []).forEach(function (n) {
-        var h = n.host || n.ip;
-        if (h) distinctHosts[h] = true;
-      });
-      var serverCount = Object.keys(distinctHosts).length || (nodes ? nodes.length : 0);
-      var badge = document.getElementById("nodes-count-badge");
-      if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
-      var servingIp = document.getElementById("serving-node-ip");
-      if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
+      updateServerCountBadges();
     });
+  }
+
+  function updateServerCountBadges() {
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var nodes = (typeof NODES !== 'undefined' && Array.isArray(NODES)) ? NODES : [];
+    var distinctHosts = {};
+    nodes.forEach(function (n) {
+      var h = n.host || n.ip;
+      if (h) distinctHosts[h] = true;
+    });
+    var serverCount = Object.keys(distinctHosts).length || nodes.length;
+    var badge = document.getElementById("nodes-count-badge");
+    if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
+    var servingIp = document.getElementById("serving-node-ip");
+    if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
+    syncHeroQuotaSummary();
+  }
+  if (typeof window !== "undefined") {
+    window.ownlineUpdateServerCountBadges = updateServerCountBadges;
+    window.ownlineRenderTrafficBreakdown = renderTrafficBreakdown;
+    window.ownlineRenderQuotaList = renderQuotaList;
   }
 
   function initQuotaSettings() {
@@ -4733,6 +4871,14 @@ async function copySetupText(text) {
     };
     var recForm = document.getElementById("billing-reconcile-form");
     if (recForm) {
+      var clearRecResult = function () {
+        var box = document.getElementById("billing-reconcile-result");
+        if (box) box.textContent = "";
+      };
+      if (typeof recForm.addEventListener === "function") {
+        recForm.addEventListener("input", clearRecResult);
+        recForm.addEventListener("invalid", clearRecResult, true);
+      }
       recForm.onsubmit = function (event) {
         event.preventDefault();
         var zh = (typeof isZh === "function") ? isZh() : true;
@@ -4767,9 +4913,12 @@ async function copySetupText(text) {
               ? (zh ? "已对齐" : "Aligned")
               : (data.status === "minor_drift" ? (zh ? "轻微偏差" : "Minor drift") : (zh ? "差异偏大" : "Discrepancy"));
             var sign = Number(data.delta_gb) >= 0 ? "+" : "";
+            var mismatchDetail = (data.panel_reset_day && data.official_reset_day)
+              ? (zh ? ("（面板每月 " + data.panel_reset_day + " 号 vs 账单每月 " + data.official_reset_day + " 号）") : (" (panel " + data.panel_reset_day + " vs official " + data.official_reset_day + ")"))
+              : "";
             var resetText = data.reset_day_match === true
               ? (zh ? " · 重置日一致" : " · Reset day matches")
-              : (data.reset_day_match === false ? (zh ? " · 重置日不一致" : " · Reset day mismatch") : "");
+              : (data.reset_day_match === false ? ((zh ? " · 重置日不一致" : " · Reset day mismatch") + mismatchDetail) : "");
             if (resBox) {
               resBox.textContent = verdict + "：面板 " + data.panel_gb + " GB / 云账单 " + data.official_gb + " GB（差 " + sign + data.delta_gb + " GB，" + data.delta_pct + "%）" + resetText;
             }
@@ -5261,7 +5410,14 @@ async function copySetupText(text) {
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
         var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
-        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + resetDay))) : '';
+        var ordinalDay = function (d) {
+          var num = Number(d);
+          if (!Number.isFinite(num)) return String(d);
+          var m100 = num % 100;
+          if (m100 >= 11 && m100 <= 13) return num + 'th';
+          return num + ({1: 'st', 2: 'nd', 3: 'rd'}[num % 10] || 'th');
+        };
+        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay(resetDay)))) : '';
 
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
@@ -5273,7 +5429,14 @@ async function copySetupText(text) {
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
-        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + resetDay))) : '';
+        var ordinalDay2 = function (d) {
+          var num = Number(d);
+          if (!Number.isFinite(num)) return String(d);
+          var m100 = num % 100;
+          if (m100 >= 11 && m100 <= 13) return num + 'th';
+          return num + ({1: 'st', 2: 'nd', 3: 'rd'}[num % 10] || 'th');
+        };
+        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay2(resetDay)))) : '';
         quotaRow = '<div class="node-quota-row">' +
           '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong>' + resetTip + ' <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
         '</div>';
@@ -5312,8 +5475,25 @@ async function copySetupText(text) {
             advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRotateKeyByIndex(' + i + ')">' + (zh ? "重置密钥" : "Reset Key") + '</button>');
           }
         } else {
+          var reasonMapZh = {
+            proxy: "入口端口已通，但代理转发不通（可点击重新检测复核，或在下方日志区核验配置一致性）",
+            port: "节点端口未响应，请检查云安全组或尝试重新检测",
+            tls: "安全握手失败，请尝试重新检测或重置密钥",
+            landing: "国内中转无法连接海外落地节点",
+            role_mismatch: "出口仍为国内地址",
+            blocked: "网络探测受阻"
+          };
+          var reasonMapEn = {
+            proxy: "Entry reachable, but proxy forwarding failed",
+            port: "Node port unreachable",
+            tls: "TLS handshake failed",
+            landing: "Unable to reach landing egress node",
+            role_mismatch: "Egress IP resolves to domestic network",
+            blocked: "Probe traffic blocked"
+          };
+          var rKey = st && st.reason ? String(st.reason) : "";
           advTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
-          advReason = (n.advice && n.advice.reason) || (st && st.reason) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          advReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
         }
 
         if (n.source !== "external") {
@@ -5340,7 +5520,7 @@ async function copySetupText(text) {
         }
         warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
           '<svg class="ico" width="12" height="12" style="vertical-align:-2px;margin-right:3px"><use href="#i-shield"/></svg>' +
-          (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour')) +
+          (n.isp && isWarp ? (zh ? 'WARP 待命' : 'WARP Standby') : (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour'))) +
           '</button>';
       }
       var ispDrawerBtn = canRemoteMutate
@@ -5440,7 +5620,10 @@ async function copySetupText(text) {
     } else if (isWindowsFrozen) {
       statusSummary = zh ? "Windows 节点（受控分支已冻结）" : "Windows Node (Remote Control Frozen)";
     } else if (st && st.ok === false) {
-      statusSummary = zh ? "服务异常 · 端口阻断" : "Offline · Port Blocked";
+      var menuReasonZh = { port: "端口阻断", proxy: "代理转发不通", tls: "安全握手失败", landing: "无法连接落地", role_mismatch: "出口仍为国内" };
+      var menuReasonEn = { port: "Port Blocked", proxy: "Proxy Egress Failed", tls: "TLS Failed", landing: "Landing Unreachable", role_mismatch: "Domestic Egress" };
+      var mr = st.reason ? String(st.reason) : "";
+      statusSummary = zh ? ("服务异常 · " + (menuReasonZh[mr] || "连接不通")) : ("Offline · " + (menuReasonEn[mr] || "Unreachable"));
     } else if (st && st.cn_ok === false) {
       statusSummary = zh ? "国内直连不通" : "Unreachable from China";
     } else if (st && st.ok) {
@@ -5550,14 +5733,43 @@ async function copySetupText(text) {
     }).catch(function (e) { dialog({title: "操作失败", message: String(e), cancelText: null, confirmText: "确定"}); });
   }
 
+  function isValidProxyHost(host) {
+    var s = String(host || "").trim();
+    if (!s || s.length > 253 || /[\s\x00-\x1f\x7f\\/@]/.test(s) || s.indexOf("://") >= 0) return false;
+    var ipv4 = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4) {
+      return [1, 2, 3, 4].every(function (k) { return Number(ipv4[k]) >= 0 && Number(ipv4[k]) <= 255; });
+    }
+    if (/^\[[0-9a-fA-F:]+\]$/.test(s) || (s.indexOf(":") >= 0 && /^[0-9a-fA-F:]+$/.test(s))) return true;
+    return /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/.test(s);
+  }
+
   function parseWebshareProxy(raw) {
     if (!raw || !String(raw).trim()) return null;
     var t = String(raw).trim();
+    var validHost = function (h) {
+      var s = String(h || "").trim();
+      if (!s || s.length > 253 || /[\s\x00-\x1f\x7f\\/@]/.test(s) || s.indexOf("://") >= 0) return false;
+      return /^[A-Za-z0-9.\-:\[\]]+$/.test(s);
+    };
     if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
       t = t.slice(1, -1).trim();
     }
+    var curlUser = "";
+    var curlPass = "";
     if (t.indexOf("curl") >= 0) {
-      var mCurl = t.match(/(?:--proxy|-x)\s+["']?([^"'\s]+)["']?/i);
+      var mUser = t.match(/(?:--proxy-user|-U)(?:=|\s+)(?:"([^"]+)"|'([^']+)'|([^\s"']+))/);
+      if (mUser) {
+        var rawCred = String(mUser[1] != null ? mUser[1] : (mUser[2] != null ? mUser[2] : (mUser[3] || ""))).trim();
+        var cIdx = rawCred.indexOf(":");
+        if (cIdx >= 0) {
+          curlUser = rawCred.slice(0, cIdx).trim();
+          curlPass = rawCred.slice(cIdx + 1).trim();
+        } else if (rawCred) {
+          curlUser = rawCred;
+        }
+      }
+      var mCurl = t.match(/(?:--proxy|-x)(?:=|\s+)["']?([^"'\s]+)["']?/i);
       if (mCurl) {
         t = mCurl[1].trim();
       }
@@ -5567,10 +5779,11 @@ async function copySetupText(text) {
     var parts = t.split(":");
     if (parts.length >= 4 && /^\d+$/.test(parts[1])) {
       var p4 = parseInt(parts[1], 10);
-      if (p4 > 0 && p4 < 65536) {
+      var h4 = parts[0].trim();
+      if (p4 > 0 && p4 < 65536 && validHost(h4)) {
         return {
           type: "socks",
-          server: parts[0].trim(),
+          server: h4,
           server_port: p4,
           username: parts[2].trim(),
           password: parts.slice(3).join(":").trim()
@@ -5580,13 +5793,14 @@ async function copySetupText(text) {
 
     if (parts.length === 2 && /^\d+$/.test(parts[1]) && t.indexOf("//") === -1 && t.indexOf("@") === -1) {
       var p2 = parseInt(parts[1], 10);
-      if (p2 > 0 && p2 < 65536) {
+      var h2 = parts[0].trim();
+      if (p2 > 0 && p2 < 65536 && validHost(h2)) {
         return {
           type: "socks",
-          server: parts[0].trim(),
+          server: h2,
           server_port: p2,
-          username: "",
-          password: ""
+          username: curlUser,
+          password: curlPass
         };
       }
     }
@@ -5594,14 +5808,17 @@ async function copySetupText(text) {
     var m = t.match(/^(?:(socks5?|https?):\/\/)?(?:([^:@\s]+)(?::([^@\s]+))?@)?([a-zA-Z0-9.-]+):(\d+)$/i);
     if (m) {
       var pNum = parseInt(m[5], 10);
-      if (pNum > 0 && pNum < 65536) {
+      var hm = m[4].trim();
+      if (pNum > 0 && pNum < 65536 && validHost(hm)) {
         var proto = m[1] && m[1].toLowerCase().indexOf("http") >= 0 ? "http" : "socks";
+        var uName = m[2] ? decodeURIComponent(m[2]) : curlUser;
+        var uPass = m[3] ? decodeURIComponent(m[3]) : (m[2] ? "" : curlPass);
         return {
           type: proto,
-          server: m[4].trim(),
+          server: hm,
           server_port: pNum,
-          username: m[2] ? decodeURIComponent(m[2]) : "",
-          password: m[3] ? decodeURIComponent(m[3]) : ""
+          username: uName,
+          password: uPass
         };
       }
     }
@@ -5614,7 +5831,7 @@ async function copySetupText(text) {
     var currentIsp = n.isp || null;
     var currentDesc = "";
     if (currentIsp) {
-      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:12px">' +
+      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px">' +
         '<div style="display:flex;justify-content:space-between;margin-bottom:2px">' +
           '<b>当前住宅出口：</b>' +
           '<span style="font-weight:600;color:var(--accent)">' + (esc(currentIsp.type || 'socks')).toUpperCase() + '</span>' +
@@ -5624,35 +5841,38 @@ async function copySetupText(text) {
         '</code></div>';
     }
 
+    var introCopy = currentIsp ? '' :
+      '<p class="small muted" style="margin-bottom:10px;line-height:1.5">' +
+      '所有经由此节点的流量将通过静态住宅代理出网，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
+      '</p>';
+
     var content = '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">' +
         '<div>' +
           '<h2 style="margin:0 0 4px;font-size:18px;font-weight:600;color:var(--ink)">住宅 IP 出口 · "' + esc(n.name) + '"</h2>' +
-          '<div style="display:flex;align-items:center;gap:6px">' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
             '<span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(0,122,255,0.2)">已深度适配 Webshare</span>' +
             '<span class="small muted">降低 AI 与流媒体风控拦截</span>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<p class="small muted" style="margin-bottom:12px;line-height:1.5">' +
-      '所有经由此节点的流量将通过静态住宅代理出网，具备高纯净度属地标签，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
-      '</p>' +
-      '<div style="margin-bottom:12px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
-        '<b>防泄漏与分流建议：</b>订阅已内置零 DNS 泄漏分流规则。在 Shadowrocket / FlClash 中保持<b>「规则模式」</b>即可实现 AI 与流媒体锁定住宅 IP、国内应用直连不撞墙；仅访问未收录新站时可临时切全局。' +
+      introCopy +
+      '<div style="margin-bottom:10px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
+        '<b>防泄漏与分流建议：</b>订阅已内置零 DNS 泄漏分流规则。在 Shadowrocket / FlClash 主界面保持<b>「规则模式」</b>（Rule）即可锁定 AI 走住宅 IP、国内应用直连。' +
       '</div>' +
       currentDesc +
-      '<div style="margin-bottom:12px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">' +
+      '<div style="margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:4px">' +
           '<label for="isp-smart-input" style="display:block;font-size:12.5px;font-weight:600">Webshare 智能识别与导入</label>' +
           '<a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--apple-blue);text-decoration:underline">前往 Webshare（选择「Static Residential」静态住宅）</a>' +
         '</div>' +
-        '<textarea id="isp-smart-input" rows="2" placeholder="直接粘贴 Webshare 复制的任意内容：&#10;• curl 测试命令 (curl --proxy http://user:pass@ip:port ...)&#10;• 列表导出文本 (ip:port:user:pass)&#10;• 标准代理连接串 (socks5://user:pass@ip:port)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
+        '<textarea id="isp-smart-input" rows="2" placeholder="粘贴 Webshare 复制的内容：&#10;• ip:port:user:pass&#10;• socks5://user:pass@ip:port 或 curl 命令" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
         '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:#248a3d;line-height:1.4"></div>' +
       '</div>' +
-      '<div style="margin-bottom:12px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div style="margin-bottom:10px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">' +
           '<span style="font-size:12px;font-weight:600;color:var(--ink)">Webshare 代理参数</span>' +
-          '<div style="font-size:11px;display:flex;gap:10px;align-items:center">' +
-            '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="socks" id="isp-proto-socks"' + ((!currentIsp || currentIsp.type !== 'http') ? ' checked' : '') + '> SOCKS5 (推荐)</label>' +
+          '<div style="font-size:11px;display:flex;gap:10px;align-items:center;white-space:nowrap">' +
+            '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="socks" id="isp-proto-socks"' + ((!currentIsp || currentIsp.type !== 'http') ? ' checked' : '') + '> SOCKS5 推荐</label>' +
             '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="http" id="isp-proto-http"' + ((currentIsp && currentIsp.type === 'http') ? ' checked' : '') + '> HTTP</label>' +
           '</div>' +
         '</div>' +
@@ -5666,10 +5886,10 @@ async function copySetupText(text) {
         '</div>' +
       '</div>' +
       '<div id="isp-err" class="small" style="color:var(--bad);display:none;margin-bottom:8px"></div>' +
-      '<div class="sheetbtns" style="margin-top:14px">' +
-        '<button type="button" class="sbtn cancel">取消</button>' +
-        (currentIsp ? '<button type="button" class="sbtn danger" id="isp-unbind-btn">解绑（恢复机房直连）</button>' : '') +
-        '<button type="button" class="sbtn ok" id="isp-save-btn">保存</button>' +
+      '<div class="sheetbtns" style="margin-top:10px;display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;position:sticky;bottom:-20px;background:var(--paper-card);padding:10px 0 4px;border-top:1px solid var(--line-light)">' +
+        '<button type="button" class="sbtn cancel" style="flex:1">取消</button>' +
+        (currentIsp ? '<button type="button" class="sbtn danger" id="isp-unbind-btn" style="flex:1">解绑（恢复机房直连）</button>' : '') +
+        '<button type="button" class="sbtn ok" id="isp-save-btn" style="flex:1">保存</button>' +
       '</div>';
 
     new Promise(function (resolve) {
@@ -5716,12 +5936,21 @@ async function copySetupText(text) {
           var protoRadio = active.querySelector('input[name="isp-proto"][value="' + (p.type === "http" ? "http" : "socks") + '"]');
           if (protoRadio) protoRadio.checked = true;
           if (parseChip) {
+            parseChip.style.background = "rgba(52,199,89,0.12)";
+            parseChip.style.borderColor = "rgba(52,199,89,0.3)";
+            parseChip.style.color = "#248a3d";
             parseChip.innerHTML = "<b>✓ 已识别 Webshare 代理：</b>" + esc(p.server) + ":" + p.server_port + " (" + (p.type === "http" ? "HTTP" : "SOCKS5") + (p.username ? "，账号: " + esc(p.username) : "，IP授权模式") + ")";
             parseChip.style.display = "block";
           }
           if (errDiv) errDiv.style.display = "none";
         } else {
-          if (parseChip) parseChip.style.display = "none";
+          if (parseChip) {
+            parseChip.style.background = "rgba(245,158,11,0.12)";
+            parseChip.style.borderColor = "rgba(245,158,11,0.35)";
+            parseChip.style.color = "#92400e";
+            parseChip.textContent = "未能自动识别该格式，请粘贴 ip:port:user:pass、完整代理串，或在下方手动填写。";
+            parseChip.style.display = "block";
+          }
         }
       }
 
@@ -5755,6 +5984,11 @@ async function copySetupText(text) {
 
           if (!host || !port) {
             showErr("请在上方粘贴 Webshare 代理信息，或在下方填写服务器地址与端口");
+            return;
+          }
+
+          if (!isValidProxyHost(host)) {
+            showErr("服务器地址格式无效，请输入合法的 IP 地址或域名");
             return;
           }
 
@@ -7630,11 +7864,17 @@ async function copySetupText(text) {
     var zh = (typeof isZh === "function") ? isZh() : true;
     var domain = input ? String(input.value || "").trim().toLowerCase() : "";
     if (!domain) {
-      if (statusEl) statusEl.textContent = zh ? "请输入域名（例如 vpn.example.com）。" : "Please enter a domain.";
+      if (statusEl) {
+        if (statusEl.style) statusEl.style.color = "var(--bad, #dc2626)";
+        statusEl.textContent = zh ? "请输入域名（例如 vpn.example.com）。" : "Please enter a domain.";
+      }
       return;
     }
     if (btn) btn.disabled = true;
-    if (statusEl) statusEl.textContent = zh ? "正在校验解析并切换管理域名..." : "Validating DNS & binding domain...";
+    if (statusEl) {
+      if (statusEl.style) statusEl.style.color = "";
+      statusEl.textContent = zh ? "正在校验解析并切换管理域名..." : "Validating DNS & binding domain...";
+    }
     fetch("/api/domain/change", {
       method: "POST",
       credentials: "same-origin",
@@ -7644,11 +7884,15 @@ async function copySetupText(text) {
       .then(function (r) { return r.json(); })
       .then(function (res) {
         if (!res || !res.ok) {
-          if (statusEl) statusEl.textContent = (res && res.error) || (zh ? "域名绑定未完成。" : "Failed to bind domain.");
+          if (statusEl) {
+            if (statusEl.style) statusEl.style.color = "var(--bad, #dc2626)";
+            statusEl.textContent = (res && res.error) || (zh ? "域名绑定未完成。" : "Failed to bind domain.");
+          }
           return;
         }
         setElementText("current-domain-tag", res.domain);
         if (statusEl) {
+          if (statusEl.style) statusEl.style.color = "var(--ok, #16a34a)";
           statusEl.textContent = zh ? "已切换至新地址：" : "Switched to: ";
           if (res.dashboard_url && /^https:\/\//.test(res.dashboard_url)) {
             var a = document.createElement("a");
@@ -7661,7 +7905,10 @@ async function copySetupText(text) {
         }
       })
       .catch(function () {
-        if (statusEl) statusEl.textContent = zh ? "域名切换未完成或连接已断开，请尝试打开新域名访问。" : "Request interrupted; check your new domain URL.";
+        if (statusEl) {
+          if (statusEl.style) statusEl.style.color = "var(--bad, #dc2626)";
+          statusEl.textContent = zh ? "域名切换未完成或连接已断开，请尝试打开新域名访问。" : "Request interrupted; check your new domain URL.";
+        }
       })
       .finally(function () {
         if (btn) btn.disabled = false;

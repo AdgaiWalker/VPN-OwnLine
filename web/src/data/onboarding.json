@@ -57,11 +57,11 @@
     "name": "Webshare Static Residential",
     "url": "https://www.webshare.io/",
     "cost_range": "约 $12/年区间（以官方为准）",
-    "select_hint": "购买后选择「Static Residential」美国静态住宅代理，用于降低 ChatGPT / Claude / 流媒体机房 IP 风控拦截；注意静态住宅不支持 UDP 转发。",
+    "select_hint": "购买后在后台左侧进入「Static Residential」（静态住宅）页签，选择对应节点即可查看连接信息；注意静态住宅不支持 UDP 游戏加速转发。",
     "paste_formats": [
-      "curl --proxy http://user:pass@ip:port ...",
       "ip:port:user:pass",
-      "socks5://user:pass@ip:port"
+      "socks5://user:pass@ip:port",
+      "curl --proxy http://ip:port --proxy-user user:pass ..."
     ],
     "checked_at": "2026-11-23"
   },
@@ -97,5 +97,5 @@
     "checked_at": "2026-11-23"
   },
   "tencent_cam_note": "请确保只读 CAM 子账号包含「轻量应用服务器（Lighthouse）」与「云服务器（CVM）」查询权限（本机首装同时查询两者，后台控制台使用轻量）。",
-  "agent_brief": "请协助我用 Evergreen · OwnLine 的跨平台本地引擎（macOS / Windows / Linux），从 0 完成专属节点配置（规范见 skills/ownline-local/SKILL.md，选型与准备清单见 web/src/data/onboarding.json）：\n1. 在仓库根目录运行 python3 ownline.py doctor --json 检查与自举环境（Windows 可用 py -3 ownline.py 或 python ownline.py；图形回退入口为「启动安装.command」/「启动安装.bat」或 ownline.py ui）。如我尚未购买服务器，先读取 web/src/data/onboarding.json 为我对比方案与必开端口（Ubuntu 22.04+ 或 Debian 12+，放行 SSH、8443/TCP、443/TCP、443/UDP）。\n2. 需要 SSH、腾讯云只读 API、Webshare 家宽或面板密码时，调用 ownline.py vault request --slot <ssh|tencent_api|webshare_isp|panel_auth> 弹起本机盲签卡（无桌面环境自动退回终端隐身输入），让我本人在本地页面输入，严禁让我在对话中发送任何明文凭据。\n3. 拿到句柄后先用 ownline.py check --vault-handle 预检（首次连接请我核对 SSH 指纹）并通过 ownline.py install 完成首装，再按需用 ownline.py apply 串联改密、Webshare 静态住宅与中转扩容验真。\n4. 交付后清理本机句柄（ownline.py vault clear --json），告知管理后台地址并提醒仅靠本机内存交付初始密码；严禁索取、复制或输出密码、私钥、密钥、订阅链接或含凭据截图。"
+  "agent_brief": "请协助我用 Evergreen · OwnLine 的跨平台本地引擎（macOS / Windows / Linux），从 0 完成专属节点配置（规范见 skills/ownline-local/SKILL.md，选型与准备清单见 web/src/data/onboarding.json）：\n1. 在仓库根目录运行 python3 ownline.py doctor --json 检查与自举环境（Windows 可用 py -3 ownline.py 或 python ownline.py；图形回退入口为「启动安装.command」/「启动安装.bat」或 ownline.py ui）。如我尚未购买服务器，先读取 web/src/data/onboarding.json 为我对比方案与必开端口（Ubuntu 22.04+ 或 Debian 12+，放行 SSH、80/TCP、8443/TCP、443/TCP、443/UDP）。\n2. 需要 SSH、腾讯云只读 API、Webshare 家宽或面板密码时，调用 ownline.py vault request --slot <ssh|tencent_api|webshare_isp|panel_auth> 弹起本机安全输入卡（无桌面环境自动退回终端隐身输入），让我本人在本地页面输入，严禁让我在对话中发送任何明文凭据。\n3. 拿到句柄后先用 ownline.py check --vault-handle 预检（首次连接请我核对 SSH 指纹）并通过 ownline.py install 完成首装，再按需用 ownline.py apply 串联改密、Webshare 静态住宅与中转扩容验真。\n4. 交付后清理本机句柄（ownline.py vault clear --json），告知管理后台地址并提醒仅靠本机内存交付初始密码；严禁索取、复制或输出密码、私钥、密钥、订阅链接或含凭据截图。"
 }

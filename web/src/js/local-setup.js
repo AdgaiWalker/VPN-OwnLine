@@ -91,6 +91,14 @@
     privateKey = key;
     sshCredential.required = !key;
     $('ssh-key-status').textContent = key ? '已粘贴 SSH 私钥' : '';
+    if ($('clear-ssh-key')) $('clear-ssh-key').hidden = !key;
+  }
+  if ($('clear-ssh-key')) {
+    $('clear-ssh-key').onclick = () => {
+      clearSecrets();
+      invalidate();
+      sshCredential.focus();
+    };
   }
   bindSSHKeyPaste(sshCredential, key => {
     setSSHKey(key);
@@ -256,6 +264,19 @@
   sshForm.onsubmit = async event => {
     event.preventDefault();
     if (busy || jobStarted || stopped) return;
+    const hostVal = String(sshForm.elements.host.value || '').trim();
+    if (!hostVal || /:\/\/|[\/\s：]/.test(hostVal) || /^[^\[\]]+:\d+$/.test(hostVal)) {
+      status('请输入纯公网 IPv4 或域名（不要包含 https://、空格或端口号）。', 'error');
+      sshForm.elements.host.focus();
+      return;
+    }
+    const portVal = Number(sshForm.elements.ssh_port.value);
+    if (!Number.isInteger(portVal) || portVal < 1 || portVal > 65535) {
+      if ($('ssh-options')) $('ssh-options').open = true;
+      status('SSH 端口须为 1–65535 的整数。', 'error');
+      sshForm.elements.ssh_port.focus();
+      return;
+    }
     if (!privateKey && hasSSHPrivateKeyHeader(sshCredential.value)) {
       status('请在凭据栏粘贴完整的 SSH 私钥。', 'error');
       sshCredential.focus();

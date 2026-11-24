@@ -203,3 +203,54 @@ test('B5: local-setup copy-password copies initial password cleanly', async () =
   assert.equal(copied, 'InitPass#2026!');
   assert.match(els['copy-password-status'].textContent, /已复制/);
 });
+
+test('v0.9.1 regressions: auto locale detection, zero /api/setup 404, 80/TCP in prompts, preserve secret on host typo', async () => {
+  // P1-1: 01-i18n auto-detects zh-CN when localStorage empty
+  const i18nCtx = {
+    window: { localStorage: { getItem: () => null } },
+    navigator: { language: 'zh-CN' },
+  };
+  vm.createContext(i18nCtx);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '../web/src/js/01-i18n.js'), 'utf8'), i18nCtx);
+  assert.equal(i18nCtx.window.isZh ? i18nCtx.window.isZh() : i18nCtx.isZh(), true);
+
+  // P2-1: 05-state-sync does not issue dead /api/setup request
+  const stateSyncSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/05-state-sync.js'), 'utf8');
+  assert.equal(stateSyncSrc.includes('/api/setup'), false);
+
+  // P1-6: 80/TCP included in onboarding agent_brief & panel ssh brief
+  const onboarding = JSON.parse(fs.readFileSync(path.join(__dirname, '../web/src/data/onboarding.json'), 'utf8'));
+  assert(onboarding.agent_brief.includes('80/TCP'));
+  const preMatch = indexHtml.match(/<pre id="ai-ssh-prompt-text"[^>]*>([\s\S]*?)<\/pre>/);
+  assert(preMatch && preMatch[1].includes('80'));
+
+  // P2-2: local-setup does not clear #ssh-credential on host syntax typo
+  const els = {};
+  for (const m of localSetupHtml.matchAll(/<[^>]+id="([^"]+)"/g)) els[m[1]] = makeNode();
+  els.connection.elements = {
+    host: Object.assign(makeNode(), { value: 'https://43.153.56.137:22' }),
+    username: Object.assign(makeNode(), { value: 'root' }),
+    ssh_port: Object.assign(makeNode(), { value: '22' }),
+    password: els['ssh-credential'],
+    passphrase: makeNode(),
+  };
+  els['ssh-credential'].value = 'KeepMyPass123!';
+  els['tencent-credentials'].elements = { secret_id: els['tencent-secret-id'], secret_key: els['tencent-secret-key'] };
+  const ctx = {
+    AbortController,
+    URL,
+    FormData: () => [],
+    navigator: {},
+    document: { getElementById: id => els[id] || makeNode(), body: makeNode(), createElement: () => makeNode() },
+    setTimeout: () => 0,
+    clearTimeout: () => {},
+    fetch: async () => ({ ok: true, json: async () => ({ state: 'idle' }) }),
+  };
+  vm.createContext(ctx);
+  for (const f of ['00-setup-input.js', 'local-setup.js']) {
+    vm.runInContext(fs.readFileSync(path.join(__dirname, '../web/src/js/' + f), 'utf8'), ctx);
+  }
+  await els.connection.onsubmit({ preventDefault() {} });
+  assert.equal(els['ssh-credential'].value, 'KeepMyPass123!');
+  assert.match(els['status'].textContent, /纯公网 IPv4/);
+});

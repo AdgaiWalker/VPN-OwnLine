@@ -39,7 +39,7 @@
       sub_copy_btn: "Copy Subscription Link",
       rotate_btn: "Revoke Old Subscription",
       scan_qr_title: "Scan QR to Import",
-      scan_qr_desc: "Scan with system camera or Shadowrocket to import.",
+      scan_qr_desc: "Scan with Shadowrocket or Clash in-app scanner to import.",
       relay_dialog_title: "Configure as Low-Latency Relay",
       relay_dialog_desc: "Select the overseas egress landing node directly connected by this domestic server (prevents stutter & packet loss):",
       nodes_title: "Managed Nodes",
@@ -55,6 +55,10 @@
       quota_threshold_lbl: "Circuit breaker threshold (1–100%)",
       quota_threshold_desc: "When monthly traffic reaches this threshold, egress is automatically halted to prevent overages.",
       quota_save_btn: "Save",
+      stat_today: "Today",
+      stat_yesterday: "Yesterday",
+      stat_week: "This Week",
+      stat_year: "This Year",
       billing_reconcile_title: "Billing Reconciliation",
       billing_reconcile_desc: "Enter your cloud provider's monthly used GB to verify alignment with panel statistics.",
       billing_reconcile_btn: "Reconcile",
@@ -82,6 +86,7 @@
       lbl_run_on_vps: "Run this command on target VPS (root required):",
       lbl_token_ttl: "Valid for 15 minutes",
       btn_copy_cmd: "Copy Command",
+      ssh_agent_assist_summary: "Developer / AI Assistant Auto-Setup (Optional)",
       ssh_need_assist: "Need autonomous onboarding with local Agent?",
       ssh_copy_ai_prompt: "Copy Agent Task Brief",
       ssh_input_guide: "Enter server IP and password (or paste private key) to test and auto-deploy.",
@@ -257,7 +262,7 @@
       sub_copy_btn: "复制订阅链接",
       rotate_btn: "撤销旧订阅",
       scan_qr_title: "扫码导入订阅",
-      scan_qr_desc: "请使用系统相机或小火箭扫描添加。",
+      scan_qr_desc: "请使用 Shadowrocket（小火箭）或 Clash 等客户端内置扫码功能添加。",
       relay_dialog_title: "设为中转加速专线",
       relay_dialog_desc: "选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：",
       nodes_title: "节点列表",
@@ -273,6 +278,10 @@
       quota_threshold_lbl: "超额熔断阈值 (1–100%)",
       quota_threshold_desc: "当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。",
       quota_save_btn: "保存",
+      stat_today: "今日已用",
+      stat_yesterday: "昨日已用",
+      stat_week: "本周累计",
+      stat_year: "年度消耗",
       billing_reconcile_title: "账单流量核对",
       billing_reconcile_desc: "输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。",
       billing_reconcile_btn: "核对账单",
@@ -300,6 +309,7 @@
       lbl_run_on_vps: "目标 VPS 终端执行命令（需 root 权限）：",
       lbl_token_ttl: "15 分钟内有效",
       btn_copy_cmd: "复制命令",
+      ssh_agent_assist_summary: "开发者 / AI 助手自动装配（可选）",
       ssh_need_assist: "借助本地 Agent 全自动装配？",
       ssh_copy_ai_prompt: "复制 Agent 任务书",
       ssh_input_guide: "填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。",
@@ -441,7 +451,11 @@
     if (typeof window === 'undefined' || !window.localStorage) {
       return 'zh';
     }
-    return window.localStorage.getItem('ownline_lang') || 'en';
+    var saved = window.localStorage.getItem('ownline_lang');
+    if (saved === 'zh' || saved === 'en') return saved;
+    var navLang = (typeof navigator !== 'undefined' && navigator.language) ? String(navigator.language) : '';
+    if (/^zh\b/i.test(navLang)) return 'zh';
+    return navLang ? 'en' : 'zh';
   }
 
   function isZh() {
@@ -521,10 +535,28 @@
       var curr = STATE.currentUsername || '';
       inputUser.placeholder = zh ? (curr ? ('保持当前用户名 (' + curr + ')') : '如不修改请留空') : (curr ? ('Keep current (' + curr + ')') : 'Leave empty to keep current');
     }
+    var btnFb = document.getElementById('btn-open-feedback');
+    if (btnFb) {
+      var fbText = zh ? '快捷反馈' : 'Feedback';
+      btnFb.title = fbText;
+      btnFb.setAttribute('aria-label', fbText);
+    }
+    var offGb = document.getElementById('billing-official-gb');
+    if (offGb) offGb.placeholder = zh ? '云后台已用 GB' : 'Cloud Billed GB';
+    var offRday = document.getElementById('billing-reset-day');
+    if (offRday) offRday.placeholder = zh ? '重置日(选填)' : 'Reset Day (opt)';
 
     if (typeof detectClient === 'function') detectClient();
+    if (typeof updateHeaderLocalPingUI === 'function') updateHeaderLocalPingUI();
     if (typeof paintStatus === 'function') paintStatus();
+    if (typeof window !== 'undefined' && typeof window.ownlineUpdateServerCountBadges === 'function') window.ownlineUpdateServerCountBadges();
     if (typeof renderNodes === 'function' && Array.isArray(NODES)) renderNodes(NODES, STATUS, STATE.quota);
+    if (typeof window !== 'undefined' && typeof window.ownlineRenderQuotaList === 'function' && Array.isArray(NODES) && NODES.length) {
+      window.ownlineRenderQuotaList(NODES, STATE.quota);
+    }
+    if (typeof window !== 'undefined' && typeof window.ownlineRenderTrafficBreakdown === 'function' && STATE.trafficReport) {
+      window.ownlineRenderTrafficBreakdown(STATE.trafficReport);
+    }
     if (typeof renderQuota === 'function' && STATE.quota) renderQuota(STATE.quota);
   }
 

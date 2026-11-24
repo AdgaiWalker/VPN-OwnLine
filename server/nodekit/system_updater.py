@@ -9,6 +9,7 @@ import os
 import re
 import secrets
 import shutil
+import ssl
 import subprocess
 import sys
 import threading
@@ -17,7 +18,19 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-CURRENT_VERSION = "v0.9.0"
+CURRENT_VERSION = "v0.9.1"
+
+
+def _build_ssl_context():
+    """Return SSL context backed by bundled certifi roots when available."""
+    try:
+        import certifi
+        ca_path = certifi.where()
+        if ca_path and os.path.isfile(ca_path):
+            return ssl.create_default_context(cafile=ca_path)
+    except Exception:
+        pass
+    return ssl.create_default_context()
 
 
 def _release_stamp(base_dir=None):
@@ -179,7 +192,7 @@ def check_update(force=False, mock_fetcher=None, current=CURRENT_VERSION):
             },
         )
         try:
-            with urllib.request.urlopen(req, timeout=5) as resp:
+            with urllib.request.urlopen(req, timeout=5, context=_build_ssl_context()) as resp:
                 if resp.status == 200:
                     raw = resp.read().decode("utf-8")
                     payload = json.loads(raw)
@@ -197,10 +210,38 @@ def check_update(force=False, mock_fetcher=None, current=CURRENT_VERSION):
                 "current_version": current,
                 "has_update": False,
             }
-        except Exception as e:
+        except ssl.SSLError:
             return {
                 "ok": False,
-                "error": f"网络连接超时或无法访问 GitHub: {e}",
+                "error": "安全连接证书校验失败，请检查系统时间或网络代理后重试",
+                "current_version": current,
+                "has_update": False,
+            }
+        except urllib.error.URLError as e:
+            reason = getattr(e, "reason", None)
+            if isinstance(reason, ssl.SSLError) or "CERTIFICATE_VERIFY_FAILED" in str(reason or ""):
+                msg = "安全连接证书校验失败，请检查系统时间或网络代理后重试"
+            elif isinstance(reason, TimeoutError) or "timed out" in str(reason or "").lower():
+                msg = "连接更新服务超时，请检查网络后重试"
+            else:
+                msg = "暂时无法连接 GitHub 检查更新，请检查网络后稍后重试"
+            return {
+                "ok": False,
+                "error": msg,
+                "current_version": current,
+                "has_update": False,
+            }
+        except TimeoutError:
+            return {
+                "ok": False,
+                "error": "连接更新服务超时，请检查网络后重试",
+                "current_version": current,
+                "has_update": False,
+            }
+        except Exception:
+            return {
+                "ok": False,
+                "error": "暂时无法连接 GitHub 检查更新，请检查网络后稍后重试",
                 "current_version": current,
                 "has_update": False,
             }

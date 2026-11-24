@@ -5,6 +5,8 @@
 """
 from __future__ import annotations
 
+import ipaddress
+import re
 import threading
 import uuid
 from copy import deepcopy
@@ -12,6 +14,23 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Protocol, Union
 
 from .store import AtomicJsonStore
+
+_PROXY_HOSTNAME_RE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$")
+
+
+def _is_valid_proxy_server(host: str) -> bool:
+    s = str(host or "").strip()
+    if not s or len(s) > 253 or any(ch.isspace() or ord(ch) < 32 or ord(ch) == 127 for ch in s):
+        return False
+    if "://" in s or "/" in s or "@" in s or "\\" in s:
+        return False
+    bare = s[1:-1] if s.startswith("[") and s.endswith("]") else s
+    try:
+        ipaddress.ip_address(bare)
+        return True
+    except ValueError:
+        pass
+    return bool(_PROXY_HOSTNAME_RE.fullmatch(s))
 
 
 # =====================================================================
@@ -362,8 +381,11 @@ class NodeManager:
                 except Exception as e:
                     raise NodeValidationError(str(e))
             elif isinstance(raw_isp, dict):
-                if not raw_isp.get("server") or not raw_isp.get("server_port"):
+                raw_server = str(raw_isp.get("server") or "").strip()
+                if not raw_server or not raw_isp.get("server_port"):
                     raise NodeValidationError("ISP 代理缺少服务器地址或端口")
+                if not _is_valid_proxy_server(raw_server):
+                    raise NodeValidationError("ISP 代理服务器地址格式无效，请输入合法的 IP 地址或域名")
                 try:
                     port_num = int(raw_isp["server_port"])
                     if port_num < 1 or port_num > 65535:
@@ -372,7 +394,7 @@ class NodeManager:
                     raise NodeValidationError("端口号无效")
                 parsed_isp = {
                     "type": raw_isp.get("type", "socks"),
-                    "server": str(raw_isp["server"]),
+                    "server": raw_server,
                     "server_port": port_num,
                 }
                 if raw_isp.get("username"):

@@ -123,14 +123,34 @@ def parse_isp_proxy(url):
     if (text.startswith('"') and text.endswith('"')) or (text.startswith("'") and text.endswith("'")):
         text = text[1:-1].strip()
 
+    curl_user = None
+    curl_password = None
     if "curl " in text or text.startswith("curl"):
-        m_curl = re.search(r'(?:--proxy|-x)\s+["\']?([^"\'\s]+)["\']?', text)
+        m_user = re.search(
+            r'(?:--proxy-user|-U)(?:=|\s+)(?:"([^"]+)"|\'([^\']+)\'|([^\s"\']+))',
+            text,
+        )
+        if m_user:
+            raw_cred = next((g for g in m_user.groups() if g is not None), "").strip()
+            if ":" in raw_cred:
+                curl_user, curl_password = raw_cred.split(":", 1)
+            elif raw_cred:
+                curl_user, curl_password = raw_cred, ""
+        m_curl = re.search(r'(?:--proxy|-x)(?:=|\s+)["\']?([^"\'\s]+)["\']?', text)
         if m_curl:
             text = m_curl.group(1).strip()
         else:
             raise LinkError("无法从 curl 命令中解析出代理参数（--proxy 或 -x）")
 
     text = text.rstrip("/")
+
+    def _with_curl_auth(result):
+        if curl_user and not result.get("username"):
+            result = dict(result)
+            result["username"] = curl_user
+            if curl_password is not None and not result.get("password"):
+                result["password"] = curl_password
+        return result
 
     parts = text.split(":")
     if len(parts) >= 4 and parts[1].isascii() and parts[1].isdigit() and not ("//" in text or "@" in text):
@@ -155,11 +175,11 @@ def parse_isp_proxy(url):
         port = int(port_str)
         if not (0 < port < 65536):
             raise LinkError("代理端口不合法（必须是 1-65535）")
-        return {
+        return _with_curl_auth({
             "type": "socks",
             "server": ip,
             "server_port": port
-        }
+        })
 
     if "://" not in text:
         target_url = "socks5://" + text
@@ -190,7 +210,7 @@ def parse_isp_proxy(url):
         res["username"] = urllib.parse.unquote(u.username)
     if u.password:
         res["password"] = urllib.parse.unquote(u.password)
-    return res
+    return _with_curl_auth(res)
 
 
 def build_deep_links(sub_url: str, name: str = "OwnLine") -> dict:

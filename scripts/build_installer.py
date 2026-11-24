@@ -163,6 +163,8 @@ def smoke_test_binary(target: Path, *, timeout_sec: float = 20.0) -> dict:
         doc_detail = next((e.get("detail") for e in reversed(doc_events) if e.get("event") == "local_cli_doctor"), None)
         if not isinstance(doc_detail, dict) or not doc_detail.get("ok") or not doc_detail.get("frozen") or not doc_detail.get("bundle_ready"):
             raise AssertionError(f"frozen doctor diagnostic invalid: {doc_detail}")
+        if not doc_detail.get("ca_bundle_ready"):
+            raise AssertionError(f"frozen installer missing certifi CA bundle: {doc_detail}")
 
         cmd = [
             str(binary),
@@ -295,7 +297,7 @@ def build_installer(*, root: Path, version: str, out_dir: Path) -> tuple[Path, P
         for src, dest in add_data_entries:
             pyinstaller_args.extend(["--add-data", f"{src}{os.pathsep}{dest}"])
 
-        for pkg in ("paramiko", "bcrypt", "cryptography", "nacl"):
+        for pkg in ("paramiko", "bcrypt", "cryptography", "nacl", "certifi"):
             pyinstaller_args.extend(["--collect-all", pkg])
 
         for hidden in (

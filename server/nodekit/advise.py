@@ -81,11 +81,13 @@ def advise(node, status=None, usage=None, iphealth=None, nodes=None):
 
     if status.get("ok") is False:
         r = status.get("reason") or "port"
-        return _pack(BAD_TEXT.get(r, "服务不通"), "海外探活失败：%s" % r, "bad")
+        label = BAD_TEXT.get(r, "服务不通")
+        return _pack(label, "海外探活失败：%s" % label, "bad")
 
     if status.get("cn_ok") is False:
         r = status.get("cn_reason") or "port"
-        return _pack("国内连不上（可能被墙）", "海外在线，但国内探活失败：%s" % r, "bad", allow_action=True)
+        label = BAD_TEXT.get(r, "连接异常")
+        return _pack("国内连不上（可能被墙）", "海外在线，但国内探活失败：%s" % label, "bad", allow_action=True)
 
     if ms is not None:
         parts.append("延迟 %dms" % ms)

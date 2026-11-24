@@ -429,6 +429,13 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
     if primary_guidance and min_relay_remaining is not None:
         cur_rem = primary_guidance.get("remaining_gb", float("inf"))
         if min_relay_remaining < cur_rem:
+            days_rem = primary_guidance.get("days_remaining")
+            cycle_suffix = ""
+            if isinstance(days_rem, int) and days_rem >= 0:
+                cycle_suffix = f"（离重置还有 {days_rem} 天"
+                if days_rem <= 2:
+                    cycle_suffix += "，账单周期即将切换，建议保留安全余量避免超量计费"
+                cycle_suffix += "）"
             primary_guidance["bottleneck"] = {
                 "is_relay_bottleneck": True,
                 "relay_name": bottleneck_relay_name,
@@ -439,7 +446,7 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
             primary_guidance["badge"] = "跳板短板预警"
             primary_guidance["text"] = (
                 f"链路受中转跳板「{bottleneck_relay_name}」配额限制，实际有效可用仅剩 {min_relay_remaining} GB "
-                f"（落地机尚余 {cur_rem} GB），请优先留意跳板流量。"
+                f"（落地机尚余 {cur_rem} GB）{cycle_suffix}，请优先留意跳板流量。"
             )
 
     return {

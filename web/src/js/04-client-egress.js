@@ -9,11 +9,15 @@
     else if (/Windows/.test(ua)) os = "win";
     else if (/Linux/.test(ua)) os = "linux";
     var apple = os === "ios" || os === "mac";
+    var isIos = os === "ios";
     var flSupported = os === "mac" || os === "android" || os === "win" || os === "linux";
     var sr = document.getElementById("btn-sr"), cl = document.getElementById("btn-clash");
     sr.style.display = apple ? "" : "none";
-    sr.className = apple ? "btn action-btn apple-client-row primary" : "btn action-btn apple-client-row";
-    cl.className = apple ? "btn action-btn apple-client-row" : "btn action-btn apple-client-row primary";
+    sr.className = isIos ? "btn action-btn apple-client-row primary" : "btn action-btn apple-client-row";
+    cl.className = isIos ? "btn action-btn apple-client-row" : "btn action-btn apple-client-row primary";
+    var pillSr = document.getElementById("pill-sr"), pillCl = document.getElementById("pill-clash");
+    if (pillSr) pillSr.className = isIos ? "apple-client-action-pill primary" : "apple-client-action-pill";
+    if (pillCl) pillCl.className = isIos ? "apple-client-action-pill" : "apple-client-action-pill primary";
     document.getElementById("btn-flclash").style.display = flSupported ? "" : "none";
     document.getElementById("apple-store-help").style.display = apple ? "" : "none";
     document.getElementById("download-sr").style.display = apple ? "" : "none";
@@ -23,9 +27,23 @@
     dc.href = os === "android" ? "https://github.com/MetaCubeX/ClashMetaForAndroid/releases" : "https://github.com/clash-verge-rev/clash-verge-rev/releases";
     document.getElementById("clash-ios-help").style.display = os === "ios" ? "" : "none";
     var itemSr = document.getElementById("client-item-sr");
-    if (itemSr) itemSr.style.display = apple ? "" : "none";
+    if (itemSr) {
+      itemSr.style.display = apple ? "" : "none";
+      itemSr.style.order = isIos ? "" : "3";
+    }
+    var itemCl = document.getElementById("client-item-clash");
+    if (itemCl) itemCl.style.order = isIos ? "" : "1";
     var itemFl = document.getElementById("client-item-flclash");
-    if (itemFl) itemFl.style.display = flSupported ? "" : "none";
+    if (itemFl) {
+      itemFl.style.display = flSupported ? "" : "none";
+      itemFl.style.order = isIos ? "" : "2";
+    }
+    var hubDlClash = document.getElementById("hub-dl-clash");
+    if (hubDlClash) hubDlClash.style.display = flSupported ? "" : "none";
+    var hubDlFl = document.getElementById("hub-dl-flclash");
+    if (hubDlFl) hubDlFl.style.display = flSupported ? "" : "none";
+    var hubDlSr = document.getElementById("hub-dl-sr");
+    if (hubDlSr) hubDlSr.style.display = apple ? "" : "none";
     var devBadge = document.getElementById("client-device-badge");
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var devName = os === "ios" ? "iPhone / iPad" : (os === "mac" ? "macOS" : (os === "android" ? "Android" : (os === "win" ? "Windows" : (os === "linux" ? "Linux" : (zh ? "当前设备" : "This Device")))));
@@ -85,6 +103,27 @@
   }
 
   function wireLinks(importAvailable) {
+    function launchSchemeSafely(uri) {
+      if (!uri || uri === "#") return;
+      if (typeof document === "undefined" || typeof document.createElement !== "function" || !document.body || typeof document.body.appendChild !== "function") {
+        return;
+      }
+      try {
+        var frame = document.createElement("iframe");
+        frame.style.display = "none";
+        frame.setAttribute("aria-hidden", "true");
+        frame.src = uri;
+        document.body.appendChild(frame);
+        if (typeof setTimeout === "function") {
+          setTimeout(function () {
+            try {
+              if (frame.parentNode) frame.parentNode.removeChild(frame);
+            } catch (_) {}
+          }, 1500);
+        }
+      } catch (_) {}
+    }
+
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var sub = BASE_SUB_URL, code = document.getElementById("suburl");
     if (!sub) { code.textContent = zh ? "订阅链接暂不可用" : "Subscription link unavailable"; return; }
@@ -112,7 +151,9 @@
       if (!button) return;
       button.setAttribute("aria-disabled", String(!importAvailable));
       button.onclick = function (event) {
-        if (!importAvailable) { event.preventDefault(); return; }
+        if (event && typeof event.preventDefault === "function") event.preventDefault();
+        if (!importAvailable) return;
+        launchSchemeSafely(button.href);
         var note = document.getElementById("import-note");
         if (note) note.textContent = zh
           ? "正在尝试打开客户端。若未自动拉起，请先下载客户端或手动复制链接导入。"

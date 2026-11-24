@@ -86,8 +86,15 @@ def onboarding_fragments() -> dict[str, str]:
     )
 
     panel_tc_cam = (
-        '<p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a>'
+        '<p class="small"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云轻量控制台</a>'
+        ' · <a href="https://console.cloud.tencent.com/cam/user/userList" target="_blank" rel="noopener noreferrer">CAM 只读子账号管理</a>'
         f' · <span class="muted">{_e(data["tencent_cam_note"])}</span></p>'
+    )
+
+    local_tc_cam = (
+        '<p class="field-note"><a href="https://console.cloud.tencent.com/lighthouse/" target="_blank" rel="noopener noreferrer">腾讯云控制台</a>'
+        ' · <a href="https://console.cloud.tencent.com/cam/user/userList" target="_blank" rel="noopener noreferrer">新建只读 CAM 密钥</a>'
+        f'：{_e(data["tencent_cam_note"])}</p>'
     )
 
     return {
@@ -96,6 +103,7 @@ def onboarding_fragments() -> dict[str, str]:
         "<!-- {{VAULT_WEBSHARE_GUIDE}} -->": vault_webshare,
         "<!-- {{PANEL_ONBOARDING_GUIDE}} -->": panel_onboarding,
         "<!-- {{PANEL_TC_CAM_GUIDE}} -->": panel_tc_cam,
+        "<!-- {{LOCAL_TC_CAM_GUIDE}} -->": local_tc_cam,
     }
 
 

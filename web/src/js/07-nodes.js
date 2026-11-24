@@ -387,7 +387,14 @@
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
         var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
-        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + resetDay))) : '';
+        var ordinalDay = function (d) {
+          var num = Number(d);
+          if (!Number.isFinite(num)) return String(d);
+          var m100 = num % 100;
+          if (m100 >= 11 && m100 <= 13) return num + 'th';
+          return num + ({1: 'st', 2: 'nd', 3: 'rd'}[num % 10] || 'th');
+        };
+        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay(resetDay)))) : '';
 
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
@@ -399,7 +406,14 @@
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
-        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + resetDay))) : '';
+        var ordinalDay2 = function (d) {
+          var num = Number(d);
+          if (!Number.isFinite(num)) return String(d);
+          var m100 = num % 100;
+          if (m100 >= 11 && m100 <= 13) return num + 'th';
+          return num + ({1: 'st', 2: 'nd', 3: 'rd'}[num % 10] || 'th');
+        };
+        var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay2(resetDay)))) : '';
         quotaRow = '<div class="node-quota-row">' +
           '<span class="node-quota-text">' + (zh ? '本月已统计：<strong>' : 'Monthly Usage: <strong>') + (Math.round(Number(qInfo.used_gb) * 10) / 10) + ' GB</strong>' + resetTip + ' <span class="muted">' + (zh ? '（未配置流量包上限）' : '(No traffic limit set)') + '</span></span>' +
         '</div>';
@@ -438,8 +452,25 @@
             advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRotateKeyByIndex(' + i + ')">' + (zh ? "重置密钥" : "Reset Key") + '</button>');
           }
         } else {
+          var reasonMapZh = {
+            proxy: "入口端口已通，但代理转发不通（可点击重新检测复核，或在下方日志区核验配置一致性）",
+            port: "节点端口未响应，请检查云安全组或尝试重新检测",
+            tls: "安全握手失败，请尝试重新检测或重置密钥",
+            landing: "国内中转无法连接海外落地节点",
+            role_mismatch: "出口仍为国内地址",
+            blocked: "网络探测受阻"
+          };
+          var reasonMapEn = {
+            proxy: "Entry reachable, but proxy forwarding failed",
+            port: "Node port unreachable",
+            tls: "TLS handshake failed",
+            landing: "Unable to reach landing egress node",
+            role_mismatch: "Egress IP resolves to domestic network",
+            blocked: "Probe traffic blocked"
+          };
+          var rKey = st && st.reason ? String(st.reason) : "";
           advTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
-          advReason = (n.advice && n.advice.reason) || (st && st.reason) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          advReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
         }
 
         if (n.source !== "external") {
@@ -466,7 +497,7 @@
         }
         warpPill = '<button class="btn tiny' + (isWarp ? ' active' : '') + '" type="button" onclick="event.stopPropagation();window.ownlineToggleWarp(' + i + ')" title="' + (zh ? '开启后海外 AI/OpenAI 等流量走 Cloudflare WARP 免费清洁链路' : 'Route AI traffic through Cloudflare WARP') + '">' +
           '<svg class="ico" width="12" height="12" style="vertical-align:-2px;margin-right:3px"><use href="#i-shield"/></svg>' +
-          (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour')) +
+          (n.isp && isWarp ? (zh ? 'WARP 待命' : 'WARP Standby') : (isWarp ? (zh ? 'WARP 已开启' : 'WARP On') : (zh ? 'WARP 清洁出口' : 'WARP Detour'))) +
           '</button>';
       }
       var ispDrawerBtn = canRemoteMutate
@@ -566,7 +597,10 @@
     } else if (isWindowsFrozen) {
       statusSummary = zh ? "Windows 节点（受控分支已冻结）" : "Windows Node (Remote Control Frozen)";
     } else if (st && st.ok === false) {
-      statusSummary = zh ? "服务异常 · 端口阻断" : "Offline · Port Blocked";
+      var menuReasonZh = { port: "端口阻断", proxy: "代理转发不通", tls: "安全握手失败", landing: "无法连接落地", role_mismatch: "出口仍为国内" };
+      var menuReasonEn = { port: "Port Blocked", proxy: "Proxy Egress Failed", tls: "TLS Failed", landing: "Landing Unreachable", role_mismatch: "Domestic Egress" };
+      var mr = st.reason ? String(st.reason) : "";
+      statusSummary = zh ? ("服务异常 · " + (menuReasonZh[mr] || "连接不通")) : ("Offline · " + (menuReasonEn[mr] || "Unreachable"));
     } else if (st && st.cn_ok === false) {
       statusSummary = zh ? "国内直连不通" : "Unreachable from China";
     } else if (st && st.ok) {
@@ -676,14 +710,43 @@
     }).catch(function (e) { dialog({title: "操作失败", message: String(e), cancelText: null, confirmText: "确定"}); });
   }
 
+  function isValidProxyHost(host) {
+    var s = String(host || "").trim();
+    if (!s || s.length > 253 || /[\s\x00-\x1f\x7f\\/@]/.test(s) || s.indexOf("://") >= 0) return false;
+    var ipv4 = s.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (ipv4) {
+      return [1, 2, 3, 4].every(function (k) { return Number(ipv4[k]) >= 0 && Number(ipv4[k]) <= 255; });
+    }
+    if (/^\[[0-9a-fA-F:]+\]$/.test(s) || (s.indexOf(":") >= 0 && /^[0-9a-fA-F:]+$/.test(s))) return true;
+    return /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/.test(s);
+  }
+
   function parseWebshareProxy(raw) {
     if (!raw || !String(raw).trim()) return null;
     var t = String(raw).trim();
+    var validHost = function (h) {
+      var s = String(h || "").trim();
+      if (!s || s.length > 253 || /[\s\x00-\x1f\x7f\\/@]/.test(s) || s.indexOf("://") >= 0) return false;
+      return /^[A-Za-z0-9.\-:\[\]]+$/.test(s);
+    };
     if ((t.startsWith('"') && t.endsWith('"')) || (t.startsWith("'") && t.endsWith("'"))) {
       t = t.slice(1, -1).trim();
     }
+    var curlUser = "";
+    var curlPass = "";
     if (t.indexOf("curl") >= 0) {
-      var mCurl = t.match(/(?:--proxy|-x)\s+["']?([^"'\s]+)["']?/i);
+      var mUser = t.match(/(?:--proxy-user|-U)(?:=|\s+)(?:"([^"]+)"|'([^']+)'|([^\s"']+))/);
+      if (mUser) {
+        var rawCred = String(mUser[1] != null ? mUser[1] : (mUser[2] != null ? mUser[2] : (mUser[3] || ""))).trim();
+        var cIdx = rawCred.indexOf(":");
+        if (cIdx >= 0) {
+          curlUser = rawCred.slice(0, cIdx).trim();
+          curlPass = rawCred.slice(cIdx + 1).trim();
+        } else if (rawCred) {
+          curlUser = rawCred;
+        }
+      }
+      var mCurl = t.match(/(?:--proxy|-x)(?:=|\s+)["']?([^"'\s]+)["']?/i);
       if (mCurl) {
         t = mCurl[1].trim();
       }
@@ -693,10 +756,11 @@
     var parts = t.split(":");
     if (parts.length >= 4 && /^\d+$/.test(parts[1])) {
       var p4 = parseInt(parts[1], 10);
-      if (p4 > 0 && p4 < 65536) {
+      var h4 = parts[0].trim();
+      if (p4 > 0 && p4 < 65536 && validHost(h4)) {
         return {
           type: "socks",
-          server: parts[0].trim(),
+          server: h4,
           server_port: p4,
           username: parts[2].trim(),
           password: parts.slice(3).join(":").trim()
@@ -706,13 +770,14 @@
 
     if (parts.length === 2 && /^\d+$/.test(parts[1]) && t.indexOf("//") === -1 && t.indexOf("@") === -1) {
       var p2 = parseInt(parts[1], 10);
-      if (p2 > 0 && p2 < 65536) {
+      var h2 = parts[0].trim();
+      if (p2 > 0 && p2 < 65536 && validHost(h2)) {
         return {
           type: "socks",
-          server: parts[0].trim(),
+          server: h2,
           server_port: p2,
-          username: "",
-          password: ""
+          username: curlUser,
+          password: curlPass
         };
       }
     }
@@ -720,14 +785,17 @@
     var m = t.match(/^(?:(socks5?|https?):\/\/)?(?:([^:@\s]+)(?::([^@\s]+))?@)?([a-zA-Z0-9.-]+):(\d+)$/i);
     if (m) {
       var pNum = parseInt(m[5], 10);
-      if (pNum > 0 && pNum < 65536) {
+      var hm = m[4].trim();
+      if (pNum > 0 && pNum < 65536 && validHost(hm)) {
         var proto = m[1] && m[1].toLowerCase().indexOf("http") >= 0 ? "http" : "socks";
+        var uName = m[2] ? decodeURIComponent(m[2]) : curlUser;
+        var uPass = m[3] ? decodeURIComponent(m[3]) : (m[2] ? "" : curlPass);
         return {
           type: proto,
-          server: m[4].trim(),
+          server: hm,
           server_port: pNum,
-          username: m[2] ? decodeURIComponent(m[2]) : "",
-          password: m[3] ? decodeURIComponent(m[3]) : ""
+          username: uName,
+          password: uPass
         };
       }
     }
@@ -740,7 +808,7 @@
     var currentIsp = n.isp || null;
     var currentDesc = "";
     if (currentIsp) {
-      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:12px;font-size:12px">' +
+      currentDesc = '<div style="background:var(--accent-soft);border:1px solid var(--accent);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:12px">' +
         '<div style="display:flex;justify-content:space-between;margin-bottom:2px">' +
           '<b>当前住宅出口：</b>' +
           '<span style="font-weight:600;color:var(--accent)">' + (esc(currentIsp.type || 'socks')).toUpperCase() + '</span>' +
@@ -750,35 +818,38 @@
         '</code></div>';
     }
 
+    var introCopy = currentIsp ? '' :
+      '<p class="small muted" style="margin-bottom:10px;line-height:1.5">' +
+      '所有经由此节点的流量将通过静态住宅代理出网，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
+      '</p>';
+
     var content = '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">' +
         '<div>' +
           '<h2 style="margin:0 0 4px;font-size:18px;font-weight:600;color:var(--ink)">住宅 IP 出口 · "' + esc(n.name) + '"</h2>' +
-          '<div style="display:flex;align-items:center;gap:6px">' +
+          '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">' +
             '<span style="display:inline-block;font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;background:var(--accent-soft);color:var(--accent);border:1px solid rgba(0,122,255,0.2)">已深度适配 Webshare</span>' +
             '<span class="small muted">降低 AI 与流媒体风控拦截</span>' +
           '</div>' +
         '</div>' +
       '</div>' +
-      '<p class="small muted" style="margin-bottom:12px;line-height:1.5">' +
-      '所有经由此节点的流量将通过静态住宅代理出网，具备高纯净度属地标签，降低 ChatGPT 与流媒体平台的风控拦截概率。' +
-      '</p>' +
-      '<div style="margin-bottom:12px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
-        '<b>防泄漏与分流建议：</b>订阅已内置零 DNS 泄漏分流规则。在 Shadowrocket / FlClash 中保持<b>「规则模式」</b>即可实现 AI 与流媒体锁定住宅 IP、国内应用直连不撞墙；仅访问未收录新站时可临时切全局。' +
+      introCopy +
+      '<div style="margin-bottom:10px;padding:8px 10px;background:rgba(0,122,255,0.06);border:1px solid rgba(0,122,255,0.18);border-radius:6px;font-size:12px;color:var(--apple-fg);line-height:1.45">' +
+        '<b>防泄漏与分流建议：</b>订阅已内置零 DNS 泄漏分流规则。在 Shadowrocket / FlClash 主界面保持<b>「规则模式」</b>（Rule）即可锁定 AI 走住宅 IP、国内应用直连。' +
       '</div>' +
       currentDesc +
-      '<div style="margin-bottom:12px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">' +
+      '<div style="margin-bottom:10px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:6px;margin-bottom:4px">' +
           '<label for="isp-smart-input" style="display:block;font-size:12.5px;font-weight:600">Webshare 智能识别与导入</label>' +
           '<a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--apple-blue);text-decoration:underline">前往 Webshare（选择「Static Residential」静态住宅）</a>' +
         '</div>' +
-        '<textarea id="isp-smart-input" rows="2" placeholder="直接粘贴 Webshare 复制的任意内容：&#10;• curl 测试命令 (curl --proxy http://user:pass@ip:port ...)&#10;• 列表导出文本 (ip:port:user:pass)&#10;• 标准代理连接串 (socks5://user:pass@ip:port)" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
+        '<textarea id="isp-smart-input" rows="2" placeholder="粘贴 Webshare 复制的内容：&#10;• ip:port:user:pass&#10;• socks5://user:pass@ip:port 或 curl 命令" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
         '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:#248a3d;line-height:1.4"></div>' +
       '</div>' +
-      '<div style="margin-bottom:12px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
-        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">' +
+      '<div style="margin-bottom:10px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">' +
           '<span style="font-size:12px;font-weight:600;color:var(--ink)">Webshare 代理参数</span>' +
-          '<div style="font-size:11px;display:flex;gap:10px;align-items:center">' +
-            '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="socks" id="isp-proto-socks"' + ((!currentIsp || currentIsp.type !== 'http') ? ' checked' : '') + '> SOCKS5 (推荐)</label>' +
+          '<div style="font-size:11px;display:flex;gap:10px;align-items:center;white-space:nowrap">' +
+            '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="socks" id="isp-proto-socks"' + ((!currentIsp || currentIsp.type !== 'http') ? ' checked' : '') + '> SOCKS5 推荐</label>' +
             '<label style="cursor:pointer;display:inline-flex;align-items:center;gap:3px"><input type="radio" name="isp-proto" value="http" id="isp-proto-http"' + ((currentIsp && currentIsp.type === 'http') ? ' checked' : '') + '> HTTP</label>' +
           '</div>' +
         '</div>' +
@@ -792,10 +863,10 @@
         '</div>' +
       '</div>' +
       '<div id="isp-err" class="small" style="color:var(--bad);display:none;margin-bottom:8px"></div>' +
-      '<div class="sheetbtns" style="margin-top:14px">' +
-        '<button type="button" class="sbtn cancel">取消</button>' +
-        (currentIsp ? '<button type="button" class="sbtn danger" id="isp-unbind-btn">解绑（恢复机房直连）</button>' : '') +
-        '<button type="button" class="sbtn ok" id="isp-save-btn">保存</button>' +
+      '<div class="sheetbtns" style="margin-top:10px;display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;position:sticky;bottom:-20px;background:var(--paper-card);padding:10px 0 4px;border-top:1px solid var(--line-light)">' +
+        '<button type="button" class="sbtn cancel" style="flex:1">取消</button>' +
+        (currentIsp ? '<button type="button" class="sbtn danger" id="isp-unbind-btn" style="flex:1">解绑（恢复机房直连）</button>' : '') +
+        '<button type="button" class="sbtn ok" id="isp-save-btn" style="flex:1">保存</button>' +
       '</div>';
 
     new Promise(function (resolve) {
@@ -842,12 +913,21 @@
           var protoRadio = active.querySelector('input[name="isp-proto"][value="' + (p.type === "http" ? "http" : "socks") + '"]');
           if (protoRadio) protoRadio.checked = true;
           if (parseChip) {
+            parseChip.style.background = "rgba(52,199,89,0.12)";
+            parseChip.style.borderColor = "rgba(52,199,89,0.3)";
+            parseChip.style.color = "#248a3d";
             parseChip.innerHTML = "<b>✓ 已识别 Webshare 代理：</b>" + esc(p.server) + ":" + p.server_port + " (" + (p.type === "http" ? "HTTP" : "SOCKS5") + (p.username ? "，账号: " + esc(p.username) : "，IP授权模式") + ")";
             parseChip.style.display = "block";
           }
           if (errDiv) errDiv.style.display = "none";
         } else {
-          if (parseChip) parseChip.style.display = "none";
+          if (parseChip) {
+            parseChip.style.background = "rgba(245,158,11,0.12)";
+            parseChip.style.borderColor = "rgba(245,158,11,0.35)";
+            parseChip.style.color = "#92400e";
+            parseChip.textContent = "未能自动识别该格式，请粘贴 ip:port:user:pass、完整代理串，或在下方手动填写。";
+            parseChip.style.display = "block";
+          }
         }
       }
 
@@ -881,6 +961,11 @@
 
           if (!host || !port) {
             showErr("请在上方粘贴 Webshare 代理信息，或在下方填写服务器地址与端口");
+            return;
+          }
+
+          if (!isValidProxyHost(host)) {
+            showErr("服务器地址格式无效，请输入合法的 IP 地址或域名");
             return;
           }
 

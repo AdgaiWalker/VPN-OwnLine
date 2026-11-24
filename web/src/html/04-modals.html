@@ -14,7 +14,7 @@
               <a class="btn action-btn apple-client-row" id="btn-sr" href="#">
                 <span class="card-icon-box apple-client-icon-wrap"><img src="assets/icons/shadowrocket.png" alt="Shadowrocket" width="28" height="28"></span>
                 <div class="apple-client-meta">
-                  <b class="card-label apple-client-name">Shadowrocket</b>
+                  <b class="card-label apple-client-name">Shadowrocket (小火箭)</b>
                   <span class="apple-client-desc" data-i18n="sr_badge">iOS 推荐</span>
                 </div>
                 <span class="apple-client-action-pill primary" id="pill-sr" data-i18n="btn_open">打开</span>
@@ -151,7 +151,7 @@
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用系统相机或小火箭扫描添加。</p>
+          <p class="small muted" style="margin:0;line-height:1.4" data-i18n="scan_qr_desc">请使用 Shadowrocket（小火箭）或 Clash 等客户端内置扫码功能添加。</p>
           <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
             <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px"><use href="#i-alert"/></svg>
             <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">提示：请使用 Shadowrocket / Clash 等代理客户端内置相机扫码，不要使用微信直接扫码。</span>
@@ -368,22 +368,25 @@
         <!-- Mode 2: Direct SSH Connection (Default) -->
         <div id="box-ssh-direct" style="display:block">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
-        <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
+        <details class="inner" id="ssh-agent-assist-details" style="margin:0 0 12px 0">
+          <summary class="small muted" style="cursor:pointer" data-i18n="ssh_agent_assist_summary">开发者 / AI 助手自动装配（可选）</summary>
+          <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
 我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
 目标说明：
 [仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
 
 请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
-1. 本机引擎与盲签收密：
-   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 盲签页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
+1. 本机引擎与本机收密：
+   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 安全收密页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
 2. 自动扫雷与系统加固：
-   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、443、8443 端口）、确保 root 权限畅通；
+   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、80、443、8443 端口）、确保 root 权限畅通；
    - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
 3. 一键纳管并出网验真：
    - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
    - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
 4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
-        <p class="small muted" style="margin:0 0 12px 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
+          <p class="small muted" style="margin:8px 0 0 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
+        </details>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
         <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>

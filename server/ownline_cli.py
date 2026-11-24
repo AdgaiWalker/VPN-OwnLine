@@ -387,6 +387,13 @@ def run_doctor(*, check_update=False, state_path=None, diag_log=None):
         bundle_ready = buf.tell() > 0
     except Exception:
         bundle_ready = False
+    ca_bundle_ready = False
+    try:
+        import certifi
+        ca_path = certifi.where()
+        ca_bundle_ready = bool(ca_path and Path(ca_path).is_file())
+    except Exception:
+        ca_bundle_ready = not runtime_paths.is_frozen()
     version_info = system_updater.get_version_info(base_dir=ROOT)
     resolved_state = Path(state_path) if state_path is not None else default_state_path()
     daemon_running = _connect_existing(resolved_state) is not None
@@ -402,6 +409,7 @@ def run_doctor(*, check_update=False, state_path=None, diag_log=None):
         "dependencies": deps,
         "web_bundles": web_files,
         "bundle_ready": bundle_ready,
+        "ca_bundle_ready": ca_bundle_ready,
         "version": version_info.get("version"),
         "commit": version_info.get("commit"),
         "daemon_running": daemon_running,
@@ -416,6 +424,7 @@ def run_doctor(*, check_update=False, state_path=None, diag_log=None):
                 "ok": result["ok"],
                 "frozen": result["frozen"],
                 "bundle_ready": bundle_ready,
+                "ca_bundle_ready": ca_bundle_ready,
                 "platform": sys.platform,
                 "gui_available": result["gui_available"],
             },

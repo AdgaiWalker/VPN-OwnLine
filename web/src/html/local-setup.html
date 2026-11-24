@@ -30,19 +30,20 @@
 <div><strong id="selected-name"></strong><span id="selected-address"></span></div>
 <button id="change-instance" class="text-button" type="button">更换实例</button>
 </div>
-<label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
-<span id="ssh-key-status" role="status"></span>
+<label>服务器密码或 SSH 私钥<input id="ssh-credential" name="password" type="password" required placeholder="输入密码，或直接粘贴整段 SSH 私钥" autocomplete="off" spellcheck="false" aria-describedby="ssh-key-status"></label>
+<div class="actions" style="margin-top:4px;gap:8px;align-items:center"><span id="ssh-key-status" role="status"></span><button id="clear-ssh-key" class="text-button" type="button" hidden>清除私钥</button></div>
 <details id="ssh-options"><summary>连接设置（非 root 账号或非 22 端口点此）</summary>
-<p class="field-note">默认尝试 root；使用 Oracle Cloud 或腾讯云轻量 Ubuntu 镜像时可填写 ubuntu（支持免密 sudo 自动提权）。</p>
+<p class="field-note">默认尝试 root；使用 Oracle Cloud 或腾讯云轻量 Ubuntu 镜像时可填写 ubuntu（自动提权，无需配置）。</p>
 <div class="row"><label>用户名<input name="username" value="root" required autocomplete="off" autocapitalize="off" spellcheck="false"></label><label>SSH 端口<input name="ssh_port" type="number" inputmode="numeric" min="1" max="65535" value="22" required></label></div>
-<label>私钥密码（可选）<input name="passphrase" type="password" autocomplete="off"></label>
+<label>私钥密码（如私钥无加密可留空）<input name="passphrase" type="password" autocomplete="off"></label>
 </details>
 <button id="check" type="submit">测试连接</button>
 </fieldset></form>
 <section id="tencent" hidden aria-label="选择腾讯云实例">
 <form id="tencent-credentials" method="post">
 <fieldset id="tencent-fields" aria-label="腾讯云 API 密钥">
-<p class="field-note">用只读 API 密钥查找你的轻量应用服务器或 CVM 实例。</p>
+<p class="field-note">用只读 API 密钥查找你的轻量应用服务器或 CVM 云服务器实例。</p>
+<!-- {{LOCAL_TC_CAM_GUIDE}} -->
 <div class="row">
 <label>SecretId<input id="tencent-secret-id" name="secret_id" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
 <label>SecretKey<input id="tencent-secret-key" name="secret_key" type="password" required maxlength="256" autocomplete="off" spellcheck="false"></label>
@@ -101,14 +102,16 @@
 <section id="ssh-help" aria-labelledby="ssh-help-title" hidden>
 <div class="help-heading">
 <h2 id="ssh-help-title">准备工作与选型参考</h2>
-<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span>复制 Agent 任务书</span></button>
 </div>
 <!-- {{LOCAL_NO_SERVER_GUIDE}} -->
-<p id="ssh-agent-purpose">如有本地 AI 编程助手，也可复制任务书由助手协作完成；密码和私钥请始终在本机网页填写。</p>
-<p id="ssh-copy-status" class="field-note" role="status"></p>
-<details id="ssh-help-details"><summary>查看端口放行清单与 Agent 任务书</summary>
+<details id="ssh-help-details"><summary>端口放行清单与开发者 / AI 助手自动装配（可选）</summary>
 <p>使用空白 Ubuntu 22.04+ 或 Debian 12+（支持 root 或云商默认账号如 ubuntu）。在云控制台防火墙 / 安全组放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需）、8443/TCP、443/TCP 和 443/UDP。</p>
 <p>凭据仅在本机内存中使用。SSH 凭据用于连接你的服务器，云 API 密钥仅用于直接向腾讯云读取实例。</p>
+<p id="ssh-agent-purpose" class="field-note">如有本地 AI 编程助手，也可复制任务书由助手协作完成；密码和私钥请始终在本机网页填写。</p>
+<div class="actions" style="margin:6px 0">
+<button id="copy-ssh-prompt" class="secondary" type="button" aria-describedby="ssh-agent-purpose ssh-copy-status"><svg class="ico" aria-hidden="true"><use href="#i-copy"/></svg><span>复制 Agent 任务书</span></button>
+<span id="ssh-copy-status" class="field-note" role="status"></span>
+</div>
 <pre id="ssh-prompt" aria-label="Agent 任务书">{{AGENT_BRIEF}}</pre>
 <div class="help-links">
 <a href="https://github.com/AdgaiWalker/VPN-OwnLine/releases" target="_blank" rel="noopener noreferrer">查看版本发布</a>
@@ -122,4 +125,5 @@
 <span id="update-status" class="field-note" role="status" hidden></span>
 </div>
 <button id="quit" class="text-button" type="button" hidden>关闭本地服务</button>
+<p class="field-note" style="flex-basis:100%;margin:4px 0 0">安装并保存初始密码后，点击「关闭本地服务」即可清空内存凭据。</p>
 </footer></main><script>/* {{SCRIPT}} */</script></body></html>

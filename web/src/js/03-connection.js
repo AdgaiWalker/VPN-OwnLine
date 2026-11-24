@@ -403,6 +403,7 @@
       var field = document.getElementById(id);
       if (advanced && (id === "other-user" || id === "other-ssh-port")) advanced.open = true;
       field.setAttribute("aria-invalid", "true");
+      if (note && note.style) note.style.color = "var(--bad, #dc2626)";
       note.textContent = message;
       field.focus();
     }
@@ -415,6 +416,7 @@
       resultBox.style.display = "none";
       if (confirmBox) confirmBox.style.display = "none";
       pendingNodeInstall = null;
+      if (note && note.style) note.style.color = "";
       if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "仅测试连接，尚未安装节点。";
     }
     ["other-ip", "other-user", "other-ssh-port", "other-passphrase"].forEach(function (id) {
@@ -441,6 +443,10 @@
         fieldError("other-ip", zh ? "请填写服务器公网 IP。" : "Enter the server public IP.");
         return;
       }
+      if (/:\/\/|[\/\s：]/.test(host) || /^[^\[\]]+:\d+$/.test(host)) {
+        fieldError("other-ip", zh ? "请输入纯公网 IPv4 或域名（不要包含 https://、空格或端口号）。" : "Enter a plain IPv4 or hostname (no https://, spaces, or port).");
+        return;
+      }
       if (!password && !otherPrivateKey) {
         fieldError("other-credential", zh ? "请输入服务器密码，或粘贴完整的 SSH 私钥。" : "Enter the server password or paste the complete SSH private key.");
         return;
@@ -462,6 +468,7 @@
       var controller = otherCheckController;
       setOtherCheckBusy(true);
       resultBox.style.display = "none";
+      if (note && note.style) note.style.color = "";
       note.textContent = "正在只读检测服务器连接...";
       async function requestCheck() {
         var checkUrl = typeof safeUrl === "function" ? safeUrl("/api/node/check") : "/api/node/check";
@@ -494,6 +501,7 @@
           } else if (/no route to host|network unreachable/i.test(msg)) {
             msg = "网络不可达：请检查公网 IP 或确认实例已开机。";
           }
+          if (note && note.style) note.style.color = "var(--bad, #dc2626)";
           note.textContent = msg;
           return;
         }
@@ -503,6 +511,7 @@
         var serviceNote = item.existing_singbox ? "检测到已有 sing-box 服务，未作改动。" : (!hasPriv || item.singbox_service === "unknown") ? "未能确认服务状态，尚未安装。" : "未检测到已有 sing-box，尚未安装。";
         resultBox.textContent = "连接检测通过 · " + (item.os || "未知系统") + " " + (item.version || "") + " · " + (item.architecture || "未知架构") + " · " + privLabel + "。" + serviceNote + " " + (item.message || "");
         resultBox.style.display = "block";
+        if (note && note.style) note.style.color = "";
         note.textContent = "只读检测已完成。";
 
         if (confirmBox && item.ready_for_install === true && /^[a-f0-9]{64}$/.test(data.check_ticket || "")) {
@@ -515,7 +524,10 @@
           confirmBox.style.display = "block";
         }
       } catch (error) {
-        if (error.name !== "AbortError") note.textContent = "连接检测未完成，请检查网络后重试。";
+        if (error.name !== "AbortError") {
+          if (note && note.style) note.style.color = "var(--bad, #dc2626)";
+          note.textContent = "连接检测未完成，请检查网络后重试。";
+        }
       } finally {
         body.password = ""; body.private_key = ""; body.passphrase = "";
         if (otherCheckController === controller) {

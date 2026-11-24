@@ -18,7 +18,7 @@ test('ssh ai prompt: HTML elements, onboarding brief, and SKILL.md exist', () =>
   assert(html.includes('Evergreen · OwnLine'), 'Prompt must mention Evergreen · OwnLine');
   assert(html.includes('Ubuntu 22.04+'), 'Prompt must specify Ubuntu 22.04+ compatibility');
   assert(html.includes('Debian 12+'), 'Prompt must specify Debian 12+ compatibility');
-  assert(html.includes('22、443、8443'), 'Prompt must specify ports 22, 443, 8443');
+  assert(html.includes('22、80、443、8443'), 'Prompt must specify ports 22, 80, 443, 8443');
   assert(html.includes('verify.py'), 'Prompt must reference verify.py for turnkey test');
 
   // Verify canonical SSOT brief and SKILL.md integrity

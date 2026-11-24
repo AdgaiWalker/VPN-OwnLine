@@ -301,8 +301,33 @@ def port_reachable(host, port, timeout=6):
     except Exception:
         return False
 
+def _sync_status_entry(name, ok, reason=""):
+    """Keep status.json aligned with synchronous /api/verify and /api/repair mutations."""
+    if not name or not os.path.isdir(DATA):
+        return
+    status_path = os.path.join(DATA, "status.json")
+    try:
+        status = _load_json("status.json", {})
+        if not isinstance(status, dict):
+            status = {}
+        entry = dict(status.get(name) or {}) if isinstance(status.get(name), dict) else {}
+        entry["ok"] = bool(ok)
+        if ok:
+            entry.pop("reason", None)
+        elif reason:
+            entry["reason"] = reason
+        status[name] = entry
+        status["_ts"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        tmp = status_path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(status, f, ensure_ascii=False)
+        os.replace(tmp, status_path)
+    except OSError:
+        pass
+
+
 def verify_node(node):
-    """跑一次自测，把结果写回 nodes.json。"""
+    """跑一次自测，把结果写回 nodes.json 并同步 status.json。"""
     r = verify_mod.run(node)
 
     def _apply(nodes):
@@ -317,6 +342,7 @@ def verify_node(node):
         return nodes
 
     update_nodes(_apply)
+    _sync_status_entry(node.get("name"), r.get("health") == "ok", reason=r.get("health") or "")
     render()
     return r
 
@@ -983,25 +1009,35 @@ class H(BaseHTTPRequestHandler):
             host_filter = (body.get("host") or "").strip() or None
             usage = _load_json("usage.json", {})
             history = _load_json("traffic_history.json", {})
-            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=load_nodes())
+            active_nodes = load_nodes()
+            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=active_nodes)
             panel_gb = float((report.get("total") or {}).get("this_month_gb") or 0.0)
             panel_rday = None
             nodes_map = report.get("nodes") if isinstance(report.get("nodes"), dict) else {}
             if host_filter and isinstance(nodes_map.get(host_filter), dict):
                 panel_gb = float(nodes_map[host_filter].get("used_gb") or 0.0)
-                panel_rday = quota_mod.parse_reset_day(nodes_map[host_filter].get("end"))
-            elif nodes_map:
-                for item in nodes_map.values():
-                    if isinstance(item, dict) and item.get("end"):
-                        panel_rday = quota_mod.parse_reset_day(item.get("end"))
-                        if panel_rday is not None:
-                            break
-            if panel_rday is None and isinstance(usage, dict):
+            if isinstance(usage, dict):
                 for k, v in usage.items():
                     if not str(k).startswith("_") and isinstance(v, dict):
                         if host_filter and k != host_filter:
                             continue
-                        panel_rday = quota_mod.parse_reset_day(v.get("reset_day") or v.get("end"))
+                        panel_rday = quota_mod.parse_reset_day(v.get("reset_day"))
+                        if panel_rday is not None:
+                            break
+            if panel_rday is None:
+                for n in active_nodes or ():
+                    if isinstance(n, dict) and n.get("reset_day") is not None:
+                        if host_filter and (n.get("host") or n.get("ip")) != host_filter:
+                            continue
+                        panel_rday = quota_mod.parse_reset_day(n.get("reset_day"))
+                        if panel_rday is not None:
+                            break
+            if panel_rday is None and host_filter and isinstance(nodes_map.get(host_filter), dict):
+                panel_rday = quota_mod.parse_reset_day(nodes_map[host_filter].get("end"))
+            elif panel_rday is None and nodes_map:
+                for item in nodes_map.values():
+                    if isinstance(item, dict) and item.get("end"):
+                        panel_rday = quota_mod.parse_reset_day(item.get("end"))
                         if panel_rday is not None:
                             break
             try:
@@ -1418,6 +1454,9 @@ class H(BaseHTTPRequestHandler):
                                 n["health_detail"] = r["detail"]
                     return ns
                 update_nodes(_apply)
+                after_health = r.get("after") or "ok"
+                repaired_ok = bool(r.get("ok")) or after_health == "ok"
+                _sync_status_entry(t.get("name"), repaired_ok, reason="" if repaired_ok else after_health)
                 lvl = "INFO" if r.get("ok") else "WARN"
                 logger.log(lvl, "REPAIR", "自愈节点 [%s]: %s -> %s (%s)" %
                            (t.get("name"), r.get("before"), r.get("after"), r.get("detail")))

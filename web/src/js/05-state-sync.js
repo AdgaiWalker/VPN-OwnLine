@@ -7,8 +7,47 @@
     });
   }
 
+  function syncHeroQuotaSummary() {
+    var zh = (typeof isZh === "function") ? isZh() : true;
+    var overallPct = (typeof STATE !== "undefined" && STATE && typeof STATE.heroOverallPct === "number") ? STATE.heroOverallPct : 0;
+    var anyTripped = !!(typeof STATE !== "undefined" && STATE && STATE.heroAnyTripped);
+    var bottleneck = (typeof STATE !== "undefined" && STATE) ? STATE.relayBottleneck : null;
+    var elStatus = document.getElementById("quota-hero-status");
+    var elSafe = document.getElementById("quota-hero-nodes-safe");
+    if (elStatus) {
+      if (anyTripped || overallPct >= 85) {
+        elStatus.textContent = zh ? "已熔断" : "Tripped";
+        elStatus.className = "tag bad";
+      } else if (bottleneck && bottleneck.is_relay_bottleneck) {
+        elStatus.textContent = zh ? "跳板受限" : "Relay Bottleneck";
+        elStatus.className = "tag warn";
+      } else if (overallPct >= 75) {
+        elStatus.textContent = zh ? "预警" : "Warning";
+        elStatus.className = "tag warn";
+      } else {
+        elStatus.textContent = zh ? "充足" : "Healthy";
+        elStatus.className = "tag ok";
+      }
+    }
+    if (elSafe) {
+      if (anyTripped) {
+        elSafe.textContent = zh ? "部分节点已触发保护熔断" : "Quota protection tripped on some nodes";
+        if (elSafe.style) elSafe.style.color = "var(--apple-red)";
+      } else if (bottleneck && bottleneck.is_relay_bottleneck) {
+        elSafe.textContent = zh
+          ? ("落地机尚足，但中转跳板「" + bottleneck.relay_name + "」仅余 " + bottleneck.relay_remaining_gb + " GB")
+          : ("Egress ample, but relay \"" + bottleneck.relay_name + "\" has " + bottleneck.relay_remaining_gb + " GB left");
+        if (elSafe.style) elSafe.style.color = "var(--apple-amber, #b45309)";
+      } else {
+        elSafe.textContent = zh ? "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板" : "All egress servers within safe quota";
+        if (elSafe.style) elSafe.style.color = "var(--apple-muted)";
+      }
+    }
+  }
+
   function renderTrafficBreakdown(report) {
     if (!report) return;
+    if (typeof STATE !== "undefined" && STATE) STATE.trafficReport = report;
     var tot = report.total || {};
     var todayEl = document.getElementById("traffic-stat-today");
     var yestEl = document.getElementById("traffic-stat-yesterday");
@@ -20,15 +59,19 @@
     if (yearEl && tot.this_year_gb != null) yearEl.textContent = tot.this_year_gb + " GB";
 
     var guide = tot.guidance || {};
+    if (typeof STATE !== "undefined" && STATE) {
+      STATE.relayBottleneck = (guide.bottleneck && guide.bottleneck.is_relay_bottleneck) ? guide.bottleneck : null;
+    }
     var gBadge = document.getElementById("traffic-guidance-badge");
     var gText = document.getElementById("traffic-guidance-text");
     if (gBadge && guide.badge) {
       gBadge.textContent = guide.badge;
-      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : (guide.pace === "heavy" ? "warn" : "ok"));
+      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : ((guide.pace === "heavy" || guide.pace === "warn") ? "warn" : "ok"));
     }
     if (gText && guide.text) {
       gText.textContent = guide.text;
     }
+    syncHeroQuotaSummary();
   }
 
   function setQuotaMessage(box, message) {
@@ -103,15 +146,14 @@
     if (heroBanner) {
       if (egressCap > 0) {
         var overallPct = Math.min(100, Math.round((egressUsed / egressCap) * 100));
-        var remGb = Math.max(0, Math.round((egressCap - egressUsed) * 10) / 10);
-        var usedFmt = (Math.round(egressUsed * 10) / 10).toString();
+        var remGb = Math.max(0, Math.round((egressCap - egressUsed) * 100) / 100);
+        var usedFmt = (Math.round(egressUsed * 100) / 100).toString();
         var totalFmt = Math.round(egressCap).toString() + " GB";
         var elUsed = document.getElementById("quota-hero-used");
         var elTotal = document.getElementById("quota-hero-total");
         var elPct = document.getElementById("quota-hero-percent");
         var elRem = document.getElementById("quota-hero-rem");
         var elFill = document.getElementById("quota-hero-fill");
-        var elStatus = document.getElementById("quota-hero-status");
         if (elUsed) elUsed.textContent = usedFmt;
         if (elTotal) elTotal.textContent = totalFmt;
         if (elPct) elPct.textContent = "(" + overallPct + "%)";
@@ -120,16 +162,12 @@
           elFill.style.width = overallPct + "%";
           elFill.style.background = overallPct >= 85 ? "var(--apple-red)" : (overallPct >= 75 ? "var(--apple-amber)" : "var(--apple-blue)");
         }
-        if (elStatus) {
-          elStatus.textContent = overallPct >= 85 ? "已熔断" : (overallPct >= 75 ? "预警" : "充足");
-          elStatus.className = "tag " + (overallPct >= 85 ? "bad" : (overallPct >= 75 ? "warn" : "ok"));
-        }
         var anyTripped = groups.some(function(g){ return g.status === "tripped" || (g.percent && g.percent >= 85); });
-        var elSafe = document.getElementById("quota-hero-nodes-safe");
-        if (elSafe) {
-          elSafe.textContent = anyTripped ? "部分节点已触发保护熔断" : "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板";
-          elSafe.style.color = anyTripped ? "var(--apple-red)" : "var(--apple-muted)";
+        if (typeof STATE !== "undefined" && STATE) {
+          STATE.heroOverallPct = overallPct;
+          STATE.heroAnyTripped = anyTripped;
         }
+        syncHeroQuotaSummary();
         heroBanner.style.display = "block";
       } else {
         heroBanner.style.display = "none";
@@ -243,15 +281,14 @@
     Promise.allSettled([
       jsonRequest("/api/settings", { signal: signal }),
       jsonRequest("/api/nodes", { signal: signal }),
-      jsonRequest("/api/quota/guard", { signal: signal }),
-      jsonRequest("/api/setup", { signal: signal })
+      jsonRequest("/api/quota/guard", { signal: signal })
     ]).then(function (res) {
       if (signal && signal.aborted) return;
       if (typeof window !== "undefined" && (window.isTogglingHy2 || window.isRelayMutating)) return;
       var settings = res[0].status === "fulfilled" ? res[0].value : null;
       var nodes = res[1].status === "fulfilled" && Array.isArray(res[1].value) ? res[1].value : null;
       var quota = res[2].status === "fulfilled" && res[2].value && res[2].value.ok === true ? res[2].value : null;
-      var setup = res[3].status === "fulfilled" ? res[3].value : null;
+      var setup = null;
       var mh = document.getElementById("management-help");
       if (mh) mh.style.display = settings && settings.ok === true ? "" : "none";
       var modernBackend = !!(settings && Number.isInteger(settings.quota_threshold));
@@ -371,17 +408,29 @@
           setTimeout(function () { window.ownlineProbeLocalPing(); }, 150);
         }
       }
-      var distinctHosts = {};
-      (nodes || []).forEach(function (n) {
-        var h = n.host || n.ip;
-        if (h) distinctHosts[h] = true;
-      });
-      var serverCount = Object.keys(distinctHosts).length || (nodes ? nodes.length : 0);
-      var badge = document.getElementById("nodes-count-badge");
-      if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
-      var servingIp = document.getElementById("serving-node-ip");
-      if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
+      updateServerCountBadges();
     });
+  }
+
+  function updateServerCountBadges() {
+    var zh = (typeof isZh === 'function') ? isZh() : true;
+    var nodes = (typeof NODES !== 'undefined' && Array.isArray(NODES)) ? NODES : [];
+    var distinctHosts = {};
+    nodes.forEach(function (n) {
+      var h = n.host || n.ip;
+      if (h) distinctHosts[h] = true;
+    });
+    var serverCount = Object.keys(distinctHosts).length || nodes.length;
+    var badge = document.getElementById("nodes-count-badge");
+    if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
+    var servingIp = document.getElementById("serving-node-ip");
+    if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
+    syncHeroQuotaSummary();
+  }
+  if (typeof window !== "undefined") {
+    window.ownlineUpdateServerCountBadges = updateServerCountBadges;
+    window.ownlineRenderTrafficBreakdown = renderTrafficBreakdown;
+    window.ownlineRenderQuotaList = renderQuotaList;
   }
 
   function initQuotaSettings() {
@@ -397,6 +446,14 @@
     };
     var recForm = document.getElementById("billing-reconcile-form");
     if (recForm) {
+      var clearRecResult = function () {
+        var box = document.getElementById("billing-reconcile-result");
+        if (box) box.textContent = "";
+      };
+      if (typeof recForm.addEventListener === "function") {
+        recForm.addEventListener("input", clearRecResult);
+        recForm.addEventListener("invalid", clearRecResult, true);
+      }
       recForm.onsubmit = function (event) {
         event.preventDefault();
         var zh = (typeof isZh === "function") ? isZh() : true;
@@ -431,9 +488,12 @@
               ? (zh ? "已对齐" : "Aligned")
               : (data.status === "minor_drift" ? (zh ? "轻微偏差" : "Minor drift") : (zh ? "差异偏大" : "Discrepancy"));
             var sign = Number(data.delta_gb) >= 0 ? "+" : "";
+            var mismatchDetail = (data.panel_reset_day && data.official_reset_day)
+              ? (zh ? ("（面板每月 " + data.panel_reset_day + " 号 vs 账单每月 " + data.official_reset_day + " 号）") : (" (panel " + data.panel_reset_day + " vs official " + data.official_reset_day + ")"))
+              : "";
             var resetText = data.reset_day_match === true
               ? (zh ? " · 重置日一致" : " · Reset day matches")
-              : (data.reset_day_match === false ? (zh ? " · 重置日不一致" : " · Reset day mismatch") : "");
+              : (data.reset_day_match === false ? ((zh ? " · 重置日不一致" : " · Reset day mismatch") + mismatchDetail) : "");
             if (resBox) {
               resBox.textContent = verdict + "：面板 " + data.panel_gb + " GB / 云账单 " + data.official_gb + " GB（差 " + sign + data.delta_gb + " GB，" + data.delta_pct + "%）" + resetText;
             }

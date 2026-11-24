@@ -151,6 +151,27 @@ test('parseWebshareProxy parses curl command, 4-colon list, and credentials corr
     username: 'dora2026',
     password: 'secretpass'
   });
+
+  // 6. curl --proxy + --proxy-user / -U
+  const curlProxyUser = parseWebshareProxy('curl --proxy http://198.51.100.22:8080 --proxy-user wsuser:wspass123 https://ipv4.webshare.io/');
+  assert.deepEqual(curlProxyUser, {
+    type: 'http',
+    server: '198.51.100.22',
+    server_port: 8080,
+    username: 'wsuser',
+    password: 'wspass123'
+  });
+
+  const curlShortU = parseWebshareProxy('curl -x socks5://198.51.100.22:8080 -U "u:p:1" https://ipv4.webshare.io/');
+  assert.deepEqual(curlShortU, {
+    type: 'socks',
+    server: '198.51.100.22',
+    server_port: 8080,
+    username: 'u',
+    password: 'p:1'
+  });
+
+  assert.equal(parseWebshareProxy('hello world'), null);
 });
 
 test('renderNodes displays muted WARP standby instead of active ok WARP badge when ISP is mounted', () => {

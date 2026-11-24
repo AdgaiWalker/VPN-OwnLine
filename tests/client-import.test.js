@@ -11,18 +11,32 @@ function source(name) {
   return match[0];
 }
 
-function context(ua = '') {
+function context(ua = '', opts = {}) {
   const ids = ['suburl', 'btn-copy-sub', 'btn-copy-clash', 'btn-sr', 'btn-clash', 'btn-flclash',
+    'pill-sr', 'pill-clash', 'pill-flclash', 'client-item-sr', 'client-item-clash', 'client-item-flclash',
     'apple-store-help', 'download-sr', 'download-clash', 'download-flclash',
+    'hub-dl-clash', 'hub-dl-flclash', 'hub-dl-sr',
     'assist-sr', 'assist-clash', 'assist-flclash',
     'clash-ios-help', 'import-note', 'copy-note', 'download-help'];
   const els = Object.fromEntries(ids.map(id => [id, {id, style: {}, disabled: true, href: '#', textContent: '',
     className: '', setAttribute(k, v){this[k]=v;}, getAttribute(k){return this[k];}, removeAttribute(name) {this.removed = name;}}]));
+  const appendedFrames = [];
+  const doc = {
+    getElementById: id => els[id] || null,
+    querySelectorAll: () => [],
+  };
+  if (opts.withBody) {
+    doc.body = {
+      appendChild(el) { appendedFrames.push(el); el.parentNode = this; },
+      removeChild(el) { el.removedFromBody = true; }
+    };
+    doc.createElement = tag => ({ tagName: tag.toUpperCase(), style: {}, setAttribute(){}, src: '' });
+  }
   const c = vm.createContext({BASE_SUB_URL: '', navigator: {userAgent: ua, maxTouchPoints: 0},
-    document: {getElementById: id => els[id] || null, querySelectorAll: () => []},
-    encodeURIComponent, btoa});
+    document: doc,
+    encodeURIComponent, btoa, setTimeout: () => 0});
   vm.runInContext([source('wireLinks'), source('detectClient')].join('\n'), c);
-  return {c, els};
+  return {c, els, appendedFrames};
 }
 
 test('without a real subscription the client links and copy actions stay unavailable', () => {
@@ -62,4 +76,29 @@ test('device-specific clients and official download links stay separate', () => 
     if (android) assert.match(els['download-clash'].href, /^https:\/\/github\.com\/MetaCubeX\/ClashMetaForAndroid\/releases$/);
     else if (fl) assert.match(els['download-clash'].href, /^https:\/\/github\.com\/clash-verge-rev\/clash-verge-rev\/releases$/);
   }
+});
+
+test('client clicks prevent navigation, launch hidden iframe, prioritize Clash on macOS and hide desktop downloads on iOS', () => {
+  const mac = context('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
+  mac.c.detectClient();
+  assert.doesNotMatch(mac.els['btn-sr'].className, /\bprimary\b/);
+  assert.match(mac.els['btn-clash'].className, /\bprimary\b/);
+  assert.equal(mac.els['hub-dl-clash'].style.display, '');
+
+  const ios = context('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)', { withBody: true });
+  ios.c.BASE_SUB_URL = 'https://example.test/s/abcd1234';
+  ios.c.detectClient();
+  ios.c.wireLinks(true);
+  assert.match(ios.els['btn-sr'].className, /\bprimary\b/);
+  assert.equal(ios.els['hub-dl-clash'].style.display, 'none');
+  assert.equal(ios.els['hub-dl-flclash'].style.display, 'none');
+  assert.equal(ios.els['hub-dl-sr'].style.display, '');
+
+  let prevented = false;
+  ios.els['btn-sr'].onclick({ preventDefault() { prevented = true; } });
+  assert.equal(prevented, true);
+  assert.equal(ios.appendedFrames.length, 1);
+  assert.equal(ios.appendedFrames[0].tagName, 'IFRAME');
+  assert.match(ios.appendedFrames[0].src, /^shadowrocket:\/\/add\/sub:\/\//);
+  assert.equal(ios.els['assist-sr'].style.display, 'block');
 });

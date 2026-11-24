@@ -4,11 +4,11 @@
 > 💡 **核心成本**：搭建普通节点每年仅需 **0 ~ 99 元**（服务器可完全白嫖），在此基础上只需再加 **85 元/年**（12 美元）挂载美国家宽 IP，即可升级为彻底防封的家庭住宅节点。  
 > 资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，2 分钟全自动装配，一个私有网页多端同步。
 
-[![Release: v0.9.0](https://img.shields.io/badge/Release-v0.9.0-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.0)
+[![Release: v0.9.1](https://img.shields.io/badge/Release-v0.9.1-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.1)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 1023 Passed](https://img.shields.io/badge/Tests-1023%20Passed%20(100%25)-success.svg)]()
+[![Tests: 1026 Passed](https://img.shields.io/badge/Tests-1026%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](docs/adr.md#adr-018)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](docs/adr.md#adr-018)
 [![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](docs/adr.md#adr-032)
@@ -49,34 +49,37 @@ flowchart LR
 
 ## 2 分钟极速装配
 
-材料就绪后，所有选型、端口、家宽、客户端与可选域名指南均已内嵌产品界面并单源维护于 [web/src/data/onboarding.json](web/src/data/onboarding.json)；按以下任一方式完成从 0 到 1 部署：
+材料就绪后，选型、端口、家宽、客户端与可选域名指南均已内嵌产品界面。普通用户直接使用下方「方式 1」图形安装器即可，全程无需打开终端：
 
 ### 方式 1：免 Python 独立安装包（零命令行 · 推荐小白）
 
-直接前往 [v0.9.0 发布页](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.0) 下载对应系统的独立安装包（内置全部依赖，无需安装 Python，无终端黑框）：
+直接前往 [v0.9.1 发布页](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.1) 下载对应电脑的独立安装包（内置全部运行依赖，无需安装 Python）：
 
-- **macOS（Apple Silicon）**：下载并解压 `OwnLine-Setup-v0.9.0-macOS-arm64.zip`，双击 **`OwnLine-Setup.app`**
-- **Windows 10 / 11**：下载并解压 `OwnLine-Setup-v0.9.0-Windows-x64.zip`，双击 **`OwnLine-Setup.exe`**
-- **源码运行 / Linux**：解压源码包 `vpn-ownline-v0.9.0.zip`（或 `.tar.gz`），macOS 双击 **`启动安装.command`**、Windows 双击 **`启动安装.bat`**、Linux 运行 `python3 ownline.py ui`
+- **macOS（M1 / M2 / M3 / M4 等 Apple Silicon 芯片）**：点左上角苹果图标「关于本机 -> 芯片」，显示 Apple M 系列芯片即下载 `OwnLine-Setup-v0.9.1-macOS-arm64.zip`，解压后双击 **`OwnLine-Setup.app`**
+- **Windows 10 / 11**：下载并解压 `OwnLine-Setup-v0.9.1-Windows-x64.zip`，双击 **`OwnLine-Setup.exe`**
+- **旧款 Intel 芯片 Mac / Linux**：下载源码包 `vpn-ownline-v0.9.1.zip`（需先安装 Python 3.10+），Intel Mac 双击 **`启动安装.command`**，Linux 运行 `python3 ownline.py ui`；无权限可折叠下方改用「方式 3 一行命令」（`SHA256SUMS.txt` 仅供高阶校验，新手可忽略）
 
-> 首次打开提示说明：因开源项目未采购商业签名证书，首次双击若被系统安全策略拦截属于正常现象：**macOS** 打开「系统设置 -> 隐私与安全性」点击「仍要打开」；**Windows** 在蓝屏防护框点击「更多信息 -> 仍要运行」（安装包均随 `SHA256SUMS.txt` 发布校验）。
+> 首次打开提示说明：因开源项目未采购商业签名证书，首次双击若被系统安全策略拦截属于正常现象：**macOS** 若提示“无法验证开发者”或建议“移至废纸篓”，先点取消，再打开「系统设置 -> 隐私与安全性」下拉点击「仍要打开」；**Windows** 在 Windows 安全警告弹窗（SmartScreen）点击「更多信息 -> 仍要运行」。
 
-打开本机网页后支持「SSH 直连」（支持 `root` 或 Oracle / 腾讯云轻量 Ubuntu 默认的 `ubuntu` 免密 sudo 账号，同一栏可填密码或粘贴完整私钥）与「腾讯云（轻量与 CVM）只读发现」，未买机器时可在页内展开「还没有服务器」选型与端口指引；首次连接会弹窗锁定服务器身份指纹，再显式确认安装并实时展示真实阶段与耗时。安装期间保持本机运行；一键复制或保存初始密码并点击「关闭本地服务」后，内存中的任务与凭据随即清空。
+打开本机网页后支持「SSH 直连」（支持 `root` 或 Oracle / 腾讯云轻量 Ubuntu 默认 `ubuntu` 账号，自动提权；同一栏可填密码或粘贴完整私钥）与「腾讯云只读发现」（如需 API 读取请到腾讯云 CAM 控制台创建仅含轻量与 CVM 只读权限的子账号）。未买机器时可在页内展开「还没有服务器」；首次连接会弹窗核对服务器唯一指纹防篡改；安装完成后系统自动以你的服务器 IP 映射免费安全域名（`https://服务器IP短横线.sslip.io:8443/`）并自动申请浏览器信任证书，管理权限与密码 100% 留在本机与你自己的服务器，无任何第三方托管。复制保存初始密码后点击「关闭本地服务」即可清空内存凭据。
 
-> 安全组端口要求：在云控制台防火墙 / 安全组放行 `SSH 端口（默认 22）`、`80/TCP`（自动申请 HTTPS 证书必需）、`8443/TCP`、`443/TCP`、`443/UDP`。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器。
+> 安全组端口要求：在云控制台防火墙 / 安全组（如甲骨文云为「VCN 安全列表入站规则」，腾讯云 / 阿里云为「防火墙规则」）放行 `SSH 端口（默认 22）`、`80/TCP`（自动申请 HTTPS 证书必需）、`8443/TCP`、`443/TCP`、`443/UDP`。仅支持空白 Ubuntu 22.04+ / Debian 12+ 服务器。
 
 <a id="ai-assisted-setup"></a>
 
-### 方式 2：本地 AI Agent + 本机盲签凭据库（开发者 / 全平台）
+<details>
+<summary>开发者 / AI 助手与命令行备选（方式 2 · 方式 3）</summary>
+
+### 方式 2：本地 AI Agent + 本机安全凭据输入（开发者 / 全平台）
 
 不用学 Linux 命令，也**不要把服务器密码、SSH 私钥、腾讯云 API 密钥或 Webshare 口令发进聊天框**。  
 解压或克隆仓库后，在 **Cursor / Claude Code / Codex / Antigravity** 等具备本机终端权限的工具中，输入下面这段提示词（没买服务器可直接写“还没买服务器”；Windows 用户将 `python3` 换为 `py -3` 或 `python`，工具首次运行会自动按 `requirements.lock` 校验安装 `.venv`）：
 
 ```text
-在 Evergreen · OwnLine 代码库根目录工作，完整规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json：先运行 python3 ownline.py doctor --json；如我尚未购买服务器，先读 onboarding.json 为我对比方案与端口；需要 SSH、腾讯云 API、Webshare 或面板凭据时调用 python3 ownline.py vault request --slot <ssh|tencent_api|webshare_isp|panel_auth> 弹起本机盲签卡由我本人填写，凭句柄执行 check -> install -> apply 完成装配与验真，切勿索取或输出任何明文凭据。
+在 Evergreen · OwnLine 代码库根目录工作，完整规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json：先运行 python3 ownline.py doctor --json；如我尚未购买服务器，先读 onboarding.json 为我对比方案与端口；需要 SSH、腾讯云 API、Webshare 或面板凭据时调用 python3 ownline.py vault request --slot <ssh|tencent_api|webshare_isp|panel_auth> 弹起本机安全输入卡由我本人填写，凭句柄执行 check -> install -> apply 完成装配与验真，切勿索取或输出任何明文凭据。
 ```
 
-- 桌面系统会自动在浏览器打开仅监听 `127.0.0.1` 的单屏盲签卡片；无桌面 SSH/终端环境自动回退为本机隐藏输入（`getpass`）。
+- 桌面系统会自动在浏览器打开仅监听 `127.0.0.1` 的单屏凭据输入卡；无桌面 SSH/终端环境自动回退为本机隐藏输入（`getpass`）。
 - 密码与私钥仅存于本机临时内存句柄（`vh_...`），不落盘、不进诊断日志、不进 AI 对话上下文。
 
 ### 方式 3：自备服务器终端一行命令装配（极客备选）
@@ -91,6 +94,8 @@ curl -fsSL https://raw.githubusercontent.com/AdgaiWalker/VPN-OwnLine/main/deploy
   面板账号:   admin
   初始密码:   xxxxxxxxxxxxxxxxxxxx
   ```
+
+</details>
 
 ---
 

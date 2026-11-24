@@ -50,7 +50,7 @@ def normalize(body, allowed_targets=()):
     ):
         raise Problem(
             "TARGET_NOT_ALLOWED",
-            "此安装入口只允许公网目标；隔离测试目标需由入口管理员预先配置。",
+            "请输入云厂商分配的公网 IPv4 地址（不支持内网或保留测试 IP）。",
             403,
         )
     pin = str(body.get("fingerprint", ""))

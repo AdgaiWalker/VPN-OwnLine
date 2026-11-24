@@ -17,9 +17,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "server"))
 
 import admin  # noqa: E402
-from nodekit import installations, local_setup_runner, quota_guard  # noqa: E402
+import ownline_cli  # noqa: E402
+from nodekit import advise, installations, links, local_setup_runner, quota_guard, system_updater, traffic_stats  # noqa: E402
 from nodekit.local_setup_session import LocalSetupSession  # noqa: E402
-from nodekit.sshcheck import first_check, node_check  # noqa: E402
+from nodekit.node_manager import FileNodeStore, NodeManager, NodeValidationError  # noqa: E402
+from nodekit.sshcheck import first_check, node_check, transport  # noqa: E402
 from nodekit.sshcheck.problem import Problem  # noqa: E402
 import reset_admin_password as reset_tool  # noqa: E402
 
@@ -353,6 +355,102 @@ class ZeroCliWebOpsAndWorkflowTests(unittest.TestCase):
         self.assertIn("scripts/ops/external_probe.py", wf_text)
         self.assertNotIn("@v4", wf_text)
         self.assertNotIn("@v5", wf_text)
+
+    def test_v091_blind_test_regressions(self):
+        # P0-2: curl --proxy-user / -U preserved by links.parse_isp_proxy
+        parsed_curl = links.parse_isp_proxy(
+            "curl --proxy http://198.51.100.22:8080 --proxy-user wsuser:wspass123 https://ipv4.webshare.io/"
+        )
+        self.assertEqual(parsed_curl["type"], "http")
+        self.assertEqual(parsed_curl["server"], "198.51.100.22")
+        self.assertEqual(parsed_curl["server_port"], 8080)
+        self.assertEqual(parsed_curl["username"], "wsuser")
+        self.assertEqual(parsed_curl["password"], "wspass123")
+
+        parsed_u = links.parse_isp_proxy("curl -x socks5://198.51.100.22:8080 -U 'u:p:2' https://ipv4.webshare.io/")
+        self.assertEqual(parsed_u["username"], "u")
+        self.assertEqual(parsed_u["password"], "p:2")
+
+        # P1-5: NodeManager rejects invalid dict ISP server host with spaces
+        with tempfile.TemporaryDirectory() as td:
+            nodes_path = Path(td) / "nodes.json"
+            nodes_path.write_text(json.dumps([{"name": "us-1", "host": "43.153.56.137", "port": 443}]), encoding="utf-8")
+            nm = NodeManager(store=FileNodeStore(lambda: str(nodes_path)), links_mod=links)
+            with self.assertRaises(NodeValidationError):
+                nm.edit_node("us-1", {"isp": {"type": "socks", "server": "hello world", "server_port": 8080}})
+
+        # P0-3: system_updater uses certifi SSLContext & returns sanitized Chinese error
+        ctx = system_updater._build_ssl_context()
+        self.assertIsInstance(ctx, ssl.SSLContext)
+        with mock.patch.object(system_updater.urllib.request, "urlopen", side_effect=ssl.SSLError("CERTIFICATE_VERIFY_FAILED (_ssl.c:1006)")):
+            upd = system_updater.check_update(force=True)
+        self.assertFalse(upd["ok"])
+        self.assertNotIn("CERTIFICATE_VERIFY_FAILED", upd["error"])
+        self.assertNotIn("_ssl.c", upd["error"])
+        self.assertIn("证书校验失败", upd["error"])
+        doc = ownline_cli.run_doctor()
+        self.assertTrue(doc["ca_bundle_ready"])
+
+        # P1-2: verify_node updates status.json and advise hides raw "proxy"
+        with tempfile.TemporaryDirectory() as td:
+            td_path = Path(td)
+            nodes_file = td_path / "nodes.json"
+            status_file = td_path / "status.json"
+            nodes_file.write_text(json.dumps([{"name": "relay-hk", "host": "198.51.100.88", "port": 8443, "health": "proxy"}]), encoding="utf-8")
+            status_file.write_text(json.dumps({"relay-hk": {"ok": False, "reason": "proxy"}}), encoding="utf-8")
+            with mock.patch.object(admin, "DATA", str(td_path)), \
+                 mock.patch.object(admin, "NODES", str(nodes_file)), \
+                 mock.patch.object(admin.verify_mod, "run", return_value={"health": "ok", "exit_ip": "43.153.56.137", "exit_country": "US", "detail": "ok"}), \
+                 mock.patch.object(admin, "render", return_value=None):
+                admin.verify_node({"name": "relay-hk"})
+            updated_st = json.loads(status_file.read_text(encoding="utf-8"))
+            self.assertTrue(updated_st["relay-hk"]["ok"])
+            self.assertNotIn("reason", updated_st["relay-hk"])
+
+        adv_proxy = advise.advise({"health": "unknown"}, {"ok": False, "reason": "proxy"})
+        self.assertNotIn("proxy", adv_proxy["reason"])
+        self.assertIn("代理不通", adv_proxy["reason"])
+
+        # P1-3: relay bottleneck guidance keeps days_remaining + cycle-end notice
+        now_dt = traffic_stats.datetime.datetime(2026, 11, 22, 12, 0, tzinfo=traffic_stats.CN_TZ)
+        usage_map = {
+            "43.153.56.137": {"used": 300.0, "total": 512.0, "start": "2026-10-23", "end": "2026-11-23", "reset_day": 23},
+            "198.51.100.88": {"used": 180.0, "total": 200.0, "start": "2026-10-23", "end": "2026-11-23", "reset_day": 23},
+        }
+        rep = traffic_stats.aggregate_all_traffic_stats(
+            usage_map,
+            {"nodes": {}},
+            active_nodes=[
+                {"name": "walker-sv", "host": "43.153.56.137", "role": "exit"},
+                {"name": "relay-hk", "host": "198.51.100.88", "role": "relay"},
+            ],
+            now=now_dt,
+        )
+        g_text = rep["total"]["guidance"]["text"]
+        self.assertIn("离重置还有", g_text)
+        self.assertIn("账单周期即将切换", g_text)
+
+        # P1-4: /api/quota/reconcile resolves reset_day (23) before cycle end day (25)
+        captured_rec = []
+        rec_handler = mock.MagicMock()
+        rec_handler.path = "/api/quota/reconcile"
+        rec_handler._json = lambda code, body: captured_rec.append((code, body))
+        usage_rec = {"43.153.56.137": {"used": 309.49, "total": 512.0, "start": "2026-10-23", "end": "2026-11-25", "reset_day": 23}}
+        with mock.patch.object(admin, "INITIAL_PASSWORD_MARKER", Path("/nonexistent-marker")), \
+             mock.patch.object(admin.http_utils, "validate_origin", return_value=True), \
+             mock.patch.object(admin.http_utils, "parse_json_body", return_value=(200, {"official_gb": 309.49, "official_reset_day": 23})), \
+             mock.patch.object(admin, "_load_json", side_effect=lambda name, default=None: usage_rec if name == "usage.json" else {}), \
+             mock.patch.object(admin, "load_nodes", return_value=[{"name": "sv", "host": "43.153.56.137", "role": "exit", "reset_day": 23}]):
+            admin.H.do_POST(rec_handler)
+        self.assertEqual(captured_rec[0][0], 200)
+        self.assertTrue(captured_rec[0][1]["reset_day_match"])
+        self.assertEqual(captured_rec[0][1]["panel_reset_day"], 23)
+
+        # P1-12: transport.normalize returns novice-friendly TARGET_NOT_ALLOWED text
+        with self.assertRaises(Problem) as ctx_err:
+            transport.normalize({"host": "192.0.2.1", "password": "p"})
+        self.assertEqual(ctx_err.exception.code, "TARGET_NOT_ALLOWED")
+        self.assertNotIn("隔离测试目标", ctx_err.exception.message)
 
 
 if __name__ == "__main__":
