@@ -103,7 +103,7 @@ def stage_payload(root: Path, stage_dir: Path) -> Path:
 
 def resolve_smoke_binary(target: Path) -> Path:
     """Resolve executable inside a macOS .app bundle, output directory, or direct path."""
-    path = Path(target)
+    path = Path(os.path.abspath(target))
     if path.is_dir() and path.suffix != ".app":
         for name in ("OwnLine-Setup.app", "OwnLine-Setup.exe", "OwnLine-Setup"):
             cand = path / name

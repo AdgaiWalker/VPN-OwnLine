@@ -161,6 +161,24 @@ class ZeroCliSurfaceGateTests(unittest.TestCase):
             self.assertFalse((stage / "tests").exists())
             self.assertEqual(build_installer.main(["--check-stage"]), 0)
 
+    def test_resolve_smoke_binary_returns_absolute_path_for_relative_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "dist-ci" / "OwnLine-Setup.app" / "Contents" / "MacOS" / "OwnLine-Setup"
+            binary.parent.mkdir(parents=True, exist_ok=True)
+            binary.write_text("#!/bin/sh\n", encoding="utf-8")
+            prev_cwd = os.getcwd()
+            os.chdir(tmp)
+            try:
+                resolved = build_installer.resolve_smoke_binary(Path("dist-ci"))
+            finally:
+                os.chdir(prev_cwd)
+            self.assertTrue(resolved.is_absolute())
+            self.assertEqual(resolved.resolve(), binary.resolve())
+
+    def test_frozen_launcher_strips_macos_psn_arg(self):
+        with patch.object(sys, "frozen", True, create=True):
+            self.assertEqual(ownline._prepare_stdio_and_argv(["-psn_0_123456"]), ["ui"])
+
 
 if __name__ == "__main__":
     unittest.main()

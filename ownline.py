@@ -225,8 +225,10 @@ def _prepare_stdio_and_argv(argv=None):
             except Exception:
                 pass
     argv_list = list(sys.argv[1:] if argv is None else argv)
-    if getattr(sys, "frozen", False) and not argv_list:
-        return ["ui"]
+    if getattr(sys, "frozen", False):
+        argv_list = [arg for arg in argv_list if not str(arg).startswith("-psn_")]
+        if not argv_list:
+            return ["ui"]
     return argv_list
 
 
