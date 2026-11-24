@@ -3,29 +3,35 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light dark">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-title" content="Evergreen">
 <title>Evergreen · OwnLine</title>
 <style>
 :root {
-  /* OpenDesign Paper & Ink Aesthetic Palette */
-  --paper: #f5f4ed;
-  --paper-card: #fdfcf9;
-  --paper-card-subtle: #f7f6f0;
-  --paper-card-secondary: #eeebe1;
-  --ink: #1f1d18;
-  --ink-muted: #6b665b;
-  --ink-subtle: #8a8477;
-  --navy: #1b365d;
-  --navy-hover: #142c4d;
-  --navy-soft: rgba(27, 54, 93, 0.08);
-  --line: #d4d1c5;
-  --line-light: #e6e3da;
-  --green: #2e7d32;
+  color-scheme: light dark;
+  /* Evergreen Alpine Mist Palette */
+  --paper: #f2f6fa;
+  --canvas-bg: radial-gradient(ellipse 85% 55% at 10% -8%, rgba(16, 185, 129, 0.12) 0%, transparent 58%), radial-gradient(ellipse 75% 50% at 92% -6%, rgba(14, 165, 233, 0.11) 0%, transparent 56%), radial-gradient(ellipse 70% 45% at 50% 108%, rgba(99, 102, 241, 0.05) 0%, transparent 60%), linear-gradient(180deg, #f5f8fc 0%, #eef3f8 100%);
+  --paper-card: #ffffff;
+  --paper-card-subtle: #f7f9fc;
+  --paper-card-secondary: #edf2f7;
+  --ink: #0f172a;
+  --ink-muted: #4e5d73;
+  --ink-subtle: #74849b;
+  --navy: #163a5f;
+  --navy-hover: #0f2b48;
+  --navy-soft: rgba(22, 58, 95, 0.09);
+  --line: #d8e2ec;
+  --line-light: #e7eef5;
+  --green: #15803d;
   --amber: #b45309;
   --red: #c2410c;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -10px rgba(15, 23, 42, 0.08);
+  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.12);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  accent-color: var(--navy);
 
   /* Backward Compatibility Aliases for Scripts & Components */
   --apple-bg: var(--paper);
@@ -62,21 +68,34 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #141517;
-    --paper-card: #1c1d22;
-    --paper-card-subtle: #24252b;
-    --paper-card-secondary: #2b2d35;
-    --ink: #ede9e0;
-    --ink-muted: #9c978c;
-    --ink-subtle: #736f66;
-    --navy: #5d93d2;
-    --navy-hover: #75a7e3;
-    --navy-soft: rgba(93, 147, 210, 0.16);
-    --line: #2e313b;
-    --line-light: #242630;
+    --paper: #0d1219;
+    --canvas-bg: radial-gradient(ellipse 85% 50% at 12% -10%, rgba(16, 185, 129, 0.15) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 90% -8%, rgba(56, 189, 248, 0.12) 0%, transparent 56%), linear-gradient(180deg, #0d1219 0%, #101722 100%);
+    --paper-card: #141c26;
+    --paper-card-subtle: #1a2432;
+    --paper-card-secondary: #212d3d;
+    --ink: #edf2f7;
+    --ink-muted: #96a6bc;
+    --ink-subtle: #6b7c93;
+    --navy: #60a5fa;
+    --navy-hover: #84bbff;
+    --navy-soft: rgba(96, 165, 250, 0.16);
+    --line: #273446;
+    --line-light: #1e2938;
     --green: #4ade80;
     --amber: #fbbf24;
     --red: #f87171;
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.32);
+    --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.42);
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --shadow-card: none;
+    --shadow-card-hover: none;
+  }
+  body {
+    background-image: none;
   }
 }
 
@@ -85,21 +104,24 @@ html {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--font);
-  font-size: 15px;
-  line-height: 1.5;
+  font-size: 15.5px;
+  line-height: 1.6;
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
 }
 body {
   margin: 0;
-  padding: 32px 18px 64px;
-  background: var(--paper);
+  padding: clamp(28px, 4vw, 52px) clamp(16px, 3vw, 40px) 84px;
+  background-color: var(--paper);
+  background-image: var(--canvas-bg);
+  background-repeat: no-repeat;
   color: var(--ink);
   min-height: 100vh;
+  min-block-size: 100dvh;
 }
 .page {
-  max-width: 800px;
-  margin: 0 auto;
+  max-inline-size: 960px;
+  margin-inline: auto;
 }
 
 /* Header & Brand */
@@ -108,13 +130,13 @@ header.topbar {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
-  margin-bottom: 24px;
+  padding-block-end: 22px;
+  margin-block-end: 36px;
 }
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 @media (max-width: 480px) {
@@ -186,7 +208,7 @@ header.topbar {
   gap: 8px;
 }
 .brand-title {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.85px;
   color: var(--ink);
@@ -207,9 +229,9 @@ header.topbar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   background: var(--paper-card);
   color: var(--ink-muted);
@@ -244,7 +266,7 @@ header.topbar {
   background: transparent;
   border: 0;
   padding: 0;
-  margin-bottom: 24px;
+  margin-block-end: 32px;
 }
 h1, h2, h3 { margin: 0; font-weight: 600; color: var(--ink); }
 h1 { font-size: 24px; letter-spacing: -0.85px; line-height: 1.25; }
@@ -255,19 +277,19 @@ h2 { font-size: 18px; letter-spacing: -0.4px; color: var(--ink); }
 .sub-header {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 14px;
+  margin-block-end: 18px;
   flex-wrap: wrap;
 }
 .main-title {
-  font-size: 24px;
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 1.85rem);
   font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.85px;
+  letter-spacing: -0.03em;
   margin: 0;
 }
 .sub-status {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -307,8 +329,8 @@ input::placeholder, textarea::placeholder {
 
 /* Site Footer Meta Links */
 .site-footer {
-  margin-top: 48px;
-  padding-top: 18px;
+  margin-top: 56px;
+  padding-top: 24px;
   border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
@@ -398,7 +420,7 @@ button.pill-preview:hover {
   box-shadow: 0 1px 3px rgba(27, 54, 93, 0.25);
 }
 .btn.primary:hover { background: var(--navy-hover); border-color: var(--navy-hover); color: #ffffff; }
-.btn.tiny { min-height: 28px; padding: 3px 10px; font-size: 12px; border-radius: 5px; }
+.btn.tiny { min-height: 32px; padding: 5px 12px; font-size: 12.5px; border-radius: 7px; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 
 .btn-outline {
@@ -446,14 +468,43 @@ button.pill-preview:hover {
 
 /* Quota Hero Summary Banner */
 .quota-hero-card {
-  background: var(--paper-card) !important;
-  border: 1px solid var(--line) !important;
-  border-radius: 10px !important;
-  padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
+  margin-top: 24px;
+  padding: 24px 26px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.quota-hero-card:hover {
+  border-color: var(--navy);
+  box-shadow: var(--shadow-card-hover);
+}
+.quota-hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.quota-hero-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.quota-hero-usage {
+  font-size: 14px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.quota-hero-usage b {
+  font-size: 16px;
+  color: var(--ink);
 }
 .quota-hero-card .bar {
-  height: 6px;
+  height: 8px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
   overflow: hidden;
@@ -465,29 +516,92 @@ button.pill-preview:hover {
   border-radius: 999px;
   transition: width .3s ease;
 }
+.quota-hero-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.quota-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+  text-align: center;
+}
+.quota-stat-tile {
+  padding: 12px 10px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.quota-stat-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.quota-stat-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.quota-guidance-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+@media (max-width: 560px) {
+  .quota-hero-card {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+  .quota-breakdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
 
 /* Hero Connect Bar */
 .apple-hero-bar {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 12px;
+  margin-top: 18px;
 }
 .apple-hero-connect {
-  height: 44px;
-  padding: 0 20px;
-  border-radius: 6px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.15px;
-  gap: 9px;
+  gap: 10px;
   cursor: pointer;
   min-width: 0;
 }
 @media (max-width: 480px) {
   .apple-hero-bar { gap: 8px; }
-  .apple-hero-connect { flex: 1 1 auto; padding: 0 12px; font-size: 14.5px; }
+  .apple-hero-connect { flex: 1 1 auto; height: 46px; padding: 0 14px; font-size: 14.5px; }
 }
 .apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
@@ -501,10 +615,10 @@ button.pill-preview:hover {
   white-space: nowrap;
 }
 .apple-hero-copy, .apple-hero-qr {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--paper-card);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -514,6 +628,9 @@ button.pill-preview:hover {
   flex: none;
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+}
+@media (max-width: 480px) {
+  .apple-hero-copy, .apple-hero-qr { width: 46px; height: 46px; }
 }
 .apple-hero-copy:hover, .apple-hero-qr:hover {
   background: var(--paper-card-secondary);
@@ -528,8 +645,8 @@ button.pill-preview:hover {
 }
 
 .icon-btn-round {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border-radius: 50%;
   border: 1px solid var(--line);
@@ -559,7 +676,7 @@ button.pill-preview:hover {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 4px 10px 4px 5px;
+  padding: 5px 12px 5px 6px;
   background: var(--paper-card);
   border: 1px solid var(--line);
   border-radius: 9999px;
@@ -1055,7 +1172,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
-  margin-top: 26px;
+  margin-top: 36px;
 }
 #nodes-section > summary {
   list-style: none;
@@ -1063,21 +1180,23 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 10px;
-  font-size: 14px;
+  padding: 0 2px 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.25px;
 }
 #nodes-section > summary::-webkit-details-marker { display: none; }
 #nodes-section > summary::before { content: none !important; }
 
 #nodes {
-  background: var(--paper-card);
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
-  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* Quick Feedback Dialog Components (Apple HIG Style) */
@@ -1149,23 +1268,27 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 58px;
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--line-light);
-  border-radius: 10px;
-  transition: background 0.15s ease;
+  min-height: 76px;
+  padding: 20px 22px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.15s ease;
 }
-.node:last-child { border-bottom: none; }
 .node:hover {
-  background: var(--paper-card-subtle, rgba(0, 0, 0, 0.02));
+  background: var(--paper-card);
+  border-color: var(--navy);
+  box-shadow: var(--shadow-card-hover);
 }
 .node.active {
-  background: var(--paper-card-subtle, rgba(0, 0, 0, 0.035));
+  background: var(--paper-card);
+  border-color: var(--navy);
 }
 .node-main {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 16px;
   width: 100%;
   cursor: pointer;
 }
@@ -1177,12 +1300,12 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 .node-drawer {
   display: none;
-  margin-top: 10px;
-  padding: 10px 12px;
-  background: var(--paper-card, #fff);
-  border-radius: 8px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--paper-card-subtle);
+  border-radius: 10px;
   border: 1px solid var(--line);
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
@@ -1219,8 +1342,8 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 7px;
-  font-size: 15.5px;
+  gap: 8px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
   letter-spacing: -0.25px;
@@ -1228,25 +1351,25 @@ dialog.apple-action-sheet[open]::backdrop {
 .nmeta small {
   display: block;
   color: var(--ink-muted);
-  font-size: 12.5px;
+  font-size: 13px;
   font-family: var(--font);
   font-variant-numeric: tabular-nums;
-  margin-top: 3px;
-  line-height: 1.45;
+  margin-top: 6px;
+  line-height: 1.55;
 }
-.adv { margin-top: 8px; font-size: 12.5px; line-height: 1.45; }
+.adv { margin-top: 14px; font-size: 13px; line-height: 1.5; }
 .adv.error {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   flex-wrap: wrap;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--line, rgba(0, 0, 0, 0.08));
+  padding: 12px 16px;
+  border-radius: 10px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line);
   border-left: 3px solid var(--amber, #b45309);
-  color: var(--ink, #1f2937);
+  color: var(--ink);
 }
 .adv.error.warn {
   border-left-color: var(--amber, #b45309);
@@ -1333,17 +1456,17 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 
 .node-quota-row {
-  margin-top: 6px;
+  margin-top: 10px;
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  font-size: 11.5px;
+  gap: 10px;
+  font-size: 12.5px;
   color: var(--ink-muted);
 }
 .node-quota-bar {
-  flex: 0 0 90px;
-  height: 5px;
+  flex: 0 0 112px;
+  height: 6px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
   overflow: hidden;
@@ -1366,10 +1489,10 @@ dialog.apple-action-sheet[open]::backdrop {
 .tag {
   display: inline-flex;
   align-items: center;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
-  padding: 2px 7px;
-  border-radius: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
   background: var(--paper-card-secondary);
   color: var(--ink-muted);
   border: 1px solid var(--line-light);
@@ -1403,10 +1526,10 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   flex: none;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid var(--line);
   background: var(--paper-card);
   color: var(--ink-muted);
@@ -1543,6 +1666,14 @@ dialog.apple-action-sheet[open]::backdrop {
 .hitem i { display: block; margin-top: 3px; color: var(--ink-muted); font-size: 12px; font-style: normal; }
 
 /* Logs & Diagnostics */
+#section-logs {
+  margin-top: 28px;
+  padding: 16px 20px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-card);
+}
 .log-section-head { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; margin-bottom: 12px; }
 .log-heading { font-size: 16px; font-weight: 600; color: var(--ink); margin: 0; }
 .log-tabs {
@@ -1594,8 +1725,8 @@ dialog.apple-action-sheet[open]::backdrop {
 
 /* Footer */
 footer.site-footer {
-  margin-top: 36px;
-  padding-top: 18px;
+  margin-top: 56px;
+  padding-top: 24px;
   border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
@@ -1617,7 +1748,8 @@ footer.site-footer {
 
 /* Responsive adjustments */
 @media (max-width: 680px) {
-  body { padding: 20px 14px 48px; }
+  .node { padding: 16px; border-radius: 12px; }
+  #section-logs { padding: 14px 16px; border-radius: 12px; }
   .quota-table-head { display: none; }
   .quota-table-row { grid-template-columns: 1fr auto; gap: 6px; }
   .quota-col-progress { grid-column: 1 / -1; }
@@ -1661,8 +1793,8 @@ footer.site-footer {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border-radius: 50%;
   font-size: 12px;
@@ -1925,7 +2057,7 @@ footer.site-footer {
       </div>
 
       <!-- Primary Client Actions (Hero CTA) -->
-      <div id="client-ready-box" style="display:none;margin-top:14px">
+      <div id="client-ready-box" style="display:none;margin-top:18px">
         <div class="apple-hero-bar" style="margin-top:0">
           <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
             <svg class="ico apple-hero-icon" width="15" height="15" aria-hidden="true"><use href="#i-zap"/></svg>
@@ -1944,52 +2076,52 @@ footer.site-footer {
       </div>
 
       <!-- Quota Hero Summary Banner -->
-      <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:12px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line);cursor:pointer" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;font-weight:600;color:var(--apple-fg)" data-i18n="quota_hero_title">本月出海总流量</span>
-            <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 6px" data-i18n="quota_status_ok">充足</span>
+      <div id="quota-hero-banner" class="quota-hero-card" style="display:none" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
+        <div class="quota-hero-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="quota-hero-title" data-i18n="quota_hero_title">本月出海总流量</span>
+            <span id="quota-hero-status" class="tag ok" style="font-size:11.5px;padding:2px 8px" data-i18n="quota_status_ok">充足</span>
           </div>
-          <div style="font-size:13px;font-family:var(--mono)">
-            <b id="quota-hero-used" style="font-size:14px;color:var(--apple-fg)">0</b> / <span id="quota-hero-total" style="color:var(--apple-muted)">0 GB</span>
+          <div class="quota-hero-usage">
+            <b id="quota-hero-used">0</b> / <span id="quota-hero-total" class="muted">0 GB</span>
             <span id="quota-hero-percent" class="small muted" style="margin-left:4px">(0%)</span>
           </div>
         </div>
-        <div class="bar" style="height:6px;background:rgba(0,0,0,0.06);border-radius:999px;overflow:hidden">
-          <i id="quota-hero-fill" style="display:block;height:100%;width:0%;background:var(--apple-blue);border-radius:999px;transition:width .3s ease"></i>
+        <div class="bar">
+          <i id="quota-hero-fill" style="width:0%"></i>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--apple-muted)">
-          <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
+        <div class="quota-hero-meta">
+          <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--ink);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
           <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
         </div>
 
         <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
-        <div id="traffic-breakdown-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--apple-line,rgba(0,0,0,0.08));text-align:center">
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_today">今日已用</div>
-            <div id="traffic-stat-today" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+        <div id="traffic-breakdown-row" class="quota-breakdown-grid">
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_today">今日已用</div>
+            <div id="traffic-stat-today" class="quota-stat-value">--</div>
           </div>
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_yesterday">昨日已用</div>
-            <div id="traffic-stat-yesterday" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_yesterday">昨日已用</div>
+            <div id="traffic-stat-yesterday" class="quota-stat-value">--</div>
           </div>
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_week">本周累计</div>
-            <div id="traffic-stat-week" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_week">本周累计</div>
+            <div id="traffic-stat-week" class="quota-stat-value">--</div>
           </div>
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_year">年度消耗</div>
-            <div id="traffic-stat-year" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_year">年度消耗</div>
+            <div id="traffic-stat-year" class="quota-stat-value">--</div>
           </div>
         </div>
 
         <!-- Intelligent Pacing Guidance Box -->
-        <div id="traffic-guidance-box" style="margin-top:10px;padding:8px 10px;background:var(--surface-soft,rgba(0,0,0,0.03));border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span id="traffic-guidance-badge" class="tag ok" style="font-size:10.5px;padding:1px 6px;white-space:nowrap">节奏充裕</span>
-            <span id="traffic-guidance-text" style="color:var(--apple-fg)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
+        <div id="traffic-guidance-box" class="quota-guidance-box">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="traffic-guidance-badge" class="tag ok" style="font-size:11px;padding:2px 8px;white-space:nowrap">节奏充裕</span>
+            <span id="traffic-guidance-text" style="color:var(--ink)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
           </div>
-          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:11px;color:var(--apple-muted)"></span>
+          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:12px;color:var(--ink-muted)"></span>
         </div>
       </div>
 
@@ -2178,7 +2310,7 @@ footer.site-footer {
         </div>
       </dialog>
 
-      <details class="inner" id="nodes-section" open style="margin-top:20px">
+      <details class="inner" id="nodes-section" open>
         <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
           <span style="display:flex;align-items:center;gap:6px">
             <span data-i18n="nodes_title">节点列表</span>
@@ -2195,9 +2327,9 @@ footer.site-footer {
           </div>
         </summary>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
-        <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
-          <div style="display:flex;gap:8px;align-items:center">
+        <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:16px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-light);flex-wrap:wrap;gap:10px 14px">
+          <div style="display:flex;gap:10px;align-items:center">
             <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
             <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
             <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
@@ -2205,8 +2337,8 @@ footer.site-footer {
           <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
       </details>
-      <details class="inner apple-disclosure" id="quota-section" style="margin-top:16px;border:none;background:transparent;padding:0">
-        <summary style="cursor:pointer;font-size:12.5px;color:var(--apple-muted);padding:4px 0;display:inline-flex;align-items:center;gap:4px">
+      <details class="inner apple-disclosure" id="quota-section" style="margin-top:22px;border:none;background:transparent;padding:0">
+        <summary style="cursor:pointer;font-size:13.5px;color:var(--apple-muted);padding:8px 2px;display:inline-flex;align-items:center;gap:6px">
           <span data-i18n="quota_section_title">流量熔断保护设置</span>
         </summary>
         <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none" data-i18n="quota_heading">服务器流量</h2><div class="small muted" data-i18n="quota_loading">正在加载流量统计...</div></div>
@@ -2440,7 +2572,7 @@ footer.site-footer {
   </section>
 
   <!-- Runtime & Diagnostic Logs -->
-  <details class="panel-card inner" id="section-logs" style="margin-top:24px">
+  <details class="panel-card inner" id="section-logs">
     <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
       <span class="log-heading" style="font-size:16px;margin:0" data-i18n="logs_heading">运行与诊断日志</span>
     </summary>
@@ -2649,7 +2781,7 @@ footer.site-footer {
         <div class="password-input-wrap">
           <input id="settings-new-pass" type="password" autocomplete="new-password" minlength="12" placeholder="Leave empty to keep current" data-lpignore="true" data-1p-ignore="true" oninput="window.updatePasswordStrength(this.value)">
           <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-new-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
-            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
           </button>
         </div>
@@ -2674,7 +2806,7 @@ footer.site-footer {
         <div class="password-input-wrap">
           <input id="settings-confirm-pass" type="password" autocomplete="new-password" minlength="12" placeholder="Re-enter new password" data-lpignore="true" data-1p-ignore="true" oninput="window.checkPasswordMatch()">
           <button type="button" class="pwd-eye-btn" onclick="window.togglePasswordVisibility('settings-confirm-pass', this)" aria-label="Toggle Password Visibility" tabindex="-1">
-            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ico eye-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
             <svg class="ico eye-closed" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
           </button>
         </div>

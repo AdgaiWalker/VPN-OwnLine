@@ -387,3 +387,20 @@ test('00-setup-input secret toggle and accessible validation helpers handle reve
   (rootListeners.reset || []).forEach((fn) => fn({ target: { elements: [secretInput] } }));
   assert.equal(secretInput.getAttribute('aria-invalid'), 'false');
 });
+
+test('dashboard, setup, and vault use Alpine Mist canvas theme, forced-colors fallback, 960px spacious container, and valid SVG eye paths', () => {
+  const localVaultHtml = fs.readFileSync(path.join(__dirname, '../web/local-vault.html'), 'utf8');
+  for (const [name, docHtml] of [
+    ['index.html', indexHtml],
+    ['local-setup.html', localSetupHtml],
+    ['local-vault.html', localVaultHtml],
+  ]) {
+    assert.ok(docHtml.includes('<meta name="color-scheme" content="light dark">'), `${name} should include early color-scheme meta tag`);
+    assert.ok(docHtml.includes('color-scheme: light dark'), `${name} should declare CSS color-scheme: light dark`);
+    assert.ok(docHtml.includes('--canvas-bg'), `${name} should define layered canvas background token`);
+    assert.ok(docHtml.includes('@media (forced-colors: active)'), `${name} should define forced-colors fallback`);
+  }
+
+  assert.match(indexHtml, /\.page\s*\{\s*max-inline-size:\s*960px;/);
+  assert.equal(indexHtml.includes('8-11 8-11-8z"'), false, 'broken eye SVG path should be fixed');
+});

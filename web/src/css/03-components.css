@@ -47,7 +47,7 @@
   box-shadow: 0 1px 3px rgba(27, 54, 93, 0.25);
 }
 .btn.primary:hover { background: var(--navy-hover); border-color: var(--navy-hover); color: #ffffff; }
-.btn.tiny { min-height: 28px; padding: 3px 10px; font-size: 12px; border-radius: 5px; }
+.btn.tiny { min-height: 32px; padding: 5px 12px; font-size: 12.5px; border-radius: 7px; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 
 .btn-outline {
@@ -95,14 +95,43 @@
 
 /* Quota Hero Summary Banner */
 .quota-hero-card {
-  background: var(--paper-card) !important;
-  border: 1px solid var(--line) !important;
-  border-radius: 10px !important;
-  padding: 14px 16px;
-  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
+  margin-top: 24px;
+  padding: 24px 26px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  cursor: pointer;
+  transition: border-color .18s ease, box-shadow .18s ease;
+}
+.quota-hero-card:hover {
+  border-color: var(--navy);
+  box-shadow: var(--shadow-card-hover);
+}
+.quota-hero-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.quota-hero-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.quota-hero-usage {
+  font-size: 14px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.quota-hero-usage b {
+  font-size: 16px;
+  color: var(--ink);
 }
 .quota-hero-card .bar {
-  height: 6px;
+  height: 8px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
   overflow: hidden;
@@ -114,29 +143,92 @@
   border-radius: 999px;
   transition: width .3s ease;
 }
+.quota-hero-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+.quota-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+  text-align: center;
+}
+.quota-stat-tile {
+  padding: 12px 10px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.quota-stat-label {
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+.quota-stat-value {
+  font-size: 15px;
+  font-weight: 600;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+.quota-guidance-box {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+}
+@media (max-width: 560px) {
+  .quota-hero-card {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+  .quota-breakdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
 
 /* Hero Connect Bar */
 .apple-hero-bar {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 12px;
+  margin-top: 18px;
 }
 .apple-hero-connect {
-  height: 44px;
-  padding: 0 20px;
-  border-radius: 6px;
+  height: 48px;
+  padding: 0 24px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
   letter-spacing: -0.15px;
-  gap: 9px;
+  gap: 10px;
   cursor: pointer;
   min-width: 0;
 }
 @media (max-width: 480px) {
   .apple-hero-bar { gap: 8px; }
-  .apple-hero-connect { flex: 1 1 auto; padding: 0 12px; font-size: 14.5px; }
+  .apple-hero-connect { flex: 1 1 auto; height: 46px; padding: 0 14px; font-size: 14.5px; }
 }
 .apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
@@ -150,10 +242,10 @@
   white-space: nowrap;
 }
 .apple-hero-copy, .apple-hero-qr {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background: var(--paper-card);
   color: var(--ink);
   border: 1px solid var(--line);
@@ -163,6 +255,9 @@
   flex: none;
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+}
+@media (max-width: 480px) {
+  .apple-hero-copy, .apple-hero-qr { width: 46px; height: 46px; }
 }
 .apple-hero-copy:hover, .apple-hero-qr:hover {
   background: var(--paper-card-secondary);
@@ -177,8 +272,8 @@
 }
 
 .icon-btn-round {
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   border-radius: 50%;
   border: 1px solid var(--line);
@@ -208,7 +303,7 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  padding: 4px 10px 4px 5px;
+  padding: 5px 12px 5px 6px;
   background: var(--paper-card);
   border: 1px solid var(--line);
   border-radius: 9999px;
@@ -704,7 +799,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border: none !important;
   background: transparent !important;
   padding: 0 !important;
-  margin-top: 26px;
+  margin-top: 36px;
 }
 #nodes-section > summary {
   list-style: none;
@@ -712,21 +807,23 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 0 10px;
-  font-size: 14px;
+  padding: 0 2px 14px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.2px;
+  letter-spacing: -0.25px;
 }
 #nodes-section > summary::-webkit-details-marker { display: none; }
 #nodes-section > summary::before { content: none !important; }
 
 #nodes {
-  background: var(--paper-card);
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
-  padding: 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
 }
 
 /* Quick Feedback Dialog Components (Apple HIG Style) */

@@ -182,7 +182,7 @@
         </div>
       </dialog>
 
-      <details class="inner" id="nodes-section" open style="margin-top:20px">
+      <details class="inner" id="nodes-section" open>
         <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
           <span style="display:flex;align-items:center;gap:6px">
             <span data-i18n="nodes_title">节点列表</span>
@@ -199,9 +199,9 @@
           </div>
         </summary>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
-        <div id="nodes" style="margin-top:8px"><div class="small muted" style="padding:10px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:14px;padding-top:10px;border-top:1px solid var(--line);flex-wrap:wrap;gap:8px">
-          <div style="display:flex;gap:8px;align-items:center">
+        <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:16px 0" data-i18n="nodes_loading">正在加载节点列表...</div></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:18px;padding-top:16px;border-top:1px solid var(--line-light);flex-wrap:wrap;gap:10px 14px">
+          <div style="display:flex;gap:10px;align-items:center">
             <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
             <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
             <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
@@ -209,8 +209,8 @@
           <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
       </details>
-      <details class="inner apple-disclosure" id="quota-section" style="margin-top:16px;border:none;background:transparent;padding:0">
-        <summary style="cursor:pointer;font-size:12.5px;color:var(--apple-muted);padding:4px 0;display:inline-flex;align-items:center;gap:4px">
+      <details class="inner apple-disclosure" id="quota-section" style="margin-top:22px;border:none;background:transparent;padding:0">
+        <summary style="cursor:pointer;font-size:13.5px;color:var(--apple-muted);padding:8px 2px;display:inline-flex;align-items:center;gap:6px">
           <span data-i18n="quota_section_title">流量熔断保护设置</span>
         </summary>
         <div id="quota-list-container" style="display:none"><h2 class="quota-heading" style="display:none" data-i18n="quota_heading">服务器流量</h2><div class="small muted" data-i18n="quota_loading">正在加载流量统计...</div></div>
@@ -444,7 +444,7 @@
   </section>
 
   <!-- Runtime & Diagnostic Logs -->
-  <details class="panel-card inner" id="section-logs" style="margin-top:24px">
+  <details class="panel-card inner" id="section-logs">
     <summary style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;padding:4px 0">
       <span class="log-heading" style="font-size:16px;margin:0" data-i18n="logs_heading">运行与诊断日志</span>
     </summary>

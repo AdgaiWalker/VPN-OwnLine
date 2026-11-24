@@ -20,7 +20,7 @@
       </div>
 
       <!-- Primary Client Actions (Hero CTA) -->
-      <div id="client-ready-box" style="display:none;margin-top:14px">
+      <div id="client-ready-box" style="display:none;margin-top:18px">
         <div class="apple-hero-bar" style="margin-top:0">
           <button id="btn-hero-connect" class="btn primary apple-hero-connect" type="button" onclick="window.ownlineOpenClientHub()">
             <svg class="ico apple-hero-icon" width="15" height="15" aria-hidden="true"><use href="#i-zap"/></svg>
@@ -39,52 +39,52 @@
       </div>
 
       <!-- Quota Hero Summary Banner -->
-      <div id="quota-hero-banner" class="quota-hero-card" style="display:none;margin-top:12px;padding:12px 14px;background:var(--apple-card-secondary,rgba(0,0,0,0.03));border-radius:12px;border:1px solid var(--apple-line);cursor:pointer" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span style="font-size:13px;font-weight:600;color:var(--apple-fg)" data-i18n="quota_hero_title">本月出海总流量</span>
-            <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 6px" data-i18n="quota_status_ok">充足</span>
+      <div id="quota-hero-banner" class="quota-hero-card" style="display:none" onclick="window.ownlineToggleQuota()" title="点击查看用量与熔断阈值设置">
+        <div class="quota-hero-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="quota-hero-title" data-i18n="quota_hero_title">本月出海总流量</span>
+            <span id="quota-hero-status" class="tag ok" style="font-size:11.5px;padding:2px 8px" data-i18n="quota_status_ok">充足</span>
           </div>
-          <div style="font-size:13px;font-family:var(--mono)">
-            <b id="quota-hero-used" style="font-size:14px;color:var(--apple-fg)">0</b> / <span id="quota-hero-total" style="color:var(--apple-muted)">0 GB</span>
+          <div class="quota-hero-usage">
+            <b id="quota-hero-used">0</b> / <span id="quota-hero-total" class="muted">0 GB</span>
             <span id="quota-hero-percent" class="small muted" style="margin-left:4px">(0%)</span>
           </div>
         </div>
-        <div class="bar" style="height:6px;background:rgba(0,0,0,0.06);border-radius:999px;overflow:hidden">
-          <i id="quota-hero-fill" style="display:block;height:100%;width:0%;background:var(--apple-blue);border-radius:999px;transition:width .3s ease"></i>
+        <div class="bar">
+          <i id="quota-hero-fill" style="width:0%"></i>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:12px;color:var(--apple-muted)">
-          <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--apple-fg);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
+        <div class="quota-hero-meta">
+          <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--ink);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
           <span id="quota-hero-nodes-safe" data-i18n="quota_safe_lbl">所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板</span>
         </div>
 
         <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
-        <div id="traffic-breakdown-row" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px dashed var(--apple-line,rgba(0,0,0,0.08));text-align:center">
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_today">今日已用</div>
-            <div id="traffic-stat-today" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+        <div id="traffic-breakdown-row" class="quota-breakdown-grid">
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_today">今日已用</div>
+            <div id="traffic-stat-today" class="quota-stat-value">--</div>
           </div>
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_yesterday">昨日已用</div>
-            <div id="traffic-stat-yesterday" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_yesterday">昨日已用</div>
+            <div id="traffic-stat-yesterday" class="quota-stat-value">--</div>
           </div>
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_week">本周累计</div>
-            <div id="traffic-stat-week" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_week">本周累计</div>
+            <div id="traffic-stat-week" class="quota-stat-value">--</div>
           </div>
-          <div style="padding:4px 2px;background:var(--surface-soft,rgba(0,0,0,0.02));border-radius:6px">
-            <div class="small muted" style="font-size:11px" data-i18n="stat_year">年度消耗</div>
-            <div id="traffic-stat-year" style="font-size:13px;font-weight:600;font-family:var(--mono);color:var(--apple-fg)">--</div>
+          <div class="quota-stat-tile">
+            <div class="quota-stat-label" data-i18n="stat_year">年度消耗</div>
+            <div id="traffic-stat-year" class="quota-stat-value">--</div>
           </div>
         </div>
 
         <!-- Intelligent Pacing Guidance Box -->
-        <div id="traffic-guidance-box" style="margin-top:10px;padding:8px 10px;background:var(--surface-soft,rgba(0,0,0,0.03));border-radius:8px;font-size:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px">
-          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
-            <span id="traffic-guidance-badge" class="tag ok" style="font-size:10.5px;padding:1px 6px;white-space:nowrap">节奏充裕</span>
-            <span id="traffic-guidance-text" style="color:var(--apple-fg)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
+        <div id="traffic-guidance-box" class="quota-guidance-box">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span id="traffic-guidance-badge" class="tag ok" style="font-size:11px;padding:2px 8px;white-space:nowrap">节奏充裕</span>
+            <span id="traffic-guidance-text" style="color:var(--ink)">离重置还有 -- 天，建议日均可用上限 -- GB/天</span>
           </div>
-          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:11px;color:var(--apple-muted)"></span>
+          <span id="traffic-guidance-budget" style="font-family:var(--mono);font-size:12px;color:var(--ink-muted)"></span>
         </div>
       </div>
 

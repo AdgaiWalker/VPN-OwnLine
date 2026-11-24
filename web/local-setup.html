@@ -1,43 +1,55 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OwnLine · 本地安装</title><style>:root {
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light dark"><title>OwnLine · 本地安装</title><style>:root {
   color-scheme: light dark;
-  --paper: #f5f4ed;
-  --surface: #fdfcf9;
-  --soft: #eeebe1;
-  --ink: #1f1d18;
-  --muted: #5e5a50;
-  --line: #d4d1c5;
-  --line-strong: #b6b2a4;
-  --accent: #1b365d;
-  --accent-hover: #142c4d;
+  --paper: #f2f6fa;
+  --canvas-bg: radial-gradient(ellipse 85% 55% at 10% -8%, rgba(16, 185, 129, 0.12) 0%, transparent 58%), radial-gradient(ellipse 75% 50% at 92% -6%, rgba(14, 165, 233, 0.11) 0%, transparent 56%), radial-gradient(ellipse 70% 45% at 50% 108%, rgba(99, 102, 241, 0.05) 0%, transparent 60%), linear-gradient(180deg, #f5f8fc 0%, #eef3f8 100%);
+  --surface: #ffffff;
+  --soft: #edf2f7;
+  --ink: #0f172a;
+  --muted: #4e5d73;
+  --line: #d8e2ec;
+  --line-strong: #c0cedc;
+  --accent: #163a5f;
+  --accent-hover: #0f2b48;
   --accent-fg: #ffffff;
-  --accent-soft: rgba(27, 54, 93, 0.08);
+  --accent-soft: rgba(22, 58, 95, 0.09);
   --danger: #b43c24;
   --danger-bg: #fdf1ec;
   --danger-border: #c96c55;
-  --shadow-card: 0 1px 3px rgba(31, 29, 24, 0.04), 0 8px 24px rgba(31, 29, 24, 0.05);
-  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -10px rgba(15, 23, 42, 0.08);
+  accent-color: var(--accent);
+  font: 15.5px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   color: var(--ink);
   background: var(--paper);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #141517;
-    --surface: #1c1d22;
-    --soft: #262830;
-    --ink: #ede9e0;
-    --muted: #a09b90;
-    --line: #2e313b;
-    --line-strong: #3f4350;
-    --accent: #5d93d2;
-    --accent-hover: #75a7e3;
-    --accent-fg: #0b1626;
-    --accent-soft: rgba(93, 147, 210, 0.16);
+    --paper: #0d1219;
+    --canvas-bg: radial-gradient(ellipse 85% 50% at 12% -10%, rgba(16, 185, 129, 0.15) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 90% -8%, rgba(56, 189, 248, 0.12) 0%, transparent 56%), linear-gradient(180deg, #0d1219 0%, #101722 100%);
+    --surface: #141c26;
+    --soft: #212d3d;
+    --ink: #edf2f7;
+    --muted: #96a6bc;
+    --line: #273446;
+    --line-strong: #374860;
+    --accent: #60a5fa;
+    --accent-hover: #84bbff;
+    --accent-fg: #ffffff;
+    --accent-soft: rgba(96, 165, 250, 0.16);
     --danger: #f87171;
     --danger-bg: rgba(248, 113, 113, 0.12);
     --danger-border: rgba(248, 113, 113, 0.45);
-    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.35);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.32);
+  }
+}
+
+@media (forced-colors: active) {
+  :root {
+    --shadow-card: none;
+  }
+  body {
+    background-image: none;
   }
 }
 
@@ -46,14 +58,17 @@
 body {
   margin: 0;
   overflow-x: clip;
-  background: var(--paper);
+  background-color: var(--paper);
+  background-image: var(--canvas-bg);
+  background-repeat: no-repeat;
   color: var(--ink);
   min-height: 100vh;
+  min-block-size: 100dvh;
 }
 main {
-  max-inline-size: 560px;
+  max-inline-size: 620px;
   margin-inline: auto;
-  padding: 28px 20px 36px;
+  padding: clamp(32px, 5vw, 56px) clamp(18px, 3vw, 28px) 56px;
 }
 
 .ico {
@@ -86,8 +101,8 @@ header {
   justify-content: space-between;
   align-items: center;
   gap: 8px 16px;
-  padding-bottom: 14px;
-  margin-bottom: 18px;
+  padding-bottom: 18px;
+  margin-bottom: 24px;
   border-bottom: 1px solid var(--line);
 }
 .brand-lockup {
@@ -120,8 +135,8 @@ header strong small {
 .stage-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 24px 22px;
+  border-radius: 18px;
+  padding: 34px 32px;
   box-shadow: var(--shadow-card);
 }
 
@@ -142,11 +157,11 @@ label { display: block; font-size: 13.5px; font-weight: 600; color: var(--ink); 
 input {
   display: block;
   inline-size: 100%;
-  min-block-size: 46px;
+  min-block-size: 48px;
   border: 1px solid var(--line-strong);
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-top: 6px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-top: 8px;
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -161,16 +176,16 @@ input:focus {
 }
 .secret-field {
   position: relative;
-  margin-top: 6px;
+  margin-top: 8px;
 }
 .secret-field input {
   margin-top: 0;
-  padding-inline-end: 46px;
+  padding-inline-end: 48px;
 }
 .pw-toggle {
   position: absolute;
-  inset-block: 3px;
-  inset-inline-end: 3px;
+  inset-block: 4px;
+  inset-inline-end: 4px;
   inline-size: 40px;
   min-block-size: 40px;
   padding: 0;
@@ -248,7 +263,7 @@ details { font-size: 14px; }
 details > p { margin: 10px 0; }
 .row, .actions, .help-links { display: flex; gap: 10px; flex-wrap: wrap; }
 .row label { flex: 1 1 140px; min-inline-size: 0; }
-.actions { margin-top: 20px; }
+.actions { margin-top: 24px; gap: 12px; }
 .help-links { align-items: center; column-gap: 16px; }
 .field-note { font-size: 13.5px; }
 .notice { background: var(--soft); padding: 12px 14px; border-radius: 8px; color: var(--ink); }
@@ -263,7 +278,7 @@ details > p { margin: 10px 0; }
   align-items: center;
   gap: 7px;
   padding: 6px 11px;
-  margin-bottom: 16px;
+  margin-bottom: 22px;
   border-radius: 999px;
   background: var(--accent-soft);
   color: var(--accent);
@@ -276,7 +291,7 @@ details > p { margin: 10px 0; }
   align-items: center;
   gap: 0;
   list-style: none;
-  margin: 0 0 18px;
+  margin: 0 0 24px;
   padding: 0;
   font-size: 12.5px;
   color: var(--muted);
@@ -351,10 +366,10 @@ details > p { margin: 10px 0; }
   display: flex;
   inline-size: 100%;
   gap: 4px;
-  margin: 0 0 18px;
-  padding: 4px;
+  margin: 0 0 24px;
+  padding: 5px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--soft);
 }
 #connection-methods button {
@@ -373,10 +388,10 @@ details > p { margin: 10px 0; }
 }
 #connection-methods button:hover:not(:disabled) { color: var(--ink); }
 #connection-fields > label + label,
-#connection-fields > .secret-label { margin-top: 14px; }
+#connection-fields > .secret-label { margin-top: 18px; }
 #connection-fields .target-card + label,
-#connection-fields .target-card + .secret-label { margin-top: 14px; }
-#ssh-options { margin-top: 10px; }
+#connection-fields .target-card + .secret-label { margin-top: 18px; }
+#ssh-options { margin-top: 12px; }
 #ssh-options summary { padding: 8px 0; font-size: 13.5px; color: var(--muted); }
 #ssh-options > label, #ssh-options .row { margin-top: 12px; }
 .key-status-row {
@@ -387,7 +402,7 @@ details > p { margin: 10px 0; }
 }
 .key-status-row:has(#ssh-key-status:empty) #ssh-key-status { display: none; }
 #ssh-key-status:not(:empty) { color: var(--accent); font-size: 13.5px; font-weight: 500; }
-#check, #tencent-read { display: flex; margin-top: 18px; inline-size: 100%; }
+#check, #tencent-read { display: flex; margin-top: 24px; inline-size: 100%; min-block-size: 48px; border-radius: 10px; }
 #tencent-results { margin-bottom: 8px; }
 #tencent-instances, #progress-stages, #setup-events { padding-inline-start: 20px; color: var(--muted); }
 #tencent-instances {
@@ -441,7 +456,7 @@ details > p { margin: 10px 0; }
 .delivery-credentials { border-block: 1px solid var(--line); margin: 18px 0; padding: 14px 0 8px; }
 .delivery-credentials input { max-inline-size: 25rem; }
 #ssh-help {
-  margin-top: 18px;
+  margin-top: 24px;
   padding-inline: 2px;
   font-size: 13.5px;
 }
@@ -458,7 +473,7 @@ details > p { margin: 10px 0; }
 }
 .update-note { margin: 8px 0 0; }
 footer {
-  margin-top: 18px;
+  margin-top: 24px;
   padding: 10px 2px 0;
   display: flex;
   justify-content: space-between;
@@ -471,8 +486,8 @@ footer:has(#quit[hidden]) { display: none; }
 #quit:hover:not(:disabled) { color: var(--ink); text-decoration: underline; }
 
 @media (max-width: 480px) {
-  main { padding: 18px 14px 28px; }
-  .stage-card { padding: 20px 16px; border-radius: 12px; }
+  main { padding: 22px 14px 32px; }
+  .stage-card { padding: 24px 18px; border-radius: 14px; }
   .row label { flex-basis: 100%; }
   .step-rail { font-size: 12px; }
   .step-rail li { padding: 4px 9px; }

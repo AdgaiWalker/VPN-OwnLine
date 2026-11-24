@@ -1,6 +1,6 @@
 .page {
-  max-width: 800px;
-  margin: 0 auto;
+  max-inline-size: 960px;
+  margin-inline: auto;
 }
 
 /* Header & Brand */
@@ -9,13 +9,13 @@ header.topbar {
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 18px;
-  margin-bottom: 24px;
+  padding-block-end: 22px;
+  margin-block-end: 36px;
 }
 .topbar-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 @media (max-width: 480px) {
@@ -87,7 +87,7 @@ header.topbar {
   gap: 8px;
 }
 .brand-title {
-  font-size: 21px;
+  font-size: 22px;
   font-weight: 600;
   letter-spacing: -0.85px;
   color: var(--ink);
@@ -108,9 +108,9 @@ header.topbar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 10px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 500;
   background: var(--paper-card);
   color: var(--ink-muted);
@@ -145,7 +145,7 @@ header.topbar {
   background: transparent;
   border: 0;
   padding: 0;
-  margin-bottom: 24px;
+  margin-block-end: 32px;
 }
 h1, h2, h3 { margin: 0; font-weight: 600; color: var(--ink); }
 h1 { font-size: 24px; letter-spacing: -0.85px; line-height: 1.25; }
@@ -156,19 +156,19 @@ h2 { font-size: 18px; letter-spacing: -0.4px; color: var(--ink); }
 .sub-header {
   display: flex;
   align-items: baseline;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 14px;
+  margin-block-end: 18px;
   flex-wrap: wrap;
 }
 .main-title {
-  font-size: 24px;
+  font-size: clamp(1.5rem, 1.2rem + 1vw, 1.85rem);
   font-weight: 600;
   color: var(--ink);
-  letter-spacing: -0.85px;
+  letter-spacing: -0.03em;
   margin: 0;
 }
 .sub-status {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink-muted);
   font-variant-numeric: tabular-nums;
 }
@@ -208,8 +208,8 @@ input::placeholder, textarea::placeholder {
 
 /* Site Footer Meta Links */
 .site-footer {
-  margin-top: 48px;
-  padding-top: 18px;
+  margin-top: 56px;
+  padding-top: 24px;
   border-top: 1px solid var(--line);
   display: flex;
   justify-content: space-between;
