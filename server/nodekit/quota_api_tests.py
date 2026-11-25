@@ -6,7 +6,7 @@ import sys
 import tempfile
 import threading
 import unittest
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from http.server import ThreadingHTTPServer
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -131,6 +131,20 @@ class QuotaAPITests(unittest.TestCase):
                 self.assertEqual(self.post(body, self.base, "/editnode")[0], 409)
         with open(admin.NODES, encoding="utf-8") as f:
             self.assertEqual(f.read(), before)
+
+    def test_stale_usage_preserves_display_totals_with_unknown_guard_status(self):
+        data_dir = self.tmp.name
+        stale_ts = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+        with open(os.path.join(data_dir, "usage.json"), "w", encoding="utf-8") as f:
+            json.dump({"_ts": stale_ts, "192.0.2.5": {"used": 164, "total": 200}}, f)
+        res = self.get()
+        self.assertFalse(res["usage_fresh"])
+        guard = next(g for g in res["guards"] if g["ip"] == "192.0.2.5")
+        self.assertEqual(guard["status"], "unknown")
+        self.assertTrue(guard["stale"])
+        self.assertEqual(guard["used_gb"], 164)
+        self.assertEqual(guard["total_gb"], 200.0)
+        self.assertEqual(guard["percent"], 82.0)
 
 
 if __name__ == "__main__":

@@ -5247,6 +5247,7 @@ function initAccessibleValidation(root) {
     var bNode = (runway && runway.bottleneck_node) ? runway.bottleneck_node : null;
     var isRelayBottle = !!(bottleneck && bottleneck.is_relay_bottleneck) || !!(bNode && bNode.role === "relay" && runway.topology && runway.topology.length > 1);
     var breakerPct = runway && runway.breaker_pct != null ? Math.round(runway.breaker_pct) : 85;
+    var isStale = !!(typeof STATE !== "undefined" && STATE && STATE.usageFresh === false);
 
     if (elStatus) {
       if (anyTripped || (runway && runway.safe_before_breaker_gb <= 0) || overallPct >= breakerPct) {
@@ -5255,6 +5256,9 @@ function initAccessibleValidation(root) {
       } else if (isRelayBottle) {
         elStatus.textContent = zh ? "跳板受限" : "Relay Bottleneck";
         elStatus.className = "tag warn";
+      } else if (isStale) {
+        elStatus.textContent = zh ? "数据待刷新" : "Stale";
+        elStatus.className = "tag";
       } else if (overallPct >= Math.max(50, breakerPct - 10)) {
         elStatus.textContent = zh ? "预警" : "Warning";
         elStatus.className = "tag warn";
@@ -5265,8 +5269,9 @@ function initAccessibleValidation(root) {
     }
     if (elSafe) {
       var daysRem = (cycle && cycle.days_remaining != null) ? cycle.days_remaining : null;
+      var staleSuffix = isStale ? (zh ? " · 快照待刷新" : " · stale snapshot") : "";
       if (anyTripped || (runway && runway.safe_before_breaker_gb <= 0)) {
-        elSafe.textContent = zh ? "节点流量已达保护熔断线" : "Traffic reached protection circuit breaker";
+        elSafe.textContent = (zh ? "节点流量已达保护熔断线" : "Traffic reached protection circuit breaker") + staleSuffix;
         if (elSafe.style) {
           elSafe.style.display = "block";
           elSafe.style.color = "var(--apple-red)";
@@ -5275,20 +5280,26 @@ function initAccessibleValidation(root) {
         var rName = (bottleneck && bottleneck.relay_name) || (bNode && bNode.name) || "relay";
         var safeRem = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : (bottleneck ? bottleneck.relay_remaining_gb : 0);
         var resetSuffix = daysRem != null ? (zh ? (" · " + daysRem + " 天后重置") : (" · resets in " + daysRem + "d")) : "";
-        elSafe.textContent = zh
+        elSafe.textContent = (zh
           ? ("短板 " + rName + " · 距 " + breakerPct + "% 熔断余 " + safeRem + " GB" + resetSuffix)
-          : ("Bottleneck " + rName + " · " + safeRem + " GB to " + breakerPct + "% cap" + resetSuffix);
+          : ("Bottleneck " + rName + " · " + safeRem + " GB to " + breakerPct + "% cap" + resetSuffix)) + staleSuffix;
         if (elSafe.style) {
           elSafe.style.display = "block";
           elSafe.style.color = "var(--apple-amber, #b45309)";
         }
       } else if (runway && runway.will_hit_breaker && runway.projected_days_to_breaker != null) {
-        elSafe.textContent = zh
+        elSafe.textContent = (zh
           ? ("按近 7 日消耗速度，预计 " + runway.projected_days_to_breaker + " 天后触达 " + breakerPct + "% 熔断线")
-          : ("At 7d pace, estimated " + runway.projected_days_to_breaker + "d until " + breakerPct + "% cap");
+          : ("At 7d pace, estimated " + runway.projected_days_to_breaker + "d until " + breakerPct + "% cap")) + staleSuffix;
         if (elSafe.style) {
           elSafe.style.display = "block";
           elSafe.style.color = "var(--apple-amber, #b45309)";
+        }
+      } else if (isStale) {
+        elSafe.textContent = zh ? "上次采样已超 30 分钟，展示最近快照" : "Last sample > 30m ago · showing latest snapshot";
+        if (elSafe.style) {
+          elSafe.style.display = "block";
+          elSafe.style.color = "var(--ink-muted)";
         }
       } else {
         elSafe.textContent = "";
@@ -5503,6 +5514,9 @@ function initAccessibleValidation(root) {
   function renderQuotaList(nodes, quota) {
     var box = document.getElementById("quota-list-container");
     if (!box) return;
+    if (typeof STATE !== "undefined" && STATE) {
+      STATE.usageFresh = (quota && typeof quota.usage_fresh === "boolean") ? quota.usage_fresh : true;
+    }
     var groups = quota && Array.isArray(quota.guards) ? quota.guards : null;
     if (!groups) {
       var seen = {};

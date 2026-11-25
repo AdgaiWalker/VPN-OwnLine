@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import base64, datetime, hmac, json, os, re, secrets, subprocess, sys, tempfile, threading, time, urllib.parse, uuid
+import base64, datetime, hmac, json, math, os, re, secrets, subprocess, sys, tempfile, threading, time, urllib.parse, uuid
 from collections import deque
 from pathlib import Path
 import fcntl
@@ -747,6 +747,7 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, reconcile_mod.inspect_cluster_drift(load_nodes(), target_name=target_name))
         if norm_path == "/quota/guard":
             usage = _load_json("usage.json", {})
+            is_fresh = quota_mod.usage_is_fresh(usage)
             eval_res = quota_mod.evaluate_all(usage)
             stopped = quota_mod.stopped_hosts()
             known_nodes = {}
@@ -759,14 +760,33 @@ class H(BaseHTTPRequestHandler):
                 u = eval_res.get(ip) or quota_mod.evaluate_instance_quota(None)
                 raw_u = usage.get(ip) if isinstance(usage.get(ip), dict) else {}
                 used_val = u.get("used_gb") if u.get("used_gb") is not None else raw_u.get("used")
+                total_val = u.get("total_gb")
+                if total_val is None:
+                    raw_total = raw_u.get("total")
+                    if not isinstance(raw_total, bool) and raw_total is not None:
+                        try:
+                            parsed_total = float(raw_total)
+                            if math.isfinite(parsed_total) and parsed_total > 0:
+                                total_val = parsed_total
+                        except (TypeError, ValueError):
+                            pass
+                pct_val = u.get("percent")
+                if pct_val is None and used_val is not None and total_val is not None and total_val > 0:
+                    try:
+                        parsed_used = float(used_val)
+                        if math.isfinite(parsed_used) and parsed_used >= 0:
+                            pct_val = round((parsed_used / float(total_val)) * 100.0, 1)
+                    except (TypeError, ValueError):
+                        pass
                 r_day = u.get("reset_day") or quota_mod.parse_reset_day(node.get("reset_day") or raw_u.get("reset_day") or raw_u.get("end"))
                 guards.append({
                     "ip": ip,
                     "name": node.get("name", ip),
                     "used_gb": used_val,
-                    "total_gb": u.get("total_gb"),
-                    "percent": u.get("percent"),
+                    "total_gb": total_val,
+                    "percent": pct_val,
                     "status": u.get("status", "unknown"),
+                    "stale": not is_fresh,
                     "source": raw_u.get("source", "cloud_api"),
                     "control_supported": all(quota_mod.supports_quota_control(n) for n in host_nodes),
                     "paused": ip in stopped,
@@ -775,7 +795,7 @@ class H(BaseHTTPRequestHandler):
             return self._json(200, {
                 "ok": True,
                 "watermarks": eval_res.get("_summary", {}).get("watermarks", {"warning": 75, "tripped": 85}),
-                "usage_fresh": quota_mod.usage_is_fresh(usage),
+                "usage_fresh": is_fresh,
                 "guards": guards,
             })
         if norm_path == "/node/job":
