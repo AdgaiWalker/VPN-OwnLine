@@ -1802,12 +1802,10 @@
   function toggleQuota() {
     var qs = document.getElementById("quota-section");
     if (!qs) return;
-    qs.open = !qs.open;
+    qs.open = true;
     var settings = document.getElementById("quota-settings");
-    if (settings) settings.style.display = qs.open ? "block" : "none";
-    if (qs.open) {
-      qs.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    if (settings) settings.style.display = "block";
+    qs.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
   window.ownlineToggleQuota = toggleQuota;
 

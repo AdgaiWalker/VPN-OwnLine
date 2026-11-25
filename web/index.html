@@ -22,8 +22,11 @@
   --navy: #163a5f;
   --navy-hover: #0f2b48;
   --navy-soft: rgba(22, 58, 95, 0.09);
+  --btn-primary-bg: var(--navy);
+  --btn-primary-hover: var(--navy-hover);
   --line: #dde4ed;
   --line-light: #ebf0f6;
+  --line-input: #8494a7;
   --green: #15803d;
   --amber: #b45309;
   --red: #c2410c;
@@ -79,8 +82,12 @@
     --navy: #60a5fa;
     --navy-hover: #84bbff;
     --navy-soft: rgba(96, 165, 250, 0.16);
+    --btn-primary-bg: #2563eb;
+    --btn-primary-hover: #1d4ed8;
+    --accent-fg: #ffffff;
     --line: #232e3e;
     --line-light: #1b2432;
+    --line-input: #566882;
     --green: #4ade80;
     --amber: #fbbf24;
     --red: #f87171;
@@ -315,10 +322,10 @@ input[type="text"], input[type="password"], input[type="number"], textarea, sele
   font-size: 14px;
   color: var(--ink);
   background: var(--paper-card);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-input);
   border-radius: 6px;
   outline: none;
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 input:focus, textarea:focus, select:focus {
@@ -341,6 +348,8 @@ input::placeholder, textarea::placeholder {
   margin-top: 40px;
   padding-top: 18px;
   border-top: 1px solid var(--line-light);
+  font-size: 13px;
+  color: var(--ink-muted);
   opacity: 0.78;
   transition: opacity .15s ease;
   display: flex;
@@ -348,6 +357,9 @@ input::placeholder, textarea::placeholder {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+}
+.site-footer:hover {
+  opacity: 1;
 }
 .site-footer-links .footer-link-btn {
   background: transparent !important;
@@ -392,15 +404,15 @@ button.pill-preview:hover {
   justify-content: center;
   min-height: 40px;
   padding: 8px 16px;
-  background: var(--navy);
-  color: #fff;
+  background: var(--btn-primary-bg);
+  color: var(--accent-fg);
   font-size: 13.5px;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
 }
 #panel-other details.other-install > summary::before { content: none; }
-#panel-other details.other-install > summary:hover { background: var(--navy-hover); }
+#panel-other details.other-install > summary:hover { background: var(--btn-primary-hover); }
 
 /* Buttons & Segmented Controls */
 .btn {
@@ -419,18 +431,18 @@ button.pill-preview:hover {
   background: var(--paper-card);
   color: var(--ink);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
 }
 .btn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); color: var(--ink); }
 .btn:active { transform: scale(0.985); }
 .btn.primary {
-  background: var(--navy);
-  color: #ffffff;
-  border-color: var(--navy);
-  box-shadow: 0 1px 3px rgba(27, 54, 93, 0.25);
+  background: var(--btn-primary-bg);
+  color: var(--accent-fg);
+  border-color: var(--btn-primary-bg);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
 }
-.btn.primary:hover { background: var(--navy-hover); border-color: var(--navy-hover); color: #ffffff; }
+.btn.primary:hover { background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); color: var(--accent-fg); }
 .btn.tiny { min-height: 32px; padding: 5px 12px; font-size: 12.5px; border-radius: 7px; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 
@@ -474,7 +486,7 @@ button.pill-preview:hover {
   background: var(--paper-card);
   color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 /* Unified Hero Stage Card & 1-Line Quota Strip */
@@ -726,8 +738,8 @@ button.pill-preview:hover {
   font-weight: 500;
   padding: 2px 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: rgba(15, 23, 42, 0.22);
+  color: var(--accent-fg);
   margin-left: 2px;
   white-space: nowrap;
 }
@@ -972,7 +984,7 @@ dialog:modal {
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
-  background-color: rgba(31, 29, 24, 0.45);
+  background-color: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -1003,7 +1015,7 @@ dialog.apple-action-sheet[open] {
 }
 dialog.sheet::backdrop,
 dialog.apple-action-sheet::backdrop {
-  background-color: rgba(31, 29, 24, 0);
+  background-color: rgba(15, 23, 42, 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
   transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, display, overlay;
@@ -1013,14 +1025,14 @@ dialog.apple-action-sheet::backdrop {
 }
 dialog.sheet[open]::backdrop,
 dialog.apple-action-sheet[open]::backdrop {
-  background-color: rgba(31, 29, 24, 0.45);
+  background-color: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
 @starting-style {
   dialog.sheet[open]::backdrop,
   dialog.apple-action-sheet[open]::backdrop {
-    background-color: rgba(31, 29, 24, 0);
+    background-color: rgba(15, 23, 42, 0);
     backdrop-filter: blur(0px);
     -webkit-backdrop-filter: blur(0px);
   }
@@ -1057,7 +1069,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border-radius: 14px;
   background: var(--paper-card);
   border: 1px solid var(--line);
-  box-shadow: 0 16px 36px rgba(31, 29, 24, 0.16);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
   color: var(--ink);
   position: relative;
 }
@@ -1127,7 +1139,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border-radius: 8px;
   background: var(--paper-card);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   text-decoration: none;
   color: var(--ink);
   transition: all .15s ease;
@@ -1219,9 +1231,9 @@ dialog.apple-action-sheet[open]::backdrop {
   transition: all .15s ease;
 }
 .apple-client-action-pill.primary {
-  background: var(--navy);
-  color: #ffffff;
-  border-color: var(--navy);
+  background: var(--btn-primary-bg);
+  color: var(--accent-fg);
+  border-color: var(--btn-primary-bg);
 }
 
 .apple-client-item {
@@ -1544,12 +1556,13 @@ dialog.apple-action-sheet[open]::backdrop {
   color: var(--navy);
 }
 .adv-btn.primary {
-  background: var(--navy);
-  border-color: var(--navy);
-  color: #fff;
+  background: var(--btn-primary-bg);
+  border-color: var(--btn-primary-bg);
+  color: var(--accent-fg);
 }
 .adv-btn.primary:hover {
-  background: var(--navy-hover);
+  background: var(--btn-primary-hover);
+  border-color: var(--btn-primary-hover);
 }
 .relay-pipeline {
   display: inline-flex;
@@ -1708,7 +1721,7 @@ dialog.apple-action-sheet[open]::backdrop {
   background: var(--paper-card);
   border-radius: 10px;
   border: 1px solid var(--line);
-  box-shadow: 0 1px 3px rgba(31, 29, 24, 0.03);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.03);
   padding: 0 18px;
   overflow: hidden;
 }
@@ -1781,8 +1794,8 @@ dialog.apple-action-sheet[open]::backdrop {
   transition: all .12s ease;
 }
 .sbtn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); }
-.sbtn.ok { border-color: var(--navy); background: var(--navy); color: #fff; }
-.sbtn.ok:hover { background: var(--navy-hover); }
+.sbtn.ok { border-color: var(--btn-primary-bg); background: var(--btn-primary-bg); color: var(--accent-fg); }
+.sbtn.ok:hover { background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); }
 .sbtn.danger { border-color: var(--red); color: var(--red); }
 .sbtn.cancel { color: var(--ink-muted); }
 .hitem { padding: 10px 0; border-bottom: 1px solid var(--line-light); font-size: 13.5px; }
@@ -1820,14 +1833,14 @@ dialog.apple-action-sheet[open]::backdrop {
 .maintenance-band {
   margin-top: 22px;
 }
-.maintenance-row {
-  background: transparent !important;
-  border: none !important;
-  border-top: 1px solid var(--line-light) !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  padding: 12px 2px !important;
-  margin: 0 !important;
+details.inner.maintenance-row {
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--line-light);
+  border-radius: 0;
+  box-shadow: none;
+  padding: 12px 2px;
+  margin: 0;
 }
 .maintenance-summary {
   list-style: none;
@@ -1843,7 +1856,7 @@ dialog.apple-action-sheet[open]::backdrop {
   transition: color .15s ease;
 }
 .maintenance-summary::-webkit-details-marker { display: none; }
-.maintenance-summary::before { content: none !important; }
+.maintenance-summary::before { content: none; }
 .maintenance-summary:hover { color: var(--ink); }
 .maintenance-summary:focus-visible { outline: 2px solid var(--navy); outline-offset: 3px; border-radius: 4px; }
 .maintenance-row[open] > .maintenance-summary {
@@ -1886,7 +1899,7 @@ dialog.apple-action-sheet[open]::backdrop {
   background: var(--paper-card);
   color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 .logbox { color: var(--ink); font-size: 13px; max-height: 260px; overflow-y: auto; line-height: 1.55; }
 .log-row {
@@ -1910,24 +1923,6 @@ dialog.apple-action-sheet[open]::backdrop {
 .log-tag-warn { background: rgba(180, 83, 9, 0.08); color: var(--amber); border-color: rgba(180, 83, 9, 0.2); }
 .log-tag-err { background: rgba(194, 65, 12, 0.08); color: var(--red); border-color: rgba(194, 65, 12, 0.2); }
 
-/* Footer */
-footer.site-footer {
-  margin-top: 40px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line-light);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  font-size: 13px;
-  color: var(--ink-muted);
-  opacity: 0.78;
-  transition: opacity .15s ease;
-}
-footer.site-footer:hover {
-  opacity: 1;
-}
 .check-result-box {
   padding: 14px;
   border: 1px solid var(--line);
@@ -1966,7 +1961,7 @@ footer.site-footer:hover {
   font-size: 11.5px;
   font-weight: 500;
   color: var(--ink-muted);
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   margin-left: 4px;
 }
 .quota-glance-bar {
@@ -2055,7 +2050,7 @@ footer.site-footer:hover {
   background: #ffffff;
   border-radius: 12px;
   border: 1px solid var(--line);
-  box-shadow: 0 4px 16px rgba(31, 29, 24, 0.06);
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2124,17 +2119,17 @@ footer.site-footer:hover {
   font-weight: 600;
   border-radius: 999px;
   border: none;
-  background: #f59e0b;
-  color: #fff;
+  background: #b45309;
+  color: #ffffff;
   cursor: pointer;
   transition: all 0.15s ease;
-  box-shadow: 0 1px 4px rgba(245, 158, 11, 0.25);
+  box-shadow: 0 1px 4px rgba(180, 83, 9, 0.25);
   white-space: nowrap;
 }
 .awakening-btn:hover {
-  background: #d97706;
+  background: #92400e;
   transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+  box-shadow: 0 2px 6px rgba(180, 83, 9, 0.35);
 }
 .awakening-dismiss {
   background: transparent;
@@ -2295,7 +2290,7 @@ footer.site-footer:hover {
           <div id="quota-details-panel" class="quota-details-panel" hidden>
             <div class="quota-details-meta">
               <span style="white-space:nowrap"><span data-i18n="quota_rem_lbl">剩余：</span><b id="quota-hero-rem" style="color:var(--ink);font-family:var(--mono);white-space:nowrap">-- GB</b></span>
-              <button type="button" class="quiet-inline-link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
+              <button type="button" class="quiet-inline-link" data-i18n="quota_rules_link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
             </div>
 
             <!-- Multi-dimensional Traffic Breakdown (Day / Week / Month / Year) -->
@@ -2500,7 +2495,7 @@ footer.site-footer:hover {
       </dialog>
 
       <!-- Relay Setup Dialog -->
-      <dialog id="relay-dialog" class="sheet apple-action-sheet" onclick="if(event.target===this)this.close()">
+      <dialog id="relay-dialog" class="sheet apple-action-sheet" closedby="any" onclick="if(event.target===this)this.close()">
         <div class="sheet-inner" style="width:min(380px, calc(100vw - 32px))">
           <div class="apple-sheet-grabber"></div>
           <div class="apple-sheet-header" style="position:relative;margin-bottom:12px">
@@ -2516,13 +2511,13 @@ footer.site-footer:hover {
       </dialog>
 
       <details class="inner" id="nodes-section" open>
-        <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between">
-          <span style="display:flex;align-items:center;gap:6px">
-            <span data-i18n="nodes_title">节点列表</span>
-            <span class="small muted" id="nodes-count-badge" style="font-weight:normal;margin-left:4px"></span>
-            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;margin-left:8px" title="当前设备到管理控制台的真实往返延迟"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg><span>本机: --</span></span>
+        <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px 12px">
+          <span style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0">
+            <span data-i18n="nodes_title" style="white-space:nowrap">节点列表</span>
+            <span class="small muted" id="nodes-count-badge" style="font-weight:normal;white-space:nowrap"></span>
+            <span class="ping-pill local-ping" id="header-local-ping" style="display:none;white-space:nowrap" title="当前设备到管理控制台的真实往返延迟"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg><span>本机: --</span></span>
           </span>
-          <div style="display:flex;align-items:center;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex:none">
             <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
               <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
             </button>
@@ -3302,6 +3297,7 @@ function initAccessibleValidation(root) {
       quota_hero_title: "Total Monthly Egress",
       quota_status_ok: "Normal",
       quota_rem_lbl: "Remaining: ",
+      quota_rules_link: "Circuit Breaker & Billing Check",
       quota_safe_lbl: "All egress servers within quota limits",
       connecting_svc: "Connecting to service…",
       connect_device: "Connect This Device",
@@ -3526,6 +3522,7 @@ function initAccessibleValidation(root) {
       quota_hero_title: "本月出海总流量",
       quota_status_ok: "充足",
       quota_rem_lbl: "剩余：",
+      quota_rules_link: "熔断阈值与账单核对",
       quota_safe_lbl: "所有出口服务器均在安全配额内 · 国内专线为防卡顿跳板",
       connecting_svc: "正在连接服务...",
       connect_device: "连接本机",
@@ -7384,12 +7381,10 @@ function initAccessibleValidation(root) {
   function toggleQuota() {
     var qs = document.getElementById("quota-section");
     if (!qs) return;
-    qs.open = !qs.open;
+    qs.open = true;
     var settings = document.getElementById("quota-settings");
-    if (settings) settings.style.display = qs.open ? "block" : "none";
-    if (qs.open) {
-      qs.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
+    if (settings) settings.style.display = "block";
+    qs.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
   window.ownlineToggleQuota = toggleQuota;
 

@@ -8,15 +8,15 @@
   justify-content: center;
   min-height: 40px;
   padding: 8px 16px;
-  background: var(--navy);
-  color: #fff;
+  background: var(--btn-primary-bg);
+  color: var(--accent-fg);
   font-size: 13.5px;
   border-radius: 6px;
   font-weight: 500;
   cursor: pointer;
 }
 #panel-other details.other-install > summary::before { content: none; }
-#panel-other details.other-install > summary:hover { background: var(--navy-hover); }
+#panel-other details.other-install > summary:hover { background: var(--btn-primary-hover); }
 
 /* Buttons & Segmented Controls */
 .btn {
@@ -35,18 +35,18 @@
   background: var(--paper-card);
   color: var(--ink);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.04);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
   transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
 }
 .btn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); color: var(--ink); }
 .btn:active { transform: scale(0.985); }
 .btn.primary {
-  background: var(--navy);
-  color: #ffffff;
-  border-color: var(--navy);
-  box-shadow: 0 1px 3px rgba(27, 54, 93, 0.25);
+  background: var(--btn-primary-bg);
+  color: var(--accent-fg);
+  border-color: var(--btn-primary-bg);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22);
 }
-.btn.primary:hover { background: var(--navy-hover); border-color: var(--navy-hover); color: #ffffff; }
+.btn.primary:hover { background: var(--btn-primary-hover); border-color: var(--btn-primary-hover); color: var(--accent-fg); }
 .btn.tiny { min-height: 32px; padding: 5px 12px; font-size: 12.5px; border-radius: 7px; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; }
 
@@ -90,7 +90,7 @@
   background: var(--paper-card);
   color: var(--ink);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.08);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 /* Unified Hero Stage Card & 1-Line Quota Strip */
@@ -342,8 +342,8 @@
   font-weight: 500;
   padding: 2px 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.2);
-  color: #ffffff;
+  background: rgba(15, 23, 42, 0.22);
+  color: var(--accent-fg);
   margin-left: 2px;
   white-space: nowrap;
 }
@@ -588,7 +588,7 @@ dialog:modal {
 dialog::backdrop {
   overflow: hidden;
   overscroll-behavior: contain;
-  background-color: rgba(31, 29, 24, 0.45);
+  background-color: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -619,7 +619,7 @@ dialog.apple-action-sheet[open] {
 }
 dialog.sheet::backdrop,
 dialog.apple-action-sheet::backdrop {
-  background-color: rgba(31, 29, 24, 0);
+  background-color: rgba(15, 23, 42, 0);
   backdrop-filter: blur(0px);
   -webkit-backdrop-filter: blur(0px);
   transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, display, overlay;
@@ -629,14 +629,14 @@ dialog.apple-action-sheet::backdrop {
 }
 dialog.sheet[open]::backdrop,
 dialog.apple-action-sheet[open]::backdrop {
-  background-color: rgba(31, 29, 24, 0.45);
+  background-color: rgba(15, 23, 42, 0.45);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
 @starting-style {
   dialog.sheet[open]::backdrop,
   dialog.apple-action-sheet[open]::backdrop {
-    background-color: rgba(31, 29, 24, 0);
+    background-color: rgba(15, 23, 42, 0);
     backdrop-filter: blur(0px);
     -webkit-backdrop-filter: blur(0px);
   }
@@ -673,7 +673,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border-radius: 14px;
   background: var(--paper-card);
   border: 1px solid var(--line);
-  box-shadow: 0 16px 36px rgba(31, 29, 24, 0.16);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
   color: var(--ink);
   position: relative;
 }
@@ -743,7 +743,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border-radius: 8px;
   background: var(--paper-card);
   border: 1px solid var(--line);
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   text-decoration: none;
   color: var(--ink);
   transition: all .15s ease;
@@ -835,9 +835,9 @@ dialog.apple-action-sheet[open]::backdrop {
   transition: all .15s ease;
 }
 .apple-client-action-pill.primary {
-  background: var(--navy);
-  color: #ffffff;
-  border-color: var(--navy);
+  background: var(--btn-primary-bg);
+  color: var(--accent-fg);
+  border-color: var(--btn-primary-bg);
 }
 
 .apple-client-item {

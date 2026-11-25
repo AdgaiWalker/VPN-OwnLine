@@ -7,9 +7,11 @@
   --ink: #0f172a;
   --muted: #4e5d73;
   --line: #dde4ed;
-  --line-strong: #c0cedc;
+  --line-strong: #8494a7;
   --accent: #163a5f;
   --accent-hover: #0f2b48;
+  --accent-fill: #163a5f;
+  --accent-fill-hover: #0f2b48;
   --accent-fg: #ffffff;
   --accent-soft: rgba(22, 58, 95, 0.09);
   --danger: #b43c24;
@@ -31,9 +33,11 @@
     --ink: #edf2f7;
     --muted: #96a6bc;
     --line: #232e3e;
-    --line-strong: #374860;
+    --line-strong: #566882;
     --accent: #60a5fa;
     --accent-hover: #84bbff;
+    --accent-fill: #2563eb;
+    --accent-fill-hover: #1d4ed8;
     --accent-fg: #ffffff;
     --accent-soft: rgba(96, 165, 250, 0.16);
     --danger: #f87171;
@@ -214,7 +218,7 @@ button, .primary-link {
   padding: 10px 16px;
   border: 1px solid transparent;
   border-radius: 8px;
-  background: var(--accent);
+  background: var(--accent-fill);
   color: var(--accent-fg);
   cursor: pointer;
   font: inherit;
@@ -231,7 +235,7 @@ input:user-valid {
   border-color: var(--accent);
 }
 button:hover:not(:disabled), .primary-link:hover {
-  background: var(--accent-hover);
+  background: var(--accent-fill-hover);
   box-shadow: 0 2px 8px var(--accent-soft);
 }
 @media (prefers-reduced-motion: no-preference) {
@@ -326,8 +330,8 @@ details > p { margin: 10px 0; }
 }
 .step-rail li[data-state="done"] {
   color: var(--accent-fg);
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-fill);
+  border-color: var(--accent-fill);
   font-weight: 600;
 }
 .step-rail li[data-state="done"] + li::before {

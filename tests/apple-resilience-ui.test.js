@@ -177,3 +177,33 @@ test('apple hig: visual hierarchy, responsive topbar, and card interaction affor
   // 3. Node card chevron affordance
   assert(html.includes('class="ico node-chevron"'), 'node-chevron icon must exist in rendered node cards');
 });
+
+test('accessibility & theme parity: dark primary contrast, change-password alignment, and quota/i18n guards', () => {
+  // 1. Dark-mode primary CTA contrast (#2563eb bg with #ffffff fg >= 4.5:1 AA)
+  assert(html.includes('--btn-primary-bg: #2563eb;'), 'dark mode must set --btn-primary-bg to #2563eb');
+  assert.match(html, /\.btn\.primary\s*\{[\s\S]*?background:\s*var\(--btn-primary-bg\);[\s\S]*?color:\s*var\(--accent-fg\);/);
+  assert.match(html, /\.adv-btn\.primary\s*\{[\s\S]*?background:\s*var\(--btn-primary-bg\);[\s\S]*?color:\s*var\(--accent-fg\);/);
+  assert.match(html, /\.sbtn\.ok\s*\{[\s\S]*?background:\s*var\(--btn-primary-bg\);[\s\S]*?color:\s*var\(--accent-fg\);/);
+  assert.match(html, /\.apple-client-action-pill\.primary\s*\{[\s\S]*?background:\s*var\(--btn-primary-bg\);[\s\S]*?color:\s*var\(--accent-fg\);/);
+
+  const localSetupCss = fs.readFileSync(path.join(__dirname, '../web/src/css/local-setup.css'), 'utf8');
+  assert(localSetupCss.includes('--accent-fill: #2563eb;'), 'local-setup.css dark mode must use --accent-fill: #2563eb');
+  assert(localSetupCss.includes('--accent-fg: #ffffff;'), 'local-setup.css must preserve --accent-fg: #ffffff');
+
+  // 2. Quota rules link i18n and non-toggling open behavior
+  assert(html.includes('data-i18n="quota_rules_link"'), 'quota rules button must carry data-i18n="quota_rules_link"');
+  assert(html.includes('quota_rules_link: "Circuit Breaker & Billing Check"'), 'en i18n must include quota_rules_link');
+  assert(html.includes('quota_rules_link: "熔断阈值与账单核对"'), 'zh i18n must include quota_rules_link');
+
+  const toggleQuotaFn = html.match(/  function toggleQuota\(\)\s*\{[\s\S]*?^  \}/m);
+  assert(toggleQuotaFn, 'toggleQuota function must exist');
+  assert(toggleQuotaFn[0].includes('qs.open = true;'), 'toggleQuota must open #quota-section instead of closing it when already open');
+  assert.equal(toggleQuotaFn[0].includes('!qs.open'), false, 'toggleQuota must not flip qs.open closed');
+
+  // 3. change-password.html theme parity and password visibility toggle
+  const cpHtml = fs.readFileSync(path.join(__dirname, '../web/change-password.html'), 'utf8');
+  assert(cpHtml.includes('color-scheme: light dark'), 'change-password.html must declare color-scheme: light dark');
+  assert(cpHtml.includes('prefers-color-scheme: dark'), 'change-password.html must support dark mode');
+  assert(cpHtml.includes('--canvas-bg:'), 'change-password.html must use Alpine Mist canvas gradient');
+  assert(cpHtml.includes('class="pw-toggle"'), 'change-password.html must include password visibility toggles');
+});

@@ -193,10 +193,10 @@ input[type="text"], input[type="password"], input[type="number"], textarea, sele
   font-size: 14px;
   color: var(--ink);
   background: var(--paper-card);
-  border: 1px solid var(--line);
+  border: 1px solid var(--line-input);
   border-radius: 6px;
   outline: none;
-  box-shadow: 0 1px 2px rgba(31, 29, 24, 0.02);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 input:focus, textarea:focus, select:focus {
@@ -219,6 +219,8 @@ input::placeholder, textarea::placeholder {
   margin-top: 40px;
   padding-top: 18px;
   border-top: 1px solid var(--line-light);
+  font-size: 13px;
+  color: var(--ink-muted);
   opacity: 0.78;
   transition: opacity .15s ease;
   display: flex;
@@ -226,6 +228,9 @@ input::placeholder, textarea::placeholder {
   align-items: center;
   flex-wrap: wrap;
   gap: 12px;
+}
+.site-footer:hover {
+  opacity: 1;
 }
 .site-footer-links .footer-link-btn {
   background: transparent !important;
