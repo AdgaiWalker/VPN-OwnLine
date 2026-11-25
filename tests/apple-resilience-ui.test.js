@@ -231,3 +231,14 @@ test('minimal-ux-motion-guard: motion baseline tokens, reduced motion, composito
   const skillMd = fs.readFileSync(skillPath, 'utf8');
   assert(skillMd.includes('name: minimal-ux-motion-guard'), 'SKILL.md must declare name: minimal-ux-motion-guard');
 });
+
+test('deep quota runway UI: 14-day SVG chart, dual ticks, and topology bottleneck view', () => {
+  assert(html.includes('id="quota-chart-svg"'), 'quota details panel must include #quota-chart-svg');
+  assert(html.includes('id="quota-time-tick"'), 'quota strip bar must include #quota-time-tick');
+  assert(html.includes('id="quota-breaker-tick"'), 'quota strip bar must include #quota-breaker-tick');
+  assert(html.includes('id="quota-topology-list"'), 'quota details panel must include #quota-topology-list');
+  assert(html.includes('quota_trend_14d: "14-Day Daily Usage"'), 'en i18n must include quota_trend_14d');
+  assert(html.includes('quota_trend_14d: "近 14 日消耗趋势"'), 'zh i18n must include quota_trend_14d');
+  assert(html.includes('quota_safe_rem_lbl: "Safe Runway"'), 'en i18n must include quota_safe_rem_lbl');
+  assert(html.includes('quota_safe_rem_lbl: "安全可用"'), 'zh i18n must include quota_safe_rem_lbl');
+});

@@ -734,7 +734,12 @@ class H(BaseHTTPRequestHandler):
             from nodekit import traffic_stats as traffic_stats_mod
             usage = _load_json("usage.json", {})
             history = _load_json("traffic_history.json", {})
-            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=load_nodes())
+            report = traffic_stats_mod.aggregate_all_traffic_stats(
+                usage,
+                history,
+                active_nodes=load_nodes(),
+                breaker_threshold_pct=quota_mod.quota_threshold(),
+            )
             return self._json(200, report)
         if norm_path == "/reconcile/status":
             q = urllib.parse.parse_qs(qs)
@@ -1010,7 +1015,12 @@ class H(BaseHTTPRequestHandler):
             usage = _load_json("usage.json", {})
             history = _load_json("traffic_history.json", {})
             active_nodes = load_nodes()
-            report = traffic_stats_mod.aggregate_all_traffic_stats(usage, history, active_nodes=active_nodes)
+            report = traffic_stats_mod.aggregate_all_traffic_stats(
+                usage,
+                history,
+                active_nodes=active_nodes,
+                breaker_threshold_pct=quota_mod.quota_threshold(),
+            )
             panel_gb = float((report.get("total") or {}).get("this_month_gb") or 0.0)
             panel_rday = None
             nodes_map = report.get("nodes") if isinstance(report.get("nodes"), dict) else {}

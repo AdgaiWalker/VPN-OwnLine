@@ -12,16 +12,24 @@
     var overallPct = (typeof STATE !== "undefined" && STATE && typeof STATE.heroOverallPct === "number") ? STATE.heroOverallPct : 0;
     var anyTripped = !!(typeof STATE !== "undefined" && STATE && STATE.heroAnyTripped);
     var bottleneck = (typeof STATE !== "undefined" && STATE) ? STATE.relayBottleneck : null;
+    var report = (typeof STATE !== "undefined" && STATE) ? STATE.trafficReport : null;
+    var tot = (report && report.total) ? report.total : null;
+    var runway = (tot && tot.runway) ? tot.runway : null;
+    var cycle = (tot && tot.cycle) ? tot.cycle : null;
     var elStatus = document.getElementById("quota-hero-status");
     var elSafe = document.getElementById("quota-hero-nodes-safe");
+    var bNode = (runway && runway.bottleneck_node) ? runway.bottleneck_node : null;
+    var isRelayBottle = !!(bottleneck && bottleneck.is_relay_bottleneck) || !!(bNode && bNode.role === "relay" && runway.topology && runway.topology.length > 1);
+    var breakerPct = runway && runway.breaker_pct != null ? Math.round(runway.breaker_pct) : 85;
+
     if (elStatus) {
-      if (anyTripped || overallPct >= 85) {
+      if (anyTripped || (runway && runway.safe_before_breaker_gb <= 0) || overallPct >= breakerPct) {
         elStatus.textContent = zh ? "已熔断" : "Tripped";
         elStatus.className = "tag bad";
-      } else if (bottleneck && bottleneck.is_relay_bottleneck) {
+      } else if (isRelayBottle) {
         elStatus.textContent = zh ? "跳板受限" : "Relay Bottleneck";
         elStatus.className = "tag warn";
-      } else if (overallPct >= 75) {
+      } else if (overallPct >= Math.max(50, breakerPct - 10)) {
         elStatus.textContent = zh ? "预警" : "Warning";
         elStatus.className = "tag warn";
       } else {
@@ -30,16 +38,28 @@
       }
     }
     if (elSafe) {
-      if (anyTripped) {
-        elSafe.textContent = zh ? "部分节点已触发保护熔断" : "Quota protection tripped on some nodes";
+      var daysRem = (cycle && cycle.days_remaining != null) ? cycle.days_remaining : null;
+      if (anyTripped || (runway && runway.safe_before_breaker_gb <= 0)) {
+        elSafe.textContent = zh ? "节点流量已达保护熔断线" : "Traffic reached protection circuit breaker";
         if (elSafe.style) {
           elSafe.style.display = "block";
           elSafe.style.color = "var(--apple-red)";
         }
-      } else if (bottleneck && bottleneck.is_relay_bottleneck) {
+      } else if (isRelayBottle) {
+        var rName = (bottleneck && bottleneck.relay_name) || (bNode && bNode.name) || "relay";
+        var safeRem = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : (bottleneck ? bottleneck.relay_remaining_gb : 0);
+        var resetSuffix = daysRem != null ? (zh ? (" · " + daysRem + " 天后重置") : (" · resets in " + daysRem + "d")) : "";
         elSafe.textContent = zh
-          ? ("落地机尚足，但中转跳板「" + bottleneck.relay_name + "」仅余 " + bottleneck.relay_remaining_gb + " GB")
-          : ("Egress ample, but relay \"" + bottleneck.relay_name + "\" has " + bottleneck.relay_remaining_gb + " GB left");
+          ? ("短板 " + rName + " · 距 " + breakerPct + "% 熔断余 " + safeRem + " GB" + resetSuffix)
+          : ("Bottleneck " + rName + " · " + safeRem + " GB to " + breakerPct + "% cap" + resetSuffix);
+        if (elSafe.style) {
+          elSafe.style.display = "block";
+          elSafe.style.color = "var(--apple-amber, #b45309)";
+        }
+      } else if (runway && runway.will_hit_breaker && runway.projected_days_to_breaker != null) {
+        elSafe.textContent = zh
+          ? ("按近 7 日消耗速度，预计 " + runway.projected_days_to_breaker + " 天后触达 " + breakerPct + "% 熔断线")
+          : ("At 7d pace, estimated " + runway.projected_days_to_breaker + "d until " + breakerPct + "% cap");
         if (elSafe.style) {
           elSafe.style.display = "block";
           elSafe.style.color = "var(--apple-amber, #b45309)";
@@ -57,29 +77,196 @@
   function renderTrafficBreakdown(report) {
     if (!report) return;
     if (typeof STATE !== "undefined" && STATE) STATE.trafficReport = report;
+    var zh = (typeof isZh === "function") ? isZh() : true;
     var tot = report.total || {};
-    var todayEl = document.getElementById("traffic-stat-today");
-    var yestEl = document.getElementById("traffic-stat-yesterday");
-    var weekEl = document.getElementById("traffic-stat-week");
-    var yearEl = document.getElementById("traffic-stat-year");
-    if (todayEl && tot.today_gb != null) todayEl.textContent = tot.today_gb + " GB";
-    if (yestEl && tot.yesterday_gb != null) yestEl.textContent = tot.yesterday_gb + " GB";
-    if (weekEl && tot.this_week_gb != null) weekEl.textContent = tot.this_week_gb + " GB";
-    if (yearEl && tot.this_year_gb != null) yearEl.textContent = tot.this_year_gb + " GB";
-
     var guide = tot.guidance || {};
+    var runway = tot.runway || null;
+    var cycle = tot.cycle || null;
+    var meta = tot.data_meta || {};
+    var series = Array.isArray(tot.daily_series) ? tot.daily_series : [];
     if (typeof STATE !== "undefined" && STATE) {
       STATE.relayBottleneck = (guide.bottleneck && guide.bottleneck.is_relay_bottleneck) ? guide.bottleneck : null;
     }
-    var gBadge = document.getElementById("traffic-guidance-badge");
-    var gText = document.getElementById("traffic-guidance-text");
-    if (gBadge && guide.badge) {
-      gBadge.textContent = guide.badge;
-      gBadge.className = "tag " + (guide.pace === "critical" ? "bad" : ((guide.pace === "heavy" || guide.pace === "warn") ? "warn" : "ok"));
+
+    var timeTick = document.getElementById("quota-time-tick");
+    var breakerTick = document.getElementById("quota-breaker-tick");
+    if (timeTick) {
+      if (cycle && typeof cycle.elapsed_pct === "number" && cycle.elapsed_pct > 0 && cycle.elapsed_pct <= 100) {
+        timeTick.hidden = false;
+        timeTick.style.left = Math.max(2, Math.min(98, cycle.elapsed_pct)) + "%";
+        timeTick.title = zh ? ("周期时间已过 " + cycle.elapsed_pct + "%") : ("Billing cycle " + cycle.elapsed_pct + "% elapsed");
+      } else {
+        timeTick.hidden = true;
+      }
     }
-    if (gText && guide.text) {
-      gText.textContent = guide.text;
+    if (breakerTick) {
+      var bPct = runway && typeof runway.breaker_pct === "number" ? runway.breaker_pct : null;
+      if (bPct && bPct > 0 && bPct < 100) {
+        breakerTick.hidden = false;
+        breakerTick.style.left = Math.max(4, Math.min(98, bPct)) + "%";
+        breakerTick.title = zh ? ("保护熔断阈值 " + bPct + "%") : ("Circuit breaker threshold " + bPct + "%");
+      } else {
+        breakerTick.hidden = true;
+      }
     }
+
+    var elRem = document.getElementById("quota-hero-rem");
+    var elRemSub = document.getElementById("quota-runway-sub");
+    var elAvg7 = document.getElementById("quota-avg-7d");
+    var elCycleRem = document.getElementById("quota-cycle-rem");
+    var elCyclePct = document.getElementById("quota-cycle-pct");
+    var breakerPctLbl = runway && runway.breaker_pct != null ? Math.round(runway.breaker_pct) : 85;
+
+    if (elRem) {
+      var safeVal = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : guide.remaining_gb;
+      elRem.textContent = (safeVal != null ? safeVal : "--") + " GB";
+    }
+    if (elRemSub) {
+      if (runway && runway.safe_before_breaker_gb <= 0) {
+        elRemSub.textContent = zh ? "已触发熔断" : "Breaker tripped";
+      } else if (runway && runway.effective_remaining_gb != null) {
+        elRemSub.textContent = zh
+          ? ("(距 " + breakerPctLbl + "% 熔断 · 账单余 " + runway.effective_remaining_gb + "G)")
+          : ("(to " + breakerPctLbl + "% cap · " + runway.effective_remaining_gb + "G bill)");
+      } else {
+        elRemSub.textContent = "";
+      }
+    }
+    if (elAvg7) {
+      var avg7 = (runway && runway.avg_7d_gb != null) ? runway.avg_7d_gb : tot.today_gb;
+      elAvg7.textContent = avg7 != null ? (avg7 + (zh ? " GB/天" : " GB/d")) : "--";
+    }
+    if (elCycleRem) {
+      var dRem = (cycle && cycle.days_remaining != null) ? cycle.days_remaining : guide.days_remaining;
+      elCycleRem.textContent = dRem != null ? (zh ? (dRem + " 天后重置") : ("Resets in " + dRem + "d")) : "--";
+    }
+    if (elCyclePct) {
+      elCyclePct.textContent = (cycle && cycle.elapsed_pct != null)
+        ? (zh ? ("周期已过 " + cycle.elapsed_pct + "%") : (cycle.elapsed_pct + "% elapsed"))
+        : "";
+    }
+
+    var chartWrap = document.getElementById("quota-chart-wrap");
+    var chartSvg = document.getElementById("quota-chart-svg");
+    var chartCold = document.getElementById("quota-chart-cold");
+    var chartAxis = document.getElementById("quota-chart-axis");
+    var readout = document.getElementById("quota-chart-readout");
+    var todayVal = tot.today_gb != null ? tot.today_gb : 0;
+    var yestVal = tot.yesterday_gb != null ? tot.yesterday_gb : 0;
+    var defaultReadout = zh
+      ? ("今日 " + todayVal + " · 昨日 " + yestVal + " GB")
+      : ("Today " + todayVal + " · Yest " + yestVal + " GB");
+    if (readout) readout.textContent = defaultReadout;
+
+    var histDays = (typeof meta.history_days === "number") ? meta.history_days : series.filter(function (s) { return !s.missing; }).length;
+    if (series.length && histDays > 1 && chartSvg && chartWrap) {
+      chartWrap.hidden = false;
+      if (chartCold) chartCold.hidden = true;
+      if (chartAxis) chartAxis.hidden = false;
+
+      var dailyBudget = (runway && runway.daily_budget_gb > 0) ? runway.daily_budget_gb : 0;
+      var maxGb = 0.5;
+      series.forEach(function (item) {
+        if (!item.missing && item.gb > maxGb) maxGb = item.gb;
+      });
+      if (dailyBudget > 0 && dailyBudget <= maxGb * 1.4 && dailyBudget > maxGb) {
+        maxGb = dailyBudget * 1.1;
+      }
+
+      var svgW = 560, svgH = 56, padTop = 6, padBottom = 4, plotH = svgH - padTop - padBottom;
+      var stepW = svgW / series.length;
+      var barW = Math.max(12, Math.floor(stepW * 0.56));
+      var svgParts = [];
+
+      if (dailyBudget > 0 && dailyBudget <= maxGb) {
+        var budY = Math.round((padTop + plotH - (dailyBudget / maxGb) * plotH) * 10) / 10;
+        svgParts.push('<line class="qbar-budget-line" x1="0" y1="' + budY + '" x2="' + svgW + '" y2="' + budY + '"></line>');
+      }
+
+      series.forEach(function (item, idx) {
+        var colX = Math.round(idx * stepW * 10) / 10;
+        var rectX = Math.round((colX + (stepW - barW) / 2) * 10) / 10;
+        var isToday = idx === series.length - 1;
+        var h = item.missing ? 3 : Math.max(3, Math.round((item.gb / maxGb) * plotH * 10) / 10);
+        var y = Math.round((svgH - padBottom - h) * 10) / 10;
+        var cls = item.missing ? "qbar qbar-missing" : (isToday ? "qbar qbar-today" : (dailyBudget > 0 && item.gb > dailyBudget ? "qbar qbar-over" : "qbar"));
+        var ariaLbl = item.label + ": " + (item.missing ? (zh ? "无采样" : "no sample") : (item.gb + " GB"));
+        svgParts.push(
+          '<g class="qbar-col" tabindex="0" role="listitem" aria-label="' + esc(ariaLbl) + '" data-label="' + esc(item.label) + '" data-gb="' + esc(String(item.gb)) + '" data-missing="' + (item.missing ? "1" : "0") + '">' +
+            '<rect x="' + colX + '" y="0" width="' + stepW + '" height="' + svgH + '" fill="transparent"></rect>' +
+            '<rect class="' + cls + '" x="' + rectX + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="2"></rect>' +
+          '</g>'
+        );
+      });
+      chartSvg.innerHTML = svgParts.join("");
+
+      if (!chartSvg.dataset.boundReadout) {
+        chartSvg.dataset.boundReadout = "1";
+        var showCol = function (ev) {
+          var col = ev.target && ev.target.closest ? ev.target.closest(".qbar-col") : null;
+          var rEl = document.getElementById("quota-chart-readout");
+          if (!col || !rEl) return;
+          var lbl = col.getAttribute("data-label") || "";
+          var isMiss = col.getAttribute("data-missing") === "1";
+          var gbVal = col.getAttribute("data-gb") || "0";
+          var curZh = (typeof isZh === "function") ? isZh() : true;
+          rEl.textContent = lbl + " · " + (isMiss ? (curZh ? "无采样" : "No sample") : (gbVal + " GB"));
+        };
+        var resetCol = function () {
+          var rEl = document.getElementById("quota-chart-readout");
+          if (rEl && chartSvg.dataset.defaultReadout) rEl.textContent = chartSvg.dataset.defaultReadout;
+        };
+        chartSvg.addEventListener("mouseover", showCol);
+        chartSvg.addEventListener("focusin", showCol);
+        chartSvg.addEventListener("click", showCol);
+        chartSvg.addEventListener("mouseleave", resetCol);
+        chartSvg.addEventListener("focusout", resetCol);
+      }
+      chartSvg.dataset.defaultReadout = defaultReadout;
+
+      var axStart = document.getElementById("quota-axis-start");
+      var axMid = document.getElementById("quota-axis-mid");
+      var axEnd = document.getElementById("quota-axis-end");
+      if (axStart) axStart.textContent = series[0].label;
+      if (axMid) axMid.textContent = dailyBudget > 0 ? ((zh ? "日均预算 " : "Budget ") + dailyBudget + "G") : series[Math.floor(series.length / 2)].label;
+      if (axEnd) axEnd.textContent = zh ? "今天" : "Today";
+    } else if (chartWrap && chartCold) {
+      chartWrap.hidden = true;
+      if (chartAxis) chartAxis.hidden = true;
+      chartCold.hidden = false;
+      chartCold.textContent = zh
+        ? ("今日已用 " + todayVal + " GB · 采样积累中，连续运行后自动呈现 14 日趋势")
+        : ("Today " + todayVal + " GB · Collecting samples for 14-day trend");
+    }
+
+    var topoEl = document.getElementById("quota-topology-list");
+    var topo = (runway && Array.isArray(runway.topology)) ? runway.topology : [];
+    if (topoEl) {
+      if (topo.length > 1) {
+        topoEl.hidden = false;
+        var topoHead = '<div class="quota-topo-title">' + (zh ? "链路木桶分布" : "Path Bottleneck") + '</div>';
+        var topoRows = topo.map(function (item, idx) {
+          var isBottleneck = idx === 0 && runway && runway.bottleneck_node && runway.bottleneck_node.host === item.host;
+          var roleTxt = item.role === "relay" ? (zh ? "中转" : "Relay") : (zh ? "出口" : "Exit");
+          var tagTxt = isBottleneck ? (roleTxt + " · " + (zh ? "瓶颈" : "Cap")) : roleTxt;
+          var pctRatio = Math.max(0, Math.min(1, Number(item.used_pct || 0) / 100));
+          var fillCls = item.tripped ? "quota-topo-bar tripped" : (item.used_pct >= (breakerPctLbl - 10) ? "quota-topo-bar warn" : "quota-topo-bar");
+          var tailTxt = isBottleneck
+            ? (zh ? (" · 距熔断 " + item.safe_before_breaker_gb + "G") : (" · " + item.safe_before_breaker_gb + "G safe"))
+            : "";
+          return '<div class="quota-topo-row">' +
+            '<span class="quota-topo-name">' + esc(item.name) + ' <span class="quota-topo-role' + (isBottleneck ? " warn" : "") + '">' + esc(tagTxt) + '</span></span>' +
+            '<span class="' + fillCls + '" aria-hidden="true"><i style="--pct:' + pctRatio + '"></i>' + (breakerPctLbl > 0 && breakerPctLbl < 100 ? '<span class="quota-topo-tick" style="left:' + breakerPctLbl + '%"></span>' : '') + '</span>' +
+            '<span class="quota-topo-stat">' + item.used_gb + ' / ' + Math.round(item.total_gb) + ' GB <span class="muted">(' + Math.round(item.used_pct) + '%' + tailTxt + ')</span></span>' +
+          '</div>';
+        }).join("");
+        topoEl.innerHTML = topoHead + topoRows;
+      } else {
+        topoEl.hidden = true;
+        topoEl.innerHTML = "";
+      }
+    }
+
     syncHeroQuotaSummary();
   }
 
@@ -166,7 +353,9 @@
         if (elUsed) elUsed.textContent = usedFmt;
         if (elTotal) elTotal.textContent = totalFmt;
         if (elPct) elPct.textContent = "(" + overallPct + "%)";
-        if (elRem) elRem.textContent = remGb + " GB";
+        if (elRem && !(typeof STATE !== "undefined" && STATE && STATE.trafficReport && STATE.trafficReport.total && STATE.trafficReport.total.runway)) {
+          elRem.textContent = remGb + " GB";
+        }
         if (elFill) {
           elFill.style.setProperty("--pct", String(Math.max(0, Math.min(1, overallPct / 100))));
           elFill.style.background = overallPct >= 85 ? "var(--apple-red)" : (overallPct >= 75 ? "var(--apple-amber)" : "var(--apple-blue)");

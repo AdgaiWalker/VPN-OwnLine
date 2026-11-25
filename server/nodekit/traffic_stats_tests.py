@@ -29,14 +29,37 @@ MOCK_VNSTAT_JSON = """{
       "name": "eth0",
       "traffic": {
         "day": [
+          {"id": 0, "date": {"year": 2026, "month": 11, "day": 21}, "rx": 1073741824, "tx": 2147483648},
+          {"id": 1, "date": {"year": 2026, "month": 11, "day": 20}, "rx": 2147483648, "tx": 4294967296},
+          {"id": 2, "date": {"year": 2026, "month": 11, "day": 19}, "rx": 1073741824, "tx": 1073741824}
+        ],
+        "month": [
+          {"id": 0, "date": {"year": 2026, "month": 11}, "rx": 10737418240, "tx": 21474836480}
+        ],
+        "year": [
+          {"id": 0, "date": {"year": 2026}, "rx": 53687091200, "tx": 53687091200}
+        ]
+      }
+    }
+  ]
+}"""
+
+MOCK_VNSTAT_V1_JSON = """{
+  "vnstatversion": "1.18",
+  "jsonversion": "1",
+  "interfaces": [
+    {
+      "id": "eth0",
+      "traffic": {
+        "days": [
           {"id": 0, "date": {"year": 2026, "month": 11, "day": 21}, "rx": 1048576, "tx": 2097152},
           {"id": 1, "date": {"year": 2026, "month": 11, "day": 20}, "rx": 2097152, "tx": 4194304},
           {"id": 2, "date": {"year": 2026, "month": 11, "day": 19}, "rx": 1048576, "tx": 1048576}
         ],
-        "month": [
+        "months": [
           {"id": 0, "date": {"year": 2026, "month": 11}, "rx": 10485760, "tx": 20971520}
         ],
-        "year": [
+        "years": [
           {"id": 0, "date": {"year": 2026}, "rx": 52428800, "tx": 52428800}
         ]
       }
@@ -46,18 +69,17 @@ MOCK_VNSTAT_JSON = """{
 
 
 def main():
-    # 1. 测试 vnStat JSON 解析 (KiB 换算为 GB)
-    # day[0]: (1048576 + 2097152) KiB = 3145728 KiB = 3.0 GiB
-    # day[1]: (2097152 + 4194304) KiB = 6291456 KiB = 6.0 GiB
-    # 7 天累计: 3 + 6 + 2 = 11.0 GiB
-    # month[0]: 30 GiB
-    # year[0]: 100 GiB
+    # 1. 测试 vnStat 2.x (bytes) 与 vnStat 1.x (KiB) JSON 解析
     vn_parsed = T.parse_vnstat_json(MOCK_VNSTAT_JSON)
-    check("正确解析 vnStat 今日流量", vn_parsed.get("today_gb") == 3.0, str(vn_parsed))
-    check("正确解析 vnStat 昨日流量", vn_parsed.get("yesterday_gb") == 6.0, str(vn_parsed))
-    check("正确统计 vnStat 本周流量", vn_parsed.get("this_week_gb") == 11.0, str(vn_parsed))
-    check("正确解析 vnStat 本月流量", vn_parsed.get("this_month_gb") == 30.0, str(vn_parsed))
-    check("正确解析 vnStat 年度流量", vn_parsed.get("this_year_gb") == 100.0, str(vn_parsed))
+    check("vnStat 2.x 识别为 bytes 单位", vn_parsed.get("unit") == "bytes", str(vn_parsed))
+    check("正确解析 vnStat 2.x 今日流量", vn_parsed.get("today_gb") == 3.0, str(vn_parsed))
+    check("正确解析 vnStat 2.x 昨日流量", vn_parsed.get("yesterday_gb") == 6.0, str(vn_parsed))
+    check("正确统计 vnStat 2.x 本周流量", vn_parsed.get("this_week_gb") == 11.0, str(vn_parsed))
+    check("正确解析 vnStat 2.x 本月流量", vn_parsed.get("this_month_gb") == 30.0, str(vn_parsed))
+    check("正确解析 vnStat 2.x 年度流量", vn_parsed.get("this_year_gb") == 100.0, str(vn_parsed))
+
+    vn_v1 = T.parse_vnstat_json(MOCK_VNSTAT_V1_JSON)
+    check("vnStat 1.x 识别为 KiB 单位并准确换算", vn_v1.get("unit") == "kib" and vn_v1.get("today_gb") == 3.0 and vn_v1.get("this_month_gb") == 30.0, str(vn_v1))
 
     # 2. 异常/空数据保底
     check("空数据保底不崩溃", T.parse_vnstat_json("") == {})
@@ -163,6 +185,47 @@ def main():
 
     agg_default_now = T.aggregate_all_traffic_stats(mock_usage, history, active_nodes=active_cluster)
     check("默认时间输出显式 +08:00 时区而非错标 +00:00", agg_default_now["updated_at"].endswith("+08:00"), agg_default_now["updated_at"])
+
+    # 8. 深度决策模型不变量校验 (14 日序列 + 熔断前安全余量 + 周期刻度 + 冷启动/无上限降级)
+    deep_usage = {
+        "43.153.56.137": {"used": 309.49, "total": 512.0, "start": "2026-10-27", "end": "2026-11-26"},
+        "198.51.100.88": {"used": 164.0, "total": 200.0, "start": "2026-10-27", "end": "2026-11-26"},
+    }
+    deep_nodes = [
+        {"name": "walker-sv", "host": "43.153.56.137", "role": "exit"},
+        {"name": "relay-hk", "host": "198.51.100.88", "role": "relay"},
+    ]
+    now_deep = datetime.datetime(2026, 11, 25, 19, 0, 0, tzinfo=T.CN_TZ)
+    deep_hist = {
+        "nodes": {
+            "43.153.56.137": {
+                "daily_totals": {
+                    (now_deep - datetime.timedelta(days=k)).strftime("%Y-%m-%d"): float(k + 1)
+                    for k in range(10)
+                }
+            }
+        }
+    }
+    agg_deep = T.aggregate_all_traffic_stats(
+        deep_usage, deep_hist, now=now_deep, active_nodes=deep_nodes, breaker_threshold_pct=85
+    )
+    tot_deep = agg_deep["total"]
+    series = tot_deep["daily_series"]
+    runway = tot_deep["runway"]
+    cycle = tot_deep["cycle"]
+    check("daily_series 严格返回 14 天升序且诚实标注 missing", len(series) == 14 and series[0]["missing"] is True and series[-1]["missing"] is False, str(len(series)))
+    check("周期归一化刻度准确计算剩余天数与百分比", cycle["days_remaining"] == 1 and 90.0 <= cycle["elapsed_pct"] <= 100.0, str(cycle))
+    check("熔断前安全余量严格等于跳板距 85% 熔断线距离 (6.0 GB) 且不大于账单剩余", runway["safe_before_breaker_gb"] == 6.0 and runway["safe_before_breaker_gb"] <= runway["effective_remaining_gb"], str(runway))
+    check("拓扑排序首个元素为瓶颈中转节点 relay-hk", runway["bottleneck_node"] is not None and runway["bottleneck_node"]["name"] == "relay-hk" and len(runway["topology"]) == 2, str(runway["topology"]))
+
+    # 冷启动与无套餐上限边界
+    cold_agg = T.aggregate_all_traffic_stats(
+        {"1.1.1.1": {"used": 12.3, "total": 0}},
+        {"nodes": {"1.1.1.1": {"daily_totals": {now_deep.strftime("%Y-%m-%d"): 1.5}}}},
+        now=now_deep,
+        active_nodes=[{"name": "host-only", "host": "1.1.1.1", "role": "exit"}],
+    )
+    check("冷启动仅 1 天采样且无上限套餐安全降级", cold_agg["total"]["data_meta"]["history_days"] == 1 and cold_agg["total"]["data_meta"]["has_quota"] is False and cold_agg["total"]["runway"]["topology"] == [], str(cold_agg["total"]["data_meta"]))
 
     print(f"\n通过 {passed} 项")
 

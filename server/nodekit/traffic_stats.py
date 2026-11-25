@@ -33,14 +33,15 @@ def _safe_nonneg_float(val: Any, default: Optional[float] = 0.0) -> Optional[flo
 
 
 def parse_vnstat_json(data: Any) -> Dict[str, Any]:
-    """解析 vnStat --json 输出格式（兼容 vnStat 2.x 结构）。
-    
+    """解析 vnStat --json 输出格式（自动区分 1.x KiB 与 2.x bytes）。
+
     返回标准字段:
-      - today_bytes
-      - yesterday_bytes
-      - this_week_bytes
-      - this_month_bytes
-      - this_year_bytes
+      - unit ("bytes" | "kib")
+      - today_gb
+      - yesterday_gb
+      - this_week_gb
+      - this_month_gb
+      - this_year_gb
     """
     if isinstance(data, str):
         try:
@@ -53,6 +54,13 @@ def parse_vnstat_json(data: Any) -> Dict[str, Any]:
     interfaces = data.get("interfaces", [])
     if not interfaces or not isinstance(interfaces, list):
         return {}
+
+    raw_ver = str(data.get("jsonversion") or "1").strip()
+    try:
+        major_ver = int(raw_ver.split(".", 1)[0])
+    except (TypeError, ValueError):
+        major_ver = 1
+    unit_scale = 1 if major_ver >= 2 else 1024
 
     iface = interfaces[0]
     traffic = iface.get("traffic", {}) if isinstance(iface, dict) else {}
@@ -77,13 +85,13 @@ def parse_vnstat_json(data: Any) -> Dict[str, Any]:
         sorted_days = sorted(days, key=_day_key, reverse=True)
         if len(sorted_days) >= 1:
             d0 = sorted_days[0]
-            today_bytes = (d0.get("rx", 0) + d0.get("tx", 0)) * 1024  # vnStat 默认单位为 KiB
+            today_bytes = (d0.get("rx", 0) + d0.get("tx", 0)) * unit_scale
         if len(sorted_days) >= 2:
             d1 = sorted_days[1]
-            yesterday_bytes = (d1.get("rx", 0) + d1.get("tx", 0)) * 1024
+            yesterday_bytes = (d1.get("rx", 0) + d1.get("tx", 0)) * unit_scale
         # 统计过去 7 天
         for d in sorted_days[:7]:
-            this_week_bytes += (d.get("rx", 0) + d.get("tx", 0)) * 1024
+            this_week_bytes += (d.get("rx", 0) + d.get("tx", 0)) * unit_scale
 
     if months and isinstance(months, list):
         def _month_key(m):
@@ -93,7 +101,7 @@ def parse_vnstat_json(data: Any) -> Dict[str, Any]:
         sorted_months = sorted(months, key=_month_key, reverse=True)
         if sorted_months:
             m0 = sorted_months[0]
-            this_month_bytes = (m0.get("rx", 0) + m0.get("tx", 0)) * 1024
+            this_month_bytes = (m0.get("rx", 0) + m0.get("tx", 0)) * unit_scale
 
     if years and isinstance(years, list):
         def _year_key(y):
@@ -103,9 +111,10 @@ def parse_vnstat_json(data: Any) -> Dict[str, Any]:
         sorted_years = sorted(years, key=_year_key, reverse=True)
         if sorted_years:
             y0 = sorted_years[0]
-            this_year_bytes = (y0.get("rx", 0) + y0.get("tx", 0)) * 1024
+            this_year_bytes = (y0.get("rx", 0) + y0.get("tx", 0)) * unit_scale
 
     return {
+        "unit": "bytes" if unit_scale == 1 else "kib",
         "today_gb": round(today_bytes / (1024 ** 3), 2),
         "yesterday_gb": round(yesterday_bytes / (1024 ** 3), 2),
         "this_week_gb": round(this_week_bytes / (1024 ** 3), 2),
@@ -312,14 +321,27 @@ def compute_node_stats(host: str, usage_item: Dict[str, Any],
 def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
                                 history: Dict[str, Any],
                                 now: Optional[datetime.datetime] = None,
-                                active_nodes: Optional[List[Dict[str, Any]]] = None) -> Dict[str, Any]:
+                                active_nodes: Optional[List[Dict[str, Any]]] = None,
+                                breaker_threshold_pct: Optional[float] = None) -> Dict[str, Any]:
     """全系统多节点流量透视聚合报表。
 
     支持根据 active_nodes 过滤废弃或非活跃云实例，仅将出海落地主力节点纳管入配额基准，
-    保证控制台顶部进度条与行动指引单一真理源（SSOT）一致。
+    并输出周期刻度、14 日消耗序列与熔断前安全余量（SSOT）。
     """
     if now is None:
         now = datetime.datetime.now(CN_TZ)
+
+    if breaker_threshold_pct is None:
+        breaker_pct = 85.0
+    else:
+        try:
+            breaker_pct = float(breaker_threshold_pct)
+        except (TypeError, ValueError):
+            breaker_pct = 85.0
+        if not math.isfinite(breaker_pct):
+            breaker_pct = 85.0
+    breaker_pct = round(max(1.0, min(100.0, breaker_pct)), 1)
+    breaker_ratio = breaker_pct / 100.0
 
     active_hosts = set()
     egress_hosts = set()
@@ -449,6 +471,167 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
                 f"（落地机尚余 {cur_rem} GB）{cycle_suffix}，请优先留意跳板流量。"
             )
 
+    # 周期归一化刻度 (Cycle Progress)
+    cycle_src: Dict[str, Any] = {}
+    if primary_candidate and isinstance(usage_dict, dict):
+        cycle_src = usage_dict.get(primary_candidate.get("host", "")) or {}
+    if not (cycle_src.get("start") and cycle_src.get("end")) and isinstance(usage_dict, dict):
+        for k, v in usage_dict.items():
+            if not str(k).startswith("_") and isinstance(v, dict) and v.get("start") and v.get("end"):
+                cycle_src = v
+                break
+
+    today_date = now.date()
+    c_start = str(cycle_src.get("start") or "")[:10]
+    c_end = str(cycle_src.get("end") or "")[:10]
+    c_reset = cycle_src.get("reset_day")
+    c_total_days = 30
+    c_days_rem = int(primary_guidance.get("days_remaining", 30) if primary_guidance else 30)
+    c_elapsed_days: Optional[int] = None
+    c_elapsed_pct = 0.0
+    try:
+        s_dt = datetime.date.fromisoformat(c_start) if c_start else None
+        e_dt = datetime.date.fromisoformat(c_end) if c_end else None
+        if s_dt and e_dt and e_dt > s_dt:
+            c_total_days = max(1, (e_dt - s_dt).days)
+            c_days_rem = max(0, (e_dt - today_date).days)
+            c_elapsed_days = max(0, min(c_total_days, (today_date - s_dt).days))
+            c_elapsed_pct = round(max(0.0, min(100.0, (c_elapsed_days / c_total_days) * 100.0)), 1)
+    except Exception:
+        pass
+    if c_elapsed_days is None:
+        c_elapsed_days = max(0, c_total_days - max(0, c_days_rem))
+        c_elapsed_pct = round(max(0.0, min(100.0, (c_elapsed_days / max(1, c_total_days)) * 100.0)), 1)
+
+    cycle_info = {
+        "start": c_start,
+        "end": c_end,
+        "reset_day": c_reset,
+        "total_days": c_total_days,
+        "elapsed_days": c_elapsed_days,
+        "days_remaining": c_days_rem,
+        "elapsed_pct": c_elapsed_pct,
+    }
+
+    # 近 14 日真实日消耗序列 (诚实标注缺失采样日)
+    nodes_hist = history.get("nodes", {}) if isinstance(history, dict) else {}
+    active_egress_list = [k for k in nodes_stats if (k in egress_hosts if use_filter else True)]
+    if not active_egress_list:
+        active_egress_list = list(nodes_stats.keys())
+    active_relay_list = [k for k in nodes_stats if use_filter and k not in egress_hosts]
+
+    daily_series = []
+    history_days = 0
+    for offset in range(13, -1, -1):
+        d_obj = now - datetime.timedelta(days=offset)
+        d_str = d_obj.strftime("%Y-%m-%d")
+        egress_day = 0.0
+        relay_day = 0.0
+        has_sample = False
+        for h_ip in active_egress_list:
+            dt_map = (nodes_hist.get(h_ip) or {}).get("daily_totals") or {}
+            if isinstance(dt_map, dict) and d_str in dt_map and dt_map[d_str] is not None:
+                has_sample = True
+                egress_day += _safe_nonneg_float(dt_map.get(d_str), 0.0)
+        for r_ip in active_relay_list:
+            dt_map = (nodes_hist.get(r_ip) or {}).get("daily_totals") or {}
+            if isinstance(dt_map, dict) and d_str in dt_map and dt_map[d_str] is not None:
+                relay_day += _safe_nonneg_float(dt_map.get(d_str), 0.0)
+        if has_sample:
+            history_days += 1
+        daily_series.append({
+            "date": d_str,
+            "label": d_obj.strftime("%m-%d"),
+            "gb": round(egress_day, 2),
+            "relay_gb": round(relay_day, 2),
+            "missing": not has_sample,
+        })
+
+    # 拓扑木桶与熔断线前真实安全余量 (Breaker-Aware Runway)
+    host_meta: Dict[str, Dict[str, str]] = {}
+    if active_nodes is not None:
+        for n in active_nodes:
+            h = n.get("host") or n.get("ip")
+            if not h:
+                continue
+            role = "relay" if n.get("role") in ("relay", "standalone") else "exit"
+            if h not in host_meta or role == "exit":
+                host_meta[h] = {"name": str(n.get("name") or h), "role": role}
+
+    topology = []
+    for h, st in nodes_stats.items():
+        t_gb = _safe_nonneg_float(st.get("total_gb"), 0.0)
+        u_gb = _safe_nonneg_float(st.get("used_gb"), 0.0)
+        if t_gb <= 0:
+            continue
+        u_raw = usage_dict.get(h) if isinstance(usage_dict, dict) else None
+        meta = host_meta.get(h) or {"name": str((u_raw or {}).get("name") or h), "role": "exit"}
+        bill_rem = max(0.0, round(t_gb - u_gb, 2))
+        breaker_limit = round(t_gb * breaker_ratio, 2)
+        safe_before_breaker = max(0.0, round(breaker_limit - u_gb, 2))
+        used_pct = round(min(100.0, (u_gb / t_gb) * 100.0), 1)
+        topology.append({
+            "host": h,
+            "name": meta["name"],
+            "role": meta["role"],
+            "used_gb": round(u_gb, 2),
+            "total_gb": round(t_gb, 2),
+            "used_pct": used_pct,
+            "bill_remaining_gb": bill_rem,
+            "breaker_limit_gb": breaker_limit,
+            "safe_before_breaker_gb": safe_before_breaker,
+            "tripped": bool(u_gb >= breaker_limit),
+        })
+    topology.sort(key=lambda item: (item["safe_before_breaker_gb"], item["bill_remaining_gb"], -item["used_pct"]))
+
+    last_7_vals = [item["gb"] for item in daily_series[-7:] if not item["missing"]]
+    avg_7d_gb = round(sum(last_7_vals) / len(last_7_vals), 2) if last_7_vals else round(tot_today, 2)
+    eff_rem_gb = min((item["bill_remaining_gb"] for item in topology), default=max(0.0, round(tot_total - tot_month, 2)))
+    safe_breaker_gb = min(
+        (item["safe_before_breaker_gb"] for item in topology),
+        default=max(0.0, round(tot_total * breaker_ratio - tot_month, 2)),
+    )
+    budget_days = max(1, int(c_days_rem or 1))
+    runway_daily_budget = round(safe_breaker_gb / budget_days, 2) if safe_breaker_gb > 0 else 0.0
+    proj_days_to_breaker = round(safe_breaker_gb / avg_7d_gb, 1) if avg_7d_gb >= 0.05 else None
+    will_hit_breaker = bool(
+        topology and (safe_breaker_gb <= 0 or (proj_days_to_breaker is not None and c_days_rem > 0 and proj_days_to_breaker < c_days_rem))
+    )
+    bottleneck_node = topology[0] if topology else None
+    egress_pct = round(min(100.0, (tot_month / tot_total) * 100.0), 1) if tot_total > 0 else 0.0
+    ref_pct = bottleneck_node["used_pct"] if bottleneck_node else egress_pct
+    pace_delta_pct = round(ref_pct - c_elapsed_pct, 1)
+
+    has_host_os = False
+    has_cloud = False
+    if isinstance(usage_dict, dict):
+        for k, v in usage_dict.items():
+            if not str(k).startswith("_") and isinstance(v, dict):
+                if v.get("source") == "host_os":
+                    has_host_os = True
+                else:
+                    has_cloud = True
+    data_source = "host_os" if (has_host_os and not has_cloud) else ("cloud_api" if has_cloud else "unknown")
+
+    runway_info = {
+        "breaker_pct": breaker_pct,
+        "effective_remaining_gb": eff_rem_gb,
+        "safe_before_breaker_gb": safe_breaker_gb,
+        "avg_7d_gb": avg_7d_gb,
+        "daily_budget_gb": runway_daily_budget,
+        "projected_days_to_breaker": proj_days_to_breaker,
+        "will_hit_breaker": will_hit_breaker,
+        "pace_delta_pct": pace_delta_pct,
+        "bottleneck_node": bottleneck_node,
+        "topology": topology,
+    }
+    data_meta = {
+        "source": data_source,
+        "usage_ts": usage_dict.get("_ts") if isinstance(usage_dict, dict) else None,
+        "history_days": history_days,
+        "has_quota": bool(tot_total > 0),
+    }
+
     return {
         "total": {
             "today_gb": round(tot_today, 2),
@@ -458,6 +641,10 @@ def aggregate_all_traffic_stats(usage_dict: Dict[str, Any],
             "this_year_gb": round(tot_year, 2),
             "total_quota_gb": round(tot_total, 2),
             "guidance": primary_guidance,
+            "cycle": cycle_info,
+            "daily_series": daily_series,
+            "runway": runway_info,
+            "data_meta": data_meta,
         },
         "nodes": nodes_stats,
         "updated_at": now.isoformat(),
