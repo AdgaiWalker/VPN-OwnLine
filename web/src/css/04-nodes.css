@@ -44,7 +44,7 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  animation: nodeDrawerIn 0.16s ease-out;
+  animation: nodeDrawerIn var(--dur-panel) var(--ease-standard);
 }
 @keyframes nodeDrawerIn {
   from { opacity: 0; transform: translateY(-3px); }
@@ -62,7 +62,7 @@
   border-radius: 50%;
   background: var(--line);
   flex: none;
-  transition: all .2s ease;
+  transition: background-color var(--dur-panel) var(--ease-standard);
 }
 .dot.ok {
   background: var(--green);
@@ -144,7 +144,7 @@
   color: var(--ink);
   cursor: pointer;
   text-decoration: none;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
   line-height: 1.4;
 }
 .adv-btn:hover {
@@ -209,8 +209,12 @@
 }
 .node-quota-bar i {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 .node-quota-text {
   font-family: var(--mono);
@@ -232,7 +236,7 @@
   background: var(--paper-card-secondary);
   color: var(--ink-muted);
   border: 1px solid var(--line-light);
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
 }
 .tag.ok {
   background: rgba(46, 125, 50, 0.08);
@@ -271,7 +275,7 @@
   color: var(--ink-muted);
   cursor: pointer;
   padding: 0;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 .more:hover {
   background: var(--paper-card-secondary);
@@ -280,7 +284,7 @@
 }
 .more:active { transform: scale(0.94); }
 .node-chevron {
-  transition: transform .22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
   color: var(--ink-muted);
 }
 .node.active .node-chevron {
@@ -359,10 +363,13 @@
 }
 .quota-col-progress .bar i {
   display: block;
+  width: 100%;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
-  transition: width .3s ease;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 .quota-col-progress .bar.warn i { background: var(--amber); }
 .quota-col-progress .bar.tripped i { background: var(--red); }
@@ -388,7 +395,7 @@
   border-radius: 6px;
   cursor: pointer;
   text-align: center;
-  transition: all .12s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
 }
 .sbtn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); }
 .sbtn.ok { border-color: var(--btn-primary-bg); background: var(--btn-primary-bg); color: var(--accent-fg); }
@@ -403,14 +410,21 @@
 
 /* Quiet Maintenance Band (Backup, Quota Rules, Diagnostics) */
 .quiet-ops-row {
-  margin-top: 12px;
+  margin-top: 22px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 2px;
+  border-top: 1px solid var(--line-light);
+  padding: 12px 2px;
+}
+.quiet-ops-row .quiet-toggle-link {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 13.5px;
+  padding: 2px 0;
 }
 .quiet-toggle-chevron {
-  transition: transform .18s ease;
+  transition: transform var(--dur-micro) var(--ease-standard);
 }
 .quiet-toggle-link[aria-expanded="true"] .quiet-toggle-chevron {
   transform: rotate(180deg);
@@ -419,16 +433,25 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
+  margin: 4px 0 12px;
   padding: 12px 16px;
   background: var(--paper-card);
   border: 1px solid var(--line);
   border-radius: 12px;
   flex-wrap: wrap;
   gap: 10px 14px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--dur-panel) var(--ease-standard), transform var(--dur-panel) var(--ease-standard);
+}
+@starting-style {
+  .backup-drawer:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 .maintenance-band {
-  margin-top: 22px;
+  margin-top: 0;
 }
 details.inner.maintenance-row {
   background: transparent;
@@ -490,7 +513,7 @@ details.inner.maintenance-row {
   font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all .12s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
 }
 .log-tab-btn.active {
   background: var(--paper-card);
@@ -544,6 +567,9 @@ details.inner.maintenance-row {
   .node-main { gap: 12px; }
   .node-quota-text { white-space: normal; }
   .btn-ping { width: 32px; height: 32px; }
+  .relay-pipeline { gap: 4px 6px; }
+  .relay-pipeline .pipeline-arrow,
+  .node-relay-tip { display: none; }
 }
 
 /* Quota Glance Capsule */
@@ -571,10 +597,13 @@ details.inner.maintenance-row {
 }
 .quota-glance-bar i {
   display: block;
+  width: 100%;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
-  transition: width .3s ease;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 
 /* Latency Ping Refresh */
@@ -591,7 +620,7 @@ details.inner.maintenance-row {
   background: var(--paper-card);
   border: 1px solid var(--line);
   cursor: pointer;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   flex: none;
 }
 .btn-ping:hover {
@@ -664,7 +693,7 @@ details.inner.maintenance-row {
 /* Contextual Demand Awakening Capsule (Cupertino-style) */
 .awakening-container {
   margin: 12px 0 8px;
-  animation: awakeningSlideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: awakeningSlideDown var(--dur-panel) var(--ease-standard);
 }
 @keyframes awakeningSlideDown {
   from { opacity: 0; transform: translateY(-6px); }
@@ -719,7 +748,7 @@ details.inner.maintenance-row {
   background: #b45309;
   color: #ffffff;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
   box-shadow: 0 1px 4px rgba(180, 83, 9, 0.25);
   white-space: nowrap;
 }
@@ -738,7 +767,7 @@ details.inner.maintenance-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .awakening-dismiss:hover {
   color: var(--ink);

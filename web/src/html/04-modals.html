@@ -226,7 +226,7 @@
           <form id="quota-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500" data-i18n="quota_threshold_lbl">超额熔断阈值 (1–100%)</label>
             <p class="small muted" style="margin:0 0 6px;flex-basis:100%" data-i18n="quota_threshold_desc">当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。</p>
-            <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px">
             <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
@@ -234,8 +234,8 @@
           <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:4px" data-i18n="billing_reconcile_title">账单流量核对</div>
           <p class="small muted" style="margin:0 0 8px" data-i18n="billing_reconcile_desc">输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。</p>
           <form id="billing-reconcile-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px;border-radius:6px;border:1px solid var(--line)">
-            <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px">
+            <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px">
             <button class="btn tiny" id="btn-billing-reconcile" type="submit" data-i18n="billing_reconcile_btn">核对账单</button>
           </form>
           <div id="billing-reconcile-result" class="small muted" role="status" style="margin-top:6px"></div>

@@ -12,7 +12,7 @@
         <div class="hero-stage-top">
           <div class="sub-header">
             <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
-            <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
+            <span class="sub-status" id="serving-node-ip" style="display:none"></span>
           </div>
 
           <!-- Unready State Box -->
@@ -48,7 +48,7 @@
               <span class="quota-strip-label" data-i18n="quota_hero_title">本月出海总流量</span>
               <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 7px" data-i18n="quota_status_ok">充足</span>
             </span>
-            <span class="bar quota-strip-bar" aria-hidden="true"><i id="quota-hero-fill" style="width:0%"></i></span>
+            <span class="bar quota-strip-bar" aria-hidden="true"><i id="quota-hero-fill" style="--pct:0"></i></span>
             <span class="quota-strip-usage">
               <b id="quota-hero-used">0</b> / <span id="quota-hero-total" class="muted">0 GB</span>
               <span id="quota-hero-percent" class="muted">(0%)</span>

@@ -143,7 +143,7 @@
       if (egressCap > 0) {
         var overallPct = Math.min(100, Math.round((egressUsed / egressCap) * 100));
         glanceText.textContent = Math.round(egressUsed) + " / " + Math.round(egressCap) + " GB";
-        glanceFill.style.width = overallPct + "%";
+        glanceFill.style.setProperty("--pct", String(Math.max(0, Math.min(1, overallPct / 100))));
         glanceFill.style.background = overallPct >= 80 ? "var(--apple-amber)" : "var(--apple-blue)";
         glanceBox.style.display = "inline-flex";
       } else {
@@ -168,7 +168,7 @@
         if (elPct) elPct.textContent = "(" + overallPct + "%)";
         if (elRem) elRem.textContent = remGb + " GB";
         if (elFill) {
-          elFill.style.width = overallPct + "%";
+          elFill.style.setProperty("--pct", String(Math.max(0, Math.min(1, overallPct / 100))));
           elFill.style.background = overallPct >= 85 ? "var(--apple-red)" : (overallPct >= 75 ? "var(--apple-amber)" : "var(--apple-blue)");
         }
         var anyTripped = groups.some(function(g){ return g.status === "tripped" || (g.percent && g.percent >= 85); });
@@ -213,7 +213,7 @@
       return '<div class="quota-table-row">' +
         '<div class="quota-col-name"><span class="' + dotCls + '"></span><b>' + esc(name) + '</b>' + ctrlNote + '</div>' +
         '<div class="quota-col-progress">' +
-          '<div class="' + barCls + '" role="progressbar" aria-label="' + esc(name) + ' 流量使用进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + barWidth + '"><i style="width:' + barWidth + '%"></i></div>' +
+          '<div class="' + barCls + '" role="progressbar" aria-label="' + esc(name) + ' 流量使用进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + barWidth + '"><i style="--pct:' + (barWidth / 100) + '"></i></div>' +
         '</div>' +
         '<div class="quota-col-stat">' + esc(usage) + (pct != null ? ' <span class="small muted">(' + pctText + ')</span>' : '') + '</div>' +
       '</div>';
@@ -246,7 +246,8 @@
       pillText.textContent = "本地预览";
       var pDot = document.getElementById("status-dot");
       if (pDot) pDot.textContent = "";
-      document.getElementById("serving-node-ip").textContent = "离线演示环境";
+      var servingInit = document.getElementById("serving-node-ip");
+      if (servingInit) { servingInit.style.display = ""; servingInit.textContent = "离线演示环境"; }
       setAvailability("连接就绪 · 演示模式", "运行于离线预览环境，展示模拟连接数据。");
       readyBox.style.display = "block";
       document.getElementById("client-unready-box").style.display = "none";
@@ -342,9 +343,18 @@
       }
       NODES = nodes || [];
       if (typeof window !== "undefined") window.NODES = NODES;
+      var servingEl = document.getElementById("serving-node-ip");
       if (nodes) {
         document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
-        document.getElementById("serving-node-ip").textContent = nodes.length ? (zh ? nodes.length + " 个节点已加载" : nodes.length + " nodes loaded") : (zh ? "暂无节点连接" : "No nodes connected");
+        if (servingEl) {
+          if (nodes.length) {
+            servingEl.style.display = "none";
+            servingEl.textContent = "";
+          } else {
+            servingEl.style.display = "";
+            servingEl.textContent = zh ? "暂无节点连接" : "No nodes connected";
+          }
+        }
         if (btn) {
           var aText = zh ? "添加节点" : "Add Node";
           btn.title = aText;
@@ -353,7 +363,10 @@
         var bManage = document.getElementById("btn-manage-servers");
         if (bManage) bManage.style.display = "none";
       } else {
-        document.getElementById("serving-node-ip").textContent = zh ? "无法获取服务器状态" : "Unable to reach server";
+        if (servingEl) {
+          servingEl.style.display = "";
+          servingEl.textContent = zh ? "无法获取服务器状态" : "Unable to reach server";
+        }
         if (btn) {
           var aText2 = zh ? "添加节点" : "Add Node";
           btn.title = aText2;
@@ -426,7 +439,15 @@
     var badge = document.getElementById("nodes-count-badge");
     if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
     var servingIp = document.getElementById("serving-node-ip");
-    if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
+    if (servingIp) {
+      if (serverCount > 0) {
+        servingIp.style.display = "none";
+        servingIp.textContent = "";
+      } else {
+        servingIp.style.display = "";
+        servingIp.textContent = zh ? "暂无节点连接" : "No nodes connected";
+      }
+    }
     syncHeroQuotaSummary();
   }
   if (typeof window !== "undefined") {

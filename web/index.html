@@ -34,6 +34,9 @@
   --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.12);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --dur-micro: 140ms;
+  --dur-panel: 220ms;
   accent-color: var(--navy);
 
   /* Backward Compatibility Aliases for Scripts & Components */
@@ -103,6 +106,19 @@
   }
   body {
     background-image: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-micro: 0.01ms;
+    --dur-panel: 0.01ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -252,7 +268,7 @@ header.topbar {
   background: var(--paper-card);
   color: var(--ink-muted);
   border: 1px solid var(--line);
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 .pill-preview.ok {
   background: rgba(46, 125, 50, 0.08);
@@ -455,7 +471,7 @@ button.pill-preview:hover {
   font-weight: 500;
   border-radius: 6px;
   cursor: pointer;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 .btn-outline:hover { background: var(--navy-soft); color: var(--navy-hover); }
 .btn-outline:active { transform: scale(0.985); }
@@ -480,7 +496,7 @@ button.pill-preview:hover {
   border-radius: 4px;
   cursor: pointer;
   word-break: keep-all;
-  transition: all .12s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
 }
 .segbtn.active, .segbtn[aria-pressed="true"] {
   background: var(--paper-card);
@@ -562,10 +578,13 @@ button.pill-preview:hover {
 }
 .quota-strip-bar i {
   display: block;
+  width: 100%;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
-  transition: width .3s ease;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 .quota-strip-usage {
   font-size: 13px;
@@ -581,7 +600,7 @@ button.pill-preview:hover {
 .quota-strip-chevron {
   flex: none;
   color: var(--ink-muted);
-  transition: transform .2s ease, color .15s ease;
+  transition: transform var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
 }
 .quota-strip-trigger[aria-expanded="true"] .quota-strip-chevron {
   transform: rotate(180deg);
@@ -597,6 +616,15 @@ button.pill-preview:hover {
   margin-top: 16px;
   padding-top: 16px;
   border-top: 1px dashed var(--line);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--dur-panel) var(--ease-standard), transform var(--dur-panel) var(--ease-standard);
+}
+@starting-style {
+  .quota-details-panel:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 .quota-details-meta {
   display: flex;
@@ -789,7 +817,7 @@ button.pill-preview:hover {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   flex: none;
   overflow: hidden;
   white-space: nowrap;
@@ -817,7 +845,7 @@ button.pill-preview:hover {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
 }
 .user-pill-btn:hover {
@@ -999,8 +1027,8 @@ dialog.sheet,
 dialog.apple-action-sheet {
   opacity: 0;
   transition-property: opacity, transform, display, overlay;
-  transition-duration: 0.22s;
-  transition-timing-function: ease-out;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
   transition-behavior: allow-discrete;
 }
 dialog.sheet[open],
@@ -1016,31 +1044,27 @@ dialog.apple-action-sheet[open] {
 dialog.sheet::backdrop,
 dialog.apple-action-sheet::backdrop {
   background-color: rgba(15, 23, 42, 0);
-  backdrop-filter: blur(0px);
-  -webkit-backdrop-filter: blur(0px);
-  transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, display, overlay;
-  transition-duration: 0.22s;
-  transition-timing-function: ease-out;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  transition-property: background-color, display, overlay;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
   transition-behavior: allow-discrete;
 }
 dialog.sheet[open]::backdrop,
 dialog.apple-action-sheet[open]::backdrop {
   background-color: rgba(15, 23, 42, 0.45);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
 }
 @starting-style {
   dialog.sheet[open]::backdrop,
   dialog.apple-action-sheet[open]::backdrop {
     background-color: rgba(15, 23, 42, 0);
-    backdrop-filter: blur(0px);
-    -webkit-backdrop-filter: blur(0px);
   }
 }
 @media (prefers-reduced-motion: no-preference) {
   dialog.sheet,
   dialog.apple-action-sheet {
-    transform: translateY(8px) scale(0.98);
+    transform: translateY(6px) scale(0.985);
   }
   dialog.sheet[open],
   dialog.apple-action-sheet[open] {
@@ -1049,7 +1073,7 @@ dialog.apple-action-sheet[open]::backdrop {
   @starting-style {
     dialog.sheet[open],
     dialog.apple-action-sheet[open] {
-      transform: translateY(8px) scale(0.98);
+      transform: translateY(6px) scale(0.985);
     }
   }
 }
@@ -1109,7 +1133,7 @@ dialog.apple-action-sheet[open]::backdrop {
   align-items: center;
   justify-content: center;
   font-size: 13px;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
 }
 @media (pointer: coarse) {
   .apple-sheet-close {
@@ -1142,7 +1166,7 @@ dialog.apple-action-sheet[open]::backdrop {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
   text-decoration: none;
   color: var(--ink);
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   cursor: pointer;
 }
 .apple-client-row:hover {
@@ -1228,7 +1252,7 @@ dialog.apple-action-sheet[open]::backdrop {
   color: var(--navy);
   border: 1px solid var(--line);
   flex: none;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard);
 }
 .apple-client-action-pill.primary {
   background: var(--btn-primary-bg);
@@ -1356,7 +1380,7 @@ dialog.apple-action-sheet[open]::backdrop {
   background: transparent;
   color: var(--apple-muted);
   cursor: pointer;
-  transition: all .2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
   text-align: center;
 }
 .apple-segment-btn:hover {
@@ -1384,7 +1408,7 @@ dialog.apple-action-sheet[open]::backdrop {
   background: var(--paper-card-subtle);
   font-size: 12.5px;
   font-weight: 500;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
   user-select: none;
   text-align: center;
   color: var(--apple-fg);
@@ -1447,7 +1471,7 @@ dialog.apple-action-sheet[open]::backdrop {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  animation: nodeDrawerIn 0.16s ease-out;
+  animation: nodeDrawerIn var(--dur-panel) var(--ease-standard);
 }
 @keyframes nodeDrawerIn {
   from { opacity: 0; transform: translateY(-3px); }
@@ -1465,7 +1489,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border-radius: 50%;
   background: var(--line);
   flex: none;
-  transition: all .2s ease;
+  transition: background-color var(--dur-panel) var(--ease-standard);
 }
 .dot.ok {
   background: var(--green);
@@ -1547,7 +1571,7 @@ dialog.apple-action-sheet[open]::backdrop {
   color: var(--ink);
   cursor: pointer;
   text-decoration: none;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
   line-height: 1.4;
 }
 .adv-btn:hover {
@@ -1612,8 +1636,12 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 .node-quota-bar i {
   display: block;
+  width: 100%;
   height: 100%;
   border-radius: 999px;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 .node-quota-text {
   font-family: var(--mono);
@@ -1635,7 +1663,7 @@ dialog.apple-action-sheet[open]::backdrop {
   background: var(--paper-card-secondary);
   color: var(--ink-muted);
   border: 1px solid var(--line-light);
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
 }
 .tag.ok {
   background: rgba(46, 125, 50, 0.08);
@@ -1674,7 +1702,7 @@ dialog.apple-action-sheet[open]::backdrop {
   color: var(--ink-muted);
   cursor: pointer;
   padding: 0;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 .more:hover {
   background: var(--paper-card-secondary);
@@ -1683,7 +1711,7 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 .more:active { transform: scale(0.94); }
 .node-chevron {
-  transition: transform .22s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
   color: var(--ink-muted);
 }
 .node.active .node-chevron {
@@ -1762,10 +1790,13 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 .quota-col-progress .bar i {
   display: block;
+  width: 100%;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
-  transition: width .3s ease;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 .quota-col-progress .bar.warn i { background: var(--amber); }
 .quota-col-progress .bar.tripped i { background: var(--red); }
@@ -1791,7 +1822,7 @@ dialog.apple-action-sheet[open]::backdrop {
   border-radius: 6px;
   cursor: pointer;
   text-align: center;
-  transition: all .12s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard);
 }
 .sbtn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); }
 .sbtn.ok { border-color: var(--btn-primary-bg); background: var(--btn-primary-bg); color: var(--accent-fg); }
@@ -1806,14 +1837,21 @@ dialog.apple-action-sheet[open]::backdrop {
 
 /* Quiet Maintenance Band (Backup, Quota Rules, Diagnostics) */
 .quiet-ops-row {
-  margin-top: 12px;
+  margin-top: 22px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 0 2px;
+  border-top: 1px solid var(--line-light);
+  padding: 12px 2px;
+}
+.quiet-ops-row .quiet-toggle-link {
+  width: 100%;
+  justify-content: space-between;
+  font-size: 13.5px;
+  padding: 2px 0;
 }
 .quiet-toggle-chevron {
-  transition: transform .18s ease;
+  transition: transform var(--dur-micro) var(--ease-standard);
 }
 .quiet-toggle-link[aria-expanded="true"] .quiet-toggle-chevron {
   transform: rotate(180deg);
@@ -1822,16 +1860,25 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 10px;
+  margin: 4px 0 12px;
   padding: 12px 16px;
   background: var(--paper-card);
   border: 1px solid var(--line);
   border-radius: 12px;
   flex-wrap: wrap;
   gap: 10px 14px;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--dur-panel) var(--ease-standard), transform var(--dur-panel) var(--ease-standard);
+}
+@starting-style {
+  .backup-drawer:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 .maintenance-band {
-  margin-top: 22px;
+  margin-top: 0;
 }
 details.inner.maintenance-row {
   background: transparent;
@@ -1893,7 +1940,7 @@ details.inner.maintenance-row {
   font-size: 12px;
   border-radius: 4px;
   cursor: pointer;
-  transition: all .12s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
 }
 .log-tab-btn.active {
   background: var(--paper-card);
@@ -1947,6 +1994,9 @@ details.inner.maintenance-row {
   .node-main { gap: 12px; }
   .node-quota-text { white-space: normal; }
   .btn-ping { width: 32px; height: 32px; }
+  .relay-pipeline { gap: 4px 6px; }
+  .relay-pipeline .pipeline-arrow,
+  .node-relay-tip { display: none; }
 }
 
 /* Quota Glance Capsule */
@@ -1974,10 +2024,13 @@ details.inner.maintenance-row {
 }
 .quota-glance-bar i {
   display: block;
+  width: 100%;
   height: 100%;
   background: var(--navy);
   border-radius: 999px;
-  transition: width .3s ease;
+  transform-origin: left center;
+  transform: scaleX(var(--pct, 0));
+  transition: transform var(--dur-panel) var(--ease-standard);
 }
 
 /* Latency Ping Refresh */
@@ -1994,7 +2047,7 @@ details.inner.maintenance-row {
   background: var(--paper-card);
   border: 1px solid var(--line);
   cursor: pointer;
-  transition: all .15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   flex: none;
 }
 .btn-ping:hover {
@@ -2067,7 +2120,7 @@ details.inner.maintenance-row {
 /* Contextual Demand Awakening Capsule (Cupertino-style) */
 .awakening-container {
   margin: 12px 0 8px;
-  animation: awakeningSlideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: awakeningSlideDown var(--dur-panel) var(--ease-standard);
 }
 @keyframes awakeningSlideDown {
   from { opacity: 0; transform: translateY(-6px); }
@@ -2122,7 +2175,7 @@ details.inner.maintenance-row {
   background: #b45309;
   color: #ffffff;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
   box-shadow: 0 1px 4px rgba(180, 83, 9, 0.25);
   white-space: nowrap;
 }
@@ -2141,7 +2194,7 @@ details.inner.maintenance-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .awakening-dismiss:hover {
   color: var(--ink);
@@ -2210,13 +2263,6 @@ details.inner.maintenance-row {
         <span class="user-avatar-badge" id="topbar-user-avatar">D</span>
         <span class="user-pill-name" id="topbar-user-name">dora</span>
       </button>
-      <button class="icon-btn-round" id="btn-open-feedback" type="button" onclick="window.openFeedbackDialog()" aria-label="Feedback" title="Feedback / 反馈">
-        <svg class="ico" width="15" height="15"><use href="#i-feedback"/></svg>
-      </button>
-      <button class="icon-btn-round" id="btn-open-settings" type="button" onclick="window.openSettingsDialog()" aria-label="Settings" title="Settings" style="position:relative">
-        <svg class="ico" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        <span id="settings-update-dot" style="display:none;position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--apple-blue);border:1.5px solid var(--paper-bg)"></span>
-      </button>
     </div>
   </header>
   <div id="wx-tip" class="warn" style="display:none;margin-top:10px;padding:10px 14px;border-left:3px solid var(--warn);background:var(--surface-soft);font-size:13px;line-height:1.5">
@@ -2242,7 +2288,7 @@ details.inner.maintenance-row {
         <div class="hero-stage-top">
           <div class="sub-header">
             <h1 class="main-title" id="serving-node-title" data-i18n="main_title">连接配置</h1>
-            <span class="sub-status" id="serving-node-ip" data-i18n="status_loaded">已加载</span>
+            <span class="sub-status" id="serving-node-ip" style="display:none"></span>
           </div>
 
           <!-- Unready State Box -->
@@ -2278,7 +2324,7 @@ details.inner.maintenance-row {
               <span class="quota-strip-label" data-i18n="quota_hero_title">本月出海总流量</span>
               <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 7px" data-i18n="quota_status_ok">充足</span>
             </span>
-            <span class="bar quota-strip-bar" aria-hidden="true"><i id="quota-hero-fill" style="width:0%"></i></span>
+            <span class="bar quota-strip-bar" aria-hidden="true"><i id="quota-hero-fill" style="--pct:0"></i></span>
             <span class="quota-strip-usage">
               <b id="quota-hero-used">0</b> / <span id="quota-hero-total" class="muted">0 GB</span>
               <span id="quota-hero-percent" class="muted">(0%)</span>
@@ -2554,7 +2600,7 @@ details.inner.maintenance-row {
           <form id="quota-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500" data-i18n="quota_threshold_lbl">超额熔断阈值 (1–100%)</label>
             <p class="small muted" style="margin:0 0 6px;flex-basis:100%" data-i18n="quota_threshold_desc">当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。</p>
-            <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px">
             <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
@@ -2562,8 +2608,8 @@ details.inner.maintenance-row {
           <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:4px" data-i18n="billing_reconcile_title">账单流量核对</div>
           <p class="small muted" style="margin:0 0 8px" data-i18n="billing_reconcile_desc">输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。</p>
           <form id="billing-reconcile-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px;border-radius:6px;border:1px solid var(--line)">
-            <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px;border-radius:6px;border:1px solid var(--line)">
+            <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px">
+            <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px">
             <button class="btn tiny" id="btn-billing-reconcile" type="submit" data-i18n="billing_reconcile_btn">核对账单</button>
           </form>
           <div id="billing-reconcile-result" class="small muted" role="status" style="margin-top:6px"></div>
@@ -2831,7 +2877,7 @@ details.inner.maintenance-row {
     <div class="site-footer-links" style="display:flex;gap:6px;align-items:center">
       <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
       <span class="footer-sep">·</span>
-      <button class="btn tiny footer-link-btn" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span></button>
+      <button class="btn tiny footer-link-btn" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span><span id="settings-update-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--navy);margin-left:4px;vertical-align:middle"></span></button>
       <span class="footer-sep">·</span>
       <a class="btn tiny footer-link-btn" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
@@ -5122,7 +5168,7 @@ function initAccessibleValidation(root) {
       if (egressCap > 0) {
         var overallPct = Math.min(100, Math.round((egressUsed / egressCap) * 100));
         glanceText.textContent = Math.round(egressUsed) + " / " + Math.round(egressCap) + " GB";
-        glanceFill.style.width = overallPct + "%";
+        glanceFill.style.setProperty("--pct", String(Math.max(0, Math.min(1, overallPct / 100))));
         glanceFill.style.background = overallPct >= 80 ? "var(--apple-amber)" : "var(--apple-blue)";
         glanceBox.style.display = "inline-flex";
       } else {
@@ -5147,7 +5193,7 @@ function initAccessibleValidation(root) {
         if (elPct) elPct.textContent = "(" + overallPct + "%)";
         if (elRem) elRem.textContent = remGb + " GB";
         if (elFill) {
-          elFill.style.width = overallPct + "%";
+          elFill.style.setProperty("--pct", String(Math.max(0, Math.min(1, overallPct / 100))));
           elFill.style.background = overallPct >= 85 ? "var(--apple-red)" : (overallPct >= 75 ? "var(--apple-amber)" : "var(--apple-blue)");
         }
         var anyTripped = groups.some(function(g){ return g.status === "tripped" || (g.percent && g.percent >= 85); });
@@ -5192,7 +5238,7 @@ function initAccessibleValidation(root) {
       return '<div class="quota-table-row">' +
         '<div class="quota-col-name"><span class="' + dotCls + '"></span><b>' + esc(name) + '</b>' + ctrlNote + '</div>' +
         '<div class="quota-col-progress">' +
-          '<div class="' + barCls + '" role="progressbar" aria-label="' + esc(name) + ' 流量使用进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + barWidth + '"><i style="width:' + barWidth + '%"></i></div>' +
+          '<div class="' + barCls + '" role="progressbar" aria-label="' + esc(name) + ' 流量使用进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + barWidth + '"><i style="--pct:' + (barWidth / 100) + '"></i></div>' +
         '</div>' +
         '<div class="quota-col-stat">' + esc(usage) + (pct != null ? ' <span class="small muted">(' + pctText + ')</span>' : '') + '</div>' +
       '</div>';
@@ -5225,7 +5271,8 @@ function initAccessibleValidation(root) {
       pillText.textContent = "本地预览";
       var pDot = document.getElementById("status-dot");
       if (pDot) pDot.textContent = "";
-      document.getElementById("serving-node-ip").textContent = "离线演示环境";
+      var servingInit = document.getElementById("serving-node-ip");
+      if (servingInit) { servingInit.style.display = ""; servingInit.textContent = "离线演示环境"; }
       setAvailability("连接就绪 · 演示模式", "运行于离线预览环境，展示模拟连接数据。");
       readyBox.style.display = "block";
       document.getElementById("client-unready-box").style.display = "none";
@@ -5321,9 +5368,18 @@ function initAccessibleValidation(root) {
       }
       NODES = nodes || [];
       if (typeof window !== "undefined") window.NODES = NODES;
+      var servingEl = document.getElementById("serving-node-ip");
       if (nodes) {
         document.getElementById("serving-node-title").textContent = zh ? "连接配置" : "Connection Profiles";
-        document.getElementById("serving-node-ip").textContent = nodes.length ? (zh ? nodes.length + " 个节点已加载" : nodes.length + " nodes loaded") : (zh ? "暂无节点连接" : "No nodes connected");
+        if (servingEl) {
+          if (nodes.length) {
+            servingEl.style.display = "none";
+            servingEl.textContent = "";
+          } else {
+            servingEl.style.display = "";
+            servingEl.textContent = zh ? "暂无节点连接" : "No nodes connected";
+          }
+        }
         if (btn) {
           var aText = zh ? "添加节点" : "Add Node";
           btn.title = aText;
@@ -5332,7 +5388,10 @@ function initAccessibleValidation(root) {
         var bManage = document.getElementById("btn-manage-servers");
         if (bManage) bManage.style.display = "none";
       } else {
-        document.getElementById("serving-node-ip").textContent = zh ? "无法获取服务器状态" : "Unable to reach server";
+        if (servingEl) {
+          servingEl.style.display = "";
+          servingEl.textContent = zh ? "无法获取服务器状态" : "Unable to reach server";
+        }
         if (btn) {
           var aText2 = zh ? "添加节点" : "Add Node";
           btn.title = aText2;
@@ -5405,7 +5464,15 @@ function initAccessibleValidation(root) {
     var badge = document.getElementById("nodes-count-badge");
     if (badge) badge.textContent = serverCount ? (zh ? serverCount + " 台服务器" : serverCount + (serverCount > 1 ? " servers" : " server")) : "";
     var servingIp = document.getElementById("serving-node-ip");
-    if (servingIp) servingIp.textContent = serverCount ? (zh ? serverCount + " 台服务器已就绪" : serverCount + (serverCount > 1 ? " servers ready" : " server ready")) : (zh ? "已加载" : "Ready");
+    if (servingIp) {
+      if (serverCount > 0) {
+        servingIp.style.display = "none";
+        servingIp.textContent = "";
+      } else {
+        servingIp.style.display = "";
+        servingIp.textContent = zh ? "暂无节点连接" : "No nodes connected";
+      }
+    }
     syncHeroQuotaSummary();
   }
   if (typeof window !== "undefined") {
@@ -5967,7 +6034,7 @@ function initAccessibleValidation(root) {
         var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
         var barW = Math.max(0, Math.min(100, pctNum));
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
-        var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
+        var quotaRoleTip = n.role === "relay" ? (' <span class="muted node-relay-tip" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
         var ordinalDay = function (d) {
           var num = Number(d);
@@ -5978,9 +6045,10 @@ function initAccessibleValidation(root) {
         };
         var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay(resetDay)))) : '';
 
+        var barRatio = Math.max(0, Math.min(1, pctNum / 100));
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
-            '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
+            '<i style="--pct:' + barRatio + ';background:' + barColor + '"></i>' +
           '</div>' +
           '<span class="node-quota-text">' +
             '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span>' + resetTip +

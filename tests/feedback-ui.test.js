@@ -6,16 +6,14 @@ const path = require('node:path');
 const html = fs.readFileSync(path.join(__dirname, '../web/index.html'), 'utf8');
 
 test('feedback ui: quick feedback entry points and dialog structure', () => {
-  // 1. Topbar feedback button
-  assert(html.includes('id="btn-open-feedback"'), '#btn-open-feedback must exist in topbar');
-  assert(html.includes('class="icon-btn-round" id="btn-open-feedback"'), '#btn-open-feedback must have class icon-btn-round');
-  assert(html.includes('<use href="#i-feedback"/>'), '#btn-open-feedback must reference #i-feedback SVG');
-  assert(html.includes('window.openFeedbackDialog()'), '#btn-open-feedback must trigger openFeedbackDialog');
+  // 1. Duplicate topbar feedback icon removed; consolidated cleanly into footer
+  assert.equal(html.includes('id="btn-open-feedback"'), false, 'duplicate topbar #btn-open-feedback icon must be removed');
 
   // 2. Footer feedback button
   const footerMatch = html.match(/<footer[^>]*class="site-footer"[^>]*>([\s\S]*?)<\/footer>/);
   assert(footerMatch, 'missing footer.site-footer');
   assert(footerMatch[1].includes('id="btn-footer-feedback"'), '#btn-footer-feedback must exist in footer');
+  assert(footerMatch[1].includes('window.openFeedbackDialog()'), '#btn-footer-feedback must trigger openFeedbackDialog');
 
   // 3. Apple HIG Feedback dialog modal structure
   assert(html.includes('id="feedback-dialog"'), '#feedback-dialog must exist');

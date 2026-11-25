@@ -207,3 +207,27 @@ test('accessibility & theme parity: dark primary contrast, change-password align
   assert(cpHtml.includes('--canvas-bg:'), 'change-password.html must use Alpine Mist canvas gradient');
   assert(cpHtml.includes('class="pw-toggle"'), 'change-password.html must include password visibility toggles');
 });
+
+test('minimal-ux-motion-guard: motion baseline tokens, reduced motion, compositor progress bars, and skill persistence', () => {
+  // 1. Unified physical motion tokens and reduced-motion override
+  assert(html.includes('--ease-standard: cubic-bezier(0.22, 1, 0.36, 1);'), 'index.html must define --ease-standard');
+  assert(html.includes('--dur-micro: 140ms;'), 'index.html must define --dur-micro');
+  assert(html.includes('--dur-panel: 220ms;'), 'index.html must define --dur-panel');
+  assert(html.includes('@media (prefers-reduced-motion: reduce)'), 'index.html must include global prefers-reduced-motion rule');
+
+  // 2. Zero transition: all in web/src/css
+  for (const name of ['01-variables.css', '02-layout.css', '03-components.css', '04-nodes.css', 'local-setup.css']) {
+    const css = fs.readFileSync(path.join(__dirname, '../web/src/css', name), 'utf8');
+    assert.equal(/transition:\s*all\b/.test(css), false, `${name} must not use transition: all`);
+  }
+
+  // 3. Compositor-only scaleX progress bars
+  assert.match(html, /\.quota-strip-bar i\s*\{[\s\S]*?transform:\s*scaleX\(var\(--pct,\s*0\)\);/);
+  assert.equal(/\.quota-strip-bar i\s*\{[\s\S]*?transition:\s*width\b/.test(html), false, 'quota-strip-bar must not transition width');
+
+  // 4. Skill file persisted
+  const skillPath = path.join(__dirname, '../.agents/skills/minimal-ux-motion-guard/SKILL.md');
+  assert(fs.existsSync(skillPath), 'minimal-ux-motion-guard SKILL.md must exist');
+  const skillMd = fs.readFileSync(skillPath, 'utf8');
+  assert(skillMd.includes('name: minimal-ux-motion-guard'), 'SKILL.md must declare name: minimal-ux-motion-guard');
+});

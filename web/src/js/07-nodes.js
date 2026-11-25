@@ -388,7 +388,7 @@
         var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
         var barW = Math.max(0, Math.min(100, pctNum));
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
-        var quotaRoleTip = n.role === "relay" ? (' <span class="muted" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
+        var quotaRoleTip = n.role === "relay" ? (' <span class="muted node-relay-tip" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
         var ordinalDay = function (d) {
           var num = Number(d);
@@ -399,9 +399,10 @@
         };
         var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay(resetDay)))) : '';
 
+        var barRatio = Math.max(0, Math.min(1, pctNum / 100));
         quotaRow = '<div class="node-quota-row">' +
           '<div class="node-quota-bar">' +
-            '<i style="width:' + barW + '%;background:' + barColor + '"></i>' +
+            '<i style="--pct:' + barRatio + ';background:' + barColor + '"></i>' +
           '</div>' +
           '<span class="node-quota-text">' +
             '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span>' + resetTip +
