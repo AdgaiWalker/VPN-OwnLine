@@ -322,16 +322,17 @@
       var detailLine = "";
 
       if (isBondedRelay) {
-        displayName = (zh ? n.name + "专线 ➔ " : n.name + " Relay ➔ ") + targetText;
+        displayName = n.name;
         if (canRemoteMutate) {
-          relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
+          var relayTagCls = isBad ? "tag" : "tag ok";
+          relayPill = '<span class="' + relayTagCls + '" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>' +
             '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
         } else {
-          relayPill = '<span class="tag">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>';
+          relayPill = '<span class="tag">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>';
         }
         detailLine = '<div class="relay-pipeline">' +
           '<span class="pipeline-hop">' + (zh ? '入口 ' : 'Entry ') + '<b>' + esc(n.host || n.ip) + '</b></span>' +
-          '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg> ' + (zh ? '专线跳板' : 'Relay Hop') + '</span>' +
+          '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg><span class="sr-only">' + (zh ? '专线跳板' : 'Relay Hop') + '</span></span>' +
           '<span class="pipeline-hop">' + (zh ? '落地 ' : 'Egress ') + '<b>' + esc(targetText) + '</b></span>' +
           ' · ' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
         '</div>';
@@ -386,9 +387,7 @@
         var isWarnQ = pctNum >= 75 && pctNum < 85;
         var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
         var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
-        var barW = Math.max(0, Math.min(100, pctNum));
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
-        var quotaRoleTip = n.role === "relay" ? (' <span class="muted node-relay-tip" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
         var ordinalDay = function (d) {
           var num = Number(d);
@@ -400,13 +399,12 @@
         var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay(resetDay)))) : '';
 
         var barRatio = Math.max(0, Math.min(1, pctNum / 100));
+        var showNodeBar = pctNum >= 75;
         quotaRow = '<div class="node-quota-row">' +
-          '<div class="node-quota-bar">' +
-            '<i style="--pct:' + barRatio + ';background:' + barColor + '"></i>' +
-          '</div>' +
+          (showNodeBar ? ('<div class="node-quota-bar"><i style="--pct:' + barRatio + ';background:' + barColor + '"></i></div>') : '') +
           '<span class="node-quota-text">' +
             '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span>' + resetTip +
-          '</span>' + noteBadge + quotaRoleTip +
+          '</span>' + noteBadge +
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
@@ -473,12 +471,16 @@
             blocked: "Probe traffic blocked"
           };
           var rKey = st && st.reason ? String(st.reason) : "";
-          advTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
-          advReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          var rawTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
+          var rawReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          if (rawTitle === "机器活着但代理不通") rawTitle = "代理转发异常 · 入口可达";
+          if (/^自测[：:]/.test(rawReason)) rawReason = "入口端口可达，但代理转发未通过（可点击重新检测复核）";
+          advTitle = rawTitle;
+          advReason = rawReason;
         }
 
         if (n.source !== "external") {
-          advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRecheckNode(\'' + esc(n.name) + '\')"><svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck") + '</button>');
+          advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRecheckNode(\'' + esc(n.name) + '\', this)"><svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck") + '</button>');
         }
 
         advHtml = '<div class="' + advCls + '">' +
@@ -490,7 +492,7 @@
         '</div>';
       }
 
-      var statusBadges = (n.isp ? ispCompactPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
+      var statusBadges = (n.isp ? ispCompactPill : "") + (isBondedRelay ? ('<span class="tag ' + (isBad ? '' : 'ok') + '">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ' + (isBad ? '' : 'ok') + '" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var warpPill = "";
       if (canRemoteMutate && !isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
         var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
@@ -526,9 +528,9 @@
           "<small>" + detailLine + "</small>" +
           quotaRow +
           advHtml + "</div>" +
-          '<button class="more" type="button" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+          '<button class="more" type="button" aria-expanded="false" aria-controls="node-drawer-' + i + '" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
         '</div>' +
-        '<div class="node-drawer" id="node-drawer-' + i + '" style="display:none">' +
+        '<div class="node-drawer" id="node-drawer-' + i + '" hidden>' +
           '<div class="drawer-group">' + drawerActions + '</div>' +
           '<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineNodeMenu(' + i + ')">' + (zh ? '更多选项…' : 'More…') + '</button>' +
         '</div>' +
@@ -845,7 +847,7 @@
           '<a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--apple-blue);text-decoration:underline">前往 Webshare（选择「Static Residential」静态住宅）</a>' +
         '</div>' +
         '<textarea id="isp-smart-input" rows="2" placeholder="粘贴 Webshare 复制的内容：&#10;• ip:port:user:pass&#10;• socks5://user:pass@ip:port 或 curl 命令" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
-        '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:#248a3d;line-height:1.4"></div>' +
+        '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:var(--green);line-height:1.4"></div>' +
       '</div>' +
       '<div style="margin-bottom:10px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">' +
@@ -917,7 +919,7 @@
           if (parseChip) {
             parseChip.style.background = "rgba(52,199,89,0.12)";
             parseChip.style.borderColor = "rgba(52,199,89,0.3)";
-            parseChip.style.color = "#248a3d";
+            parseChip.style.color = "var(--green)";
             parseChip.innerHTML = "<b>✓ 已识别 Webshare 代理：</b>" + esc(p.server) + ":" + p.server_port + " (" + (p.type === "http" ? "HTTP" : "SOCKS5") + (p.username ? "，账号: " + esc(p.username) : "，IP授权模式") + ")";
             parseChip.style.display = "block";
           }
@@ -926,7 +928,7 @@
           if (parseChip) {
             parseChip.style.background = "rgba(245,158,11,0.12)";
             parseChip.style.borderColor = "rgba(245,158,11,0.35)";
-            parseChip.style.color = "#92400e";
+            parseChip.style.color = "var(--amber)";
             parseChip.textContent = "未能自动识别该格式，请粘贴 ip:port:user:pass、完整代理串，或在下方手动填写。";
             parseChip.style.display = "block";
           }
@@ -1258,13 +1260,22 @@
       lg.forEach(function (l) {
         text += "  [" + l.ts + "] [" + l.level + "] [" + (l.src || l.source) + "] " + redactLog(l.msg || l.message) + "\n";
       });
-      if (navigator.clipboard) {
+      if (typeof copySetupText === "function") {
+        copySetupText(text).then(function (ok) {
+          if (ok) {
+            if (btn) { btn.textContent = "已复制诊断"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1600); }
+          } else {
+            if (btn) { btn.textContent = "复制失败"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1800); }
+          }
+        });
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () {
           if (btn) { btn.textContent = "已复制诊断"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1600); }
+        }).catch(function () {
+          if (btn) { btn.textContent = "复制失败"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1800); }
         });
       } else {
-        if (btn) { btn.textContent = orig; btn.disabled = false; }
-        prompt("请按 Ctrl+C / Cmd+C 复制诊断摘要：", text);
+        if (btn) { btn.textContent = "复制失败"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1800); }
       }
     }).catch(function () {
       if (btn) { btn.textContent = orig; btn.disabled = false; }
@@ -1316,9 +1327,17 @@
     dialog.showModal();
   }
 
+  function notifyInlineOrDialog(title, message) {
+    if (typeof dialog === "function") {
+      return dialog({ title: title, message: message, cancelText: null, confirmText: "确定" });
+    }
+    if (typeof alert === "function") alert(message || title);
+    return Promise.resolve();
+  }
+
   function submitRelayBind(name, targetHost) {
-    var dialog = document.getElementById("relay-dialog");
-    if (dialog) dialog.close();
+    var dlg = document.getElementById("relay-dialog");
+    if (dlg) dlg.close();
     if (typeof window !== "undefined") window.isRelayMutating = true;
     jsonRequest("/api/relay/bind", {
       method: "POST",
@@ -1328,32 +1347,37 @@
       if (res && res.ok) {
         refreshState();
       } else {
-        alert("绑定中转失败：" + ((res && res.error) || "未知错误"));
+        notifyInlineOrDialog("绑定中转失败", (res && res.error) || "未知错误");
       }
     }).catch(function (err) {
-      alert("绑定请求失败：" + err.message);
+      notifyInlineOrDialog("绑定请求失败", err.message);
     }).finally(function () {
       if (typeof window !== "undefined") window.isRelayMutating = false;
     });
   }
 
   function unbindRelay(name) {
-    if (!confirm("确定要解除【" + name + "】的中转关系，将其恢复为独立服务器吗？")) return;
-    if (typeof window !== "undefined") window.isRelayMutating = true;
-    jsonRequest("/api/relay/unbind", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name })
-    }).then(function (res) {
-      if (res && res.ok) {
-        refreshState();
-      } else {
-        alert("解除中转失败：" + ((res && res.error) || "未知错误"));
-      }
-    }).catch(function (err) {
-      alert("请求失败：" + err.message);
-    }).finally(function () {
-      if (typeof window !== "undefined") window.isRelayMutating = false;
+    var ask = typeof dialog === "function"
+      ? dialog({ title: "解除中转加速？", message: "将【" + name + "】恢复为独立服务器，不再经由该节点转发。", confirmText: "确认解除", danger: true })
+      : Promise.resolve(typeof confirm === "function" ? confirm("确定要解除【" + name + "】的中转关系，将其恢复为独立服务器吗？") : true);
+    ask.then(function (yes) {
+      if (!yes) return;
+      if (typeof window !== "undefined") window.isRelayMutating = true;
+      jsonRequest("/api/relay/unbind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name })
+      }).then(function (res) {
+        if (res && res.ok) {
+          refreshState();
+        } else {
+          notifyInlineOrDialog("解除中转失败", (res && res.error) || "未知错误");
+        }
+      }).catch(function (err) {
+        notifyInlineOrDialog("请求失败", err.message);
+      }).finally(function () {
+        if (typeof window !== "undefined") window.isRelayMutating = false;
+      });
     });
   }
 
@@ -1378,7 +1402,8 @@
       if (res && res.ok) {
         shouldRefreshState = true;
       } else {
-        alert(actText + (zh ? " HY2 失败：" : " HY2 failed: ") + ((res && res.error) || "未知错误"));
+        if (typeof dialog === "function") dialog({ title: actText + (zh ? " HY2 失败" : " HY2 Failed"), message: (res && res.error) || "未知错误", cancelText: null, confirmText: "确定" });
+        else if (typeof alert === "function") alert(actText + (zh ? " HY2 失败：" : " HY2 failed: ") + ((res && res.error) || "未知错误"));
         shouldRefreshState = true;
       }
     }).catch(function (err) {
@@ -1409,19 +1434,25 @@
                 shouldRefreshState = true;
                 resolve();
               } else {
-                alert(actText + (zh ? " HY2 失败：网络连接瞬断且未确认生效" : " HY2 failed: Network interrupted and unconfirmed"));
+                var m1 = actText + (zh ? " HY2 失败：网络连接瞬断且未确认生效" : " HY2 failed: Network interrupted and unconfirmed");
+                if (typeof dialog === "function") dialog({ title: zh ? "操作未确认" : "Unconfirmed", message: m1, cancelText: null, confirmText: "确定" });
+                else if (typeof alert === "function") alert(m1);
                 shouldRefreshState = true;
                 resolve();
               }
             }).catch(function () {
-              alert(actText + (zh ? " HY2 失败：网络连接中断，请刷新页面查看" : " HY2 failed: Network interrupted, please refresh"));
+              var m2 = actText + (zh ? " HY2 失败：网络连接中断，请刷新页面查看" : " HY2 failed: Network interrupted, please refresh");
+              if (typeof dialog === "function") dialog({ title: zh ? "网络中断" : "Network Interrupted", message: m2, cancelText: null, confirmText: "确定" });
+              else if (typeof alert === "function") alert(m2);
               shouldRefreshState = true;
               resolve();
             });
           }, 1200);
         });
       } else {
-        alert((zh ? "请求失败：" : "Request failed: ") + errMsg);
+        var m3 = (zh ? "请求失败：" : "Request failed: ") + errMsg;
+        if (typeof dialog === "function") dialog({ title: zh ? "请求失败" : "Request Failed", message: m3, cancelText: null, confirmText: "确定" });
+        else if (typeof alert === "function") alert(m3);
         shouldRefreshState = true;
       }
     }).finally(function () {
@@ -1588,15 +1619,15 @@
         if (typeof toast === "function") {
           toast(zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
         } else {
-          alert(zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
+          notifyInlineOrDialog(zh ? "已更新探测基准" : "Probe Vantage Updated", zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
         }
         refreshState();
         refreshPing();
       } else {
-        alert("设置基准失败：" + ((res && res.error) || "未知错误"));
+        notifyInlineOrDialog(zh ? "设置基准失败" : "Update Failed", (res && res.error) || "未知错误");
       }
     }).catch(function (err) {
-      alert("请求失败：" + err.message);
+      notifyInlineOrDialog(zh ? "请求失败" : "Request Failed", err.message);
     });
   }
 
@@ -1606,15 +1637,15 @@
       var nodeCard = errorRow.closest(".node");
       if (nodeCard) {
         nodeCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        nodeCard.style.transition = "box-shadow .3s ease";
-        nodeCard.style.boxShadow = "0 0 0 3px var(--amber, #b45309)";
-        setTimeout(function () { nodeCard.style.boxShadow = ""; }, 2000);
+        nodeCard.classList.remove("is-issue-focus");
+        void nodeCard.offsetWidth;
+        nodeCard.classList.add("is-issue-focus");
+        setTimeout(function () { nodeCard.classList.remove("is-issue-focus"); }, 1800);
         return;
       }
     }
     var nodesSec = document.getElementById("nodes-section");
     if (nodesSec) {
-      nodesSec.open = true;
       nodesSec.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
@@ -1677,49 +1708,48 @@
       });
     }
   };
-  window.ownlineRecheckNode = function (name) {
+  window.ownlineRecheckNode = function (name, btn) {
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var node = (NODES || []).find(function (x) { return x.name === name; });
     if (!node) return;
-    dialog({
-      title: zh ? "正在验真节点连通性..." : "Verifying Node Connectivity...",
-      message: (zh ? "正在对节点【" : "Testing node [") + name + (zh ? "】进行端口、TLS 握手及真实出口校验..." : "] for port, TLS handshake, and egress..."),
-      confirmText: zh ? "后台检测" : "Check in Background",
-      cancelText: null
-    });
+    var origHtml = btn ? btn.innerHTML : "";
+    var advSpan = btn && btn.closest ? (function () { var adv = btn.closest(".adv"); return adv ? adv.querySelector(".adv-text span") : null; })() : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add("refreshing");
+      btn.innerHTML = '<svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "检测中..." : "Checking...");
+    }
+    if (advSpan) {
+      advSpan.textContent = zh ? "正在测试端口、握手与真实出网..." : "Testing port, handshake, and egress...";
+    }
     jsonRequest("/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name })
     }).then(function (d) {
-      if (document.querySelector("dialog.sheet[open]")) {
-        var active = document.querySelector("dialog.sheet[open]");
-        if (active && active.close) active.close();
-      }
       var res = d.result || {};
       if (res.health === "ok") {
-        dialog({
-          title: zh ? "验真通过 · 节点恢复正常" : "Verification Passed",
-          message: (zh ? "节点【" : "Node [") + name + (zh ? "】已确认连通！\n\n出口 IP: " : "] is operational!\n\nEgress IP: ") + (res.exit_ip || "-") + " (" + (res.exit_country || "") + ")\n" + (res.detail || ""),
-          confirmText: zh ? "好" : "OK",
-          cancelText: null
-        });
+        if (typeof refreshState === "function") refreshState();
       } else {
-        dialog({
-          title: zh ? "连通性受限" : "Connectivity Degraded",
-          message: (zh ? "节点【" : "Node [") + name + (zh ? "】验真未通过：\n\n原因: " : "] verification failed:\n\nReason: ") + (res.detail || (zh ? "服务未响应" : "No response")),
-          confirmText: zh ? "知道了" : "Dismiss",
-          cancelText: null
-        });
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove("refreshing");
+          btn.innerHTML = origHtml || ('<svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck"));
+        }
+        if (advSpan) {
+          advSpan.textContent = res.detail || (zh ? "仍未通过出网校验，请检查服务与端口。" : "Still failing egress check.");
+        }
+        if (typeof refreshState === "function") refreshState();
       }
-      if (typeof refreshState === "function") refreshState();
     }).catch(function (e) {
-      dialog({
-        title: zh ? "请求异常" : "Request Error",
-        message: String(e),
-        confirmText: zh ? "确定" : "OK",
-        cancelText: null
-      });
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove("refreshing");
+        btn.innerHTML = origHtml || ('<svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck"));
+      }
+      if (advSpan) {
+        advSpan.textContent = (zh ? "检测请求异常：" : "Check failed: ") + String(e && e.message ? e.message : e);
+      }
     });
   };
 
@@ -1742,7 +1772,12 @@
       var s = document.getElementById("s" + i);
       if (s) {
         var existing = s.querySelector(".ping-pill");
-        if (existing) existing.textContent = zh ? "测速中..." : "Testing...";
+        if (existing) {
+          existing.className = "ping-pill probing";
+          existing.textContent = zh ? "测速中..." : "Testing...";
+        } else {
+          s.innerHTML = '<span class="ping-pill probing">' + (zh ? "测速中..." : "Testing...") + '</span>';
+        }
       }
     });
     if (typeof ownlineProbeLocalPing === "function") {
@@ -1776,14 +1811,24 @@
     var drawer = document.getElementById("node-drawer-" + i);
     var row = document.getElementById("node-row-" + i);
     if (!drawer) return;
-    var isOpen = (drawer.style.display !== "none");
-    var allDrawers = document.querySelectorAll(".node-drawer");
-    allDrawers.forEach(function (d) { d.style.display = "none"; });
-    var allRows = document.querySelectorAll(".node");
-    allRows.forEach(function (r) { r.classList.remove("active"); });
+    var isOpen = !drawer.hidden && drawer.style.display !== "none";
+    document.querySelectorAll(".node-drawer").forEach(function (d) {
+      d.hidden = true;
+      d.style.display = "";
+    });
+    document.querySelectorAll(".node").forEach(function (r) {
+      r.classList.remove("active");
+      var btn = r.querySelector(".more");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    });
     if (!isOpen) {
-      drawer.style.display = "flex";
-      if (row) row.classList.add("active");
+      drawer.hidden = false;
+      drawer.style.display = "";
+      if (row) {
+        row.classList.add("active");
+        var btn = row.querySelector(".more");
+        if (btn) btn.setAttribute("aria-expanded", "true");
+      }
     }
   }
   window.ownlineToggleNodeDrawer = toggleNodeDrawer;
@@ -1817,6 +1862,7 @@
     var urlText = document.getElementById("qr-sub-url-text");
     if (urlText) {
       urlText.textContent = sub || "";
+      urlText.hidden = true;
     }
     if (qrImg) {
       var ts = Date.now();
@@ -1845,18 +1891,26 @@
   function copyQrSubUrl(btn) {
     var sub = BASE_SUB_URL;
     if (!sub) return;
-    function done() {
-      var lbl = document.getElementById("copy-qr-label");
+    var zh = !(typeof isZh === 'function' && !isZh());
+    var lbl = document.getElementById("copy-qr-label");
+    var urlText = document.getElementById("qr-sub-url-text");
+    function showResult(ok) {
+      if (!ok && urlText) urlText.hidden = false;
       if (lbl) {
-        var orig = lbl.textContent;
-        lbl.textContent = (typeof isZh === 'function' && !isZh()) ? "Copied! ✓" : "已复制订阅链接 ✓";
-        setTimeout(function () { lbl.textContent = orig; }, 1800);
+        var orig = lbl.dataset.origLabel || lbl.textContent;
+        lbl.dataset.origLabel = orig;
+        lbl.textContent = ok
+          ? (zh ? "已复制订阅链接" : "Copied!")
+          : (zh ? "复制失败，请手动复制" : "Copy failed, copy manually");
+        setTimeout(function () { lbl.textContent = orig; }, 2200);
       }
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(sub).then(done).catch(done);
+    if (typeof copySetupText === "function") {
+      copySetupText(sub).then(showResult);
+    } else if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(sub).then(function () { showResult(true); }).catch(function () { showResult(false); });
     } else {
-      done();
+      showResult(false);
     }
   }
   window.ownlineCopyQrSubUrl = copyQrSubUrl;

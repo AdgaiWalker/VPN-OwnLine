@@ -9,18 +9,20 @@ test('button placement: management-help is removed and buttons relocated context
   // 1. The old generic dumping ground #management-help must not exist
   assert.equal(html.includes('id="management-help"'), false, '#management-help should be eliminated');
 
-  // 2. Backup and restore buttons are inside #nodes-section
-  const nodesSectionMatch = html.match(/<details[^>]*id="nodes-section"[^>]*>([\s\S]*?)<\/details>/);
-  assert(nodesSectionMatch, 'missing #nodes-section');
-  const nodesSectionHtml = nodesSectionMatch[1];
-  assert(nodesSectionHtml.includes('id="backup-export"'), '#backup-export must be inside #nodes-section');
-  assert(nodesSectionHtml.includes('id="backup-restore"'), '#backup-restore must be inside #nodes-section');
-  assert(nodesSectionHtml.includes('id="backup-file"'), '#backup-file must be inside #nodes-section');
-  assert(nodesSectionHtml.includes('id="backup-note"'), '#backup-note must be inside #nodes-section');
+  // 2. Nodes list is a non-collapsible section and backup/quota/logs share .maintenance-band
+  const nodesSectionMatch = html.match(/<section[^>]*id="nodes-section"[^>]*>([\s\S]*?)<\/section>/);
+  assert(nodesSectionMatch, 'missing <section id="nodes-section">');
+  const maintenanceBandMatch = html.match(/<div class="maintenance-band">([\s\S]*?)<!-- State B: Server Setup -->/);
+  assert(maintenanceBandMatch, 'missing .maintenance-band');
+  const bandHtml = maintenanceBandMatch[1];
+  assert(bandHtml.includes('id="backup-export"'), '#backup-export must be inside .maintenance-band');
+  assert(bandHtml.includes('id="backup-restore"'), '#backup-restore must be inside .maintenance-band');
+  assert(bandHtml.includes('id="backup-file"'), '#backup-file must be inside .maintenance-band');
+  assert(bandHtml.includes('id="backup-note"'), '#backup-note must be inside .maintenance-band');
 
-  // 3. Quota settings form is inside #quota-section
-  const quotaSectionMatch = html.match(/<details[^>]*id="quota-section"[^>]*>([\s\S]*?)<\/details>/);
-  assert(quotaSectionMatch, 'missing #quota-section');
+  // 3. Quota settings form is inside #quota-section in .maintenance-band
+  const quotaSectionMatch = bandHtml.match(/<details[^>]*id="quota-section"[^>]*>([\s\S]*?)<\/details>/);
+  assert(quotaSectionMatch, 'missing #quota-section inside .maintenance-band');
   const quotaSectionHtml = quotaSectionMatch[1];
   assert(quotaSectionHtml.includes('id="quota-settings"'), '#quota-settings must be inside #quota-section');
   assert(quotaSectionHtml.includes('id="quota-form"'), '#quota-form must be inside #quota-section');
@@ -32,19 +34,19 @@ test('button placement: management-help is removed and buttons relocated context
   assert(downloadHelpHtml.includes('id="btn-rotate"'), '#btn-rotate must be inside #download-help');
   assert(downloadHelpHtml.includes('window.ownlineRotate()'), 'ownlineRotate must be wired');
 
-  // 5. Health check, Copy Diagnostics, and Syslogs are inside #section-logs
-  const sectionLogsMatch = html.match(/<details[^>]*id="section-logs"[^>]*>([\s\S]*?)<\/details>/);
-  assert(sectionLogsMatch, 'missing #section-logs');
+  // 5. Health check, Copy Diagnostics, and Syslogs are inside #section-logs inside .maintenance-band
+  const sectionLogsMatch = bandHtml.match(/<details[^>]*id="section-logs"[^>]*>([\s\S]*?)<\/details>\s*<\/div>\s*<\/div>\s*$/);
+  assert(sectionLogsMatch, 'missing #section-logs inside .maintenance-band');
   const sectionLogsHtml = sectionLogsMatch[1];
   assert(sectionLogsHtml.includes('window.ownlineHealth()'), 'Health check must be inside #section-logs');
   assert(sectionLogsHtml.includes('id="btn-copy-diag"'), 'Copy diagnostics must be inside #section-logs');
   assert(sectionLogsHtml.includes('id="health"'), '#health result box must be inside #section-logs');
   assert(sectionLogsHtml.includes('id="syslog-box"'), '#syslog-box must be inside #section-logs');
 
-  // 6. Change admin password link is in site footer
+  // 6. Footer avoids duplicate Account & Security link (kept in topbar)
   const footerMatch = html.match(/<footer[^>]*class="site-footer"[^>]*>([\s\S]*?)<\/footer>/);
   assert(footerMatch, 'missing footer.site-footer');
-  assert(footerMatch[1].includes('id="change-password-link"'), '#change-password-link must be in footer');
+  assert.equal(footerMatch[1].includes('id="change-password-link"'), false, 'duplicate #change-password-link should not appear in footer');
 });
 
 test('quota hero banner and integrated node quota bar exist', () => {
@@ -112,9 +114,9 @@ test('nodeMenu: concise action items without jargon, self-heal hidden when node 
 });
 
 test('apple hig: round icon buttons and credentials form autofill protection', () => {
-  // 1. #btn-enter-setup must be an icon button with svg and must not be overwritten by textContent in refreshState
+  // 1. #btn-enter-setup must be an icon+label pill button with svg and must not be overwritten by textContent in refreshState
   assert(html.includes('id="btn-enter-setup"'), '#btn-enter-setup must exist');
-  assert(html.includes('class="icon-btn-round" type="button" id="btn-enter-setup"'), '#btn-enter-setup must have class icon-btn-round');
+  assert(html.includes('class="icon-btn-round action-pill-btn" type="button" id="btn-enter-setup"'), '#btn-enter-setup must have class icon-btn-round action-pill-btn');
   assert(html.includes('<svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>'), '#btn-enter-setup must contain plus svg icon');
   assert.equal(html.includes('btn.textContent = zh ? "+ 添加节点" : "+ Add Node";'), false, 'refreshState must not wipe out plus icon with btn.textContent');
 

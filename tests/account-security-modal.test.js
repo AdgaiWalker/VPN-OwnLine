@@ -38,10 +38,12 @@ test('account security: macOS Sequoia account modal and clean preferences separa
   assert(html.includes('id="account-success-card"'), '#account-success-card must exist');
   assert(html.includes('id="account-btn-relogin"'), '#account-btn-relogin must exist');
 
-  // 7. Footer change-password-link opens account modal
+  // 7. Topbar account pill opens account modal (no duplicate footer entry)
   const footerMatch = html.match(/<footer[^>]*class="site-footer"[^>]*>([\s\S]*?)<\/footer>/);
   assert(footerMatch, 'missing footer.site-footer');
-  assert(footerMatch[1].includes('openAccountDialog'), 'footer change link must open openAccountDialog');
+  assert.equal(footerMatch[1].includes('openAccountDialog'), false, 'footer must not duplicate account dialog entry');
+  assert(html.includes('id="btn-open-account"'), 'topbar #btn-open-account must exist');
+  assert(html.includes('window.openAccountDialog()'), 'topbar button must open openAccountDialog');
 });
 
 test('account security: password strength meter and match evaluator logic', () => {

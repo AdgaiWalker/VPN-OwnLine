@@ -84,7 +84,10 @@
       if (!data || !Array.isArray(data.nodes) || !data.nodes.length) { note.textContent = "该文件不是有效的节点备份数据。"; return; }
       var date = typeof data.exported_at === "string" ? data.exported_at : "未知";
       var message = "备份时间：" + date + "\n包含节点：" + data.nodes.length + " 个\n恢复将覆盖当前节点列表与订阅令牌，不会恢复远端主机软件、管理员密码或流量阈值设置，客户端可能需要重新拉取订阅。";
-      if (!window.confirm(message + "\n\n确认立即恢复？")) return;
+      var confirmed = typeof dialog === "function"
+        ? await dialog({ title: "确认恢复节点配置？", message: message, confirmText: "确认恢复", danger: true })
+        : window.confirm(message + "\n\n确认立即恢复？");
+      if (!confirmed) return;
       try {
         var response = await jsonRequest("/api/restore", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
         if (!response.ok) throw new Error("restore failed");

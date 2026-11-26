@@ -70,7 +70,7 @@
         } else {
           setElementDisplay("settings-update-dot", "none");
           setElementText("update-status-title", t("update_status_latest"));
-          setElementText("update-status-desc", (zh ? "当前版本 " : "Current version ") + data.current_version + (zh ? " · 暂无可用更新" : " · Up to date"));
+          setElementText("update-status-desc", t("update_desc_latest"));
           setElementDisplay("update-action-box", "none");
         }
       })
@@ -84,13 +84,21 @@
       });
   }
 
-  function ownlinePerformUpgrade() {
+  async function ownlinePerformUpgrade() {
     if (_isUpgrading) return;
     var target = (_latestUpdateData && _latestUpdateData.latest_version) || "latest";
     var zh = isZh();
     var confirmMsg = (t("confirm_upgrade_desc") || "").replace("{version}", target);
 
-    if (typeof window.confirm === "function" && !window.confirm(confirmMsg)) {
+    var confirmed = false;
+    if (typeof dialog === "function") {
+      confirmed = await dialog({ title: t("confirm_upgrade_title"), message: confirmMsg, confirmText: t("btn_upgrade_now"), danger: true });
+    } else if (typeof window !== "undefined" && typeof window.confirm === "function") {
+      confirmed = window.confirm(confirmMsg);
+    } else {
+      confirmed = true;
+    }
+    if (!confirmed) {
       return;
     }
 
@@ -114,7 +122,8 @@
           setElementDisplay("update-progress-box", "none");
           setElementDisplay("update-action-box", "block");
           if (btnCheck) btnCheck.disabled = false;
-          alert((zh ? "启动升级失败: " : "Upgrade failed to start: ") + ((res && res.error) || "未知错误"));
+          setElementText("update-status-title", zh ? "启动升级失败" : "Upgrade Failed to Start");
+          setElementText("update-status-desc", (res && res.error) || (zh ? "请稍后重试" : "Please retry later"));
           return;
         }
 
@@ -140,6 +149,10 @@
       setElementText("update-progress-title", zh ? "升级耗时较长" : "Taking longer than usual");
       setElementText("update-progress-desc", zh ? "请手动刷新页面确认服务是否恢复。" : "Please refresh the page to check service status.");
       return;
+    }
+    if (attempt >= 10) {
+      var elapsed = Math.round(attempt * 1.5);
+      setElementText("update-progress-desc", zh ? ("服务热重启中（已等待 " + elapsed + " 秒），也可手动刷新确认。") : ("Restarting service (" + elapsed + "s elapsed); you may also refresh manually."));
     }
 
     setTimeout(function () {
@@ -237,10 +250,23 @@
     window.ownlineUpdateVersionBadges = updateVersionBadges;
     window.ownlineChangeDomain = ownlineChangeDomain;
 
-    // Quiet background update check (with 1-hour cache)
-    setTimeout(function () {
-      ownlineCheckUpdate(false);
-    }, 2500);
+    // Quiet background update check (deferred when tab is hidden)
+    function scheduleCheck() {
+      setTimeout(function () {
+        ownlineCheckUpdate(false);
+      }, 2500);
+    }
+    if (typeof document !== "undefined" && document.visibilityState === "hidden" && typeof document.addEventListener === "function") {
+      var onVis = function () {
+        if (document.visibilityState === "visible") {
+          document.removeEventListener("visibilitychange", onVis);
+          scheduleCheck();
+        }
+      };
+      document.addEventListener("visibilitychange", onVis);
+    } else {
+      scheduleCheck();
+    }
   }
 
   if (typeof window !== "undefined") {

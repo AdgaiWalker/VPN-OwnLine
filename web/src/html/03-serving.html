@@ -19,6 +19,7 @@
           <div id="client-unready-box" style="padding:14px 16px;background:var(--surface-soft);border:1px dashed var(--line);border-radius:10px;text-align:center">
             <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:2px" data-i18n="connecting_svc">正在连接服务...</div>
             <div class="small muted" id="unready-note"></div>
+            <button id="btn-retry-state" class="btn tiny" type="button" hidden style="margin-top:8px" onclick="window.ownlineRetryState && window.ownlineRetryState()">重试连接</button>
           </div>
 
           <!-- Primary Client Actions (Hero CTA) -->
@@ -85,7 +86,10 @@
             <div id="traffic-breakdown-row" class="quota-chart-card">
               <div class="quota-chart-head">
                 <span class="quota-chart-title" data-i18n="quota_trend_14d">近 14 日消耗趋势</span>
-                <span id="quota-chart-readout" class="quota-chart-readout">--</span>
+                <span class="quota-chart-meta">
+                  <span id="quota-chart-budget" class="quota-chart-budget" hidden></span>
+                  <span id="quota-chart-readout" class="quota-chart-readout">--</span>
+                </span>
               </div>
               <div id="quota-chart-wrap" class="quota-chart-wrap">
                 <svg id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 56" preserveAspectRatio="none" role="img" aria-label="14-day daily traffic trend"></svg>

@@ -99,9 +99,22 @@
   }
 
   function initLocalPing() {
-    setTimeout(function () {
-      probeDeviceLocalLatency();
-    }, 800);
+    function start() {
+      setTimeout(function () {
+        probeDeviceLocalLatency();
+      }, 800);
+    }
+    if (typeof document !== "undefined" && document.visibilityState === "hidden" && typeof document.addEventListener === "function") {
+      var onVis = function () {
+        if (document.visibilityState === "visible") {
+          document.removeEventListener("visibilitychange", onVis);
+          start();
+        }
+      };
+      document.addEventListener("visibilitychange", onVis);
+    } else {
+      start();
+    }
   }
 
   if (typeof window !== "undefined") {

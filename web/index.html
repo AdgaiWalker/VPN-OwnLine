@@ -221,7 +221,7 @@ header.topbar {
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  transition: transform 0.15s ease;
+  transition: transform var(--dur-micro) var(--ease-standard);
 }
 .brand:hover .evergreen-icon {
   transform: translateY(-1px);
@@ -342,7 +342,7 @@ input[type="text"], input[type="password"], input[type="number"], textarea, sele
   border-radius: 6px;
   outline: none;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
-  transition: border-color .15s ease, box-shadow .15s ease;
+  transition: border-color var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--navy);
@@ -367,7 +367,7 @@ input::placeholder, textarea::placeholder {
   font-size: 13px;
   color: var(--ink-muted);
   opacity: 0.78;
-  transition: opacity .15s ease;
+  transition: opacity var(--dur-micro) var(--ease-standard);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -389,7 +389,7 @@ input::placeholder, textarea::placeholder {
   min-height: auto !important;
   line-height: 1.4 !important;
   text-decoration: none;
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .site-footer-links .footer-link-btn:hover {
   color: var(--ink) !important;
@@ -448,7 +448,7 @@ button.pill-preview:hover {
   color: var(--ink);
   border: 1px solid var(--line);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
+  transition: border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 .btn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); color: var(--ink); }
 .btn:active { transform: scale(0.985); }
@@ -566,7 +566,7 @@ button.pill-preview:hover {
   font-size: 13.5px;
   font-weight: 600;
   color: var(--ink);
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .quota-strip-bar {
   position: relative;
@@ -716,6 +716,18 @@ button.pill-preview:hover {
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 6px;
+}
+.quota-chart-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.quota-chart-budget {
+  font-size: 11.5px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
 }
 .quota-chart-title {
   font-size: 12px;
@@ -943,6 +955,8 @@ button.pill-preview:hover {
   .apple-hero-bar { gap: 8px; }
   .apple-hero-connect { flex: 1 1 auto; min-height: 44px; padding: 8px 12px; font-size: 14px; gap: 6px; }
   .icon-btn-round { width: 32px; height: 32px; }
+  .action-pill-btn { width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+  .action-btn-label { display: none; }
 }
 .apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
@@ -968,7 +982,7 @@ button.pill-preview:hover {
   justify-content: center;
   flex: none;
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+  transition: border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 @media (max-width: 480px) {
   .apple-hero-copy, .apple-hero-qr { width: 44px; height: 44px; }
@@ -1005,6 +1019,20 @@ button.pill-preview:hover {
   flex: none;
   overflow: hidden;
   white-space: nowrap;
+}
+.action-pill-btn {
+  width: auto;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.action-btn-label {
+  line-height: 1;
 }
 .icon-btn-round:hover {
   background: var(--paper-card-secondary);
@@ -1144,7 +1172,7 @@ button.pill-preview:hover {
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .pwd-eye-btn:hover {
   color: var(--ink);
@@ -1164,7 +1192,7 @@ button.pill-preview:hover {
   height: 100%;
   background: var(--line);
   border-radius: 2px;
-  transition: background-color .2s ease;
+  transition: background-color var(--dur-panel) var(--ease-standard);
 }
 .account-collapse summary {
   list-style: none;
@@ -1172,8 +1200,12 @@ button.pill-preview:hover {
 .account-collapse summary::-webkit-details-marker {
   display: none;
 }
+.account-collapse .details-arrow {
+  transform: rotate(-90deg);
+  transition: transform var(--dur-micro) var(--ease-standard);
+}
 .account-collapse[open] .details-arrow {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 /* Success Icon Circle */
@@ -1259,14 +1291,6 @@ dialog.apple-action-sheet[open]::backdrop {
     dialog.apple-action-sheet[open] {
       transform: translateY(6px) scale(0.985);
     }
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  dialog.sheet,
-  dialog.apple-action-sheet,
-  dialog.sheet::backdrop,
-  dialog.apple-action-sheet::backdrop {
-    transition-duration: 0.1s;
   }
 }
 .sheet-inner, .apple-sheet-box {
@@ -1387,7 +1411,7 @@ dialog.apple-action-sheet[open]::backdrop {
   padding: 6px 8px;
   border-radius: 6px;
   user-select: none;
-  transition: color .15s ease, background-color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard), background-color var(--dur-micro) var(--ease-standard);
 }
 .hub-secondary-disclosure > summary::-webkit-details-marker {
   display: none;
@@ -1515,9 +1539,7 @@ dialog.apple-action-sheet[open]::backdrop {
   padding: 0 !important;
   margin-top: 32px;
 }
-#nodes-section > summary {
-  list-style: none;
-  cursor: pointer;
+#nodes-section > .nodes-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1529,8 +1551,6 @@ dialog.apple-action-sheet[open]::backdrop {
   color: var(--ink);
   letter-spacing: -0.2px;
 }
-#nodes-section > summary::-webkit-details-marker { display: none; }
-#nodes-section > summary::before { content: none !important; }
 
 #nodes {
   display: flex;
@@ -1609,7 +1629,62 @@ dialog.apple-action-sheet[open]::backdrop {
 .feedback-type-pill input[type="radio"] {
   display: none;
 }
+.feedback-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.feedback-diag-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.feedback-diag-trigger #feedback-diag-arrow {
+  flex: none;
+  transition: transform var(--dur-micro) var(--ease-standard);
+}
+.feedback-diag-trigger[aria-expanded="true"] #feedback-diag-arrow {
+  transform: rotate(180deg);
+}
+#domain-settings-box > summary::-webkit-details-marker {
+  display: none;
+}
+#domain-settings-box[open] .quiet-toggle-chevron {
+  transform: rotate(180deg);
+}
+#view-setup {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--dur-panel) var(--ease-standard), transform var(--dur-panel) var(--ease-standard);
+}
+@starting-style {
+  #view-setup {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .node {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -1620,7 +1695,20 @@ dialog.apple-action-sheet[open]::backdrop {
   border-bottom: 1px solid var(--line-light);
   border-radius: 0;
   box-shadow: none;
-  transition: background 0.15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard);
+}
+.node::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 12px;
+  border: 2px solid var(--amber);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-panel) var(--ease-standard);
+}
+.node.is-issue-focus::after {
+  opacity: 1;
 }
 .node:last-child {
   border-bottom: none;
@@ -1645,7 +1733,7 @@ dialog.apple-action-sheet[open]::backdrop {
   margin-top: -2px;
 }
 .node-drawer {
-  display: none;
+  display: flex;
   margin-top: 14px;
   padding: 14px 16px;
   background: var(--paper-card-subtle);
@@ -1655,11 +1743,23 @@ dialog.apple-action-sheet[open]::backdrop {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  animation: nodeDrawerIn var(--dur-panel) var(--ease-standard);
+  opacity: 1;
+  transform: translateY(0);
+  transition-property: opacity, transform, display;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
+  transition-behavior: allow-discrete;
 }
-@keyframes nodeDrawerIn {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: translateY(0); }
+.node-drawer[hidden] {
+  display: none;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+@starting-style {
+  .node-drawer:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 .drawer-group {
   display: inline-flex;
@@ -2062,9 +2162,10 @@ dialog.apple-action-sheet[open]::backdrop {
   }
 }
 .maintenance-band {
-  margin-top: 0;
+  margin-top: 22px;
+  margin-bottom: 8px;
 }
-details.inner.maintenance-row {
+.maintenance-row {
   background: transparent;
   border: none;
   border-top: 1px solid var(--line-light);
@@ -2072,6 +2173,10 @@ details.inner.maintenance-row {
   box-shadow: none;
   padding: 12px 2px;
   margin: 0;
+}
+.maintenance-backup-row .maintenance-summary {
+  width: 100%;
+  justify-content: space-between;
 }
 .maintenance-summary {
   list-style: none;
@@ -2084,7 +2189,7 @@ details.inner.maintenance-row {
   font-weight: 500;
   color: var(--ink-muted);
   padding: 2px 0;
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .maintenance-summary::-webkit-details-marker { display: none; }
 .maintenance-summary::before { content: none; }
@@ -2097,6 +2202,13 @@ details.inner.maintenance-row {
 }
 .maintenance-row[open] > .maintenance-summary .quiet-toggle-chevron {
   transform: rotate(180deg);
+}
+details.maintenance-row[open] > :not(summary) {
+  animation: panelFadeIn var(--dur-panel) var(--ease-standard);
+}
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 #section-logs[open] > .maintenance-log-body {
   background: var(--paper-card);
@@ -2234,14 +2346,37 @@ details.inner.maintenance-row {
   transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   flex: none;
 }
+.btn-ping.action-pill-btn {
+  width: auto;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .btn-ping.action-pill-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+  }
+}
 .btn-ping:hover {
   background: var(--paper-card-secondary);
   border-color: var(--ink-muted);
   color: var(--navy);
   transform: scale(1.05);
 }
-.btn-ping.refreshing svg {
-  animation: spin 0.6s linear infinite;
+.btn-ping.action-pill-btn:hover {
+  transform: none;
+}
+.btn-ping.refreshing svg,
+.adv-btn.refreshing svg {
+  animation: spin 720ms linear infinite;
 }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
@@ -2257,9 +2392,9 @@ details.inner.maintenance-row {
   margin-right: 4px;
 }
 .ping-pill.probing {
-  color: var(--blue, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px dashed rgba(37, 99, 235, 0.35);
+  color: var(--navy);
+  background: var(--navy-soft);
+  border: 1px dashed var(--navy);
   animation: pulse-probing 1.2s ease-in-out infinite alternate;
 }
 @keyframes pulse-probing {
@@ -2386,6 +2521,7 @@ details.inner.maintenance-row {
 </style>
 </head>
 <body>
+<noscript><div class="check-result-box" style="max-width:640px;margin:24px auto">请启用 JavaScript 后重新打开管理面板。</div></noscript>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
   <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
   <symbol id="i-chevron-left" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></symbol>
@@ -2479,6 +2615,7 @@ details.inner.maintenance-row {
           <div id="client-unready-box" style="padding:14px 16px;background:var(--surface-soft);border:1px dashed var(--line);border-radius:10px;text-align:center">
             <div id="unready-title" style="font-size:13.5px;color:var(--accent);font-weight:500;margin-bottom:2px" data-i18n="connecting_svc">正在连接服务...</div>
             <div class="small muted" id="unready-note"></div>
+            <button id="btn-retry-state" class="btn tiny" type="button" hidden style="margin-top:8px" onclick="window.ownlineRetryState && window.ownlineRetryState()">重试连接</button>
           </div>
 
           <!-- Primary Client Actions (Hero CTA) -->
@@ -2545,7 +2682,10 @@ details.inner.maintenance-row {
             <div id="traffic-breakdown-row" class="quota-chart-card">
               <div class="quota-chart-head">
                 <span class="quota-chart-title" data-i18n="quota_trend_14d">近 14 日消耗趋势</span>
-                <span id="quota-chart-readout" class="quota-chart-readout">--</span>
+                <span class="quota-chart-meta">
+                  <span id="quota-chart-budget" class="quota-chart-budget" hidden></span>
+                  <span id="quota-chart-readout" class="quota-chart-readout">--</span>
+                </span>
               </div>
               <div id="quota-chart-wrap" class="quota-chart-wrap">
                 <svg id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 56" preserveAspectRatio="none" role="img" aria-label="14-day daily traffic trend"></svg>
@@ -2728,7 +2868,7 @@ details.inner.maintenance-row {
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
               <svg class="ico" width="13" height="13" aria-hidden="true"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
             </button>
-            <div id="qr-sub-url-text" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
+            <div id="qr-sub-url-text" hidden style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
           </div>
         </div>
       </dialog>
@@ -2749,30 +2889,31 @@ details.inner.maintenance-row {
         </div>
       </dialog>
 
-      <details class="inner" id="nodes-section" open>
-        <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px 12px">
+      <section class="inner" id="nodes-section">
+        <div id="nodes-summary" class="nodes-header" style="font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px 12px">
           <span style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0">
             <span data-i18n="nodes_title" style="white-space:nowrap">节点列表</span>
             <span class="small muted" id="nodes-count-badge" style="font-weight:normal;white-space:nowrap"></span>
             <span class="ping-pill local-ping" id="header-local-ping" style="display:none;white-space:nowrap" title="当前设备到管理控制台的真实往返延迟"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg><span>本机: --</span></span>
           </span>
           <div style="display:flex;align-items:center;gap:8px;flex:none">
-            <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
-              <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
+            <button class="icon-btn-round action-pill-btn" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
+              <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg><span class="action-btn-label" data-i18n="btn_add_node_short">添加节点</span>
             </button>
-            <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
-              <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+            <button class="btn-ping action-pill-btn" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
+              <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg><span class="action-btn-label" data-i18n="btn_speedtest">测速</span>
             </button>
           </div>
-        </summary>
+        </div>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
         <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:18px 22px" data-i18n="nodes_loading">正在加载节点列表...</div></div>
-        <div class="quiet-ops-row">
-          <button type="button" class="quiet-toggle-link" id="btn-toggle-backup" aria-expanded="false" aria-controls="backup-drawer" onclick="var d=document.getElementById('backup-drawer');var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open));">
-            <span data-i18n="nodes_backup_toggle">备份与恢复配置</span>
-            <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-          </button>
-        </div>
+      </section>
+      <div class="maintenance-band">
+      <div class="maintenance-row maintenance-backup-row">
+        <button type="button" class="quiet-toggle-link maintenance-summary" id="btn-toggle-backup" aria-expanded="false" aria-controls="backup-drawer" onclick="var d=document.getElementById('backup-drawer');var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open));">
+          <span data-i18n="nodes_backup_toggle">备份与恢复配置</span>
+          <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </button>
         <div id="backup-drawer" class="backup-drawer" hidden>
           <div style="display:flex;gap:10px;align-items:center">
             <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
@@ -2781,8 +2922,7 @@ details.inner.maintenance-row {
           </div>
           <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
-      </details>
-      <div class="maintenance-band">
+      </div>
       <details class="inner apple-disclosure maintenance-row" id="quota-section">
         <summary class="maintenance-summary">
           <span data-i18n="quota_section_title">流量熔断保护设置</span>
@@ -2808,6 +2948,50 @@ details.inner.maintenance-row {
           <div id="billing-reconcile-result" class="small muted" role="status" style="margin-top:6px"></div>
         </div>
       </details>
+
+      <!-- Runtime & Diagnostic Logs -->
+      <details class="inner apple-disclosure maintenance-row" id="section-logs">
+        <summary class="maintenance-summary">
+          <span data-i18n="logs_heading">运行与诊断日志</span>
+          <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="maintenance-log-body">
+          <div class="log-section-head" style="margin-top:0">
+            <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
+              <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
+              <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
+              <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
+              <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
+            </div>
+          </div>
+          <div id="health" aria-live="polite"></div>
+          <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
+
+          <div class="log-tabs">
+            <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
+            <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
+            <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
+            <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
+          </div>
+
+          <div id="log-list" class="logbox" style="border:none">
+            <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
+          </div>
+
+          <details class="inner" style="margin-top:14px;border:none;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;padding:10px 12px">
+            <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500" data-i18n="logs_core_summary">核心服务日志：sing-box · Caddy · 管理员</summary>
+            <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap">
+              <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('sing-box',this)">sing-box</button>
+              <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('caddy',this)">Caddy</button>
+              <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('admin',this)">管理员</button>
+            </div>
+            <div id="syslog-box" class="logbox" style="display:none;max-height:220px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow-y:auto;padding:8px;background:var(--surface-soft);border:1px solid var(--line);border-radius:6px"></div>
+          </details>
+        </div>
+      </details>
+      </div>
     </div>
 
     <!-- State B: Server Setup -->
@@ -2833,7 +3017,6 @@ details.inner.maintenance-row {
           <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入（高级）</span>
         </button>
       </div>
-      <button id="tab-other" type="button" style="display:none"></button>
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
@@ -2912,7 +3095,7 @@ details.inner.maintenance-row {
             </div>
             <div class="field" style="margin-bottom:0;min-width:130px">
               <label for="reverse-node-role" data-i18n="lbl_role">角色</label>
-              <select id="reverse-node-role" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
+              <select id="reverse-node-role" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:0 8px">
                 <option value="exit" data-i18n="opt_role_exit">出口落地节点</option>
                 <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
               </select>
@@ -2923,7 +3106,7 @@ details.inner.maintenance-row {
           </div>
           <div id="reverse-relay-landing-group" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:8px">
             <label for="reverse-relay-landing" class="small" style="font-weight:600;display:block;margin-bottom:4px" data-i18n="lbl_relay_target_landing">绑定海外出口 (落地节点)</label>
-            <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);padding:0 8px"></select>
+            <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:0 8px"></select>
             <p class="small muted" style="margin:4px 0 0 0;font-size:11px" data-i18n="tip_relay_port_8443">国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。</p>
           </div>
           <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
@@ -2944,25 +3127,6 @@ details.inner.maintenance-row {
         <!-- Mode 2: Direct SSH Connection (Default) -->
         <div id="box-ssh-direct" style="display:block">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
-        <details class="inner" id="ssh-agent-assist-details" style="margin:0 0 12px 0">
-          <summary class="small muted" style="cursor:pointer" data-i18n="ssh_agent_assist_summary">开发者 / AI 助手自动装配（可选）</summary>
-          <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
-我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
-目标说明：
-[仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
-
-请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
-1. 本机引擎与本机收密：
-   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 安全收密页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
-2. 自动扫雷与系统加固：
-   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、80、443、8443 端口）、确保 root 权限畅通；
-   - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
-3. 一键纳管并出网验真：
-   - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
-   - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
-4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
-          <p class="small muted" style="margin:8px 0 0 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
-        </details>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
         <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
@@ -2997,7 +3161,7 @@ details.inner.maintenance-row {
           </div>
           <div class="field" style="margin-bottom:12px">
             <label for="node-role-select" data-i18n="lbl_role">角色</label>
-            <select id="node-role-select" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
+            <select id="node-role-select" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:0 8px">
               <option value="auto" data-i18n="opt_role_auto">自动判定（推荐）</option>
               <option value="exit" data-i18n="opt_role_exit">出口落地节点</option>
               <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
@@ -3012,55 +3176,30 @@ details.inner.maintenance-row {
           </div>
         </div>
         </div></div>
+        <details class="inner" id="ssh-agent-assist-details" style="margin:12px 0 0 0">
+          <summary class="small muted" style="cursor:pointer" data-i18n="ssh_agent_assist_summary">开发者 / AI 助手自动装配（可选）</summary>
+          <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
+我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
+目标说明：
+[仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
+
+请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
+1. 本机引擎与本机收密：
+   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 安全收密页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
+2. 自动扫雷与系统加固：
+   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、80、443、8443 端口）、确保 root 权限畅通；
+   - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
+3. 一键纳管并出网验真：
+   - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
+   - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
+4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
+          <p class="small muted" style="margin:8px 0 0 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
+        </details>
         </div>
         <details class="inner" id="panel-onboarding-guide" style="margin-top:10px"><summary>还没有服务器或想看选型与可选域名？</summary><div class="small muted" style="margin-top:8px;line-height:1.6"><ul style="margin:0 0 8px;padding-left:18px"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p style="margin:4px 0"><b>系统与端口：</b>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，支持 root 或云商默认免密 sudo 账号如 ubuntu，且有公网 IPv4）；放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需：默认 sslip.io 与自定义域名均需放行）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）。</p><p style="margin:4px 0"><b>方案参考：</b>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。 双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p style="margin:4px 0"><b>自定义域名（可选）：</b>默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后，在管理后台「偏好设置 -&gt; 自定义域名」即可一键绑定。）。</p><p style="margin:6px 0 0">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
       </div>
     </div>
   </section>
-
-  <!-- Runtime & Diagnostic Logs -->
-  <details class="panel-card inner maintenance-row" id="section-logs">
-    <summary class="maintenance-summary">
-      <span data-i18n="logs_heading">运行与诊断日志</span>
-      <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-    </summary>
-    <div class="maintenance-log-body">
-      <div class="log-section-head" style="margin-top:0">
-        <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
-          <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
-          <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
-          <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
-          <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
-        </div>
-      </div>
-      <div id="health" aria-live="polite"></div>
-      <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
-
-      <div class="log-tabs">
-        <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
-        <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
-        <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
-        <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
-      </div>
-
-      <div id="log-list" class="logbox" style="border:none">
-        <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
-      </div>
-
-      <details class="inner" style="margin-top:14px;border:none;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;padding:10px 12px">
-        <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500" data-i18n="logs_core_summary">核心服务日志：sing-box · Caddy · 管理员</summary>
-        <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap">
-          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('sing-box',this)">sing-box</button>
-          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('caddy',this)">Caddy</button>
-          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('admin',this)">管理员</button>
-        </div>
-        <div id="syslog-box" class="logbox" style="display:none;max-height:220px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow-y:auto;padding:8px;background:var(--surface-soft);border:1px solid var(--line);border-radius:6px"></div>
-      </details>
-    </div>
-  </details>
-  </div>
   <footer class="site-footer">
     <div style="display:flex;align-items:center;gap:6px">
       <span style="font-weight:600">Evergreen</span>
@@ -3071,8 +3210,6 @@ details.inner.maintenance-row {
       <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
       <span class="footer-sep">·</span>
       <button class="btn tiny footer-link-btn" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span><span id="settings-update-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--navy);margin-left:4px;vertical-align:middle"></span></button>
-      <span class="footer-sep">·</span>
-      <a class="btn tiny footer-link-btn" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
   </footer>
 </div>
@@ -3137,10 +3274,13 @@ details.inner.maintenance-row {
     </div>
 
     <!-- Custom Domain Binding (Optional) -->
-    <details id="domain-settings-box" style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
-      <summary style="font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <span><span style="color:var(--apple-muted);margin-right:4px">▸</span><span data-i18n="domain_settings_title">自定义域名（可选）</span></span>
-        <span id="current-domain-tag" class="small muted" style="font-family:var(--mono);font-size:11px;font-weight:normal"></span>
+    <details id="domain-settings-box" style="margin-bottom:4px;padding-top:14px;border-top:1px solid var(--line-light)">
+      <summary class="domain-settings-summary" style="font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span data-i18n="domain_settings_title">自定义域名（可选）</span>
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <span id="current-domain-tag" class="small muted" style="font-family:var(--mono);font-size:11px;font-weight:normal"></span>
+          <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </span>
       </summary>
       <p class="small muted" style="margin:8px 0;font-size:11.5px;line-height:1.5" data-i18n="domain_settings_desc">先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。</p>
       <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px">
@@ -3155,10 +3295,6 @@ details.inner.maintenance-row {
         </div>
       </form>
     </details>
-
-    <div style="display:flex;justify-content:flex-end">
-      <button class="btn tiny primary" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-done" data-i18n="settings_btn_done">Done</button>
-    </div>
   </div>
 </dialog>
 
@@ -3329,7 +3465,7 @@ details.inner.maintenance-row {
       </div>
 
       <!-- Quick Scenario Tags (免输入一键填充) -->
-      <div class="feedback-quick-tags" id="feedback-quick-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      <div class="feedback-quick-tags feedback-tags-grid" id="feedback-quick-tags">
         <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('节点连不上')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-alert"/></svg><span data-i18n="tag_node_unreachable">节点连不上</span></button>
         <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('看视频卡顿慢')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-refresh"/></svg><span data-i18n="tag_slow_speed">看视频卡顿</span></button>
         <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('手机无法连接')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-smartphone"/></svg><span data-i18n="tag_mobile_issue">手机无法连接</span></button>
@@ -3340,7 +3476,7 @@ details.inner.maintenance-row {
       <div class="field" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述（选填）</label>
-          <span class="small muted" id="feedback-char-count" style="font-size:11px">0/2000</span>
+          <span class="small muted" id="feedback-char-count" hidden style="font-size:11px">0/2000</span>
         </div>
         <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
@@ -3353,14 +3489,14 @@ details.inner.maintenance-row {
 
       <!-- 3. Apple System Diagnostics Capsule Card -->
       <div class="feedback-capsule-card" style="margin-bottom:16px;background:var(--surface-soft);border-radius:10px;border:1px solid var(--line-light);padding:10px 12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleFeedbackDiagDetails()">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        <button type="button" id="feedback-diag-toggle" class="feedback-diag-trigger" aria-expanded="false" aria-controls="feedback-diag-details" onclick="window.toggleFeedbackDiagDetails()">
+          <span style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex:none"></span>
             <span id="feedback-diag-glance" style="font-size:12px;font-weight:500;color:var(--apple-fg)">现场指纹已就绪 · 自动上报客观诊断</span>
-          </div>
-          <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s ease"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div id="feedback-diag-details" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--apple-muted);font-family:var(--mono);line-height:1.5;max-height:110px;overflow-y:auto;white-space:pre-wrap"></div>
+          </span>
+          <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="feedback-diag-details" hidden style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--apple-muted);font-family:var(--mono);line-height:1.5;max-height:110px;overflow-y:auto;white-space:pre-wrap"></div>
       </div>
 
       <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
@@ -3369,24 +3505,28 @@ details.inner.maintenance-row {
       <div style="display:flex;flex-direction:column;gap:10px">
         <!-- Primary Action: 1-Click Submit to AI Diagnostics Library -->
         <button class="btn primary" type="submit" id="btn-submit-feedback" style="width:100%;padding:11px 14px;border-radius:999px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
-          <svg class="ico" width="15" height="15"><use href="#i-refresh"/></svg>
+          <svg class="ico" width="15" height="15" aria-hidden="true"><use href="#i-feedback"/></svg>
           <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">一键发送给 AI 诊断库</span>
         </button>
 
-        <!-- Secondary Actions Row: Copy Report + Email Author Directly -->
-        <div style="display:flex;gap:8px">
-          <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-            <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
-            <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告</span>
-          </button>
-          <button class="btn" type="button" id="btn-email-feedback" onclick="window.openMailToAuthor()" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-            <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span data-i18n="feedback_btn_email">发邮件给作者</span>
-          </button>
-        </div>
-        <div style="text-align:center;font-size:11.5px;color:var(--apple-muted);margin-top:2px">
-          <span data-i18n="author_email_lbl">作者支持邮箱：</span><a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
-        </div>
+        <details id="feedback-fallback-actions" class="hub-secondary-disclosure">
+          <summary data-i18n="feedback_fallback_summary">手动联系作者 / 离线发送</summary>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+            <div style="display:flex;gap:8px">
+              <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+                <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
+                <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告</span>
+              </button>
+              <button class="btn" type="button" id="btn-email-feedback" onclick="window.openMailToAuthor()" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+                <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span data-i18n="feedback_btn_email">发邮件给作者</span>
+              </button>
+            </div>
+            <div style="text-align:center;font-size:11.5px;color:var(--apple-muted)">
+              <span data-i18n="author_email_lbl">作者支持邮箱：</span><a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
+            </div>
+          </div>
+        </details>
       </div>
     </form>
 
@@ -3532,6 +3672,7 @@ function initAccessibleValidation(root) {
       main_title: "Connection Profiles",
       status_loaded: "Ready",
       btn_add_node: "+ Add Node",
+      btn_add_node_short: "Add Node",
       btn_back: "← Back",
       quota_hero_title: "Total Monthly Egress",
       quota_status_ok: "Normal",
@@ -3693,6 +3834,7 @@ function initAccessibleValidation(root) {
       feedback_btn_email: "Email Author",
       feedback_server_note: "Or save locally on this server",
       feedback_btn_submit: "Send to AI Diagnostics",
+      feedback_fallback_summary: "Manual contact / offline export",
       feedback_btn_cancel: "Cancel",
       feedback_btn_close: "Done",
       feedback_submitting: "Sending...",
@@ -3761,6 +3903,7 @@ function initAccessibleValidation(root) {
       main_title: "连接配置",
       status_loaded: "已加载",
       btn_add_node: "+ 添加节点",
+      btn_add_node_short: "添加节点",
       btn_back: "← 返回",
       quota_hero_title: "本月出海总流量",
       quota_status_ok: "充足",
@@ -3922,6 +4065,7 @@ function initAccessibleValidation(root) {
       feedback_btn_email: "发邮件给作者",
       feedback_server_note: "或直接提交至本服务器留存",
       feedback_btn_submit: "一键发送给 AI 诊断库",
+      feedback_fallback_summary: "手动联系作者 / 离线发送",
       feedback_btn_cancel: "取消",
       feedback_btn_close: "完成",
       feedback_submitting: "正在发送...",
@@ -4068,6 +4212,14 @@ function initAccessibleValidation(root) {
     if (inputUser) {
       var curr = STATE.currentUsername || '';
       inputUser.placeholder = zh ? (curr ? ('保持当前用户名 (' + curr + ')') : '如不修改请留空') : (curr ? ('Keep current (' + curr + ')') : 'Leave empty to keep current');
+    }
+    var inputNewPass = document.getElementById('settings-new-pass');
+    if (inputNewPass) {
+      inputNewPass.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
+    }
+    var inputConfPass = document.getElementById('settings-confirm-pass');
+    if (inputConfPass) {
+      inputConfPass.placeholder = zh ? '再次输入新密码' : 'Re-enter new password';
     }
     var btnFb = document.getElementById('btn-open-feedback');
     if (btnFb) {
@@ -4488,30 +4640,42 @@ function initAccessibleValidation(root) {
     var vSetup = document.getElementById("view-setup");
     if (!vDash || !vSetup) return;
     var btnRefresh = document.getElementById("btn-refresh-all");
+    var secLogs = document.getElementById("section-logs");
 
-    if (sceneName === "setup") {
-      dashboardScrollY = window.scrollY || 0;
-      vDash.style.display = "none";
-      vSetup.style.display = "block";
-      document.getElementById("section-logs").style.display = "none";
-      if (btnRefresh) btnRefresh.style.display = "none";
-      window.scrollTo({ top: 0, behavior: "auto" });
-      document.getElementById("setup-title").focus({preventScroll:true});
+    function applySwitch() {
+      if (sceneName === "setup") {
+        dashboardScrollY = window.scrollY || 0;
+        vDash.style.display = "none";
+        vSetup.style.display = "block";
+        if (secLogs) secLogs.style.display = "none";
+        if (btnRefresh) btnRefresh.style.display = "none";
+        window.scrollTo({ top: 0, behavior: "auto" });
+        var setupTitle = document.getElementById("setup-title");
+        if (setupTitle) setupTitle.focus({preventScroll:true});
+      } else {
+        // Clear unsaved credentials when leaving form without interrupting background operations.
+        clearOtherSecret();
+        ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
+          var input = document.getElementById(id);
+          if (input) { input.value = ""; input.classList.remove("has-val"); }
+        });
+        vSetup.style.display = "none";
+        vDash.style.display = "block";
+        if (secLogs) secLogs.style.display = "";
+        if (btnRefresh) btnRefresh.style.display = "";
+        refreshState();
+        fetchLogs();
+        var btnEnter = document.getElementById("btn-enter-setup");
+        if (btnEnter) btnEnter.focus({preventScroll:true});
+        window.scrollTo({ top: dashboardScrollY, behavior: "auto" });
+      }
+    }
+
+    var reduceMotion = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof document.startViewTransition === "function" && !reduceMotion) {
+      document.startViewTransition(applySwitch);
     } else {
-      // Clear unsaved credentials when leaving form without interrupting background operations.
-      clearOtherSecret();
-      ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
-        var input = document.getElementById(id);
-        if (input) { input.value = ""; input.classList.remove("has-val"); }
-      });
-      vSetup.style.display = "none";
-      vDash.style.display = "block";
-      document.getElementById("section-logs").style.display = "";
-      if (btnRefresh) btnRefresh.style.display = "";
-      refreshState();
-      fetchLogs();
-      document.getElementById("btn-enter-setup").focus({preventScroll:true});
-      window.scrollTo({ top: dashboardScrollY, behavior: "auto" });
+      applySwitch();
     }
   }
 
@@ -5278,8 +5442,8 @@ function initAccessibleValidation(root) {
         }
       } else if (isRelayBottle) {
         var rName = (bottleneck && bottleneck.relay_name) || (bNode && bNode.name) || "relay";
-        var safeRem = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : (bottleneck ? bottleneck.relay_remaining_gb : 0);
-        var resetSuffix = daysRem != null ? (zh ? (" · " + daysRem + " 天后重置") : (" · resets in " + daysRem + "d")) : "";
+        var safeRem = (runway && runway.safe_before_breaker_gb != null) ? (Math.round(Number(runway.safe_before_breaker_gb) * 10) / 10) : (bottleneck ? (Math.round(Number(bottleneck.relay_remaining_gb) * 10) / 10) : 0);
+        var resetSuffix = daysRem != null ? (daysRem === 0 ? (zh ? " · 今日重置" : " · resets today") : (zh ? (" · " + daysRem + " 天后重置") : (" · resets in " + daysRem + "d"))) : "";
         elSafe.textContent = (zh
           ? ("短板 " + rName + " · 距 " + breakerPct + "% 熔断余 " + safeRem + " GB" + resetSuffix)
           : ("Bottleneck " + rName + " · " + safeRem + " GB to " + breakerPct + "% cap" + resetSuffix)) + staleSuffix;
@@ -5375,7 +5539,7 @@ function initAccessibleValidation(root) {
     }
     if (elCycleRem) {
       var dRem = (cycle && cycle.days_remaining != null) ? cycle.days_remaining : guide.days_remaining;
-      elCycleRem.textContent = dRem != null ? (zh ? (dRem + " 天后重置") : ("Resets in " + dRem + "d")) : "--";
+      elCycleRem.textContent = dRem != null ? (dRem === 0 ? (zh ? "今日重置" : "Resets today") : (zh ? (dRem + " 天后重置") : ("Resets in " + dRem + "d"))) : "--";
     }
     if (elCyclePct) {
       elCyclePct.textContent = (cycle && cycle.elapsed_pct != null)
@@ -5464,8 +5628,18 @@ function initAccessibleValidation(root) {
       var axStart = document.getElementById("quota-axis-start");
       var axMid = document.getElementById("quota-axis-mid");
       var axEnd = document.getElementById("quota-axis-end");
+      var budgetEl = document.getElementById("quota-chart-budget");
+      if (budgetEl) {
+        if (dailyBudget > 0) {
+          budgetEl.hidden = false;
+          budgetEl.textContent = (zh ? "日均预算 " : "Budget ") + dailyBudget + "G";
+        } else {
+          budgetEl.hidden = true;
+          budgetEl.textContent = "";
+        }
+      }
       if (axStart) axStart.textContent = series[0].label;
-      if (axMid) axMid.textContent = dailyBudget > 0 ? ((zh ? "日均预算 " : "Budget ") + dailyBudget + "G") : series[Math.floor(series.length / 2)].label;
+      if (axMid) axMid.textContent = series[Math.floor(series.length / 2)].label;
       if (axEnd) axEnd.textContent = zh ? "今天" : "Today";
     } else if (chartWrap && chartCold) {
       chartWrap.hidden = true;
@@ -5494,7 +5668,7 @@ function initAccessibleValidation(root) {
           return '<div class="quota-topo-row">' +
             '<span class="quota-topo-name">' + esc(item.name) + ' <span class="quota-topo-role' + (isBottleneck ? " warn" : "") + '">' + esc(tagTxt) + '</span></span>' +
             '<span class="' + fillCls + '" aria-hidden="true"><i style="--pct:' + pctRatio + '"></i>' + (breakerPctLbl > 0 && breakerPctLbl < 100 ? '<span class="quota-topo-tick" style="left:' + breakerPctLbl + '%"></span>' : '') + '</span>' +
-            '<span class="quota-topo-stat">' + item.used_gb + ' / ' + Math.round(item.total_gb) + ' GB <span class="muted">(' + Math.round(item.used_pct) + '%' + tailTxt + ')</span></span>' +
+            '<span class="quota-topo-stat">' + (Math.round(Number(item.used_gb || 0) * 10) / 10) + ' / ' + Math.round(item.total_gb) + ' GB <span class="muted">(' + Math.round(item.used_pct) + '%' + tailTxt + ')</span></span>' +
           '</div>';
         }).join("");
         topoEl.innerHTML = topoHead + topoRows;
@@ -5583,7 +5757,7 @@ function initAccessibleValidation(root) {
       if (egressCap > 0) {
         var overallPct = Math.min(100, Math.round((egressUsed / egressCap) * 100));
         var remGb = Math.max(0, Math.round((egressCap - egressUsed) * 100) / 100);
-        var usedFmt = (Math.round(egressUsed * 100) / 100).toString();
+        var usedFmt = (Math.round(egressUsed * 10) / 10).toString();
         var totalFmt = Math.round(egressCap).toString() + " GB";
         var elUsed = document.getElementById("quota-hero-used");
         var elTotal = document.getElementById("quota-hero-total");
@@ -5747,8 +5921,12 @@ function initAccessibleValidation(root) {
         }
         jsonRequest("/api/password/state", { signal: signal }).then(function (result) {
           if (signal && signal.aborted) return;
-          document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
-        }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
+          var cpLink = document.getElementById("change-password-link");
+          if (cpLink) cpLink.style.display = result.ok === true ? "" : "none";
+        }).catch(function () {
+          var cpLink = document.getElementById("change-password-link");
+          if (cpLink) cpLink.style.display = "none";
+        });
       }
       jsonRequest("/api/traffic/stats", { signal: signal }).then(function (ts) {
         if (signal && signal.aborted) return;
@@ -5815,6 +5993,7 @@ function initAccessibleValidation(root) {
       try { var parsed = new URL(url); if ((parsed.protocol !== "https:" && parsed.protocol !== "http:") || !parsed.host) url = ""; }
       catch (_) { url = ""; }
       BASE_SUB_URL = url.replace(/\/$/, "");
+      var retryBtn = document.getElementById("btn-retry-state");
       if (BASE_SUB_URL) {
         var eligible = !!nodes && nodes.some(function (n) {
           var lifecycle = n.lifecycle || {};
@@ -5822,11 +6001,19 @@ function initAccessibleValidation(root) {
           return n.enabled !== false && !n.cleanup_pending && lifecycle.state !== "disabled" && lifecycle.state !== "expired" && (health === "ok" || health === "unknown");
         });
         wireLinks(eligible); unready.style.display = "none"; readyBox.style.display = "block";
+        if (retryBtn) retryBtn.hidden = true;
       } else {
         readyBox.style.display = "none"; unready.style.display = "block";
-        if (nodes && !nodes.length) setAvailability(zh ? "尚未连接服务器" : "No Servers Connected", zh ? "请点击「+ 添加节点」选择连接方式开始部署。" : "Please click \"+ Add Node\" to begin setup.");
-        else if (settings && settings.ok) setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
-        else setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
+        if (nodes && !nodes.length) {
+          setAvailability(zh ? "尚未连接服务器" : "No Servers Connected", zh ? "请点击「添加节点」开始部署。" : "Please click \"Add Node\" to begin setup.");
+          if (retryBtn) retryBtn.hidden = true;
+        } else if (settings && settings.ok) {
+          setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
+          if (retryBtn) retryBtn.hidden = false;
+        } else {
+          setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
+          if (retryBtn) retryBtn.hidden = false;
+        }
       }
       var recCard = document.getElementById("billing-reconcile-card");
       if (quota) {
@@ -5883,6 +6070,7 @@ function initAccessibleValidation(root) {
     window.ownlineUpdateServerCountBadges = updateServerCountBadges;
     window.ownlineRenderTrafficBreakdown = renderTrafficBreakdown;
     window.ownlineRenderQuotaList = renderQuotaList;
+    window.ownlineRetryState = function () { refreshState(); if (typeof fetchLogs === "function") fetchLogs(); };
   }
 
   function initQuotaSettings() {
@@ -5970,9 +6158,18 @@ function initAccessibleValidation(root) {
     function close(value) {
       if (done) return;
       done = true;
-      w.close();
-      w.remove();
       resolve(value);
+      var removed = false;
+      function cleanup() {
+        if (removed) return;
+        removed = true;
+        if (w.parentNode) w.remove();
+      }
+      if (typeof w.addEventListener === "function") {
+        w.addEventListener("transitionend", cleanup, { once: true });
+      }
+      w.close();
+      setTimeout(cleanup, 260);
       if (previous && previous.isConnected) previous.focus();
     }
     w.addEventListener("cancel", function (e) { e.preventDefault(); close(null); });
@@ -6372,16 +6569,17 @@ function initAccessibleValidation(root) {
       var detailLine = "";
 
       if (isBondedRelay) {
-        displayName = (zh ? n.name + "专线 ➔ " : n.name + " Relay ➔ ") + targetText;
+        displayName = n.name;
         if (canRemoteMutate) {
-          relayPill = '<span class="tag ok" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>' +
+          var relayTagCls = isBad ? "tag" : "tag ok";
+          relayPill = '<span class="' + relayTagCls + '" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>' +
             '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
         } else {
-          relayPill = '<span class="tag">' + (zh ? '极速防卡顿 · 落地 ' : 'Low-latency Relay · Egress ') + esc(targetText) + '</span>';
+          relayPill = '<span class="tag">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>';
         }
         detailLine = '<div class="relay-pipeline">' +
           '<span class="pipeline-hop">' + (zh ? '入口 ' : 'Entry ') + '<b>' + esc(n.host || n.ip) + '</b></span>' +
-          '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg> ' + (zh ? '专线跳板' : 'Relay Hop') + '</span>' +
+          '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg><span class="sr-only">' + (zh ? '专线跳板' : 'Relay Hop') + '</span></span>' +
           '<span class="pipeline-hop">' + (zh ? '落地 ' : 'Egress ') + '<b>' + esc(targetText) + '</b></span>' +
           ' · ' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
         '</div>';
@@ -6436,9 +6634,7 @@ function initAccessibleValidation(root) {
         var isWarnQ = pctNum >= 75 && pctNum < 85;
         var isTrippedQ = pctNum >= 85 || qInfo.status === "tripped";
         var barColor = isTrippedQ ? "var(--apple-red)" : (isWarnQ ? "var(--apple-amber)" : "var(--apple-blue)");
-        var barW = Math.max(0, Math.min(100, pctNum));
         var noteBadge = isTrippedQ ? ('<span class="tag bad" style="margin-left:4px">' + (zh ? '已触发保护' : 'Protection Tripped') + '</span>') : (qInfo.control_supported === false ? ('<span class="tag" style="margin-left:4px">' + (zh ? '仅告警' : 'Alert Only') + '</span>') : "");
-        var quotaRoleTip = n.role === "relay" ? (' <span class="muted node-relay-tip" style="font-size:11px">' + (zh ? '(专线跳板)' : '(Relay Hop)') + '</span>') : '';
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
         var ordinalDay = function (d) {
           var num = Number(d);
@@ -6450,13 +6646,12 @@ function initAccessibleValidation(root) {
         var resetTip = resetDay ? (' · ' + (zh ? ('每月 ' + resetDay + ' 号重置') : ('Resets on ' + ordinalDay(resetDay)))) : '';
 
         var barRatio = Math.max(0, Math.min(1, pctNum / 100));
+        var showNodeBar = pctNum >= 75;
         quotaRow = '<div class="node-quota-row">' +
-          '<div class="node-quota-bar">' +
-            '<i style="--pct:' + barRatio + ';background:' + barColor + '"></i>' +
-          '</div>' +
+          (showNodeBar ? ('<div class="node-quota-bar"><i style="--pct:' + barRatio + ';background:' + barColor + '"></i></div>') : '') +
           '<span class="node-quota-text">' +
             '<strong>' + (Math.round(usedNum * 10) / 10) + '</strong> / ' + Math.round(totalNum) + ' GB <span class="muted">(' + Math.round(pctNum) + '%)</span>' + resetTip +
-          '</span>' + noteBadge + quotaRoleTip +
+          '</span>' + noteBadge +
         '</div>';
       } else if (qInfo && qInfo.used_gb != null) {
         var resetDay = (qInfo && qInfo.reset_day) || n.reset_day;
@@ -6523,12 +6718,16 @@ function initAccessibleValidation(root) {
             blocked: "Probe traffic blocked"
           };
           var rKey = st && st.reason ? String(st.reason) : "";
-          advTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
-          advReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          var rawTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
+          var rawReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          if (rawTitle === "机器活着但代理不通") rawTitle = "代理转发异常 · 入口可达";
+          if (/^自测[：:]/.test(rawReason)) rawReason = "入口端口可达，但代理转发未通过（可点击重新检测复核）";
+          advTitle = rawTitle;
+          advReason = rawReason;
         }
 
         if (n.source !== "external") {
-          advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRecheckNode(\'' + esc(n.name) + '\')"><svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck") + '</button>');
+          advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRecheckNode(\'' + esc(n.name) + '\', this)"><svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck") + '</button>');
         }
 
         advHtml = '<div class="' + advCls + '">' +
@@ -6540,7 +6739,7 @@ function initAccessibleValidation(root) {
         '</div>';
       }
 
-      var statusBadges = (n.isp ? ispCompactPill : "") + (isBondedRelay ? ('<span class="tag ok">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ok" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
+      var statusBadges = (n.isp ? ispCompactPill : "") + (isBondedRelay ? ('<span class="tag ' + (isBad ? '' : 'ok') + '">' + (zh ? '专线加速' : 'Relay') + '</span>') : "") + (hasHy2 && isHy2Active ? ('<span class="tag ' + (isBad ? '' : 'ok') + '" style="font-size:11px" title="' + (zh ? 'HY2 极速通道已启用' : 'HY2 Turbo Active') + '">HY2</span>') : "");
       var warpPill = "";
       if (canRemoteMutate && !isDomestic && n.role !== "relay" && n.type !== "hysteria2") {
         var isWarp = (typeof n.warp_enabled === "boolean") ? n.warp_enabled : true;
@@ -6576,9 +6775,9 @@ function initAccessibleValidation(root) {
           "<small>" + detailLine + "</small>" +
           quotaRow +
           advHtml + "</div>" +
-          '<button class="more" type="button" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+          '<button class="more" type="button" aria-expanded="false" aria-controls="node-drawer-' + i + '" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
         '</div>' +
-        '<div class="node-drawer" id="node-drawer-' + i + '" style="display:none">' +
+        '<div class="node-drawer" id="node-drawer-' + i + '" hidden>' +
           '<div class="drawer-group">' + drawerActions + '</div>' +
           '<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineNodeMenu(' + i + ')">' + (zh ? '更多选项…' : 'More…') + '</button>' +
         '</div>' +
@@ -6895,7 +7094,7 @@ function initAccessibleValidation(root) {
           '<a href="https://www.webshare.io" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--apple-blue);text-decoration:underline">前往 Webshare（选择「Static Residential」静态住宅）</a>' +
         '</div>' +
         '<textarea id="isp-smart-input" rows="2" placeholder="粘贴 Webshare 复制的内容：&#10;• ip:port:user:pass&#10;• socks5://user:pass@ip:port 或 curl 命令" style="width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid var(--line);background:var(--surface-card);border-radius:6px;font-size:12px;font-family:ui-monospace,monospace;line-height:1.4;resize:vertical"></textarea>' +
-        '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:#248a3d;line-height:1.4"></div>' +
+        '<div id="isp-parse-chip" style="display:none;margin-top:6px;padding:6px 10px;background:rgba(52,199,89,0.12);border:1px solid rgba(52,199,89,0.3);border-radius:5px;font-size:11.5px;color:var(--green);line-height:1.4"></div>' +
       '</div>' +
       '<div style="margin-bottom:10px;padding:10px;background:rgba(120,120,128,0.05);border:1px solid var(--line);border-radius:6px">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:8px">' +
@@ -6967,7 +7166,7 @@ function initAccessibleValidation(root) {
           if (parseChip) {
             parseChip.style.background = "rgba(52,199,89,0.12)";
             parseChip.style.borderColor = "rgba(52,199,89,0.3)";
-            parseChip.style.color = "#248a3d";
+            parseChip.style.color = "var(--green)";
             parseChip.innerHTML = "<b>✓ 已识别 Webshare 代理：</b>" + esc(p.server) + ":" + p.server_port + " (" + (p.type === "http" ? "HTTP" : "SOCKS5") + (p.username ? "，账号: " + esc(p.username) : "，IP授权模式") + ")";
             parseChip.style.display = "block";
           }
@@ -6976,7 +7175,7 @@ function initAccessibleValidation(root) {
           if (parseChip) {
             parseChip.style.background = "rgba(245,158,11,0.12)";
             parseChip.style.borderColor = "rgba(245,158,11,0.35)";
-            parseChip.style.color = "#92400e";
+            parseChip.style.color = "var(--amber)";
             parseChip.textContent = "未能自动识别该格式，请粘贴 ip:port:user:pass、完整代理串，或在下方手动填写。";
             parseChip.style.display = "block";
           }
@@ -7308,13 +7507,22 @@ function initAccessibleValidation(root) {
       lg.forEach(function (l) {
         text += "  [" + l.ts + "] [" + l.level + "] [" + (l.src || l.source) + "] " + redactLog(l.msg || l.message) + "\n";
       });
-      if (navigator.clipboard) {
+      if (typeof copySetupText === "function") {
+        copySetupText(text).then(function (ok) {
+          if (ok) {
+            if (btn) { btn.textContent = "已复制诊断"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1600); }
+          } else {
+            if (btn) { btn.textContent = "复制失败"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1800); }
+          }
+        });
+      } else if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(function () {
           if (btn) { btn.textContent = "已复制诊断"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1600); }
+        }).catch(function () {
+          if (btn) { btn.textContent = "复制失败"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1800); }
         });
       } else {
-        if (btn) { btn.textContent = orig; btn.disabled = false; }
-        prompt("请按 Ctrl+C / Cmd+C 复制诊断摘要：", text);
+        if (btn) { btn.textContent = "复制失败"; btn.disabled = false; setTimeout(function () { btn.textContent = orig; }, 1800); }
       }
     }).catch(function () {
       if (btn) { btn.textContent = orig; btn.disabled = false; }
@@ -7366,9 +7574,17 @@ function initAccessibleValidation(root) {
     dialog.showModal();
   }
 
+  function notifyInlineOrDialog(title, message) {
+    if (typeof dialog === "function") {
+      return dialog({ title: title, message: message, cancelText: null, confirmText: "确定" });
+    }
+    if (typeof alert === "function") alert(message || title);
+    return Promise.resolve();
+  }
+
   function submitRelayBind(name, targetHost) {
-    var dialog = document.getElementById("relay-dialog");
-    if (dialog) dialog.close();
+    var dlg = document.getElementById("relay-dialog");
+    if (dlg) dlg.close();
     if (typeof window !== "undefined") window.isRelayMutating = true;
     jsonRequest("/api/relay/bind", {
       method: "POST",
@@ -7378,32 +7594,37 @@ function initAccessibleValidation(root) {
       if (res && res.ok) {
         refreshState();
       } else {
-        alert("绑定中转失败：" + ((res && res.error) || "未知错误"));
+        notifyInlineOrDialog("绑定中转失败", (res && res.error) || "未知错误");
       }
     }).catch(function (err) {
-      alert("绑定请求失败：" + err.message);
+      notifyInlineOrDialog("绑定请求失败", err.message);
     }).finally(function () {
       if (typeof window !== "undefined") window.isRelayMutating = false;
     });
   }
 
   function unbindRelay(name) {
-    if (!confirm("确定要解除【" + name + "】的中转关系，将其恢复为独立服务器吗？")) return;
-    if (typeof window !== "undefined") window.isRelayMutating = true;
-    jsonRequest("/api/relay/unbind", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name: name })
-    }).then(function (res) {
-      if (res && res.ok) {
-        refreshState();
-      } else {
-        alert("解除中转失败：" + ((res && res.error) || "未知错误"));
-      }
-    }).catch(function (err) {
-      alert("请求失败：" + err.message);
-    }).finally(function () {
-      if (typeof window !== "undefined") window.isRelayMutating = false;
+    var ask = typeof dialog === "function"
+      ? dialog({ title: "解除中转加速？", message: "将【" + name + "】恢复为独立服务器，不再经由该节点转发。", confirmText: "确认解除", danger: true })
+      : Promise.resolve(typeof confirm === "function" ? confirm("确定要解除【" + name + "】的中转关系，将其恢复为独立服务器吗？") : true);
+    ask.then(function (yes) {
+      if (!yes) return;
+      if (typeof window !== "undefined") window.isRelayMutating = true;
+      jsonRequest("/api/relay/unbind", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: name })
+      }).then(function (res) {
+        if (res && res.ok) {
+          refreshState();
+        } else {
+          notifyInlineOrDialog("解除中转失败", (res && res.error) || "未知错误");
+        }
+      }).catch(function (err) {
+        notifyInlineOrDialog("请求失败", err.message);
+      }).finally(function () {
+        if (typeof window !== "undefined") window.isRelayMutating = false;
+      });
     });
   }
 
@@ -7428,7 +7649,8 @@ function initAccessibleValidation(root) {
       if (res && res.ok) {
         shouldRefreshState = true;
       } else {
-        alert(actText + (zh ? " HY2 失败：" : " HY2 failed: ") + ((res && res.error) || "未知错误"));
+        if (typeof dialog === "function") dialog({ title: actText + (zh ? " HY2 失败" : " HY2 Failed"), message: (res && res.error) || "未知错误", cancelText: null, confirmText: "确定" });
+        else if (typeof alert === "function") alert(actText + (zh ? " HY2 失败：" : " HY2 failed: ") + ((res && res.error) || "未知错误"));
         shouldRefreshState = true;
       }
     }).catch(function (err) {
@@ -7459,19 +7681,25 @@ function initAccessibleValidation(root) {
                 shouldRefreshState = true;
                 resolve();
               } else {
-                alert(actText + (zh ? " HY2 失败：网络连接瞬断且未确认生效" : " HY2 failed: Network interrupted and unconfirmed"));
+                var m1 = actText + (zh ? " HY2 失败：网络连接瞬断且未确认生效" : " HY2 failed: Network interrupted and unconfirmed");
+                if (typeof dialog === "function") dialog({ title: zh ? "操作未确认" : "Unconfirmed", message: m1, cancelText: null, confirmText: "确定" });
+                else if (typeof alert === "function") alert(m1);
                 shouldRefreshState = true;
                 resolve();
               }
             }).catch(function () {
-              alert(actText + (zh ? " HY2 失败：网络连接中断，请刷新页面查看" : " HY2 failed: Network interrupted, please refresh"));
+              var m2 = actText + (zh ? " HY2 失败：网络连接中断，请刷新页面查看" : " HY2 failed: Network interrupted, please refresh");
+              if (typeof dialog === "function") dialog({ title: zh ? "网络中断" : "Network Interrupted", message: m2, cancelText: null, confirmText: "确定" });
+              else if (typeof alert === "function") alert(m2);
               shouldRefreshState = true;
               resolve();
             });
           }, 1200);
         });
       } else {
-        alert((zh ? "请求失败：" : "Request failed: ") + errMsg);
+        var m3 = (zh ? "请求失败：" : "Request failed: ") + errMsg;
+        if (typeof dialog === "function") dialog({ title: zh ? "请求失败" : "Request Failed", message: m3, cancelText: null, confirmText: "确定" });
+        else if (typeof alert === "function") alert(m3);
         shouldRefreshState = true;
       }
     }).finally(function () {
@@ -7638,15 +7866,15 @@ function initAccessibleValidation(root) {
         if (typeof toast === "function") {
           toast(zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
         } else {
-          alert(zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
+          notifyInlineOrDialog(zh ? "已更新探测基准" : "Probe Vantage Updated", zh ? ("已将【" + name + "】设为国内探测基准锚点") : ("Set " + name + " as domestic probe vantage"));
         }
         refreshState();
         refreshPing();
       } else {
-        alert("设置基准失败：" + ((res && res.error) || "未知错误"));
+        notifyInlineOrDialog(zh ? "设置基准失败" : "Update Failed", (res && res.error) || "未知错误");
       }
     }).catch(function (err) {
-      alert("请求失败：" + err.message);
+      notifyInlineOrDialog(zh ? "请求失败" : "Request Failed", err.message);
     });
   }
 
@@ -7656,15 +7884,15 @@ function initAccessibleValidation(root) {
       var nodeCard = errorRow.closest(".node");
       if (nodeCard) {
         nodeCard.scrollIntoView({ behavior: "smooth", block: "center" });
-        nodeCard.style.transition = "box-shadow .3s ease";
-        nodeCard.style.boxShadow = "0 0 0 3px var(--amber, #b45309)";
-        setTimeout(function () { nodeCard.style.boxShadow = ""; }, 2000);
+        nodeCard.classList.remove("is-issue-focus");
+        void nodeCard.offsetWidth;
+        nodeCard.classList.add("is-issue-focus");
+        setTimeout(function () { nodeCard.classList.remove("is-issue-focus"); }, 1800);
         return;
       }
     }
     var nodesSec = document.getElementById("nodes-section");
     if (nodesSec) {
-      nodesSec.open = true;
       nodesSec.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
@@ -7727,49 +7955,48 @@ function initAccessibleValidation(root) {
       });
     }
   };
-  window.ownlineRecheckNode = function (name) {
+  window.ownlineRecheckNode = function (name, btn) {
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var node = (NODES || []).find(function (x) { return x.name === name; });
     if (!node) return;
-    dialog({
-      title: zh ? "正在验真节点连通性..." : "Verifying Node Connectivity...",
-      message: (zh ? "正在对节点【" : "Testing node [") + name + (zh ? "】进行端口、TLS 握手及真实出口校验..." : "] for port, TLS handshake, and egress..."),
-      confirmText: zh ? "后台检测" : "Check in Background",
-      cancelText: null
-    });
+    var origHtml = btn ? btn.innerHTML : "";
+    var advSpan = btn && btn.closest ? (function () { var adv = btn.closest(".adv"); return adv ? adv.querySelector(".adv-text span") : null; })() : null;
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add("refreshing");
+      btn.innerHTML = '<svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "检测中..." : "Checking...");
+    }
+    if (advSpan) {
+      advSpan.textContent = zh ? "正在测试端口、握手与真实出网..." : "Testing port, handshake, and egress...";
+    }
     jsonRequest("/api/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: name })
     }).then(function (d) {
-      if (document.querySelector("dialog.sheet[open]")) {
-        var active = document.querySelector("dialog.sheet[open]");
-        if (active && active.close) active.close();
-      }
       var res = d.result || {};
       if (res.health === "ok") {
-        dialog({
-          title: zh ? "验真通过 · 节点恢复正常" : "Verification Passed",
-          message: (zh ? "节点【" : "Node [") + name + (zh ? "】已确认连通！\n\n出口 IP: " : "] is operational!\n\nEgress IP: ") + (res.exit_ip || "-") + " (" + (res.exit_country || "") + ")\n" + (res.detail || ""),
-          confirmText: zh ? "好" : "OK",
-          cancelText: null
-        });
+        if (typeof refreshState === "function") refreshState();
       } else {
-        dialog({
-          title: zh ? "连通性受限" : "Connectivity Degraded",
-          message: (zh ? "节点【" : "Node [") + name + (zh ? "】验真未通过：\n\n原因: " : "] verification failed:\n\nReason: ") + (res.detail || (zh ? "服务未响应" : "No response")),
-          confirmText: zh ? "知道了" : "Dismiss",
-          cancelText: null
-        });
+        if (btn) {
+          btn.disabled = false;
+          btn.classList.remove("refreshing");
+          btn.innerHTML = origHtml || ('<svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck"));
+        }
+        if (advSpan) {
+          advSpan.textContent = res.detail || (zh ? "仍未通过出网校验，请检查服务与端口。" : "Still failing egress check.");
+        }
+        if (typeof refreshState === "function") refreshState();
       }
-      if (typeof refreshState === "function") refreshState();
     }).catch(function (e) {
-      dialog({
-        title: zh ? "请求异常" : "Request Error",
-        message: String(e),
-        confirmText: zh ? "确定" : "OK",
-        cancelText: null
-      });
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove("refreshing");
+        btn.innerHTML = origHtml || ('<svg class="ico" width="11" height="11"><use href="#i-refresh"/></svg>' + (zh ? "重新检测" : "Recheck"));
+      }
+      if (advSpan) {
+        advSpan.textContent = (zh ? "检测请求异常：" : "Check failed: ") + String(e && e.message ? e.message : e);
+      }
     });
   };
 
@@ -7792,7 +8019,12 @@ function initAccessibleValidation(root) {
       var s = document.getElementById("s" + i);
       if (s) {
         var existing = s.querySelector(".ping-pill");
-        if (existing) existing.textContent = zh ? "测速中..." : "Testing...";
+        if (existing) {
+          existing.className = "ping-pill probing";
+          existing.textContent = zh ? "测速中..." : "Testing...";
+        } else {
+          s.innerHTML = '<span class="ping-pill probing">' + (zh ? "测速中..." : "Testing...") + '</span>';
+        }
       }
     });
     if (typeof ownlineProbeLocalPing === "function") {
@@ -7826,14 +8058,24 @@ function initAccessibleValidation(root) {
     var drawer = document.getElementById("node-drawer-" + i);
     var row = document.getElementById("node-row-" + i);
     if (!drawer) return;
-    var isOpen = (drawer.style.display !== "none");
-    var allDrawers = document.querySelectorAll(".node-drawer");
-    allDrawers.forEach(function (d) { d.style.display = "none"; });
-    var allRows = document.querySelectorAll(".node");
-    allRows.forEach(function (r) { r.classList.remove("active"); });
+    var isOpen = !drawer.hidden && drawer.style.display !== "none";
+    document.querySelectorAll(".node-drawer").forEach(function (d) {
+      d.hidden = true;
+      d.style.display = "";
+    });
+    document.querySelectorAll(".node").forEach(function (r) {
+      r.classList.remove("active");
+      var btn = r.querySelector(".more");
+      if (btn) btn.setAttribute("aria-expanded", "false");
+    });
     if (!isOpen) {
-      drawer.style.display = "flex";
-      if (row) row.classList.add("active");
+      drawer.hidden = false;
+      drawer.style.display = "";
+      if (row) {
+        row.classList.add("active");
+        var btn = row.querySelector(".more");
+        if (btn) btn.setAttribute("aria-expanded", "true");
+      }
     }
   }
   window.ownlineToggleNodeDrawer = toggleNodeDrawer;
@@ -7867,6 +8109,7 @@ function initAccessibleValidation(root) {
     var urlText = document.getElementById("qr-sub-url-text");
     if (urlText) {
       urlText.textContent = sub || "";
+      urlText.hidden = true;
     }
     if (qrImg) {
       var ts = Date.now();
@@ -7895,18 +8138,26 @@ function initAccessibleValidation(root) {
   function copyQrSubUrl(btn) {
     var sub = BASE_SUB_URL;
     if (!sub) return;
-    function done() {
-      var lbl = document.getElementById("copy-qr-label");
+    var zh = !(typeof isZh === 'function' && !isZh());
+    var lbl = document.getElementById("copy-qr-label");
+    var urlText = document.getElementById("qr-sub-url-text");
+    function showResult(ok) {
+      if (!ok && urlText) urlText.hidden = false;
       if (lbl) {
-        var orig = lbl.textContent;
-        lbl.textContent = (typeof isZh === 'function' && !isZh()) ? "Copied! ✓" : "已复制订阅链接 ✓";
-        setTimeout(function () { lbl.textContent = orig; }, 1800);
+        var orig = lbl.dataset.origLabel || lbl.textContent;
+        lbl.dataset.origLabel = orig;
+        lbl.textContent = ok
+          ? (zh ? "已复制订阅链接" : "Copied!")
+          : (zh ? "复制失败，请手动复制" : "Copy failed, copy manually");
+        setTimeout(function () { lbl.textContent = orig; }, 2200);
       }
     }
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(sub).then(done).catch(done);
+    if (typeof copySetupText === "function") {
+      copySetupText(sub).then(showResult);
+    } else if (typeof navigator !== "undefined" && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(sub).then(function () { showResult(true); }).catch(function () { showResult(false); });
     } else {
-      done();
+      showResult(false);
     }
   }
   window.ownlineCopyQrSubUrl = copyQrSubUrl;
@@ -8162,9 +8413,22 @@ function initAccessibleValidation(root) {
   }
 
   function initLocalPing() {
-    setTimeout(function () {
-      probeDeviceLocalLatency();
-    }, 800);
+    function start() {
+      setTimeout(function () {
+        probeDeviceLocalLatency();
+      }, 800);
+    }
+    if (typeof document !== "undefined" && document.visibilityState === "hidden" && typeof document.addEventListener === "function") {
+      var onVis = function () {
+        if (document.visibilityState === "visible") {
+          document.removeEventListener("visibilitychange", onVis);
+          start();
+        }
+      };
+      document.addEventListener("visibilitychange", onVis);
+    } else {
+      start();
+    }
   }
 
   if (typeof window !== "undefined") {
@@ -8260,7 +8524,10 @@ function initAccessibleValidation(root) {
       if (!data || !Array.isArray(data.nodes) || !data.nodes.length) { note.textContent = "该文件不是有效的节点备份数据。"; return; }
       var date = typeof data.exported_at === "string" ? data.exported_at : "未知";
       var message = "备份时间：" + date + "\n包含节点：" + data.nodes.length + " 个\n恢复将覆盖当前节点列表与订阅令牌，不会恢复远端主机软件、管理员密码或流量阈值设置，客户端可能需要重新拉取订阅。";
-      if (!window.confirm(message + "\n\n确认立即恢复？")) return;
+      var confirmed = typeof dialog === "function"
+        ? await dialog({ title: "确认恢复节点配置？", message: message, confirmText: "确认恢复", danger: true })
+        : window.confirm(message + "\n\n确认立即恢复？");
+      if (!confirmed) return;
       try {
         var response = await jsonRequest("/api/restore", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(data)});
         if (!response.ok) throw new Error("restore failed");
@@ -8793,7 +9060,7 @@ function initAccessibleValidation(root) {
         } else {
           setElementDisplay("settings-update-dot", "none");
           setElementText("update-status-title", t("update_status_latest"));
-          setElementText("update-status-desc", (zh ? "当前版本 " : "Current version ") + data.current_version + (zh ? " · 暂无可用更新" : " · Up to date"));
+          setElementText("update-status-desc", t("update_desc_latest"));
           setElementDisplay("update-action-box", "none");
         }
       })
@@ -8807,13 +9074,21 @@ function initAccessibleValidation(root) {
       });
   }
 
-  function ownlinePerformUpgrade() {
+  async function ownlinePerformUpgrade() {
     if (_isUpgrading) return;
     var target = (_latestUpdateData && _latestUpdateData.latest_version) || "latest";
     var zh = isZh();
     var confirmMsg = (t("confirm_upgrade_desc") || "").replace("{version}", target);
 
-    if (typeof window.confirm === "function" && !window.confirm(confirmMsg)) {
+    var confirmed = false;
+    if (typeof dialog === "function") {
+      confirmed = await dialog({ title: t("confirm_upgrade_title"), message: confirmMsg, confirmText: t("btn_upgrade_now"), danger: true });
+    } else if (typeof window !== "undefined" && typeof window.confirm === "function") {
+      confirmed = window.confirm(confirmMsg);
+    } else {
+      confirmed = true;
+    }
+    if (!confirmed) {
       return;
     }
 
@@ -8837,7 +9112,8 @@ function initAccessibleValidation(root) {
           setElementDisplay("update-progress-box", "none");
           setElementDisplay("update-action-box", "block");
           if (btnCheck) btnCheck.disabled = false;
-          alert((zh ? "启动升级失败: " : "Upgrade failed to start: ") + ((res && res.error) || "未知错误"));
+          setElementText("update-status-title", zh ? "启动升级失败" : "Upgrade Failed to Start");
+          setElementText("update-status-desc", (res && res.error) || (zh ? "请稍后重试" : "Please retry later"));
           return;
         }
 
@@ -8863,6 +9139,10 @@ function initAccessibleValidation(root) {
       setElementText("update-progress-title", zh ? "升级耗时较长" : "Taking longer than usual");
       setElementText("update-progress-desc", zh ? "请手动刷新页面确认服务是否恢复。" : "Please refresh the page to check service status.");
       return;
+    }
+    if (attempt >= 10) {
+      var elapsed = Math.round(attempt * 1.5);
+      setElementText("update-progress-desc", zh ? ("服务热重启中（已等待 " + elapsed + " 秒），也可手动刷新确认。") : ("Restarting service (" + elapsed + "s elapsed); you may also refresh manually."));
     }
 
     setTimeout(function () {
@@ -8960,10 +9240,23 @@ function initAccessibleValidation(root) {
     window.ownlineUpdateVersionBadges = updateVersionBadges;
     window.ownlineChangeDomain = ownlineChangeDomain;
 
-    // Quiet background update check (with 1-hour cache)
-    setTimeout(function () {
-      ownlineCheckUpdate(false);
-    }, 2500);
+    // Quiet background update check (deferred when tab is hidden)
+    function scheduleCheck() {
+      setTimeout(function () {
+        ownlineCheckUpdate(false);
+      }, 2500);
+    }
+    if (typeof document !== "undefined" && document.visibilityState === "hidden" && typeof document.addEventListener === "function") {
+      var onVis = function () {
+        if (document.visibilityState === "visible") {
+          document.removeEventListener("visibilitychange", onVis);
+          scheduleCheck();
+        }
+      };
+      document.addEventListener("visibilitychange", onVis);
+    } else {
+      scheduleCheck();
+    }
   }
 
   if (typeof window !== "undefined") {
@@ -9028,15 +9321,17 @@ function initAccessibleValidation(root) {
 
   function toggleFeedbackDiagDetails() {
     var details = document.getElementById("feedback-diag-details");
-    var arrow = document.getElementById("feedback-diag-arrow");
+    var toggle = document.getElementById("feedback-diag-toggle");
     if (!details) return;
-    var isExpanded = details.style.display === "block";
+    var isExpanded = !details.hidden && details.style.display !== "none";
     if (isExpanded) {
+      details.hidden = true;
       details.style.display = "none";
-      if (arrow) arrow.style.transform = "rotate(0deg)";
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
     } else {
+      details.hidden = false;
       details.style.display = "block";
-      if (arrow) arrow.style.transform = "rotate(180deg)";
+      if (toggle) toggle.setAttribute("aria-expanded", "true");
       var diag = buildDiagnosticSnapshot();
       details.textContent = JSON.stringify(diag, null, 2);
     }
@@ -9044,7 +9339,11 @@ function initAccessibleValidation(root) {
 
   function updateFeedbackCharCount(val) {
     var count = (val || "").length;
-    setElementText("feedback-char-count", count + "/2000");
+    var el = document.getElementById("feedback-char-count");
+    if (el) {
+      el.hidden = count <= 1500;
+      el.textContent = count + "/2000";
+    }
   }
 
   function getPlatformSummary() {
@@ -9089,6 +9388,7 @@ function initAccessibleValidation(root) {
       screen: winW + "x" + winH,
       time: new Date().toISOString(),
       node_count: ns.length,
+      client_errors: (typeof window !== "undefined" && Array.isArray(window.__ownlineClientErrors)) ? window.__ownlineClientErrors.slice(-10) : [],
       nodes: ns.map(function (n) {
         var s = st[n.name] || {};
         return {
@@ -9130,19 +9430,35 @@ function initAccessibleValidation(root) {
     var dlg = document.getElementById("feedback-dialog");
     if (!dlg) return;
 
-    // Reset Form
+    // Reset Form and restore non-sensitive session draft if present
     var form = document.getElementById("feedback-form");
     if (form) form.reset();
+    var msgEl = document.getElementById("feedback-message");
+    var contactEl = document.getElementById("feedback-contact");
+    try {
+      if (msgEl && sessionStorage.getItem("ownline_draft_fb_msg")) msgEl.value = sessionStorage.getItem("ownline_draft_fb_msg");
+      if (contactEl && sessionStorage.getItem("ownline_draft_fb_contact")) contactEl.value = sessionStorage.getItem("ownline_draft_fb_contact");
+      if (msgEl && !msgEl.dataset.draftBound) {
+        msgEl.dataset.draftBound = "1";
+        msgEl.addEventListener("input", function () { try { sessionStorage.setItem("ownline_draft_fb_msg", msgEl.value); } catch (_) {} });
+      }
+      if (contactEl && !contactEl.dataset.draftBound) {
+        contactEl.dataset.draftBound = "1";
+        contactEl.addEventListener("input", function () { try { sessionStorage.setItem("ownline_draft_fb_contact", contactEl.value); } catch (_) {} });
+      }
+    } catch (_) {}
     selectFeedbackIntent("bug");
-    updateFeedbackCharCount("");
+    updateFeedbackCharCount(msgEl ? msgEl.value : "");
     setElementDisplay("feedback-status", "none");
     setElementDisplay("feedback-form", "block");
     setElementDisplay("feedback-success-card", "none");
 
     var details = document.getElementById("feedback-diag-details");
-    if (details) details.style.display = "none";
-    var arrow = document.getElementById("feedback-diag-arrow");
-    if (arrow) arrow.style.transform = "rotate(0deg)";
+    if (details) { details.hidden = true; details.style.display = "none"; }
+    var diagToggle = document.getElementById("feedback-diag-toggle");
+    if (diagToggle) diagToggle.setAttribute("aria-expanded", "false");
+    var fbFallback = document.getElementById("feedback-fallback-actions");
+    if (fbFallback) fbFallback.open = false;
 
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
@@ -9218,6 +9534,10 @@ function initAccessibleValidation(root) {
         });
       })
       .then(function () {
+        try {
+          sessionStorage.removeItem("ownline_draft_fb_msg");
+          sessionStorage.removeItem("ownline_draft_fb_contact");
+        } catch (_) {}
         setElementDisplay("feedback-form", "none");
         setElementDisplay("feedback-success-card", "block");
       })
@@ -9225,10 +9545,12 @@ function initAccessibleValidation(root) {
         if (submitBtn) submitBtn.disabled = false;
         if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
         if (statusEl) {
-          statusEl.textContent = (zh ? "保存失败：" : "Save failed: ") + err.message;
+          statusEl.textContent = (zh ? "自动发送失败：" : "Auto-send failed: ") + err.message;
           statusEl.style.color = "var(--bad)";
           statusEl.style.display = "block";
         }
+        var fbFallback = document.getElementById("feedback-fallback-actions");
+        if (fbFallback) fbFallback.open = true;
       });
   }
 
@@ -9358,7 +9680,12 @@ function initAccessibleValidation(root) {
       document.execCommand("copy");
       if (cb) cb();
     } catch (e) {
-      alert("复制失败，请手动选取复制");
+      var st = document.getElementById("feedback-status");
+      if (st) {
+        st.textContent = "无法自动复制，请展开诊断信息手动复制";
+        st.style.color = "var(--bad)";
+        st.style.display = "block";
+      }
     }
     document.body.removeChild(ta);
   }
@@ -9391,10 +9718,44 @@ function initAccessibleValidation(root) {
     });
   }
 
+  function installClientErrorBuffer() {
+    if (typeof window === "undefined") return;
+    window.__ownlineClientErrors = window.__ownlineClientErrors || [];
+    function pushErr(kind, msg) {
+      var text = typeof redactLog === "function" ? redactLog(msg) : String(msg || "");
+      window.__ownlineClientErrors.push({ ts: new Date().toISOString(), kind: kind, msg: text.slice(0, 240) });
+      if (window.__ownlineClientErrors.length > 20) window.__ownlineClientErrors.shift();
+    }
+    window.addEventListener("error", function (e) {
+      pushErr("error", (e && (e.message || (e.error && e.error.message))) || "Script error");
+    });
+    window.addEventListener("unhandledrejection", function (e) {
+      var r = e && e.reason;
+      pushErr("rejection", (r && r.message) ? r.message : String(r || "Unhandled rejection"));
+    });
+  }
+
+  function initNonSecretDrafts() {
+    if (typeof sessionStorage === "undefined") return;
+    [["other-ip", "ownline_draft_other_ip"], ["custom-domain-input", "ownline_draft_domain"]].forEach(function (pair) {
+      var el = document.getElementById(pair[0]);
+      if (!el) return;
+      try {
+        var saved = sessionStorage.getItem(pair[1]);
+        if (saved && !el.value) el.value = saved;
+        el.addEventListener("input", function () {
+          try { sessionStorage.setItem(pair[1], el.value); } catch (_) {}
+        });
+      } catch (_) {}
+    });
+  }
+
   // 11. Initialization & refresh
   function init() {
+    installClientErrorBuffer();
     initDialogLightDismiss();
     applyLanguage();
+    initNonSecretDrafts();
     fetchUserInfo();
     setupInputHighlights();
     initSceneRouter();

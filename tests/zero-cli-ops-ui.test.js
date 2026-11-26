@@ -407,9 +407,9 @@ test('dashboard, setup, and vault use Alpine Mist canvas theme, forced-colors fa
 
 test('progressive disclosure: quota details and backup drawer stay hidden by default, and collapsed node rows hide raw ISP endpoints and inactive WARP tags', () => {
   assert.match(indexHtml, /<div[^>]*id="quota-details-panel"[^>]*\shidden\b/);
-  const nodesSectionMatch = indexHtml.match(/<details[^>]*id="nodes-section"[^>]*>([\s\S]*?)<\/details>/);
+  const nodesSectionMatch = indexHtml.match(/<section[^>]*id="nodes-section"[^>]*>([\s\S]*?)<\/section>/);
   assert.ok(nodesSectionMatch, 'missing #nodes-section');
-  assert.match(nodesSectionMatch[1], /<div[^>]*id="backup-drawer"[^>]*\shidden\b/);
+  assert.match(indexHtml, /<div[^>]*id="backup-drawer"[^>]*\shidden\b/);
 
   const match = indexHtml.match(/^  function renderNodes\([^\n]*\)\s*\{[\s\S]*?^  \}/m);
   assert.ok(match, 'missing renderNodes in index.html');

@@ -159,7 +159,7 @@ test('just-in-time disclosure: node drawer and quota drawer only open upon user 
   assert(innerHTML.includes('id="node-row-0"'), 'node row id must exist');
   assert(innerHTML.includes('window.ownlineToggleNodeDrawer(0)'), 'toggleNodeDrawer(0) must be attached to node-main and more button');
   assert(innerHTML.includes('id="node-drawer-0"'), 'node-drawer-0 must exist');
-  assert(innerHTML.includes('style="display:none"'), 'node drawer must be hidden by default until triggered');
+  assert(innerHTML.includes('id="node-drawer-0" hidden'), 'node drawer must be hidden by default until triggered');
 });
 
 test('apple hig: visual hierarchy, responsive topbar, and card interaction affordances', () => {
@@ -241,4 +241,37 @@ test('deep quota runway UI: 14-day SVG chart, dual ticks, and topology bottlenec
   assert(html.includes('quota_trend_14d: "近 14 日消耗趋势"'), 'zh i18n must include quota_trend_14d');
   assert(html.includes('quota_safe_rem_lbl: "Safe Runway"'), 'en i18n must include quota_safe_rem_lbl');
   assert(html.includes('quota_safe_rem_lbl: "安全可用"'), 'zh i18n must include quota_safe_rem_lbl');
+});
+
+test('ux-motion-guard remediation: setup sibling DOM, honest QR copy, Chinese placeholders, and CSS hygiene', () => {
+  // 1. #view-setup must be a sibling of #view-dashboard (never nested inside #view-dashboard)
+  const cardServingMatch = html.match(/<section class="panel-card" id="card-serving">([\s\S]*?)<footer class="site-footer">/);
+  assert(cardServingMatch, 'card-serving section must exist');
+  const setupIdx = cardServingMatch[1].indexOf('<div id="view-setup"');
+  assert(setupIdx > 0, '#view-setup must exist inside card-serving');
+  const beforeSetup = cardServingMatch[1].slice(0, setupIdx);
+  const openDivs = (beforeSetup.match(/<div\b/g) || []).length;
+  const closeDivs = (beforeSetup.match(/<\/div\s*>/g) || []).length;
+  assert.equal(openDivs, closeDivs, '#view-dashboard and all prior divs must be balanced and closed before #view-setup');
+
+  // 2. #qr-sub-url-text is hidden by default, and copyQrSubUrl reveals it on clipboard failure
+  assert.match(html, /<div id="qr-sub-url-text" hidden\b/);
+  const copyQrFn = html.match(/  function copyQrSubUrl\([^\n]*\)\s*\{[\s\S]*?^  \}/m);
+  assert(copyQrFn, 'copyQrSubUrl must exist');
+  assert(copyQrFn[0].includes('urlText.hidden = false'), 'copyQrSubUrl must reveal #qr-sub-url-text when clipboard fails');
+  assert(copyQrFn[0].includes('showResult(false)'), 'copyQrSubUrl must not report false success on catch');
+
+  // 3. applyLanguage translates #settings-new-pass and #settings-confirm-pass placeholders
+  const applyLangFn = html.match(/  function applyLanguage\(\)\s*\{[\s\S]*?^  \}/m);
+  assert(applyLangFn, 'applyLanguage must exist');
+  assert(applyLangFn[0].includes('settings-new-pass'), 'applyLanguage must translate #settings-new-pass placeholder');
+  assert(applyLangFn[0].includes('settings-confirm-pass'), 'applyLanguage must translate #settings-confirm-pass placeholder');
+
+  // 4. CSS hygiene: no var(--text), var(--blue), or legacy 0.15s ease in web/src/css
+  for (const name of ['01-variables.css', '02-layout.css', '03-components.css', '04-nodes.css']) {
+    const css = fs.readFileSync(path.join(__dirname, '../web/src/css', name), 'utf8');
+    assert.equal(css.includes('var(--text)'), false, `${name} must not reference undefined var(--text)`);
+    assert.equal(css.includes('var(--blue'), false, `${name} must not reference undefined var(--blue)`);
+    assert.equal(/\b0\.15s\s+ease\b/.test(css), false, `${name} must use --dur-micro --ease-standard instead of 0.15s ease`);
+  }
 });

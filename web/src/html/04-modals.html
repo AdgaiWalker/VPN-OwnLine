@@ -161,7 +161,7 @@
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
               <svg class="ico" width="13" height="13" aria-hidden="true"><use href="#i-copy"/></svg> <span id="copy-qr-label">复制订阅链接</span>
             </button>
-            <div id="qr-sub-url-text" style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
+            <div id="qr-sub-url-text" hidden style="font-family:var(--mono);font-size:11px;color:var(--ink-muted);word-break:break-all;max-width:270px;line-height:1.35;opacity:0.85"></div>
           </div>
         </div>
       </dialog>
@@ -182,30 +182,31 @@
         </div>
       </dialog>
 
-      <details class="inner" id="nodes-section" open>
-        <summary id="nodes-summary" style="cursor:pointer;font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px 12px">
+      <section class="inner" id="nodes-section">
+        <div id="nodes-summary" class="nodes-header" style="font-weight:600;display:flex;align-items:center;justify-content:space-between;gap:8px 12px">
           <span style="display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;min-width:0">
             <span data-i18n="nodes_title" style="white-space:nowrap">节点列表</span>
             <span class="small muted" id="nodes-count-badge" style="font-weight:normal;white-space:nowrap"></span>
             <span class="ping-pill local-ping" id="header-local-ping" style="display:none;white-space:nowrap" title="当前设备到管理控制台的真实往返延迟"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:2px"><use href="#i-smartphone"/></svg><span>本机: --</span></span>
           </span>
           <div style="display:flex;align-items:center;gap:8px;flex:none">
-            <button class="icon-btn-round" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
-              <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg>
+            <button class="icon-btn-round action-pill-btn" type="button" id="btn-enter-setup" aria-label="添加节点" title="添加节点" onclick="event.preventDefault();event.stopPropagation();if(window.switchScene)window.switchScene('setup')">
+              <svg class="ico" width="14" height="14"><use href="#i-plus"/></svg><span class="action-btn-label" data-i18n="btn_add_node_short">添加节点</span>
             </button>
-            <button class="btn-ping" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
-              <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg>
+            <button class="btn-ping action-pill-btn" type="button" id="btn-ping-action" onclick="event.preventDefault();window.ownlineRefreshPing(this)" aria-label="测速" title="测速">
+              <svg class="ico ping-icon" width="13" height="13"><use href="#i-refresh"/></svg><span class="action-btn-label" data-i18n="btn_speedtest">测速</span>
             </button>
           </div>
-        </summary>
+        </div>
         <div id="contextual-awakening" class="awakening-container" style="display:none"></div>
         <div id="nodes" style="margin-top:4px"><div class="small muted" style="padding:18px 22px" data-i18n="nodes_loading">正在加载节点列表...</div></div>
-        <div class="quiet-ops-row">
-          <button type="button" class="quiet-toggle-link" id="btn-toggle-backup" aria-expanded="false" aria-controls="backup-drawer" onclick="var d=document.getElementById('backup-drawer');var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open));">
-            <span data-i18n="nodes_backup_toggle">备份与恢复配置</span>
-            <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-          </button>
-        </div>
+      </section>
+      <div class="maintenance-band">
+      <div class="maintenance-row maintenance-backup-row">
+        <button type="button" class="quiet-toggle-link maintenance-summary" id="btn-toggle-backup" aria-expanded="false" aria-controls="backup-drawer" onclick="var d=document.getElementById('backup-drawer');var open=d.hidden;d.hidden=!open;this.setAttribute('aria-expanded',String(open));">
+          <span data-i18n="nodes_backup_toggle">备份与恢复配置</span>
+          <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </button>
         <div id="backup-drawer" class="backup-drawer" hidden>
           <div style="display:flex;gap:10px;align-items:center">
             <button class="btn tiny" type="button" id="backup-export" data-i18n="nodes_export_backup">备份节点</button>
@@ -214,8 +215,7 @@
           </div>
           <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
         </div>
-      </details>
-      <div class="maintenance-band">
+      </div>
       <details class="inner apple-disclosure maintenance-row" id="quota-section">
         <summary class="maintenance-summary">
           <span data-i18n="quota_section_title">流量熔断保护设置</span>
@@ -241,6 +241,50 @@
           <div id="billing-reconcile-result" class="small muted" role="status" style="margin-top:6px"></div>
         </div>
       </details>
+
+      <!-- Runtime & Diagnostic Logs -->
+      <details class="inner apple-disclosure maintenance-row" id="section-logs">
+        <summary class="maintenance-summary">
+          <span data-i18n="logs_heading">运行与诊断日志</span>
+          <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </summary>
+        <div class="maintenance-log-body">
+          <div class="log-section-head" style="margin-top:0">
+            <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
+              <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
+              <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
+              <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
+              <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
+            </div>
+          </div>
+          <div id="health" aria-live="polite"></div>
+          <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
+
+          <div class="log-tabs">
+            <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
+            <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
+            <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
+            <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
+          </div>
+
+          <div id="log-list" class="logbox" style="border:none">
+            <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
+          </div>
+
+          <details class="inner" style="margin-top:14px;border:none;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;padding:10px 12px">
+            <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500" data-i18n="logs_core_summary">核心服务日志：sing-box · Caddy · 管理员</summary>
+            <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap">
+              <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('sing-box',this)">sing-box</button>
+              <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('caddy',this)">Caddy</button>
+              <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('admin',this)">管理员</button>
+            </div>
+            <div id="syslog-box" class="logbox" style="display:none;max-height:220px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow-y:auto;padding:8px;background:var(--surface-soft);border:1px solid var(--line);border-radius:6px"></div>
+          </details>
+        </div>
+      </details>
+      </div>
     </div>
 
     <!-- State B: Server Setup -->
@@ -266,7 +310,6 @@
           <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-terminal"/></svg><span data-i18n="tab_reverse_join">免密终端接入（高级）</span>
         </button>
       </div>
-      <button id="tab-other" type="button" style="display:none"></button>
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
@@ -345,7 +388,7 @@
             </div>
             <div class="field" style="margin-bottom:0;min-width:130px">
               <label for="reverse-node-role" data-i18n="lbl_role">角色</label>
-              <select id="reverse-node-role" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
+              <select id="reverse-node-role" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:0 8px">
                 <option value="exit" data-i18n="opt_role_exit">出口落地节点</option>
                 <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
               </select>
@@ -356,7 +399,7 @@
           </div>
           <div id="reverse-relay-landing-group" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:8px">
             <label for="reverse-relay-landing" class="small" style="font-weight:600;display:block;margin-bottom:4px" data-i18n="lbl_relay_target_landing">绑定海外出口 (落地节点)</label>
-            <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--text);padding:0 8px"></select>
+            <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:0 8px"></select>
             <p class="small muted" style="margin:4px 0 0 0;font-size:11px" data-i18n="tip_relay_port_8443">国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。</p>
           </div>
           <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
@@ -377,25 +420,6 @@
         <!-- Mode 2: Direct SSH Connection (Default) -->
         <div id="box-ssh-direct" style="display:block">
         <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
-        <details class="inner" id="ssh-agent-assist-details" style="margin:0 0 12px 0">
-          <summary class="small muted" style="cursor:pointer" data-i18n="ssh_agent_assist_summary">开发者 / AI 助手自动装配（可选）</summary>
-          <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
-我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
-目标说明：
-[仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
-
-请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
-1. 本机引擎与本机收密：
-   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 安全收密页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
-2. 自动扫雷与系统加固：
-   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、80、443、8443 端口）、确保 root 权限畅通；
-   - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
-3. 一键纳管并出网验真：
-   - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
-   - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
-4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
-          <p class="small muted" style="margin:8px 0 0 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
-        </details>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
         <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
@@ -430,7 +454,7 @@
           </div>
           <div class="field" style="margin-bottom:12px">
             <label for="node-role-select" data-i18n="lbl_role">角色</label>
-            <select id="node-role-select" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);padding:0 8px">
+            <select id="node-role-select" style="width:100%;height:36px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);padding:0 8px">
               <option value="auto" data-i18n="opt_role_auto">自动判定（推荐）</option>
               <option value="exit" data-i18n="opt_role_exit">出口落地节点</option>
               <option value="relay" data-i18n="opt_role_relay">国内中继节点</option>
@@ -445,53 +469,28 @@
           </div>
         </div>
         </div></div>
+        <details class="inner" id="ssh-agent-assist-details" style="margin:12px 0 0 0">
+          <summary class="small muted" style="cursor:pointer" data-i18n="ssh_agent_assist_summary">开发者 / AI 助手自动装配（可选）</summary>
+          <pre id="ai-ssh-prompt-text" style="display:none">你是一个在「Evergreen · OwnLine」代码仓库根目录下工作的本地运维智能体，拥有终端执行与完整代码读取权限（操作规程见 skills/ownline-local/SKILL.md，选型清单见 web/src/data/onboarding.json）。
+我的目标是从 0 搭起或新增一台 Linux 云服务器接入本项目的节点池。
+目标说明：
+[仅填写目标服务器公网 IP、地区与用途，切勿在对话中粘贴密码、私钥或云 API 密钥]
+
+请你全权接管并自主执行全流程，不要要求我在对话中发送明文凭据：
+1. 本机引擎与本机收密：
+   - 运行 `python3 ownline.py doctor --json`（Windows 可用 `py -3` 或 `python`），通过 `python3 ownline.py vault request --slot ssh --json` 唤起本机 `127.0.0.1` 安全收密页面（或无图形环境回退隐身输入）采集 SSH 凭据，再通过 `python3 ownline.py check --vault-handle` 探测 22 端口连通性及系统发行版（确认 Ubuntu 22.04+ 或 Debian 12+）；
+2. 自动扫雷与系统加固：
+   - 完成 SSH 登入与环境就绪：放行内部防火墙（22、80、443、8443 端口）、确保 root 权限畅通；
+   - 若遇云厂商安全组拦截，直接明确指出在云后台应放行的具体端口规则；
+3. 一键纳管并出网验真：
+   - 调用仓库现有控制面或 `python3 ownline.py apply` 完成装配、可选家宽与中转配对，并执行 topology-verify（底层 verify.py）出网验真，结束后调用 `python3 ownline.py vault clear --json` 清理内存句柄；
+   - 确认无误后向我汇报：“新节点已自动装配完毕并上线，刷新管理控制台即可直接在小火箭/Clash 中使用！”
+4. 安全守则：严禁索取、回显或提交任何服务器密码或私钥明文至对话或 Git 仓库。</pre>
+          <p class="small muted" style="margin:8px 0 0 0"><span data-i18n="ssh_need_assist">借助本地 Agent 全自动装配？</span> <button class="btn tiny" type="button" id="btn-copy-ssh-ai-prompt" data-i18n="ssh_copy_ai_prompt">复制 Agent 任务书</button></p>
+        </details>
         </div>
         <!-- {{PANEL_ONBOARDING_GUIDE}} -->
       </div>
     </div>
   </section>
-
-  <!-- Runtime & Diagnostic Logs -->
-  <details class="panel-card inner maintenance-row" id="section-logs">
-    <summary class="maintenance-summary">
-      <span data-i18n="logs_heading">运行与诊断日志</span>
-      <svg class="ico quiet-toggle-chevron" width="14" height="14" aria-hidden="true"><use href="#i-chevron-down"/></svg>
-    </summary>
-    <div class="maintenance-log-body">
-      <div class="log-section-head" style="margin-top:0">
-        <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
-          <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
-          <button class="btn tiny" type="button" id="btn-copy-diag" onclick="window.ownlineCopyDiag(this)" data-i18n="logs_copy_diag_btn">复制诊断</button>
-          <button class="btn tiny" type="button" id="btn-refresh-logs" style="display:none" data-i18n="btn_refresh_logs">刷新日志</button>
-          <button class="btn btn-outline" id="btn-more-logs" type="button" aria-expanded="false" data-i18n="logs_view_all">查看全部</button>
-        </div>
-      </div>
-      <div id="health" aria-live="polite"></div>
-      <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
-
-      <div class="log-tabs">
-        <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
-        <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
-        <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
-        <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
-      </div>
-
-      <div id="log-list" class="logbox" style="border:none">
-        <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
-      </div>
-
-      <details class="inner" style="margin-top:14px;border:none;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;padding:10px 12px">
-        <summary style="cursor:pointer;font-size:13px;color:var(--apple-muted);font-weight:500" data-i18n="logs_core_summary">核心服务日志：sing-box · Caddy · 管理员</summary>
-        <div style="display:flex;gap:6px;margin:8px 0;flex-wrap:wrap">
-          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('sing-box',this)">sing-box</button>
-          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('caddy',this)">Caddy</button>
-          <button class="btn tiny" type="button" onclick="window.ownlineLoadSyslog('admin',this)">管理员</button>
-        </div>
-        <div id="syslog-box" class="logbox" style="display:none;max-height:220px;white-space:pre-wrap;font-family:var(--mono);font-size:12px;overflow-y:auto;padding:8px;background:var(--surface-soft);border:1px solid var(--line);border-radius:6px"></div>
-      </details>
-    </div>
-  </details>
-  </div>
 

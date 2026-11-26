@@ -51,15 +51,17 @@
 
   function toggleFeedbackDiagDetails() {
     var details = document.getElementById("feedback-diag-details");
-    var arrow = document.getElementById("feedback-diag-arrow");
+    var toggle = document.getElementById("feedback-diag-toggle");
     if (!details) return;
-    var isExpanded = details.style.display === "block";
+    var isExpanded = !details.hidden && details.style.display !== "none";
     if (isExpanded) {
+      details.hidden = true;
       details.style.display = "none";
-      if (arrow) arrow.style.transform = "rotate(0deg)";
+      if (toggle) toggle.setAttribute("aria-expanded", "false");
     } else {
+      details.hidden = false;
       details.style.display = "block";
-      if (arrow) arrow.style.transform = "rotate(180deg)";
+      if (toggle) toggle.setAttribute("aria-expanded", "true");
       var diag = buildDiagnosticSnapshot();
       details.textContent = JSON.stringify(diag, null, 2);
     }
@@ -67,7 +69,11 @@
 
   function updateFeedbackCharCount(val) {
     var count = (val || "").length;
-    setElementText("feedback-char-count", count + "/2000");
+    var el = document.getElementById("feedback-char-count");
+    if (el) {
+      el.hidden = count <= 1500;
+      el.textContent = count + "/2000";
+    }
   }
 
   function getPlatformSummary() {
@@ -112,6 +118,7 @@
       screen: winW + "x" + winH,
       time: new Date().toISOString(),
       node_count: ns.length,
+      client_errors: (typeof window !== "undefined" && Array.isArray(window.__ownlineClientErrors)) ? window.__ownlineClientErrors.slice(-10) : [],
       nodes: ns.map(function (n) {
         var s = st[n.name] || {};
         return {
@@ -153,19 +160,35 @@
     var dlg = document.getElementById("feedback-dialog");
     if (!dlg) return;
 
-    // Reset Form
+    // Reset Form and restore non-sensitive session draft if present
     var form = document.getElementById("feedback-form");
     if (form) form.reset();
+    var msgEl = document.getElementById("feedback-message");
+    var contactEl = document.getElementById("feedback-contact");
+    try {
+      if (msgEl && sessionStorage.getItem("ownline_draft_fb_msg")) msgEl.value = sessionStorage.getItem("ownline_draft_fb_msg");
+      if (contactEl && sessionStorage.getItem("ownline_draft_fb_contact")) contactEl.value = sessionStorage.getItem("ownline_draft_fb_contact");
+      if (msgEl && !msgEl.dataset.draftBound) {
+        msgEl.dataset.draftBound = "1";
+        msgEl.addEventListener("input", function () { try { sessionStorage.setItem("ownline_draft_fb_msg", msgEl.value); } catch (_) {} });
+      }
+      if (contactEl && !contactEl.dataset.draftBound) {
+        contactEl.dataset.draftBound = "1";
+        contactEl.addEventListener("input", function () { try { sessionStorage.setItem("ownline_draft_fb_contact", contactEl.value); } catch (_) {} });
+      }
+    } catch (_) {}
     selectFeedbackIntent("bug");
-    updateFeedbackCharCount("");
+    updateFeedbackCharCount(msgEl ? msgEl.value : "");
     setElementDisplay("feedback-status", "none");
     setElementDisplay("feedback-form", "block");
     setElementDisplay("feedback-success-card", "none");
 
     var details = document.getElementById("feedback-diag-details");
-    if (details) details.style.display = "none";
-    var arrow = document.getElementById("feedback-diag-arrow");
-    if (arrow) arrow.style.transform = "rotate(0deg)";
+    if (details) { details.hidden = true; details.style.display = "none"; }
+    var diagToggle = document.getElementById("feedback-diag-toggle");
+    if (diagToggle) diagToggle.setAttribute("aria-expanded", "false");
+    var fbFallback = document.getElementById("feedback-fallback-actions");
+    if (fbFallback) fbFallback.open = false;
 
     var submitBtn = document.getElementById("btn-submit-feedback");
     var submitText = document.getElementById("btn-submit-feedback-text");
@@ -241,6 +264,10 @@
         });
       })
       .then(function () {
+        try {
+          sessionStorage.removeItem("ownline_draft_fb_msg");
+          sessionStorage.removeItem("ownline_draft_fb_contact");
+        } catch (_) {}
         setElementDisplay("feedback-form", "none");
         setElementDisplay("feedback-success-card", "block");
       })
@@ -248,10 +275,12 @@
         if (submitBtn) submitBtn.disabled = false;
         if (submitText) submitText.textContent = (typeof t === "function") ? t("feedback_btn_submit") : "存入服务器底账";
         if (statusEl) {
-          statusEl.textContent = (zh ? "保存失败：" : "Save failed: ") + err.message;
+          statusEl.textContent = (zh ? "自动发送失败：" : "Auto-send failed: ") + err.message;
           statusEl.style.color = "var(--bad)";
           statusEl.style.display = "block";
         }
+        var fbFallback = document.getElementById("feedback-fallback-actions");
+        if (fbFallback) fbFallback.open = true;
       });
   }
 
@@ -381,7 +410,12 @@
       document.execCommand("copy");
       if (cb) cb();
     } catch (e) {
-      alert("复制失败，请手动选取复制");
+      var st = document.getElementById("feedback-status");
+      if (st) {
+        st.textContent = "无法自动复制，请展开诊断信息手动复制";
+        st.style.color = "var(--bad)";
+        st.style.display = "block";
+      }
     }
     document.body.removeChild(ta);
   }

@@ -1,4 +1,5 @@
 .node {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -9,7 +10,20 @@
   border-bottom: 1px solid var(--line-light);
   border-radius: 0;
   box-shadow: none;
-  transition: background 0.15s ease;
+  transition: background-color var(--dur-micro) var(--ease-standard);
+}
+.node::after {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border-radius: 12px;
+  border: 2px solid var(--amber);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-panel) var(--ease-standard);
+}
+.node.is-issue-focus::after {
+  opacity: 1;
 }
 .node:last-child {
   border-bottom: none;
@@ -34,7 +48,7 @@
   margin-top: -2px;
 }
 .node-drawer {
-  display: none;
+  display: flex;
   margin-top: 14px;
   padding: 14px 16px;
   background: var(--paper-card-subtle);
@@ -44,11 +58,23 @@
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  animation: nodeDrawerIn var(--dur-panel) var(--ease-standard);
+  opacity: 1;
+  transform: translateY(0);
+  transition-property: opacity, transform, display;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
+  transition-behavior: allow-discrete;
 }
-@keyframes nodeDrawerIn {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: translateY(0); }
+.node-drawer[hidden] {
+  display: none;
+  opacity: 0;
+  transform: translateY(-4px);
+}
+@starting-style {
+  .node-drawer:not([hidden]) {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
 }
 .drawer-group {
   display: inline-flex;
@@ -451,9 +477,10 @@
   }
 }
 .maintenance-band {
-  margin-top: 0;
+  margin-top: 22px;
+  margin-bottom: 8px;
 }
-details.inner.maintenance-row {
+.maintenance-row {
   background: transparent;
   border: none;
   border-top: 1px solid var(--line-light);
@@ -461,6 +488,10 @@ details.inner.maintenance-row {
   box-shadow: none;
   padding: 12px 2px;
   margin: 0;
+}
+.maintenance-backup-row .maintenance-summary {
+  width: 100%;
+  justify-content: space-between;
 }
 .maintenance-summary {
   list-style: none;
@@ -473,7 +504,7 @@ details.inner.maintenance-row {
   font-weight: 500;
   color: var(--ink-muted);
   padding: 2px 0;
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .maintenance-summary::-webkit-details-marker { display: none; }
 .maintenance-summary::before { content: none; }
@@ -486,6 +517,13 @@ details.inner.maintenance-row {
 }
 .maintenance-row[open] > .maintenance-summary .quiet-toggle-chevron {
   transform: rotate(180deg);
+}
+details.maintenance-row[open] > :not(summary) {
+  animation: panelFadeIn var(--dur-panel) var(--ease-standard);
+}
+@keyframes panelFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 #section-logs[open] > .maintenance-log-body {
   background: var(--paper-card);
@@ -623,14 +661,37 @@ details.inner.maintenance-row {
   transition: background-color var(--dur-micro) var(--ease-standard), border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
   flex: none;
 }
+.btn-ping.action-pill-btn {
+  width: auto;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .btn-ping.action-pill-btn {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+  }
+}
 .btn-ping:hover {
   background: var(--paper-card-secondary);
   border-color: var(--ink-muted);
   color: var(--navy);
   transform: scale(1.05);
 }
-.btn-ping.refreshing svg {
-  animation: spin 0.6s linear infinite;
+.btn-ping.action-pill-btn:hover {
+  transform: none;
+}
+.btn-ping.refreshing svg,
+.adv-btn.refreshing svg {
+  animation: spin 720ms linear infinite;
 }
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
@@ -646,9 +707,9 @@ details.inner.maintenance-row {
   margin-right: 4px;
 }
 .ping-pill.probing {
-  color: var(--blue, #2563eb);
-  background: rgba(37, 99, 235, 0.08);
-  border: 1px dashed rgba(37, 99, 235, 0.35);
+  color: var(--navy);
+  background: var(--navy-soft);
+  border: 1px dashed var(--navy);
   animation: pulse-probing 1.2s ease-in-out infinite alternate;
 }
 @keyframes pulse-probing {

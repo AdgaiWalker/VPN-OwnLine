@@ -10,6 +10,7 @@
       main_title: "Connection Profiles",
       status_loaded: "Ready",
       btn_add_node: "+ Add Node",
+      btn_add_node_short: "Add Node",
       btn_back: "← Back",
       quota_hero_title: "Total Monthly Egress",
       quota_status_ok: "Normal",
@@ -171,6 +172,7 @@
       feedback_btn_email: "Email Author",
       feedback_server_note: "Or save locally on this server",
       feedback_btn_submit: "Send to AI Diagnostics",
+      feedback_fallback_summary: "Manual contact / offline export",
       feedback_btn_cancel: "Cancel",
       feedback_btn_close: "Done",
       feedback_submitting: "Sending...",
@@ -239,6 +241,7 @@
       main_title: "连接配置",
       status_loaded: "已加载",
       btn_add_node: "+ 添加节点",
+      btn_add_node_short: "添加节点",
       btn_back: "← 返回",
       quota_hero_title: "本月出海总流量",
       quota_status_ok: "充足",
@@ -400,6 +403,7 @@
       feedback_btn_email: "发邮件给作者",
       feedback_server_note: "或直接提交至本服务器留存",
       feedback_btn_submit: "一键发送给 AI 诊断库",
+      feedback_fallback_summary: "手动联系作者 / 离线发送",
       feedback_btn_cancel: "取消",
       feedback_btn_close: "完成",
       feedback_submitting: "正在发送...",
@@ -546,6 +550,14 @@
     if (inputUser) {
       var curr = STATE.currentUsername || '';
       inputUser.placeholder = zh ? (curr ? ('保持当前用户名 (' + curr + ')') : '如不修改请留空') : (curr ? ('Keep current (' + curr + ')') : 'Leave empty to keep current');
+    }
+    var inputNewPass = document.getElementById('settings-new-pass');
+    if (inputNewPass) {
+      inputNewPass.placeholder = zh ? '如不修改请留空' : 'Leave empty to keep current';
+    }
+    var inputConfPass = document.getElementById('settings-confirm-pass');
+    if (inputConfPass) {
+      inputConfPass.placeholder = zh ? '再次输入新密码' : 'Re-enter new password';
     }
     var btnFb = document.getElementById('btn-open-feedback');
     if (btnFb) {

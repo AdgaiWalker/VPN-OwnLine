@@ -8,8 +8,6 @@
       <button class="btn tiny footer-link-btn" id="btn-footer-feedback" type="button" onclick="window.openFeedbackDialog()"><span data-i18n="footer_feedback">Feedback</span></button>
       <span class="footer-sep">·</span>
       <button class="btn tiny footer-link-btn" id="btn-footer-settings" type="button" onclick="window.openSettingsDialog()"><span data-i18n="footer_settings">Preferences</span><span id="settings-update-dot" style="display:none;width:6px;height:6px;border-radius:50%;background:var(--navy);margin-left:4px;vertical-align:middle"></span></button>
-      <span class="footer-sep">·</span>
-      <a class="btn tiny footer-link-btn" id="change-password-link" href="/change-password" onclick="if(window.openAccountDialog){event.preventDefault();window.openAccountDialog();}"><span data-i18n="footer_account_security">Account & Security</span></a>
     </div>
   </footer>
 </div>
@@ -74,10 +72,13 @@
     </div>
 
     <!-- Custom Domain Binding (Optional) -->
-    <details id="domain-settings-box" style="margin-bottom:18px;padding-top:14px;border-top:1px solid var(--line-light)">
-      <summary style="font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center">
-        <span><span style="color:var(--apple-muted);margin-right:4px">▸</span><span data-i18n="domain_settings_title">自定义域名（可选）</span></span>
-        <span id="current-domain-tag" class="small muted" style="font-family:var(--mono);font-size:11px;font-weight:normal"></span>
+    <details id="domain-settings-box" style="margin-bottom:4px;padding-top:14px;border-top:1px solid var(--line-light)">
+      <summary class="domain-settings-summary" style="font-size:13px;font-weight:600;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <span data-i18n="domain_settings_title">自定义域名（可选）</span>
+        <span style="display:inline-flex;align-items:center;gap:6px">
+          <span id="current-domain-tag" class="small muted" style="font-family:var(--mono);font-size:11px;font-weight:normal"></span>
+          <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+        </span>
       </summary>
       <p class="small muted" style="margin:8px 0;font-size:11.5px;line-height:1.5" data-i18n="domain_settings_desc">先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。</p>
       <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px">
@@ -92,10 +93,6 @@
         </div>
       </form>
     </details>
-
-    <div style="display:flex;justify-content:flex-end">
-      <button class="btn tiny primary" type="button" onclick="document.getElementById('settings-dialog').close()" id="settings-btn-done" data-i18n="settings_btn_done">Done</button>
-    </div>
   </div>
 </dialog>
 
@@ -266,7 +263,7 @@
       </div>
 
       <!-- Quick Scenario Tags (免输入一键填充) -->
-      <div class="feedback-quick-tags" id="feedback-quick-tags" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+      <div class="feedback-quick-tags feedback-tags-grid" id="feedback-quick-tags">
         <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('节点连不上')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-alert"/></svg><span data-i18n="tag_node_unreachable">节点连不上</span></button>
         <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('看视频卡顿慢')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-refresh"/></svg><span data-i18n="tag_slow_speed">看视频卡顿</span></button>
         <button type="button" class="btn tiny quick-tag-btn" onclick="window.insertFeedbackTag('手机无法连接')"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-smartphone"/></svg><span data-i18n="tag_mobile_issue">手机无法连接</span></button>
@@ -277,7 +274,7 @@
       <div class="field" style="margin-bottom:12px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述（选填）</label>
-          <span class="small muted" id="feedback-char-count" style="font-size:11px">0/2000</span>
+          <span class="small muted" id="feedback-char-count" hidden style="font-size:11px">0/2000</span>
         </div>
         <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
@@ -290,14 +287,14 @@
 
       <!-- 3. Apple System Diagnostics Capsule Card -->
       <div class="feedback-capsule-card" style="margin-bottom:16px;background:var(--surface-soft);border-radius:10px;border:1px solid var(--line-light);padding:10px 12px">
-        <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer" onclick="window.toggleFeedbackDiagDetails()">
-          <div style="display:flex;align-items:center;gap:8px">
-            <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block"></span>
+        <button type="button" id="feedback-diag-toggle" class="feedback-diag-trigger" aria-expanded="false" aria-controls="feedback-diag-details" onclick="window.toggleFeedbackDiagDetails()">
+          <span style="display:flex;align-items:center;gap:8px;min-width:0">
+            <span class="capsule-dot-live" style="width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex:none"></span>
             <span id="feedback-diag-glance" style="font-size:12px;font-weight:500;color:var(--apple-fg)">现场指纹已就绪 · 自动上报客观诊断</span>
-          </div>
-          <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="transition:transform .2s ease"><polyline points="6 9 12 15 18 9"/></svg>
-        </div>
-        <div id="feedback-diag-details" style="display:none;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--apple-muted);font-family:var(--mono);line-height:1.5;max-height:110px;overflow-y:auto;white-space:pre-wrap"></div>
+          </span>
+          <svg class="ico details-arrow" id="feedback-diag-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="feedback-diag-details" hidden style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:11px;color:var(--apple-muted);font-family:var(--mono);line-height:1.5;max-height:110px;overflow-y:auto;white-space:pre-wrap"></div>
       </div>
 
       <div id="feedback-status" role="status" style="display:none;margin-bottom:12px;font-size:12.5px;text-align:center"></div>
@@ -306,24 +303,28 @@
       <div style="display:flex;flex-direction:column;gap:10px">
         <!-- Primary Action: 1-Click Submit to AI Diagnostics Library -->
         <button class="btn primary" type="submit" id="btn-submit-feedback" style="width:100%;padding:11px 14px;border-radius:999px;font-size:14px;font-weight:600;display:flex;align-items:center;justify-content:center;gap:8px">
-          <svg class="ico" width="15" height="15"><use href="#i-refresh"/></svg>
+          <svg class="ico" width="15" height="15" aria-hidden="true"><use href="#i-feedback"/></svg>
           <span id="btn-submit-feedback-text" data-i18n="feedback_btn_submit">一键发送给 AI 诊断库</span>
         </button>
 
-        <!-- Secondary Actions Row: Copy Report + Email Author Directly -->
-        <div style="display:flex;gap:8px">
-          <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-            <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
-            <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告</span>
-          </button>
-          <button class="btn" type="button" id="btn-email-feedback" onclick="window.openMailToAuthor()" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
-            <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-            <span data-i18n="feedback_btn_email">发邮件给作者</span>
-          </button>
-        </div>
-        <div style="text-align:center;font-size:11.5px;color:var(--apple-muted);margin-top:2px">
-          <span data-i18n="author_email_lbl">作者支持邮箱：</span><a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
-        </div>
+        <details id="feedback-fallback-actions" class="hub-secondary-disclosure">
+          <summary data-i18n="feedback_fallback_summary">手动联系作者 / 离线发送</summary>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:4px">
+            <div style="display:flex;gap:8px">
+              <button class="btn" type="button" id="btn-copy-feedback" onclick="window.ownlineCopyFeedbackAndDiag(this)" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+                <svg class="ico" width="13" height="13"><use href="#i-copy"/></svg>
+                <span id="btn-copy-feedback-text" data-i18n="feedback_btn_copy">复制排障报告</span>
+              </button>
+              <button class="btn" type="button" id="btn-email-feedback" onclick="window.openMailToAuthor()" style="flex:1;font-size:12.5px;padding:8px 10px;border-radius:8px;display:flex;align-items:center;justify-content:center;gap:6px">
+                <svg class="ico" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <span data-i18n="feedback_btn_email">发邮件给作者</span>
+              </button>
+            </div>
+            <div style="text-align:center;font-size:11.5px;color:var(--apple-muted)">
+              <span data-i18n="author_email_lbl">作者支持邮箱：</span><a href="mailto:praxiswalker@gmail.com" onclick="event.preventDefault();window.openMailToAuthor()" style="color:var(--navy);text-decoration:underline">praxiswalker@gmail.com</a>
+            </div>
+          </div>
+        </details>
       </div>
     </form>
 

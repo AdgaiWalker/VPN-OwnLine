@@ -76,7 +76,7 @@ header.topbar {
   position: relative;
   overflow: hidden;
   flex-shrink: 0;
-  transition: transform 0.15s ease;
+  transition: transform var(--dur-micro) var(--ease-standard);
 }
 .brand:hover .evergreen-icon {
   transform: translateY(-1px);
@@ -197,7 +197,7 @@ input[type="text"], input[type="password"], input[type="number"], textarea, sele
   border-radius: 6px;
   outline: none;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
-  transition: border-color .15s ease, box-shadow .15s ease;
+  transition: border-color var(--dur-micro) var(--ease-standard), box-shadow var(--dur-micro) var(--ease-standard);
 }
 input:focus, textarea:focus, select:focus {
   border-color: var(--navy);
@@ -222,7 +222,7 @@ input::placeholder, textarea::placeholder {
   font-size: 13px;
   color: var(--ink-muted);
   opacity: 0.78;
-  transition: opacity .15s ease;
+  transition: opacity var(--dur-micro) var(--ease-standard);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -244,7 +244,7 @@ input::placeholder, textarea::placeholder {
   min-height: auto !important;
   line-height: 1.4 !important;
   text-decoration: none;
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .site-footer-links .footer-link-btn:hover {
   color: var(--ink) !important;

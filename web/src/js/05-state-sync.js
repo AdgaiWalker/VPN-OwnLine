@@ -52,8 +52,8 @@
         }
       } else if (isRelayBottle) {
         var rName = (bottleneck && bottleneck.relay_name) || (bNode && bNode.name) || "relay";
-        var safeRem = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : (bottleneck ? bottleneck.relay_remaining_gb : 0);
-        var resetSuffix = daysRem != null ? (zh ? (" · " + daysRem + " 天后重置") : (" · resets in " + daysRem + "d")) : "";
+        var safeRem = (runway && runway.safe_before_breaker_gb != null) ? (Math.round(Number(runway.safe_before_breaker_gb) * 10) / 10) : (bottleneck ? (Math.round(Number(bottleneck.relay_remaining_gb) * 10) / 10) : 0);
+        var resetSuffix = daysRem != null ? (daysRem === 0 ? (zh ? " · 今日重置" : " · resets today") : (zh ? (" · " + daysRem + " 天后重置") : (" · resets in " + daysRem + "d"))) : "";
         elSafe.textContent = (zh
           ? ("短板 " + rName + " · 距 " + breakerPct + "% 熔断余 " + safeRem + " GB" + resetSuffix)
           : ("Bottleneck " + rName + " · " + safeRem + " GB to " + breakerPct + "% cap" + resetSuffix)) + staleSuffix;
@@ -149,7 +149,7 @@
     }
     if (elCycleRem) {
       var dRem = (cycle && cycle.days_remaining != null) ? cycle.days_remaining : guide.days_remaining;
-      elCycleRem.textContent = dRem != null ? (zh ? (dRem + " 天后重置") : ("Resets in " + dRem + "d")) : "--";
+      elCycleRem.textContent = dRem != null ? (dRem === 0 ? (zh ? "今日重置" : "Resets today") : (zh ? (dRem + " 天后重置") : ("Resets in " + dRem + "d"))) : "--";
     }
     if (elCyclePct) {
       elCyclePct.textContent = (cycle && cycle.elapsed_pct != null)
@@ -238,8 +238,18 @@
       var axStart = document.getElementById("quota-axis-start");
       var axMid = document.getElementById("quota-axis-mid");
       var axEnd = document.getElementById("quota-axis-end");
+      var budgetEl = document.getElementById("quota-chart-budget");
+      if (budgetEl) {
+        if (dailyBudget > 0) {
+          budgetEl.hidden = false;
+          budgetEl.textContent = (zh ? "日均预算 " : "Budget ") + dailyBudget + "G";
+        } else {
+          budgetEl.hidden = true;
+          budgetEl.textContent = "";
+        }
+      }
       if (axStart) axStart.textContent = series[0].label;
-      if (axMid) axMid.textContent = dailyBudget > 0 ? ((zh ? "日均预算 " : "Budget ") + dailyBudget + "G") : series[Math.floor(series.length / 2)].label;
+      if (axMid) axMid.textContent = series[Math.floor(series.length / 2)].label;
       if (axEnd) axEnd.textContent = zh ? "今天" : "Today";
     } else if (chartWrap && chartCold) {
       chartWrap.hidden = true;
@@ -268,7 +278,7 @@
           return '<div class="quota-topo-row">' +
             '<span class="quota-topo-name">' + esc(item.name) + ' <span class="quota-topo-role' + (isBottleneck ? " warn" : "") + '">' + esc(tagTxt) + '</span></span>' +
             '<span class="' + fillCls + '" aria-hidden="true"><i style="--pct:' + pctRatio + '"></i>' + (breakerPctLbl > 0 && breakerPctLbl < 100 ? '<span class="quota-topo-tick" style="left:' + breakerPctLbl + '%"></span>' : '') + '</span>' +
-            '<span class="quota-topo-stat">' + item.used_gb + ' / ' + Math.round(item.total_gb) + ' GB <span class="muted">(' + Math.round(item.used_pct) + '%' + tailTxt + ')</span></span>' +
+            '<span class="quota-topo-stat">' + (Math.round(Number(item.used_gb || 0) * 10) / 10) + ' / ' + Math.round(item.total_gb) + ' GB <span class="muted">(' + Math.round(item.used_pct) + '%' + tailTxt + ')</span></span>' +
           '</div>';
         }).join("");
         topoEl.innerHTML = topoHead + topoRows;
@@ -357,7 +367,7 @@
       if (egressCap > 0) {
         var overallPct = Math.min(100, Math.round((egressUsed / egressCap) * 100));
         var remGb = Math.max(0, Math.round((egressCap - egressUsed) * 100) / 100);
-        var usedFmt = (Math.round(egressUsed * 100) / 100).toString();
+        var usedFmt = (Math.round(egressUsed * 10) / 10).toString();
         var totalFmt = Math.round(egressCap).toString() + " GB";
         var elUsed = document.getElementById("quota-hero-used");
         var elTotal = document.getElementById("quota-hero-total");
@@ -521,8 +531,12 @@
         }
         jsonRequest("/api/password/state", { signal: signal }).then(function (result) {
           if (signal && signal.aborted) return;
-          document.getElementById("change-password-link").style.display = result.ok === true ? "" : "none";
-        }).catch(function () { document.getElementById("change-password-link").style.display = "none"; });
+          var cpLink = document.getElementById("change-password-link");
+          if (cpLink) cpLink.style.display = result.ok === true ? "" : "none";
+        }).catch(function () {
+          var cpLink = document.getElementById("change-password-link");
+          if (cpLink) cpLink.style.display = "none";
+        });
       }
       jsonRequest("/api/traffic/stats", { signal: signal }).then(function (ts) {
         if (signal && signal.aborted) return;
@@ -589,6 +603,7 @@
       try { var parsed = new URL(url); if ((parsed.protocol !== "https:" && parsed.protocol !== "http:") || !parsed.host) url = ""; }
       catch (_) { url = ""; }
       BASE_SUB_URL = url.replace(/\/$/, "");
+      var retryBtn = document.getElementById("btn-retry-state");
       if (BASE_SUB_URL) {
         var eligible = !!nodes && nodes.some(function (n) {
           var lifecycle = n.lifecycle || {};
@@ -596,11 +611,19 @@
           return n.enabled !== false && !n.cleanup_pending && lifecycle.state !== "disabled" && lifecycle.state !== "expired" && (health === "ok" || health === "unknown");
         });
         wireLinks(eligible); unready.style.display = "none"; readyBox.style.display = "block";
+        if (retryBtn) retryBtn.hidden = true;
       } else {
         readyBox.style.display = "none"; unready.style.display = "block";
-        if (nodes && !nodes.length) setAvailability(zh ? "尚未连接服务器" : "No Servers Connected", zh ? "请点击「+ 添加节点」选择连接方式开始部署。" : "Please click \"+ Add Node\" to begin setup.");
-        else if (settings && settings.ok) setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
-        else setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
+        if (nodes && !nodes.length) {
+          setAvailability(zh ? "尚未连接服务器" : "No Servers Connected", zh ? "请点击「添加节点」开始部署。" : "Please click \"Add Node\" to begin setup.");
+          if (retryBtn) retryBtn.hidden = true;
+        } else if (settings && settings.ok) {
+          setAvailability(zh ? "订阅链接暂不可用" : "Subscription link unavailable", zh ? "请检查服务器管理端配置。" : "Please check server management settings.");
+          if (retryBtn) retryBtn.hidden = false;
+        } else {
+          setAvailability(zh ? "未连接到管理后端" : "Not connected to management backend", zh ? "请通过受保护的管理后台地址访问，当前无法校验服务器状态。" : "Please access via protected admin portal.");
+          if (retryBtn) retryBtn.hidden = false;
+        }
       }
       var recCard = document.getElementById("billing-reconcile-card");
       if (quota) {
@@ -657,6 +680,7 @@
     window.ownlineUpdateServerCountBadges = updateServerCountBadges;
     window.ownlineRenderTrafficBreakdown = renderTrafficBreakdown;
     window.ownlineRenderQuotaList = renderQuotaList;
+    window.ownlineRetryState = function () { refreshState(); if (typeof fetchLogs === "function") fetchLogs(); };
   }
 
   function initQuotaSettings() {

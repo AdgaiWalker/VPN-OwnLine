@@ -8,9 +8,18 @@
     function close(value) {
       if (done) return;
       done = true;
-      w.close();
-      w.remove();
       resolve(value);
+      var removed = false;
+      function cleanup() {
+        if (removed) return;
+        removed = true;
+        if (w.parentNode) w.remove();
+      }
+      if (typeof w.addEventListener === "function") {
+        w.addEventListener("transitionend", cleanup, { once: true });
+      }
+      w.close();
+      setTimeout(cleanup, 260);
       if (previous && previous.isConnected) previous.focus();
     }
     w.addEventListener("cancel", function (e) { e.preventDefault(); close(null); });

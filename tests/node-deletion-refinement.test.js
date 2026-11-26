@@ -15,8 +15,8 @@ test('ui refinement: duplicate quota glance removed from subheader', () => {
   assert.equal(html.includes('id="quota-glance"'), false, '#quota-glance must be removed to avoid duplication with hero banner');
 });
 
-test('ui refinement: setup entry relocated to nodes summary and footer cleaned up', () => {
-  assert.match(html, /<summary id="nodes-summary"[\s\S]*?id="btn-enter-setup"[\s\S]*?id="btn-ping-action"/);
+test('ui refinement: setup entry relocated to nodes header and footer cleaned up', () => {
+  assert.match(html, /<div id="nodes-summary"[\s\S]*?id="btn-enter-setup"[\s\S]*?id="btn-ping-action"/);
   assert(html.includes('class="site-footer-links"'));
   assert(html.includes('class="footer-sep">·</span>'));
 });

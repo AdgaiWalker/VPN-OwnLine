@@ -101,30 +101,42 @@
     var vSetup = document.getElementById("view-setup");
     if (!vDash || !vSetup) return;
     var btnRefresh = document.getElementById("btn-refresh-all");
+    var secLogs = document.getElementById("section-logs");
 
-    if (sceneName === "setup") {
-      dashboardScrollY = window.scrollY || 0;
-      vDash.style.display = "none";
-      vSetup.style.display = "block";
-      document.getElementById("section-logs").style.display = "none";
-      if (btnRefresh) btnRefresh.style.display = "none";
-      window.scrollTo({ top: 0, behavior: "auto" });
-      document.getElementById("setup-title").focus({preventScroll:true});
+    function applySwitch() {
+      if (sceneName === "setup") {
+        dashboardScrollY = window.scrollY || 0;
+        vDash.style.display = "none";
+        vSetup.style.display = "block";
+        if (secLogs) secLogs.style.display = "none";
+        if (btnRefresh) btnRefresh.style.display = "none";
+        window.scrollTo({ top: 0, behavior: "auto" });
+        var setupTitle = document.getElementById("setup-title");
+        if (setupTitle) setupTitle.focus({preventScroll:true});
+      } else {
+        // Clear unsaved credentials when leaving form without interrupting background operations.
+        clearOtherSecret();
+        ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
+          var input = document.getElementById(id);
+          if (input) { input.value = ""; input.classList.remove("has-val"); }
+        });
+        vSetup.style.display = "none";
+        vDash.style.display = "block";
+        if (secLogs) secLogs.style.display = "";
+        if (btnRefresh) btnRefresh.style.display = "";
+        refreshState();
+        fetchLogs();
+        var btnEnter = document.getElementById("btn-enter-setup");
+        if (btnEnter) btnEnter.focus({preventScroll:true});
+        window.scrollTo({ top: dashboardScrollY, behavior: "auto" });
+      }
+    }
+
+    var reduceMotion = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof document.startViewTransition === "function" && !reduceMotion) {
+      document.startViewTransition(applySwitch);
     } else {
-      // Clear unsaved credentials when leaving form without interrupting background operations.
-      clearOtherSecret();
-      ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
-        var input = document.getElementById(id);
-        if (input) { input.value = ""; input.classList.remove("has-val"); }
-      });
-      vSetup.style.display = "none";
-      vDash.style.display = "block";
-      document.getElementById("section-logs").style.display = "";
-      if (btnRefresh) btnRefresh.style.display = "";
-      refreshState();
-      fetchLogs();
-      document.getElementById("btn-enter-setup").focus({preventScroll:true});
-      window.scrollTo({ top: dashboardScrollY, behavior: "auto" });
+      applySwitch();
     }
   }
 

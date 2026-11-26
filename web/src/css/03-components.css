@@ -36,7 +36,7 @@
   color: var(--ink);
   border: 1px solid var(--line);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-  transition: background 120ms ease, border-color 120ms ease, transform 100ms ease;
+  transition: border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 .btn:hover { background: var(--paper-card-secondary); border-color: var(--ink-muted); color: var(--ink); }
 .btn:active { transform: scale(0.985); }
@@ -154,7 +154,7 @@
   font-size: 13.5px;
   font-weight: 600;
   color: var(--ink);
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .quota-strip-bar {
   position: relative;
@@ -304,6 +304,18 @@
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 6px;
+}
+.quota-chart-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.quota-chart-budget {
+  font-size: 11.5px;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
 }
 .quota-chart-title {
   font-size: 12px;
@@ -531,6 +543,8 @@
   .apple-hero-bar { gap: 8px; }
   .apple-hero-connect { flex: 1 1 auto; min-height: 44px; padding: 8px 12px; font-size: 14px; gap: 6px; }
   .icon-btn-round { width: 32px; height: 32px; }
+  .action-pill-btn { width: 32px; height: 32px; padding: 0; border-radius: 50%; }
+  .action-btn-label { display: none; }
 }
 .apple-hero-icon { font-size: 14px; display: inline-flex; align-items: center; flex: none; }
 .apple-device-pill {
@@ -556,7 +570,7 @@
   justify-content: center;
   flex: none;
   cursor: pointer;
-  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .1s ease;
+  transition: border-color var(--dur-micro) var(--ease-standard), color var(--dur-micro) var(--ease-standard), transform var(--dur-micro) var(--ease-standard);
 }
 @media (max-width: 480px) {
   .apple-hero-copy, .apple-hero-qr { width: 44px; height: 44px; }
@@ -593,6 +607,20 @@
   flex: none;
   overflow: hidden;
   white-space: nowrap;
+}
+.action-pill-btn {
+  width: auto;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.action-btn-label {
+  line-height: 1;
 }
 .icon-btn-round:hover {
   background: var(--paper-card-secondary);
@@ -732,7 +760,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 4px;
-  transition: color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard);
 }
 .pwd-eye-btn:hover {
   color: var(--ink);
@@ -752,7 +780,7 @@
   height: 100%;
   background: var(--line);
   border-radius: 2px;
-  transition: background-color .2s ease;
+  transition: background-color var(--dur-panel) var(--ease-standard);
 }
 .account-collapse summary {
   list-style: none;
@@ -760,8 +788,12 @@
 .account-collapse summary::-webkit-details-marker {
   display: none;
 }
+.account-collapse .details-arrow {
+  transform: rotate(-90deg);
+  transition: transform var(--dur-micro) var(--ease-standard);
+}
 .account-collapse[open] .details-arrow {
-  transform: rotate(180deg);
+  transform: rotate(0deg);
 }
 
 /* Success Icon Circle */
@@ -847,14 +879,6 @@ dialog.apple-action-sheet[open]::backdrop {
     dialog.apple-action-sheet[open] {
       transform: translateY(6px) scale(0.985);
     }
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  dialog.sheet,
-  dialog.apple-action-sheet,
-  dialog.sheet::backdrop,
-  dialog.apple-action-sheet::backdrop {
-    transition-duration: 0.1s;
   }
 }
 .sheet-inner, .apple-sheet-box {
@@ -975,7 +999,7 @@ dialog.apple-action-sheet[open]::backdrop {
   padding: 6px 8px;
   border-radius: 6px;
   user-select: none;
-  transition: color .15s ease, background-color .15s ease;
+  transition: color var(--dur-micro) var(--ease-standard), background-color var(--dur-micro) var(--ease-standard);
 }
 .hub-secondary-disclosure > summary::-webkit-details-marker {
   display: none;
@@ -1103,9 +1127,7 @@ dialog.apple-action-sheet[open]::backdrop {
   padding: 0 !important;
   margin-top: 32px;
 }
-#nodes-section > summary {
-  list-style: none;
-  cursor: pointer;
+#nodes-section > .nodes-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1117,8 +1139,6 @@ dialog.apple-action-sheet[open]::backdrop {
   color: var(--ink);
   letter-spacing: -0.2px;
 }
-#nodes-section > summary::-webkit-details-marker { display: none; }
-#nodes-section > summary::before { content: none !important; }
 
 #nodes {
   display: flex;
@@ -1196,4 +1216,58 @@ dialog.apple-action-sheet[open]::backdrop {
 }
 .feedback-type-pill input[type="radio"] {
   display: none;
+}
+.feedback-tags-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.feedback-diag-trigger {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.feedback-diag-trigger #feedback-diag-arrow {
+  flex: none;
+  transition: transform var(--dur-micro) var(--ease-standard);
+}
+.feedback-diag-trigger[aria-expanded="true"] #feedback-diag-arrow {
+  transform: rotate(180deg);
+}
+#domain-settings-box > summary::-webkit-details-marker {
+  display: none;
+}
+#domain-settings-box[open] .quiet-toggle-chevron {
+  transform: rotate(180deg);
+}
+#view-setup {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--dur-panel) var(--ease-standard), transform var(--dur-panel) var(--ease-standard);
+}
+@starting-style {
+  #view-setup {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
