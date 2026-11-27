@@ -153,9 +153,9 @@
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
-            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px" aria-hidden="true"><use href="#i-alert"/></svg>
-            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。</span>
+          <div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg class="ico" width="13" height="13" style="color:var(--apple-amber,#f59e0b);flex:none" aria-hidden="true"><use href="#i-alert"/></svg>
+            <span class="small muted" data-i18n="scan_qr_tip">请用小火箭 / Clash 扫码，勿用微信</span>
           </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
@@ -176,7 +176,6 @@
             </div>
             <button class="apple-sheet-close" type="button" onclick="document.getElementById('relay-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
           </div>
-          <p class="small muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.4" data-i18n="relay_dialog_desc">选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：</p>
           <div id="relay-targets-list" style="display:flex;flex-direction:column;gap:8px">
           </div>
         </div>
@@ -213,7 +212,7 @@
             <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
             <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
           </div>
-          <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
+          <span class="small muted" id="backup-note" role="status"></span>
         </div>
       </div>
       <details class="inner apple-disclosure maintenance-row" id="quota-section">
@@ -225,14 +224,12 @@
         <div class="inner" id="quota-settings" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
           <form id="quota-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500" data-i18n="quota_threshold_lbl">超额熔断阈值 (1–100%)</label>
-            <p class="small muted" style="margin:0 0 6px;flex-basis:100%" data-i18n="quota_threshold_desc">当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。</p>
             <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px">
             <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
         <div class="inner" id="billing-reconcile-card" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
-          <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:4px" data-i18n="billing_reconcile_title">账单流量核对</div>
-          <p class="small muted" style="margin:0 0 8px" data-i18n="billing_reconcile_desc">输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。</p>
+          <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:8px" data-i18n="billing_reconcile_title">账单流量核对</div>
           <form id="billing-reconcile-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px">
             <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px">
@@ -250,7 +247,12 @@
         </summary>
         <div class="maintenance-log-body">
           <div class="log-section-head" style="margin-top:0">
-            <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
+            <div class="log-tabs" style="margin-bottom:0">
+              <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
+              <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
+              <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
+              <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
+            </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
               <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
@@ -261,13 +263,6 @@
           </div>
           <div id="health" aria-live="polite"></div>
           <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
-
-          <div class="log-tabs">
-            <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
-            <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
-            <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
-            <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
-          </div>
 
           <div id="log-list" class="logbox" style="border:none">
             <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
@@ -289,9 +284,10 @@
 
     <!-- State B: Server Setup -->
     <div id="view-setup" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)">
+      <div class="setup-stage-card">
+      <div class="setup-stage-header">
         <div>
-          <h2 id="setup-title" tabindex="-1" style="font-size:16px;margin:0;display:inline-block" data-i18n="setup_title">添加服务器</h2>
+          <h2 id="setup-title" tabindex="-1" class="setup-stage-title" data-i18n="setup_title">添加服务器</h2>
         </div>
         <button class="icon-btn-round" type="button" id="btn-cancel-setup" aria-label="返回" title="返回">
           <svg class="ico" width="14" height="14"><use href="#i-chevron-left"/></svg>
@@ -299,7 +295,7 @@
       </div>
 
       <!-- Segment Switching: Direct SSH (Default) vs Tencent Cloud vs Terminal Join (Advanced) -->
-      <div class="seg" role="group" aria-label="连接方式" style="max-width:480px;margin-bottom:16px">
+      <div class="seg setup-seg" role="group" aria-label="连接方式">
         <button class="segbtn active" type="button" id="tab-btn-ssh-direct" aria-pressed="true">
           <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">填写服务器信息（推荐）</span>
         </button>
@@ -313,7 +309,6 @@
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
-        <p class="small muted" data-i18n="tc_desc">通过 API 密钥自动发现轻量云主机。</p>
         <div class="field-group" style="margin-bottom:12px">
           <pre id="ai-prompt-text" style="display:none">请协助我在腾讯云控制台为本项目创建一个最小权限的 CAM 子账号（仅限轻量应用服务器只读/防火墙必要权限）。创建 API 密钥时请由我本人操作并自行保存，切勿在对话中输出 SecretId、SecretKey、密码或私钥。</pre>
 
@@ -323,7 +318,6 @@
           </div>
           <details class="inner" id="tc-credential-fields">
           <summary id="tc-cred-summary" data-i18n="tc_cred_title">腾讯云 API 凭据（可选：覆盖或更换子账号）</summary>
-          <p class="small muted" data-i18n="tc_cred_note">如未输入，将自动使用服务器本地已保存的凭据。</p>
           <p class="small muted"><span data-i18n="tc_need_assist">需要辅助创建？</span> <button class="btn tiny" type="button" id="btn-copy-ai-prompt" data-i18n="tc_copy_ai_prompt">复制 AI 提示词</button></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div class="field" style="flex:1;min-width:180px">
@@ -378,9 +372,6 @@
       <div id="panel-other">
         <!-- Mode 1: Pre-Auth Reverse Join (Advanced) -->
         <div id="box-reverse-join" style="display:none">
-          <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
-            无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。
-          </p>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
             <div class="field" style="margin-bottom:0;flex:1;min-width:140px">
               <label for="reverse-node-name" data-i18n="lbl_node_name">节点名称 (可选)</label>
@@ -400,7 +391,6 @@
           <div id="reverse-relay-landing-group" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:8px">
             <label for="reverse-relay-landing" class="small" style="font-weight:600;display:block;margin-bottom:4px" data-i18n="lbl_relay_target_landing">绑定海外出口 (落地节点)</label>
             <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:0 8px"></select>
-            <p class="small muted" style="margin:4px 0 0 0;font-size:11px" data-i18n="tip_relay_port_8443">国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。</p>
           </div>
           <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
 
@@ -419,18 +409,23 @@
 
         <!-- Mode 2: Direct SSH Connection (Default) -->
         <div id="box-ssh-direct" style="display:block">
-        <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
-        <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
-        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；若是 Oracle / 腾讯云轻量 Ubuntu 可展开连接设置填 ubuntu（免密 sudo 自动提权）。</p>
+        <div class="field">
+          <label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label>
+          <div class="password-input-wrap">
+            <input id="other-credential" type="password" placeholder="密码或完整 SSH 私钥" autocomplete="off" spellcheck="false" aria-describedby="other-key-status other-connect-status">
+            <button type="button" class="pwd-eye-btn" data-toggle-secret="other-credential" aria-label="显示密码" aria-pressed="false"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-eye"/></svg></button>
+          </div>
+          <span class="small muted" id="other-key-status" role="status"></span>
+        </div>
         <details class="inner other-advanced" id="ssh-advanced-settings">
           <summary data-i18n="ssh_advanced_summary">连接设置（账号、端口、私钥密码）</summary>
-          <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
+          <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" placeholder="root / ubuntu" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
           <div class="field"><label for="other-ssh-port" data-i18n="lbl_ssh_port">SSH 端口</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px" aria-describedby="other-connect-status"></div>
           <div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off"></div>
         </details>
-        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status" data-i18n="status_web_test_ready">仅测试连接，尚未安装节点。</span></div>
+        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status"></span></div>
         <div id="other-fingerprint-box" class="check-result-box" role="region" aria-label="服务器指纹确认" style="display:none;margin-top:10px">
           <div style="font-weight:600;font-size:13.5px;margin-bottom:4px" data-i18n="fp_title">首次连接 · 锁定服务器指纹</div>
           <p class="small muted" style="margin:0 0 8px;line-height:1.5" data-i18n="fp_desc">确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改。</p>
@@ -445,7 +440,6 @@
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span data-i18n="install_ready_title">就绪，可开始安装</span>
           </div>
-          <p class="small muted" data-i18n="install_defaults_note">名称已自动填写，用途默认自动判定。可直接开始安装，或展开下方选项修改。</p>
           <details class="inner" id="node-install-options">
             <summary data-i18n="install_options_summary">自定义安装（可选）</summary>
           <div class="field" style="margin-bottom:8px">
@@ -490,6 +484,7 @@
         </details>
         </div>
         <!-- {{PANEL_ONBOARDING_GUIDE}} -->
+      </div>
       </div>
     </div>
   </section>

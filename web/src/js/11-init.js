@@ -47,6 +47,7 @@
   function init() {
     installClientErrorBuffer();
     initDialogLightDismiss();
+    if (typeof initSecretToggles === "function") initSecretToggles(document);
     applyLanguage();
     initNonSecretDrafts();
     fetchUserInfo();
@@ -62,6 +63,7 @@
     initTencentPanel();
     initLogFilters();
     initQuotaSettings();
+    if (typeof window.ownlineInitQuotaPopover === "function") window.ownlineInitQuotaPopover();
     initBackup();
     if (typeof window.initUpdater === "function") window.initUpdater();
     if (typeof window.initLocalPing === "function") window.initLocalPing();

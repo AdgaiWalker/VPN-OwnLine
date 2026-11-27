@@ -1,27 +1,28 @@
 :root {
   color-scheme: light dark;
-  /* Evergreen Alpine Mist Palette */
-  --paper: #f5f7fa;
-  --canvas-bg: radial-gradient(ellipse 80% 50% at 15% -12%, rgba(16, 185, 129, 0.08) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 88% -10%, rgba(56, 189, 248, 0.08) 0%, transparent 56%), linear-gradient(180deg, #f7f9fc 0%, #eff3f8 100%);
+  /* Evergreen Precision Palette */
+  --paper: #f6f8fa;
+  --canvas-bg: radial-gradient(ellipse 75% 46% at 12% -10%, rgba(16, 185, 129, 0.09) 0%, transparent 56%), radial-gradient(ellipse 70% 44% at 88% -8%, rgba(14, 165, 233, 0.08) 0%, transparent 54%), linear-gradient(180deg, #f1f5f9 0%, #f6f8fa 100%);
   --paper-card: #ffffff;
-  --paper-card-subtle: #f7f9fc;
-  --paper-card-secondary: #edf2f7;
+  --paper-card-subtle: #f8fafc;
+  --paper-card-secondary: #eef2f6;
   --ink: #0f172a;
-  --ink-muted: #4e5d73;
-  --ink-subtle: #74849b;
-  --navy: #163a5f;
-  --navy-hover: #0f2b48;
-  --navy-soft: rgba(22, 58, 95, 0.09);
+  --ink-muted: #4b5b70;
+  --ink-subtle: #708198;
+  --navy: #0f303c;
+  --navy-hover: #09212a;
+  --navy-soft: rgba(15, 48, 60, 0.08);
   --btn-primary-bg: var(--navy);
   --btn-primary-hover: var(--navy-hover);
-  --line: #dde4ed;
-  --line-light: #ebf0f6;
-  --line-input: #8494a7;
+  --line: #dce3ec;
+  --line-light: #e9eff5;
+  --line-input: #94a3b8;
   --green: #15803d;
   --amber: #b45309;
-  --red: #c2410c;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -12px rgba(15, 23, 42, 0.07);
-  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.12);
+  --red: #dc2626;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -12px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(15, 23, 42, 0.02);
+  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.11);
+  --shadow-popover: 0 4px 14px rgba(15, 23, 42, 0.08), 0 20px 44px -12px rgba(15, 23, 42, 0.18);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
@@ -64,11 +65,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0b0f14;
-    --canvas-bg: radial-gradient(ellipse 80% 48% at 14% -12%, rgba(16, 185, 129, 0.11) 0%, transparent 58%), radial-gradient(ellipse 72% 45% at 88% -10%, rgba(56, 189, 248, 0.09) 0%, transparent 56%), linear-gradient(180deg, #0b0f14 0%, #0e141d 100%);
-    --paper-card: #121821;
-    --paper-card-subtle: #18202c;
-    --paper-card-secondary: #1f2937;
+    --paper: #0a0e14;
+    --canvas-bg: radial-gradient(ellipse 78% 46% at 14% -12%, rgba(16, 185, 129, 0.12) 0%, transparent 56%), radial-gradient(ellipse 70% 44% at 88% -10%, rgba(56, 189, 248, 0.1) 0%, transparent 54%), linear-gradient(180deg, #0d141f 0%, #0a0e14 100%);
+    --paper-card: #111722;
+    --paper-card-subtle: #161f2e;
+    --paper-card-secondary: #1d2738;
     --ink: #edf2f7;
     --ink-muted: #96a6bc;
     --ink-subtle: #6b7c93;
@@ -78,14 +79,15 @@
     --btn-primary-bg: #2563eb;
     --btn-primary-hover: #1d4ed8;
     --accent-fg: #ffffff;
-    --line: #232e3e;
-    --line-light: #1b2432;
-    --line-input: #566882;
+    --line: #232f42;
+    --line-light: #1a2434;
+    --line-input: #4f627d;
     --green: #4ade80;
     --amber: #fbbf24;
     --red: #f87171;
-    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.32);
-    --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.42);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.03);
+    --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.44);
+    --shadow-popover: 0 10px 28px rgba(0, 0, 0, 0.52), 0 24px 52px -12px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -93,6 +95,7 @@
   :root {
     --shadow-card: none;
     --shadow-card-hover: none;
+    --shadow-popover: none;
   }
   body {
     background-image: none;
@@ -112,6 +115,14 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--dur-panel);
+    animation-timing-function: var(--ease-standard);
+  }
+}
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html {
@@ -121,14 +132,16 @@ html {
   font-size: 15.5px;
   line-height: 1.6;
   font-weight: 400;
+  scrollbar-gutter: stable;
   -webkit-font-smoothing: antialiased;
 }
 body {
   margin: 0;
-  padding: clamp(28px, 4vw, 52px) clamp(16px, 3vw, 40px) 84px;
+  padding: clamp(24px, 3.6vw, 44px) clamp(16px, 3vw, 40px) 72px;
   background-color: var(--paper);
   background-image: var(--canvas-bg);
   background-repeat: no-repeat;
+  background-size: 100% 720px;
   color: var(--ink);
   min-height: 100vh;
   min-block-size: 100dvh;

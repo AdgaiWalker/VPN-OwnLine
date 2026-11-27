@@ -116,6 +116,7 @@
       } else {
         // Clear unsaved credentials when leaving form without interrupting background operations.
         clearOtherSecret();
+        if (typeof resetSecretToggles === "function") resetSecretToggles(document);
         ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
           var input = document.getElementById(id);
           if (input) { input.value = ""; input.classList.remove("has-val"); }
@@ -429,7 +430,7 @@
       if (confirmBox) confirmBox.style.display = "none";
       pendingNodeInstall = null;
       if (note && note.style) note.style.color = "";
-      if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "仅测试连接，尚未安装节点。";
+      if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "";
     }
     ["other-ip", "other-user", "other-ssh-port", "other-passphrase"].forEach(function (id) {
       document.getElementById(id).addEventListener("input", invalidateCheck);

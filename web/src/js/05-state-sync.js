@@ -124,9 +124,11 @@
     var elRem = document.getElementById("quota-hero-rem");
     var elRemSub = document.getElementById("quota-runway-sub");
     var elAvg7 = document.getElementById("quota-avg-7d");
+    var elCycleLbl = document.getElementById("quota-cycle-lbl");
     var elCycleRem = document.getElementById("quota-cycle-rem");
     var elCyclePct = document.getElementById("quota-cycle-pct");
     var breakerPctLbl = runway && runway.breaker_pct != null ? Math.round(runway.breaker_pct) : 85;
+    if (elCycleLbl) elCycleLbl.textContent = zh ? "周期重置" : "Cycle Reset";
 
     if (elRem) {
       var safeVal = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : guide.remaining_gb;
@@ -184,10 +186,11 @@
         maxGb = dailyBudget * 1.1;
       }
 
-      var svgW = 560, svgH = 56, padTop = 6, padBottom = 4, plotH = svgH - padTop - padBottom;
+      var svgW = 560, svgH = 72, padTop = 8, padBottom = 6, plotH = svgH - padTop - padBottom;
       var stepW = svgW / series.length;
-      var barW = Math.max(12, Math.floor(stepW * 0.56));
+      var barW = Math.max(10, Math.floor(stepW * 0.42));
       var svgParts = [];
+      svgParts.push('<line class="qbar-baseline" x1="0" y1="' + (svgH - padBottom) + '" x2="' + svgW + '" y2="' + (svgH - padBottom) + '"></line>');
 
       if (dailyBudget > 0 && dailyBudget <= maxGb) {
         var budY = Math.round((padTop + plotH - (dailyBudget / maxGb) * plotH) * 10) / 10;
@@ -198,14 +201,14 @@
         var colX = Math.round(idx * stepW * 10) / 10;
         var rectX = Math.round((colX + (stepW - barW) / 2) * 10) / 10;
         var isToday = idx === series.length - 1;
-        var h = item.missing ? 3 : Math.max(3, Math.round((item.gb / maxGb) * plotH * 10) / 10);
+        var h = item.missing ? 3 : Math.max(4, Math.round((item.gb / maxGb) * plotH * 10) / 10);
         var y = Math.round((svgH - padBottom - h) * 10) / 10;
         var cls = item.missing ? "qbar qbar-missing" : (isToday ? "qbar qbar-today" : (dailyBudget > 0 && item.gb > dailyBudget ? "qbar qbar-over" : "qbar"));
         var ariaLbl = item.label + ": " + (item.missing ? (zh ? "无采样" : "no sample") : (item.gb + " GB"));
         svgParts.push(
           '<g class="qbar-col" tabindex="0" role="listitem" aria-label="' + esc(ariaLbl) + '" data-label="' + esc(item.label) + '" data-gb="' + esc(String(item.gb)) + '" data-missing="' + (item.missing ? "1" : "0") + '">' +
-            '<rect x="' + colX + '" y="0" width="' + stepW + '" height="' + svgH + '" fill="transparent"></rect>' +
-            '<rect class="' + cls + '" x="' + rectX + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="2"></rect>' +
+            '<rect class="qbar-hit" x="' + colX + '" y="0" width="' + stepW + '" height="' + svgH + '" rx="4" fill="transparent"></rect>' +
+            '<rect class="' + cls + '" x="' + rectX + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="3"></rect>' +
           '</g>'
         );
       });
@@ -548,8 +551,8 @@
       STATE.nodeCheckAvailable = !!(settings && settings.node_check_supported === true);
       setOtherCheckBusy(!!otherCheckController);
       document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
-        ? (zh ? "仅测试连接，尚未安装节点。" : "Testing connection only, node not installed yet.")
-        : (zh ? "网页连接检测暂不可用，可核对后端状态或使用高级终端接入。" : "Web connection check unavailable; check backend status or use advanced terminal join.");
+        ? ""
+        : (zh ? "网页连接检测暂不可用，可使用免密终端接入。" : "Web connection check unavailable; use Terminal Join.");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
       if (STATE.tencentConfigured) {

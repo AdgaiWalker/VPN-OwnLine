@@ -45,7 +45,7 @@
       <div id="update-info-card" style="padding:10px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="min-width:0;flex:1">
           <div id="update-status-title" style="font-size:12.5px;font-weight:600;color:var(--apple-fg)" data-i18n="update_status_latest">已是最新版本</div>
-          <div id="update-status-desc" class="small muted" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-i18n="update_desc_latest">无需更新</div>
+          <div id="update-status-desc" class="small muted" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
         </div>
         <button class="btn tiny" id="btn-check-update" type="button" onclick="window.ownlineCheckUpdate(true)">
           <span id="btn-check-update-text" data-i18n="btn_check_update">检查更新</span>
@@ -80,8 +80,7 @@
           <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
         </span>
       </summary>
-      <p class="small muted" style="margin:8px 0;font-size:11.5px;line-height:1.5" data-i18n="domain_settings_desc">先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。</p>
-      <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px">
+      <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <input id="custom-domain-input" type="text" placeholder="vpn.example.com" autocomplete="off" autocapitalize="none" spellcheck="false" required style="width:100%;box-sizing:border-box;padding:7px 10px;border-radius:6px;border:1px solid var(--line);font-size:13px">
         <label class="small muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
           <input id="custom-domain-skip-dns" type="checkbox">
@@ -118,7 +117,6 @@
           <strong class="account-username-text" id="settings-display-username">dora</strong>
           <span class="account-role-badge" id="account-role-badge" data-i18n="account_role_admin">System Admin</span>
         </div>
-        <p class="account-auth-desc" id="account-auth-desc" data-i18n="account_auth_desc">Protected by Basic Auth & Rate Limiting</p>
       </div>
     </div>
 
@@ -128,9 +126,8 @@
       <input type="password" style="display:none" tabindex="-1" aria-hidden="true">
 
       <div class="field" style="margin-top:12px">
-        <label for="settings-curr-pass" style="display:flex;justify-content:space-between">
+        <label for="settings-curr-pass">
           <span id="account-lbl-curr-pass" data-i18n="account_curr_pass">Current Password</span>
-          <span class="small muted" id="account-hint-curr-pass" data-i18n="account_hint_curr_pass">(Identity Verification)</span>
         </label>
         <div class="password-input-wrap">
           <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••" data-lpignore="true" data-1p-ignore="true">
@@ -146,12 +143,10 @@
         <summary style="font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;user-select:none">
           <svg class="ico details-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           <span id="account-lbl-opt-user" data-i18n="account_opt_user">Change Login Username</span>
-          <span class="muted small" style="font-weight:normal" id="account-hint-opt-user" data-i18n="account_hint_opt_user">(leave empty to keep current)</span>
         </summary>
         <div class="field" style="margin-top:8px;padding-left:12px;border-left:2px solid var(--line-light)">
           <label for="settings-username" id="account-lbl-new-user" data-i18n="account_new_user">New Username</label>
           <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly')" placeholder="Leave empty to keep current">
-          <p class="small muted" style="margin:4px 0 0;font-size:11.5px" id="account-tip-username" data-i18n="account_tip_username">Supports 1-64 letters, numbers, _, ., or -</p>
         </div>
       </details>
 
@@ -176,9 +171,8 @@
             <div class="pwd-strength-seg" id="pwd-seg-3"></div>
             <div class="pwd-strength-seg" id="pwd-seg-4"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <div style="display:flex;justify-content:flex-start;align-items:center;margin-top:4px">
             <span class="small muted" id="pwd-strength-text" style="font-size:11.5px">Password Strength</span>
-            <span class="small muted" id="pwd-strength-hint" style="font-size:11.5px">Mix letters, numbers & symbols</span>
           </div>
         </div>
       </div>
@@ -219,16 +213,29 @@
   </div>
 </dialog>
 
-<dialog id="backup-dialog" style="max-width:420px;width:calc(100% - 32px);border:1px solid var(--line);padding:20px;color:var(--fg);background:var(--surface)">
-  <form method="dialog" id="backup-password-form">
-    <h2 id="backup-dialog-title" data-i18n="backup_dialog_title">备份加密口令</h2>
-    <p class="small muted" data-i18n="backup_dialog_desc">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
-    <label for="backup-password" data-i18n="backup_pwd_lbl">备份口令</label>
-    <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
-    <div id="backup-confirm-wrap"><label for="backup-confirm" style="margin-top:10px" data-i18n="backup_confirm_lbl">确认备份口令</label><input id="backup-confirm" type="password" autocomplete="new-password"></div>
-    <p id="backup-error" class="small" role="status" style="color:var(--bad)"></p>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
-  </form>
+<dialog id="backup-dialog" class="sheet apple-action-sheet" closedby="any" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(420px, calc(100vw - 32px))">
+    <div class="apple-sheet-grabber"></div>
+    <div class="apple-sheet-header">
+      <h2 class="apple-sheet-title" id="backup-dialog-title" data-i18n="backup_dialog_title">备份加密口令</h2>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('backup-dialog').close()" aria-label="关闭">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <form method="dialog" id="backup-password-form">
+      <p class="small muted" data-i18n="backup_dialog_desc">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
+      <div class="field">
+        <label for="backup-password" data-i18n="backup_pwd_lbl">备份口令</label>
+        <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
+      </div>
+      <div id="backup-confirm-wrap" class="field">
+        <label for="backup-confirm" data-i18n="backup_confirm_lbl">确认备份口令</label>
+        <input id="backup-confirm" type="password" autocomplete="new-password">
+      </div>
+      <p id="backup-error" class="small" role="status" style="color:var(--bad);margin:8px 0 0"></p>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
+    </form>
+  </div>
 </dialog>
 
 <!-- Quick Feedback Modal Dialog (Apple HIG Style) -->
@@ -244,11 +251,6 @@
         <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
       </button>
     </div>
-
-    <!-- Apple Subtitle Note -->
-    <p class="small muted" style="margin:-4px 0 14px;font-size:12px;line-height:1.4" id="feedback-dialog-subtitle" data-i18n="feedback_dialog_subtitle">
-      遇到的异常现场将送达 AI 诊断库，作者排查修复后通过面板一键更新推送给你。
-    </p>
 
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
@@ -276,7 +278,7 @@
           <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述（选填）</label>
           <span class="small muted" id="feedback-char-count" hidden style="font-size:11px">0/2000</span>
         </div>
-        <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
+        <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="描述问题或建议（选填）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
 
       <!-- Contact input -->

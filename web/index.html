@@ -10,28 +10,29 @@
 <style>
 :root {
   color-scheme: light dark;
-  /* Evergreen Alpine Mist Palette */
-  --paper: #f5f7fa;
-  --canvas-bg: radial-gradient(ellipse 80% 50% at 15% -12%, rgba(16, 185, 129, 0.08) 0%, transparent 58%), radial-gradient(ellipse 75% 48% at 88% -10%, rgba(56, 189, 248, 0.08) 0%, transparent 56%), linear-gradient(180deg, #f7f9fc 0%, #eff3f8 100%);
+  /* Evergreen Precision Palette */
+  --paper: #f6f8fa;
+  --canvas-bg: radial-gradient(ellipse 75% 46% at 12% -10%, rgba(16, 185, 129, 0.09) 0%, transparent 56%), radial-gradient(ellipse 70% 44% at 88% -8%, rgba(14, 165, 233, 0.08) 0%, transparent 54%), linear-gradient(180deg, #f1f5f9 0%, #f6f8fa 100%);
   --paper-card: #ffffff;
-  --paper-card-subtle: #f7f9fc;
-  --paper-card-secondary: #edf2f7;
+  --paper-card-subtle: #f8fafc;
+  --paper-card-secondary: #eef2f6;
   --ink: #0f172a;
-  --ink-muted: #4e5d73;
-  --ink-subtle: #74849b;
-  --navy: #163a5f;
-  --navy-hover: #0f2b48;
-  --navy-soft: rgba(22, 58, 95, 0.09);
+  --ink-muted: #4b5b70;
+  --ink-subtle: #708198;
+  --navy: #0f303c;
+  --navy-hover: #09212a;
+  --navy-soft: rgba(15, 48, 60, 0.08);
   --btn-primary-bg: var(--navy);
   --btn-primary-hover: var(--navy-hover);
-  --line: #dde4ed;
-  --line-light: #ebf0f6;
-  --line-input: #8494a7;
+  --line: #dce3ec;
+  --line-light: #e9eff5;
+  --line-input: #94a3b8;
   --green: #15803d;
   --amber: #b45309;
-  --red: #c2410c;
-  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -12px rgba(15, 23, 42, 0.07);
-  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.12);
+  --red: #dc2626;
+  --shadow-card: 0 1px 2px rgba(15, 23, 42, 0.03), 0 8px 24px -12px rgba(15, 23, 42, 0.07), 0 0 0 1px rgba(15, 23, 42, 0.02);
+  --shadow-card-hover: 0 2px 6px rgba(15, 23, 42, 0.05), 0 14px 32px -12px rgba(15, 23, 42, 0.11);
+  --shadow-popover: 0 4px 14px rgba(15, 23, 42, 0.08), 0 20px 44px -12px rgba(15, 23, 42, 0.18);
   --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
@@ -74,11 +75,11 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #0b0f14;
-    --canvas-bg: radial-gradient(ellipse 80% 48% at 14% -12%, rgba(16, 185, 129, 0.11) 0%, transparent 58%), radial-gradient(ellipse 72% 45% at 88% -10%, rgba(56, 189, 248, 0.09) 0%, transparent 56%), linear-gradient(180deg, #0b0f14 0%, #0e141d 100%);
-    --paper-card: #121821;
-    --paper-card-subtle: #18202c;
-    --paper-card-secondary: #1f2937;
+    --paper: #0a0e14;
+    --canvas-bg: radial-gradient(ellipse 78% 46% at 14% -12%, rgba(16, 185, 129, 0.12) 0%, transparent 56%), radial-gradient(ellipse 70% 44% at 88% -10%, rgba(56, 189, 248, 0.1) 0%, transparent 54%), linear-gradient(180deg, #0d141f 0%, #0a0e14 100%);
+    --paper-card: #111722;
+    --paper-card-subtle: #161f2e;
+    --paper-card-secondary: #1d2738;
     --ink: #edf2f7;
     --ink-muted: #96a6bc;
     --ink-subtle: #6b7c93;
@@ -88,14 +89,15 @@
     --btn-primary-bg: #2563eb;
     --btn-primary-hover: #1d4ed8;
     --accent-fg: #ffffff;
-    --line: #232e3e;
-    --line-light: #1b2432;
-    --line-input: #566882;
+    --line: #232f42;
+    --line-light: #1a2434;
+    --line-input: #4f627d;
     --green: #4ade80;
     --amber: #fbbf24;
     --red: #f87171;
-    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.32);
-    --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.42);
+    --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.34), 0 0 0 1px rgba(255, 255, 255, 0.03);
+    --shadow-card-hover: 0 6px 24px rgba(0, 0, 0, 0.44);
+    --shadow-popover: 0 10px 28px rgba(0, 0, 0, 0.52), 0 24px 52px -12px rgba(0, 0, 0, 0.7);
   }
 }
 
@@ -103,6 +105,7 @@
   :root {
     --shadow-card: none;
     --shadow-card-hover: none;
+    --shadow-popover: none;
   }
   body {
     background-image: none;
@@ -122,6 +125,14 @@
   }
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: var(--dur-panel);
+    animation-timing-function: var(--ease-standard);
+  }
+}
+
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html {
@@ -131,14 +142,16 @@ html {
   font-size: 15.5px;
   line-height: 1.6;
   font-weight: 400;
+  scrollbar-gutter: stable;
   -webkit-font-smoothing: antialiased;
 }
 body {
   margin: 0;
-  padding: clamp(28px, 4vw, 52px) clamp(16px, 3vw, 40px) 84px;
+  padding: clamp(24px, 3.6vw, 44px) clamp(16px, 3vw, 40px) 72px;
   background-color: var(--paper);
   background-image: var(--canvas-bg);
   background-repeat: no-repeat;
+  background-size: 100% 720px;
   color: var(--ink);
   min-height: 100vh;
   min-block-size: 100dvh;
@@ -156,8 +169,8 @@ header.topbar {
   flex-wrap: wrap;
   gap: 10px 12px;
   border-bottom: 1px solid var(--line-light);
-  padding-block-end: 18px;
-  margin-block-end: 28px;
+  padding-block-end: 16px;
+  margin-block-end: 24px;
 }
 .topbar-actions {
   display: flex;
@@ -212,9 +225,10 @@ header.topbar {
 .evergreen-icon {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
-  background: #11141b;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  background: #0d1f1c;
+  border: 1px solid rgba(52, 211, 153, 0.22);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -291,6 +305,14 @@ header.topbar {
   border-radius: 50%;
   display: inline-block;
   background: currentColor;
+  flex: none;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pill-preview.warn #status-dot,
+  .pill-preview.bad #status-dot {
+    box-shadow: 0 0 0 2px currentColor;
+    opacity: 0.92;
+  }
 }
 
 /* Typography & Layout */
@@ -505,13 +527,19 @@ button.pill-preview:hover {
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
-/* Unified Hero Stage Card & 1-Line Quota Strip */
+/* Unified Hero Stage Card & 1-Line Quota Telemetry Well */
 .hero-stage-card {
-  background: var(--paper-card);
+  background-color: var(--paper-card);
+  background-image: radial-gradient(ellipse 60% 70% at 6% 0%, rgba(16, 185, 129, 0.055) 0%, transparent 68%);
   border: 1px solid var(--line);
   border-radius: 18px;
-  padding: 26px 28px;
+  padding: 24px 26px;
   box-shadow: var(--shadow-card);
+}
+@media (prefers-color-scheme: dark) {
+  .hero-stage-card {
+    background-image: radial-gradient(ellipse 60% 70% at 6% 0%, rgba(16, 185, 129, 0.08) 0%, transparent 68%);
+  }
 }
 .hero-stage-top {
   display: flex;
@@ -527,13 +555,17 @@ button.pill-preview:hover {
   display: none;
 }
 .quota-hero-card {
-  margin-top: 22px;
-  padding: 18px 0 0;
-  background: transparent;
-  border: none;
-  border-top: 1px solid var(--line-light);
-  border-radius: 0;
+  anchor-name: --quota-hero-anchor;
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 12px;
   box-shadow: none;
+  transition: border-color var(--dur-micro) var(--ease-standard), background-color var(--dur-micro) var(--ease-standard);
+}
+.quota-hero-card:hover {
+  border-color: var(--line);
 }
 .quota-strip-trigger {
   display: flex;
@@ -542,7 +574,7 @@ button.pill-preview:hover {
   width: 100%;
   background: transparent;
   border: none;
-  padding: 4px 0;
+  padding: 2px 0;
   cursor: pointer;
   text-align: left;
   color: inherit;
@@ -572,7 +604,7 @@ button.pill-preview:hover {
   position: relative;
   flex: 1 1 160px;
   min-width: 90px;
-  height: 6px;
+  height: 7px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
   overflow: visible;
@@ -589,20 +621,21 @@ button.pill-preview:hover {
 }
 .quota-bar-tick {
   position: absolute;
-  top: -2px;
-  bottom: -2px;
-  width: 1.5px;
+  top: -2.5px;
+  bottom: -2.5px;
+  width: 2px;
   border-radius: 1px;
   pointer-events: none;
   transform: translateX(-50%);
+  box-shadow: 0 0 0 1px var(--paper-card-subtle);
 }
 .quota-tick-time {
   background: var(--ink-muted);
-  opacity: 0.72;
+  opacity: 0.85;
 }
 .quota-tick-breaker {
   background: var(--amber);
-  opacity: 0.9;
+  opacity: 0.95;
 }
 .quota-strip-usage {
   font-size: 13px;
@@ -625,78 +658,167 @@ button.pill-preview:hover {
   color: var(--navy);
 }
 .quota-strip-alert {
-  margin-top: 8px;
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line-light);
   font-size: 12.5px;
   font-weight: 500;
   line-height: 1.45;
 }
-.quota-details-panel {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--line);
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity var(--dur-panel) var(--ease-standard), transform var(--dur-panel) var(--ease-standard);
+.quota-details-panel[popover] {
+  display: none;
+  opacity: 0;
+  padding: 18px 20px;
+  background: var(--paper-card);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-popover);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
+  transition-behavior: allow-discrete;
+}
+.quota-details-panel[popover]::backdrop {
+  background-color: rgba(15, 23, 42, 0);
+  transition-property: background-color, display, overlay;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
+  transition-behavior: allow-discrete;
+}
+.quota-details-panel[popover]:is(:popover-open, .is-popover-open)::backdrop {
+  background-color: rgba(15, 23, 42, 0.14);
 }
 @starting-style {
-  .quota-details-panel:not([hidden]) {
+  .quota-details-panel[popover]:is(:popover-open, .is-popover-open)::backdrop {
+    background-color: rgba(15, 23, 42, 0);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .quota-details-panel[popover]:is(:popover-open, .is-popover-open)::backdrop {
+    background-color: rgba(0, 0, 0, 0.42);
+  }
+}
+.quota-details-panel[popover]:is(:popover-open, .is-popover-open) {
+  display: block;
+  opacity: 1;
+}
+@starting-style {
+  .quota-details-panel[popover]:is(:popover-open, .is-popover-open) {
     opacity: 0;
-    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .quota-details-panel[popover] {
+    transform: translateY(-4px) scale(0.99);
+  }
+  .quota-details-panel[popover]:is(:popover-open, .is-popover-open) {
+    transform: translateY(0) scale(1);
+  }
+  @starting-style {
+    .quota-details-panel[popover]:is(:popover-open, .is-popover-open) {
+      transform: translateY(-4px) scale(0.99);
+    }
+  }
+}
+@supports not selector(:popover-open) {
+  .quota-details-panel[popover] {
+    z-index: 60;
+  }
+}
+@supports (position-area: block-end) {
+  .quota-details-panel[popover] {
+    position: fixed;
+    position-anchor: --quota-hero-anchor;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    inset: auto;
+    margin: 8px 0 0;
+    inline-size: min(anchor-size(inline), calc(100vw - 32px));
+    max-block-size: min(72dvh, 540px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+@supports not (position-area: block-end) {
+  .quota-details-panel[popover] {
+    position: fixed;
+    inset: auto 16px 16px;
+    margin: 0 auto;
+    inline-size: min(760px, calc(100vw - 32px));
+    max-block-size: min(72dvh, 540px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
   }
 }
 .quota-runway-bar {
   display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  gap: 10px 16px;
+  flex-direction: column;
+  gap: 10px;
+}
+.quota-runway-head {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
   flex-wrap: wrap;
 }
-.quota-runway-metrics {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  font-size: 13px;
+.quota-runway-heading {
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--ink-muted);
 }
+.quota-runway-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
 .quota-runway-item {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 10px;
+  min-width: 0;
 }
 .quota-runway-lbl {
-  font-size: 12px;
+  font-size: 11.5px;
+  font-weight: 500;
   color: var(--ink-muted);
 }
 .quota-runway-val {
   color: var(--ink);
+  font-size: 15.5px;
   font-weight: 600;
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
+  line-height: 1.3;
 }
 .quota-runway-sub {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--ink-muted);
+  line-height: 1.35;
 }
 .quiet-inline-link, .quiet-toggle-link {
   background: transparent;
   border: none;
-  padding: 2px 4px;
+  padding: 3px 6px;
   font: inherit;
   font-size: 12.5px;
   font-weight: 500;
-  color: var(--ink-muted);
+  color: var(--navy);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  border-radius: 5px;
+  border-radius: 6px;
   transition: color var(--dur-micro) var(--ease-standard), background-color var(--dur-micro) var(--ease-standard);
 }
 .quiet-inline-link:hover, .quiet-toggle-link:hover {
-  color: var(--ink);
-  background: var(--paper-card-secondary);
+  color: var(--navy-hover);
+  background: var(--navy-soft);
 }
 .quiet-inline-link:focus-visible, .quiet-toggle-link:focus-visible {
   outline: 2px solid var(--navy);
@@ -715,7 +837,7 @@ button.pill-preview:hover {
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .quota-chart-meta {
   display: inline-flex;
@@ -739,20 +861,33 @@ button.pill-preview:hover {
   font-family: var(--mono);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
+  font-weight: 500;
 }
 .quota-chart-wrap {
   width: 100%;
-  height: 56px;
+  min-height: 0;
 }
 .quota-chart-svg {
   width: 100%;
-  height: 56px;
+  height: auto;
+  max-height: 92px;
   display: block;
   overflow: visible;
+}
+.qbar-baseline {
+  stroke: var(--line);
+  stroke-width: 1;
 }
 .qbar-col {
   cursor: pointer;
   outline: none;
+}
+.qbar-hit {
+  transition: fill var(--dur-micro) var(--ease-standard);
+}
+.qbar-col:hover .qbar-hit,
+.qbar-col:focus-visible .qbar-hit {
+  fill: var(--navy-soft);
 }
 .qbar {
   fill: var(--navy);
@@ -765,7 +900,7 @@ button.pill-preview:hover {
 }
 .qbar-over {
   fill: var(--amber);
-  opacity: 0.85;
+  opacity: 0.88;
 }
 .qbar-missing {
   fill: var(--line);
@@ -784,14 +919,14 @@ button.pill-preview:hover {
   stroke: var(--ink-subtle);
   stroke-width: 1;
   stroke-dasharray: 3 3;
-  opacity: 0.65;
+  opacity: 0.72;
   pointer-events: none;
 }
 .quota-chart-axis {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 4px;
+  margin-top: 6px;
   font-size: 11px;
   font-family: var(--mono);
   color: var(--ink-subtle);
@@ -803,7 +938,7 @@ button.pill-preview:hover {
 }
 .quota-topology-list {
   margin-top: 12px;
-  padding-top: 10px;
+  padding-top: 12px;
   border-top: 1px dashed var(--line-light);
   display: flex;
   flex-direction: column;
@@ -816,9 +951,9 @@ button.pill-preview:hover {
 }
 .quota-topo-row {
   display: grid;
-  grid-template-columns: minmax(110px, 1.2fr) minmax(80px, 1.2fr) auto;
+  grid-template-columns: minmax(118px, 165px) minmax(110px, 1fr) minmax(148px, auto);
   align-items: center;
-  gap: 8px 12px;
+  gap: 8px 14px;
   font-size: 12.5px;
 }
 .quota-topo-name {
@@ -846,7 +981,7 @@ button.pill-preview:hover {
 }
 .quota-topo-bar {
   position: relative;
-  height: 5px;
+  height: 6px;
   background: var(--paper-card-secondary);
   border-radius: 999px;
 }
@@ -869,7 +1004,7 @@ button.pill-preview:hover {
   width: 1.5px;
   background: var(--amber);
   transform: translateX(-50%);
-  opacity: 0.85;
+  opacity: 0.9;
 }
 .quota-topo-stat {
   font-family: var(--mono);
@@ -877,6 +1012,7 @@ button.pill-preview:hover {
   font-size: 12px;
   color: var(--ink);
   white-space: nowrap;
+  text-align: right;
 }
 @media (max-width: 600px) {
   .hero-stage-card {
@@ -886,6 +1022,26 @@ button.pill-preview:hover {
   .hero-stage-top {
     flex-direction: column;
     align-items: stretch;
+  }
+  .quota-hero-card {
+    padding: 10px 12px;
+  }
+  .quota-details-panel[popover] {
+    padding: 14px;
+    max-block-size: min(82dvh, 560px);
+  }
+  .quota-runway-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .quota-runway-item {
+    padding: 7px 10px;
+  }
+  .quota-runway-item:first-child {
+    grid-column: 1 / -1;
+  }
+  .quota-runway-val {
+    font-size: 14.5px;
   }
   .quota-strip-trigger {
     flex-wrap: wrap;
@@ -933,13 +1089,13 @@ button.pill-preview:hover {
   display: flex;
   align-items: center;
   flex-wrap: nowrap;
-  gap: 12px;
+  gap: 10px;
   margin-top: 0;
 }
 .apple-hero-connect {
-  min-height: 48px;
+  min-height: 46px;
   height: auto;
-  padding: 8px 24px;
+  padding: 8px 22px;
   border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
@@ -947,6 +1103,7 @@ button.pill-preview:hover {
   gap: 10px;
   cursor: pointer;
   min-width: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 2px 6px rgba(15, 23, 42, 0.16);
 }
 .apple-hero-title {
   white-space: nowrap;
@@ -1313,6 +1470,25 @@ dialog.apple-action-sheet[open]::backdrop {
   margin: -6px auto 14px;
   opacity: 0.85;
 }
+@media (min-width: 601px) {
+  .apple-sheet-grabber { display: none; }
+}
+@media (max-width: 600px) {
+  dialog.apple-action-sheet {
+    margin-block-end: 0;
+    margin-inline: auto;
+    inline-size: 100%;
+    max-inline-size: 100vw;
+  }
+  dialog.apple-action-sheet > .sheet-inner,
+  dialog.apple-action-sheet > .apple-sheet-box {
+    width: 100% !important;
+    max-height: 88dvh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: none;
+    padding: 16px 18px calc(22px + env(safe-area-inset-bottom, 0px));
+  }
+}
 .sheet-inner h2 { margin: 0 0 10px; font-size: 18px; font-weight: 600; color: var(--ink); }
 .sheet-inner p { margin: 0 0 16px; color: var(--ink-muted); font-size: 13.5px; line-height: 1.5; }
 .apple-sheet-header {
@@ -1390,7 +1566,7 @@ dialog.apple-action-sheet[open]::backdrop {
 .apple-client-row.primary {
   border-color: var(--navy);
   background: var(--navy-soft);
-  box-shadow: inset 3px 0 0 var(--navy), 0 2px 6px rgba(27, 54, 93, 0.08);
+  box-shadow: 0 2px 8px rgba(15, 48, 60, 0.08);
 }
 .hub-secondary-disclosure {
   margin-top: 4px;
@@ -1672,6 +1848,100 @@ dialog.apple-action-sheet[open]::backdrop {
     transform: translateY(6px);
   }
 }
+.setup-stage-card {
+  max-inline-size: 720px;
+  margin-inline: auto;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  padding: 26px 28px;
+  box-shadow: var(--shadow-card);
+}
+.setup-stage-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line-light);
+}
+.setup-stage-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.setup-seg {
+  max-width: 100%;
+  margin: 0 0 18px;
+}
+.setup-seg .segbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  gap: 5px;
+  padding: 8px 12px;
+}
+@media (max-width: 560px) {
+  .setup-stage-card {
+    padding: 20px 18px;
+    border-radius: 14px;
+  }
+  .setup-seg {
+    flex-direction: column;
+    gap: 3px;
+  }
+  .setup-seg .segbtn {
+    justify-content: flex-start;
+    padding: 9px 12px;
+  }
+}
+#view-setup details.inner {
+  border-top: 1px solid var(--line-light);
+  padding: 10px 0 4px;
+  margin-top: 10px;
+}
+#view-setup details.inner > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  padding: 4px 0;
+  transition: color var(--dur-micro) var(--ease-standard);
+}
+#view-setup details.inner > summary::-webkit-details-marker {
+  display: none;
+}
+#view-setup details.inner > summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-right: 1.8px solid currentColor;
+  border-bottom: 1.8px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur-micro) var(--ease-standard);
+  margin-inline-end: 4px;
+  flex: none;
+}
+#view-setup details.inner[open] > summary {
+  color: var(--ink);
+  font-weight: 600;
+}
+#view-setup details.inner[open] > summary::after {
+  transform: rotate(-135deg);
+}
+#view-setup details.inner > summary:hover {
+  color: var(--ink);
+}
+#update-status-desc:empty {
+  display: none;
+}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1688,8 +1958,8 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  min-height: 72px;
-  padding: 20px 24px;
+  min-height: 70px;
+  padding: 18px 22px;
   background: transparent;
   border: none;
   border-bottom: 1px solid var(--line-light);
@@ -1732,40 +2002,124 @@ dialog.apple-action-sheet[open]::backdrop {
 .node-main .more {
   margin-top: -2px;
 }
-.node-drawer {
-  display: flex;
-  margin-top: 14px;
-  padding: 14px 16px;
-  background: var(--paper-card-subtle);
-  border-radius: 10px;
+.node-drawer[popover] {
+  display: none;
+  padding: 12px 14px;
+  background: var(--paper-card);
+  border-radius: 14px;
   border: 1px solid var(--line);
+  box-shadow: var(--shadow-popover);
+  color: var(--ink);
   gap: 10px;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  opacity: 1;
-  transform: translateY(0);
-  transition-property: opacity, transform, display;
+  opacity: 0;
+  transition-property: opacity, transform, display, overlay;
   transition-duration: var(--dur-panel);
   transition-timing-function: var(--ease-standard);
   transition-behavior: allow-discrete;
 }
-.node-drawer[hidden] {
-  display: none;
-  opacity: 0;
-  transform: translateY(-4px);
+@media (prefers-color-scheme: dark) {
+  .node-drawer[popover] {
+    box-shadow: var(--shadow-popover);
+  }
+}
+.node-drawer[popover]::backdrop {
+  background-color: rgba(15, 23, 42, 0);
+  transition-property: background-color, display, overlay;
+  transition-duration: var(--dur-panel);
+  transition-timing-function: var(--ease-standard);
+  transition-behavior: allow-discrete;
+}
+.node-drawer[popover]:is(:popover-open, .is-popover-open)::backdrop {
+  background-color: rgba(15, 23, 42, 0.09);
 }
 @starting-style {
-  .node-drawer:not([hidden]) {
+  .node-drawer[popover]:is(:popover-open, .is-popover-open)::backdrop {
+    background-color: rgba(15, 23, 42, 0);
+  }
+}
+@media (prefers-color-scheme: dark) {
+  .node-drawer[popover]:is(:popover-open, .is-popover-open)::backdrop {
+    background-color: rgba(0, 0, 0, 0.34);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .node-drawer[popover] {
+    transform: translateY(-6px) scale(0.985);
+  }
+}
+.node-drawer[popover]:is(:popover-open, .is-popover-open) {
+  display: flex;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .node-drawer[popover]:is(:popover-open, .is-popover-open) {
+    transform: translateY(0) scale(1);
+  }
+}
+@starting-style {
+  .node-drawer[popover]:is(:popover-open, .is-popover-open) {
     opacity: 0;
-    transform: translateY(-4px);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  @starting-style {
+    .node-drawer[popover]:is(:popover-open, .is-popover-open) {
+      transform: translateY(-6px) scale(0.985);
+    }
+  }
+}
+@supports not selector(:popover-open) {
+  .node-drawer[popover]:not(.is-popover-open) {
+    display: none;
+  }
+}
+@supports (position-area: block-end) {
+  .node-drawer[popover] {
+    inset: auto;
+    margin: 0;
+    margin-block-start: 6px;
+    position-area: block-end span-inline-end;
+    position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+    inline-size: min(anchor-size(inline), calc(100vw - 32px));
+    max-inline-size: calc(100vw - 32px);
+  }
+}
+@supports not (position-area: block-end) {
+  .node-drawer[popover] {
+    position: fixed;
+    inset: auto 16px 16px 16px;
+    margin: 0 auto;
+    inline-size: min(928px, calc(100vw - 32px));
+    z-index: 60;
   }
 }
 .drawer-group {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   flex-wrap: wrap;
+}
+.drawer-meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 2px 9px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink-muted);
+  background: var(--paper-card-subtle);
+  border: 1px dashed var(--line);
+  cursor: default;
+}
+.drawer-group .btn.tiny.active {
+  background: var(--navy-soft);
+  border-color: var(--navy);
+  color: var(--navy);
+  font-weight: 600;
 }
 .dot {
   width: 8px;
@@ -1812,10 +2166,16 @@ dialog.apple-action-sheet[open]::backdrop {
   flex-wrap: wrap;
   padding: 11px 14px;
   border-radius: 10px;
-  background: var(--paper-card-subtle);
-  border: 1px solid var(--line);
+  background: rgba(180, 83, 9, 0.05);
+  border: 1px solid rgba(180, 83, 9, 0.22);
   border-left: 3px solid var(--amber, #b45309);
   color: var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  .adv.error {
+    background: rgba(251, 191, 36, 0.07);
+    border-color: rgba(251, 191, 36, 0.24);
+  }
 }
 .adv.error.warn {
   border-left-color: var(--amber, #b45309);
@@ -1876,11 +2236,21 @@ dialog.apple-action-sheet[open]::backdrop {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--ink-muted);
   padding: 2px 0;
   margin-top: 2px;
   flex-wrap: wrap;
+}
+.relay-tail {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.relay-tail::before {
+  content: "·";
+  color: var(--ink-subtle);
 }
 .pipeline-hop {
   display: inline-flex;
@@ -2144,10 +2514,10 @@ dialog.apple-action-sheet[open]::backdrop {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: 4px 0 12px;
+  margin: 12px 0 2px;
   padding: 12px 16px;
-  background: var(--paper-card);
-  border: 1px solid var(--line);
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
   border-radius: 12px;
   flex-wrap: wrap;
   gap: 10px 14px;
@@ -2161,9 +2531,20 @@ dialog.apple-action-sheet[open]::backdrop {
     transform: translateY(-4px);
   }
 }
+.backup-drawer:has(#backup-note:empty) {
+  justify-content: flex-start;
+}
+#backup-note:empty {
+  display: none;
+}
 .maintenance-band {
-  margin-top: 22px;
+  margin-top: 24px;
   margin-bottom: 8px;
+  background: var(--paper-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
 }
 .maintenance-row {
   background: transparent;
@@ -2171,8 +2552,19 @@ dialog.apple-action-sheet[open]::backdrop {
   border-top: 1px solid var(--line-light);
   border-radius: 0;
   box-shadow: none;
-  padding: 12px 2px;
+  padding: 15px 22px;
   margin: 0;
+  transition: background-color var(--dur-micro) var(--ease-standard);
+}
+.maintenance-row:first-child {
+  border-top: none;
+}
+.maintenance-row:hover {
+  background: var(--paper-card-subtle);
+}
+.maintenance-row[open]:hover,
+.maintenance-backup-row:has(#backup-drawer:not([hidden])):hover {
+  background: transparent;
 }
 .maintenance-backup-row .maintenance-summary {
   width: 100%;
@@ -2198,7 +2590,7 @@ dialog.apple-action-sheet[open]::backdrop {
 .maintenance-row[open] > .maintenance-summary {
   color: var(--ink);
   font-weight: 600;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .maintenance-row[open] > .maintenance-summary .quiet-toggle-chevron {
   transform: rotate(180deg);
@@ -2211,13 +2603,40 @@ details.maintenance-row[open] > :not(summary) {
   to { opacity: 1; transform: translateY(0); }
 }
 #section-logs[open] > .maintenance-log-body {
-  background: var(--paper-card);
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 18px 20px;
-  box-shadow: var(--shadow-card);
+  background: var(--paper-card-subtle);
+  border: 1px solid var(--line-light);
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: none;
 }
-.log-section-head { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; margin-bottom: 12px; }
+#section-logs .maintenance-log-body details.inner {
+  border: 1px solid var(--line-light);
+}
+#section-logs .maintenance-log-body details.inner > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+#section-logs .maintenance-log-body details.inner > summary::-webkit-details-marker {
+  display: none;
+}
+#section-logs .maintenance-log-body details.inner > summary::after {
+  content: "";
+  width: 6.5px;
+  height: 6.5px;
+  border-right: 1.8px solid currentColor;
+  border-bottom: 1.8px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform var(--dur-micro) var(--ease-standard);
+  margin-inline-end: 4px;
+  flex: none;
+}
+#section-logs .maintenance-log-body details.inner[open] > summary::after {
+  transform: rotate(-135deg);
+}
+.log-section-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px 12px; margin-top: 0; margin-bottom: 12px; }
 .log-heading { font-size: 16px; font-weight: 600; color: var(--ink); margin: 0; }
 .log-tabs {
   display: inline-flex;
@@ -2290,9 +2709,11 @@ details.maintenance-row[open] > :not(summary) {
   .node-main { gap: 12px; }
   .node-quota-text { white-space: normal; }
   .btn-ping { width: 32px; height: 32px; }
-  .relay-pipeline { gap: 4px 6px; }
-  .relay-pipeline .pipeline-arrow,
-  .node-relay-tip { display: none; }
+  .relay-pipeline { gap: 4px 5px; font-size: 12px; }
+  .pipeline-hop { white-space: nowrap; }
+  .pipeline-arrow { padding: 1px 4px; }
+  .relay-tail { flex-basis: 100%; }
+  .relay-tail::before { content: none; }
 }
 
 /* Quota Glance Capsule */
@@ -2551,6 +2972,8 @@ details.maintenance-row[open] > :not(summary) {
   <symbol id="i-external-link" viewBox="0 0 24 24"><path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
   <symbol id="i-bug" viewBox="0 0 24 24"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 3.8-4"/><path d="M20.97 5c0 2.1-1.6 3.8-3.5 4"/><path d="M22 13h-4"/><path d="M17.2 17c2.1.1 3.8 1.9 3.8 4"/></symbol>
   <symbol id="i-lightbulb" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></symbol>
 </svg>
 
 <div class="page">
@@ -2640,7 +3063,7 @@ details.maintenance-row[open] > :not(summary) {
 
         <!-- Quota Hero Summary Strip (1-line calm view; details collapsed until clicked) -->
         <div id="quota-hero-banner" class="quota-hero-card" style="display:none">
-          <button type="button" class="quota-strip-trigger" id="quota-strip-toggle" aria-expanded="false" aria-controls="quota-details-panel" onclick="window.ownlineToggleQuotaDetails(this)">
+          <button type="button" class="quota-strip-trigger" id="quota-strip-toggle" aria-expanded="false" aria-controls="quota-details-panel" popovertarget="quota-details-panel" onclick="if(!(typeof HTMLElement!=='undefined'&&Object.hasOwn(HTMLElement.prototype,'popover'))){window.ownlineToggleQuotaDetails(this);}">
             <span class="quota-strip-left">
               <span class="quota-strip-label" data-i18n="quota_hero_title">本月出海总流量</span>
               <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 7px" data-i18n="quota_status_ok">充足</span>
@@ -2658,8 +3081,11 @@ details.maintenance-row[open] > :not(summary) {
           </button>
           <div id="quota-hero-nodes-safe" class="quota-strip-alert" style="display:none" data-i18n="quota_safe_lbl"></div>
 
-          <div id="quota-details-panel" class="quota-details-panel" hidden>
+          <div id="quota-details-panel" class="quota-details-panel" popover="auto">
             <div class="quota-runway-bar">
+              <div class="quota-runway-head">
+                <button type="button" class="quiet-inline-link" data-i18n="quota_rules_link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
+              </div>
               <div class="quota-runway-metrics">
                 <div class="quota-runway-item">
                   <span class="quota-runway-lbl" data-i18n="quota_safe_rem_lbl">安全可用</span>
@@ -2671,11 +3097,11 @@ details.maintenance-row[open] > :not(summary) {
                   <b id="quota-avg-7d" class="quota-runway-val">--</b>
                 </div>
                 <div class="quota-runway-item">
+                  <span class="quota-runway-lbl" id="quota-cycle-lbl">周期重置</span>
                   <b id="quota-cycle-rem" class="quota-runway-val">--</b>
                   <span id="quota-cycle-pct" class="quota-runway-sub"></span>
                 </div>
               </div>
-              <button type="button" class="quiet-inline-link" data-i18n="quota_rules_link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
             </div>
 
             <!-- 14-day Daily Burn Trend + Daily Budget Reference Line -->
@@ -2688,7 +3114,7 @@ details.maintenance-row[open] > :not(summary) {
                 </span>
               </div>
               <div id="quota-chart-wrap" class="quota-chart-wrap">
-                <svg id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 56" preserveAspectRatio="none" role="img" aria-label="14-day daily traffic trend"></svg>
+                <svg id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 72" preserveAspectRatio="xMidYMid meet" role="img" aria-label="14-day daily traffic trend"></svg>
               </div>
               <div id="quota-chart-cold" class="quota-chart-cold" hidden></div>
               <div id="quota-chart-axis" class="quota-chart-axis">
@@ -2860,9 +3286,9 @@ details.maintenance-row[open] > :not(summary) {
           <div class="qr-img-wrap">
             <img id="qr-code-img" src="qr-sub.png" alt="订阅二维码">
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);text-align:left;display:flex;align-items:flex-start;gap:8px">
-            <svg class="ico" width="14" height="14" style="color:var(--apple-amber,#f59e0b);flex:none;margin-top:2px" aria-hidden="true"><use href="#i-alert"/></svg>
-            <span class="small muted" style="line-height:1.4" data-i18n="scan_qr_tip">请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。</span>
+          <div style="margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px">
+            <svg class="ico" width="13" height="13" style="color:var(--apple-amber,#f59e0b);flex:none" aria-hidden="true"><use href="#i-alert"/></svg>
+            <span class="small muted" data-i18n="scan_qr_tip">请用小火箭 / Clash 扫码，勿用微信</span>
           </div>
           <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px;align-items:center">
             <button class="btn tiny" type="button" id="btn-copy-qr-url" onclick="window.ownlineCopyQrSubUrl(this)" style="display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:6px 14px;border-radius:6px;background:var(--paper-card-secondary);color:var(--ink);border:1px solid var(--line);cursor:pointer;font-weight:500">
@@ -2883,7 +3309,6 @@ details.maintenance-row[open] > :not(summary) {
             </div>
             <button class="apple-sheet-close" type="button" onclick="document.getElementById('relay-dialog').close()" aria-label="关闭" style="position:absolute;right:0;top:0"><svg class="ico" width="14" height="14"><use href="#i-x"/></svg></button>
           </div>
-          <p class="small muted" style="margin:0 0 14px;font-size:12.5px;line-height:1.4" data-i18n="relay_dialog_desc">选择该国内服务器直达的海外出海落地节点（防卡顿与丢包）：</p>
           <div id="relay-targets-list" style="display:flex;flex-direction:column;gap:8px">
           </div>
         </div>
@@ -2920,7 +3345,7 @@ details.maintenance-row[open] > :not(summary) {
             <button class="btn tiny" type="button" id="backup-restore" data-i18n="nodes_restore_backup">恢复配置</button>
             <input id="backup-file" type="file" accept=".json,application/json" style="display:none">
           </div>
-          <span class="small muted" id="backup-note" role="status" data-i18n="backup_note_desc">恢复操作只会替换节点配置。</span>
+          <span class="small muted" id="backup-note" role="status"></span>
         </div>
       </div>
       <details class="inner apple-disclosure maintenance-row" id="quota-section">
@@ -2932,14 +3357,12 @@ details.maintenance-row[open] > :not(summary) {
         <div class="inner" id="quota-settings" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
           <form id="quota-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <label for="quota-threshold" style="flex-basis:100%;font-size:12.5px;color:var(--apple-fg);font-weight:500" data-i18n="quota_threshold_lbl">超额熔断阈值 (1–100%)</label>
-            <p class="small muted" style="margin:0 0 6px;flex-basis:100%" data-i18n="quota_threshold_desc">当月流量达到此阈值时，服务器自动暂停出口以防止超额扣费。</p>
             <input id="quota-threshold" type="number" min="1" max="100" step="1" required style="width:72px;padding:6px">
             <button class="btn tiny" type="submit" data-i18n="quota_save_btn">保存</button><span class="small muted" id="quota-note" role="status"></span>
           </form>
         </div>
         <div class="inner" id="billing-reconcile-card" style="display:none;margin-top:10px;padding:12px;background:var(--apple-card-secondary,rgba(0,0,0,0.02));border-radius:10px;border:1px solid var(--apple-line)">
-          <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:4px" data-i18n="billing_reconcile_title">账单流量核对</div>
-          <p class="small muted" style="margin:0 0 8px" data-i18n="billing_reconcile_desc">输入云控制台本月已用流量（GB），快速核对面板统计与官方账单是否一致。</p>
+          <div style="font-size:12.5px;font-weight:600;color:var(--apple-fg);margin-bottom:8px" data-i18n="billing_reconcile_title">账单流量核对</div>
           <form id="billing-reconcile-form" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
             <input id="billing-official-gb" type="number" min="0" step="0.01" required placeholder="云后台已用 GB" aria-label="云后台已用流量 GB" style="width:130px;padding:6px">
             <input id="billing-reset-day" type="number" min="1" max="31" step="1" placeholder="重置日(选填)" aria-label="账单重置日 1-31" style="width:110px;padding:6px">
@@ -2957,7 +3380,12 @@ details.maintenance-row[open] > :not(summary) {
         </summary>
         <div class="maintenance-log-body">
           <div class="log-section-head" style="margin-top:0">
-            <span class="small muted" data-i18n="logs_subheading">近期系统运行事件与订阅日志</span>
+            <div class="log-tabs" style="margin-bottom:0">
+              <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
+              <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
+              <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
+              <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
+            </div>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <button class="btn tiny" type="button" onclick="window.ownlineHealth()" data-i18n="logs_health_btn">健康检查</button>
               <button class="btn tiny" type="button" id="btn-reconcile-check" onclick="window.ownlineCheckReconcile(this)" data-i18n="logs_reconcile_btn">核验配置一致性</button>
@@ -2968,13 +3396,6 @@ details.maintenance-row[open] > :not(summary) {
           </div>
           <div id="health" aria-live="polite"></div>
           <div id="reconcile-box" aria-live="polite" style="display:none;margin:8px 0;padding:10px 12px;background:var(--paper-card-subtle);border:1px solid var(--line);border-radius:8px"></div>
-
-          <div class="log-tabs">
-            <button class="log-tab-btn active" type="button" data-lvl="ALL" data-i18n="log_tab_all">全部</button>
-            <button class="log-tab-btn" type="button" data-lvl="BAD" data-i18n="log_tab_bad">仅错误</button>
-            <button class="log-tab-btn" type="button" data-lvl="SUB" data-i18n="log_tab_sub">订阅</button>
-            <button class="log-tab-btn" type="button" data-lvl="PROBE" data-i18n="log_tab_probe">探活</button>
-          </div>
 
           <div id="log-list" class="logbox" style="border:none">
             <div class="small muted" data-i18n="logs_loading">正在加载日志流...</div>
@@ -2996,9 +3417,10 @@ details.maintenance-row[open] > :not(summary) {
 
     <!-- State B: Server Setup -->
     <div id="view-setup" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line)">
+      <div class="setup-stage-card">
+      <div class="setup-stage-header">
         <div>
-          <h2 id="setup-title" tabindex="-1" style="font-size:16px;margin:0;display:inline-block" data-i18n="setup_title">添加服务器</h2>
+          <h2 id="setup-title" tabindex="-1" class="setup-stage-title" data-i18n="setup_title">添加服务器</h2>
         </div>
         <button class="icon-btn-round" type="button" id="btn-cancel-setup" aria-label="返回" title="返回">
           <svg class="ico" width="14" height="14"><use href="#i-chevron-left"/></svg>
@@ -3006,7 +3428,7 @@ details.maintenance-row[open] > :not(summary) {
       </div>
 
       <!-- Segment Switching: Direct SSH (Default) vs Tencent Cloud vs Terminal Join (Advanced) -->
-      <div class="seg" role="group" aria-label="连接方式" style="max-width:480px;margin-bottom:16px">
+      <div class="seg setup-seg" role="group" aria-label="连接方式">
         <button class="segbtn active" type="button" id="tab-btn-ssh-direct" aria-pressed="true">
           <svg class="ico" width="13" height="13" style="vertical-align:-2px;margin-right:4px"><use href="#i-key"/></svg><span data-i18n="tab_ssh_direct">填写服务器信息（推荐）</span>
         </button>
@@ -3020,7 +3442,6 @@ details.maintenance-row[open] > :not(summary) {
 
       <!-- Panel TC -->
       <div id="panel-tc" style="display:none">
-        <p class="small muted" data-i18n="tc_desc">通过 API 密钥自动发现轻量云主机。</p>
         <div class="field-group" style="margin-bottom:12px">
           <pre id="ai-prompt-text" style="display:none">请协助我在腾讯云控制台为本项目创建一个最小权限的 CAM 子账号（仅限轻量应用服务器只读/防火墙必要权限）。创建 API 密钥时请由我本人操作并自行保存，切勿在对话中输出 SecretId、SecretKey、密码或私钥。</pre>
 
@@ -3030,7 +3451,6 @@ details.maintenance-row[open] > :not(summary) {
           </div>
           <details class="inner" id="tc-credential-fields">
           <summary id="tc-cred-summary" data-i18n="tc_cred_title">腾讯云 API 凭据（可选：覆盖或更换子账号）</summary>
-          <p class="small muted" data-i18n="tc_cred_note">如未输入，将自动使用服务器本地已保存的凭据。</p>
           <p class="small muted"><span data-i18n="tc_need_assist">需要辅助创建？</span> <button class="btn tiny" type="button" id="btn-copy-ai-prompt" data-i18n="tc_copy_ai_prompt">复制 AI 提示词</button></p>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
             <div class="field" style="flex:1;min-width:180px">
@@ -3085,9 +3505,6 @@ details.maintenance-row[open] > :not(summary) {
       <div id="panel-other">
         <!-- Mode 1: Pre-Auth Reverse Join (Advanced) -->
         <div id="box-reverse-join" style="display:none">
-          <p class="small muted" style="margin-bottom:12px;line-height:1.5" data-i18n="reverse_join_desc">
-            无需向本控制台提供 SSH 密码或私钥。在目标服务器执行下方命令，即可全自动配置并反向入网，私钥物理不出机。
-          </p>
           <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px">
             <div class="field" style="margin-bottom:0;flex:1;min-width:140px">
               <label for="reverse-node-name" data-i18n="lbl_node_name">节点名称 (可选)</label>
@@ -3107,7 +3524,6 @@ details.maintenance-row[open] > :not(summary) {
           <div id="reverse-relay-landing-group" style="display:none;margin-bottom:12px;padding:10px 12px;background:var(--paper-card-secondary);border:1px solid var(--line);border-radius:8px">
             <label for="reverse-relay-landing" class="small" style="font-weight:600;display:block;margin-bottom:4px" data-i18n="lbl_relay_target_landing">绑定海外出口 (落地节点)</label>
             <select id="reverse-relay-landing" style="width:100%;height:36px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);padding:0 8px"></select>
-            <p class="small muted" style="margin:4px 0 0 0;font-size:11px" data-i18n="tip_relay_port_8443">国内免备案服务器自动配置监听端口 8443，直通所选海外落地节点。</p>
           </div>
           <div id="reverse-join-error" class="small" style="display:none;color:var(--apple-red,#dc2626);margin-top:8px" role="alert"></div>
 
@@ -3126,18 +3542,23 @@ details.maintenance-row[open] > :not(summary) {
 
         <!-- Mode 2: Direct SSH Connection (Default) -->
         <div id="box-ssh-direct" style="display:block">
-        <p class="small muted" style="margin-bottom:8px" data-i18n="ssh_input_guide">填写服务器 IP 与密码（或粘贴私钥），点击检测即可全自动部署。</p>
         <div id="other-connection-slot"><div id="ssh-connection-fields">
         <div class="field"><label for="other-ip" data-i18n="lbl_pub_ip">公网 IP</label><input id="other-ip" type="text" placeholder="203.0.113.10" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
-        <div class="field"><label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label><input id="other-credential" type="password" autocomplete="off" spellcheck="false" aria-describedby="ssh-defaults-note other-key-status other-connect-status"><span class="small muted" id="other-key-status" role="status"></span></div>
-        <p class="small muted" id="ssh-defaults-note" data-i18n="ssh_defaults_note">默认使用 root 账号、22 端口；若是 Oracle / 腾讯云轻量 Ubuntu 可展开连接设置填 ubuntu（免密 sudo 自动提权）。</p>
+        <div class="field">
+          <label for="other-credential" data-i18n="lbl_root_pwd">服务器密码或 SSH 私钥</label>
+          <div class="password-input-wrap">
+            <input id="other-credential" type="password" placeholder="密码或完整 SSH 私钥" autocomplete="off" spellcheck="false" aria-describedby="other-key-status other-connect-status">
+            <button type="button" class="pwd-eye-btn" data-toggle-secret="other-credential" aria-label="显示密码" aria-pressed="false"><svg class="ico" width="16" height="16" aria-hidden="true"><use href="#i-eye"/></svg></button>
+          </div>
+          <span class="small muted" id="other-key-status" role="status"></span>
+        </div>
         <details class="inner other-advanced" id="ssh-advanced-settings">
           <summary data-i18n="ssh_advanced_summary">连接设置（账号、端口、私钥密码）</summary>
-          <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
+          <div class="field" style="margin-top:10px"><label for="other-user" data-i18n="lbl_ssh_user">用户名</label><input id="other-user" type="text" value="root" placeholder="root / ubuntu" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-describedby="other-connect-status"></div>
           <div class="field"><label for="other-ssh-port" data-i18n="lbl_ssh_port">SSH 端口</label><input id="other-ssh-port" type="number" min="1" max="65535" value="22" inputmode="numeric" style="max-width:120px" aria-describedby="other-connect-status"></div>
           <div class="field"><label for="other-passphrase" data-i18n="lbl_ssh_passphrase">私钥密码</label><input id="other-passphrase" type="password" autocomplete="off"></div>
         </details>
-        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status" data-i18n="status_web_test_ready">仅测试连接，尚未安装节点。</span></div>
+        <div class="other-actions"><button class="btn primary" id="other-connect" type="button" aria-describedby="other-connect-status" data-i18n="btn_test_conn">测试连接</button><span class="small muted" id="other-connect-status" role="status"></span></div>
         <div id="other-fingerprint-box" class="check-result-box" role="region" aria-label="服务器指纹确认" style="display:none;margin-top:10px">
           <div style="font-weight:600;font-size:13.5px;margin-bottom:4px" data-i18n="fp_title">首次连接 · 锁定服务器指纹</div>
           <p class="small muted" style="margin:0 0 8px;line-height:1.5" data-i18n="fp_desc">确认上方服务器 IP 与你购买的一致后，点击下方按钮锁定这台机器的唯一身份指纹；后续每次连接都会自动比对防篡改。</p>
@@ -3152,7 +3573,6 @@ details.maintenance-row[open] > :not(summary) {
           <div style="font-weight:600;font-size:14px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span data-i18n="install_ready_title">就绪，可开始安装</span>
           </div>
-          <p class="small muted" data-i18n="install_defaults_note">名称已自动填写，用途默认自动判定。可直接开始安装，或展开下方选项修改。</p>
           <details class="inner" id="node-install-options">
             <summary data-i18n="install_options_summary">自定义安装（可选）</summary>
           <div class="field" style="margin-bottom:8px">
@@ -3197,6 +3617,7 @@ details.maintenance-row[open] > :not(summary) {
         </details>
         </div>
         <details class="inner" id="panel-onboarding-guide" style="margin-top:10px"><summary>还没有服务器或想看选型与可选域名？</summary><div class="small muted" style="margin-top:8px;line-height:1.6"><ul style="margin:0 0 8px;padding-left:18px"><li><a href="https://www.oracle.com/cloud/free/" target="_blank" rel="noopener noreferrer">Oracle Cloud Always Free</a>：永久免费额度（需外币信用卡验证，以官方为准）；arm64 机型需对应 arm64 镜像；注意官方闲置回收规则。</li><li><a href="https://university.aliyun.com/" target="_blank" rel="noopener noreferrer">阿里云高校「云工开物」</a>：约 0–10 元/月（学生/青年开发者补贴，以官方为准）；购买或开通前核实海外地域（如美西/新加坡/日本）是否在活动范围内。</li><li><a href="https://www.tencentcloud.com/products/lighthouse" target="_blank" rel="noopener noreferrer">腾讯云轻量应用服务器（Lighthouse）</a>：约 99–138 元/年大促区间（以官方为准）；优先美西（硅谷/洛杉矶）或新加坡；支持本机工具只读 API 自动发现。</li><li><a href="https://www.racknerd.com/" target="_blank" rel="noopener noreferrer">RackNerd</a>：约 7 元/月起年付区间（以官方为准）；高性价比海外年付 KVM，建议优先选美西机房。</li><li><a href="https://linux.do/" target="_blank" rel="noopener noreferrer">LINUX DO 社区促销板块</a>：实时低价特惠情报；可用于比对各云厂商近期真实特惠活动与避坑反馈。</li></ul><p style="margin:4px 0"><b>系统与端口：</b>空白 Ubuntu 22.04+ 或 Debian 12+（x86_64 / arm64，支持 root 或云商默认免密 sudo 账号如 ubuntu，且有公网 IPv4）；放行 SSH 端口（默认 22）、80/TCP（自动申请 HTTPS 证书必需：默认 sslip.io 与自定义域名均需放行）、8443/TCP（管理后台与订阅分发）、443/TCP（VLESS Reality 主通道）、443/UDP（Hysteria2 晚高峰高速通道）。</p><p style="margin:4px 0"><b>方案参考：</b>单机直连（多数个人首选）：1 台美西/海外节点自带 VLESS Reality（日常稳）与 Hysteria2（晚高峰抗丢包），同一固定出口防跨区风控。 双机中转加速（4K / 跨境办公进阶）：加购 1 台国内轻量服务器（如北京/广州），通过 8443 端口直通海外落地机改善晚高峰丢包。</p><p style="margin:4px 0"><b>自定义域名（可选）：</b>默认无需购买域名：系统自动通过免费 sslip.io 签发 HTTPS 管理地址。 可选 <a href="https://www.spaceship.com/" target="_blank" rel="noopener noreferrer">Spaceship</a>（约 $1–$3/首年（以官方为准），可选绑定自有域名时推荐使用，含终身 WHOIS 隐私保护且免实名备案；解析 A 记录指向服务器 IP 后，在管理后台「偏好设置 -&gt; 自定义域名」即可一键绑定。）。</p><p style="margin:6px 0 0">核实日期：2026-11-23 · 以下价格为历史参考区间，实际以各官网实时页面为准；均不含推广返佣链接。</p></div></details>
+      </div>
       </div>
     </div>
   </section>
@@ -3247,7 +3668,7 @@ details.maintenance-row[open] > :not(summary) {
       <div id="update-info-card" style="padding:10px 12px;background:var(--paper-card-subtle);border-radius:8px;border:1px solid var(--line-light);display:flex;align-items:center;justify-content:space-between;gap:10px">
         <div style="min-width:0;flex:1">
           <div id="update-status-title" style="font-size:12.5px;font-weight:600;color:var(--apple-fg)" data-i18n="update_status_latest">已是最新版本</div>
-          <div id="update-status-desc" class="small muted" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" data-i18n="update_desc_latest">无需更新</div>
+          <div id="update-status-desc" class="small muted" style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>
         </div>
         <button class="btn tiny" id="btn-check-update" type="button" onclick="window.ownlineCheckUpdate(true)">
           <span id="btn-check-update-text" data-i18n="btn_check_update">检查更新</span>
@@ -3282,8 +3703,7 @@ details.maintenance-row[open] > :not(summary) {
           <svg class="ico quiet-toggle-chevron" width="13" height="13" aria-hidden="true"><use href="#i-chevron-down"/></svg>
         </span>
       </summary>
-      <p class="small muted" style="margin:8px 0;font-size:11.5px;line-height:1.5" data-i18n="domain_settings_desc">先将域名的 A 记录指向本服务器 IP，填写后即可一键绑定并切换管理后台与订阅域名。</p>
-      <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px">
+      <form id="custom-domain-form" onsubmit="window.ownlineChangeDomain(event)" style="display:flex;flex-direction:column;gap:8px;margin-top:10px">
         <input id="custom-domain-input" type="text" placeholder="vpn.example.com" autocomplete="off" autocapitalize="none" spellcheck="false" required style="width:100%;box-sizing:border-box;padding:7px 10px;border-radius:6px;border:1px solid var(--line);font-size:13px">
         <label class="small muted" style="display:flex;align-items:center;gap:6px;cursor:pointer">
           <input id="custom-domain-skip-dns" type="checkbox">
@@ -3320,7 +3740,6 @@ details.maintenance-row[open] > :not(summary) {
           <strong class="account-username-text" id="settings-display-username">dora</strong>
           <span class="account-role-badge" id="account-role-badge" data-i18n="account_role_admin">System Admin</span>
         </div>
-        <p class="account-auth-desc" id="account-auth-desc" data-i18n="account_auth_desc">Protected by Basic Auth & Rate Limiting</p>
       </div>
     </div>
 
@@ -3330,9 +3749,8 @@ details.maintenance-row[open] > :not(summary) {
       <input type="password" style="display:none" tabindex="-1" aria-hidden="true">
 
       <div class="field" style="margin-top:12px">
-        <label for="settings-curr-pass" style="display:flex;justify-content:space-between">
+        <label for="settings-curr-pass">
           <span id="account-lbl-curr-pass" data-i18n="account_curr_pass">Current Password</span>
-          <span class="small muted" id="account-hint-curr-pass" data-i18n="account_hint_curr_pass">(Identity Verification)</span>
         </label>
         <div class="password-input-wrap">
           <input id="settings-curr-pass" type="password" autocomplete="current-password" required placeholder="••••••••••••" data-lpignore="true" data-1p-ignore="true">
@@ -3348,12 +3766,10 @@ details.maintenance-row[open] > :not(summary) {
         <summary style="font-size:13px;font-weight:600;color:var(--navy);cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:6px;user-select:none">
           <svg class="ico details-arrow" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
           <span id="account-lbl-opt-user" data-i18n="account_opt_user">Change Login Username</span>
-          <span class="muted small" style="font-weight:normal" id="account-hint-opt-user" data-i18n="account_hint_opt_user">(leave empty to keep current)</span>
         </summary>
         <div class="field" style="margin-top:8px;padding-left:12px;border-left:2px solid var(--line-light)">
           <label for="settings-username" id="account-lbl-new-user" data-i18n="account_new_user">New Username</label>
           <input id="settings-username" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore="true" readonly onfocus="this.removeAttribute('readonly')" placeholder="Leave empty to keep current">
-          <p class="small muted" style="margin:4px 0 0;font-size:11.5px" id="account-tip-username" data-i18n="account_tip_username">Supports 1-64 letters, numbers, _, ., or -</p>
         </div>
       </details>
 
@@ -3378,9 +3794,8 @@ details.maintenance-row[open] > :not(summary) {
             <div class="pwd-strength-seg" id="pwd-seg-3"></div>
             <div class="pwd-strength-seg" id="pwd-seg-4"></div>
           </div>
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+          <div style="display:flex;justify-content:flex-start;align-items:center;margin-top:4px">
             <span class="small muted" id="pwd-strength-text" style="font-size:11.5px">Password Strength</span>
-            <span class="small muted" id="pwd-strength-hint" style="font-size:11.5px">Mix letters, numbers & symbols</span>
           </div>
         </div>
       </div>
@@ -3421,16 +3836,29 @@ details.maintenance-row[open] > :not(summary) {
   </div>
 </dialog>
 
-<dialog id="backup-dialog" style="max-width:420px;width:calc(100% - 32px);border:1px solid var(--line);padding:20px;color:var(--fg);background:var(--surface)">
-  <form method="dialog" id="backup-password-form">
-    <h2 id="backup-dialog-title" data-i18n="backup_dialog_title">备份加密口令</h2>
-    <p class="small muted" data-i18n="backup_dialog_desc">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
-    <label for="backup-password" data-i18n="backup_pwd_lbl">备份口令</label>
-    <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
-    <div id="backup-confirm-wrap"><label for="backup-confirm" style="margin-top:10px" data-i18n="backup_confirm_lbl">确认备份口令</label><input id="backup-confirm" type="password" autocomplete="new-password"></div>
-    <p id="backup-error" class="small" role="status" style="color:var(--bad)"></p>
-    <div style="display:flex;gap:8px;margin-top:12px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
-  </form>
+<dialog id="backup-dialog" class="sheet apple-action-sheet" closedby="any" onclick="if(event.target===this)this.close()">
+  <div class="sheet-inner" style="width:min(420px, calc(100vw - 32px))">
+    <div class="apple-sheet-grabber"></div>
+    <div class="apple-sheet-header">
+      <h2 class="apple-sheet-title" id="backup-dialog-title" data-i18n="backup_dialog_title">备份加密口令</h2>
+      <button class="apple-sheet-close" type="button" onclick="document.getElementById('backup-dialog').close()" aria-label="关闭">
+        <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <form method="dialog" id="backup-password-form">
+      <p class="small muted" data-i18n="backup_dialog_desc">备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。</p>
+      <div class="field">
+        <label for="backup-password" data-i18n="backup_pwd_lbl">备份口令</label>
+        <input id="backup-password" type="password" autocomplete="new-password" minlength="10" required>
+      </div>
+      <div id="backup-confirm-wrap" class="field">
+        <label for="backup-confirm" data-i18n="backup_confirm_lbl">确认备份口令</label>
+        <input id="backup-confirm" type="password" autocomplete="new-password">
+      </div>
+      <p id="backup-error" class="small" role="status" style="color:var(--bad);margin:8px 0 0"></p>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px"><button class="btn" type="button" id="backup-cancel" data-i18n="backup_cancel">取消</button><button class="btn primary" type="submit" data-i18n="backup_submit">继续</button></div>
+    </form>
+  </div>
 </dialog>
 
 <!-- Quick Feedback Modal Dialog (Apple HIG Style) -->
@@ -3446,11 +3874,6 @@ details.maintenance-row[open] > :not(summary) {
         <svg class="ico" width="14" height="14"><use href="#i-x"/></svg>
       </button>
     </div>
-
-    <!-- Apple Subtitle Note -->
-    <p class="small muted" style="margin:-4px 0 14px;font-size:12px;line-height:1.4" id="feedback-dialog-subtitle" data-i18n="feedback_dialog_subtitle">
-      遇到的异常现场将送达 AI 诊断库，作者排查修复后通过面板一键更新推送给你。
-    </p>
 
     <!-- Feedback Form -->
     <form id="feedback-form" onsubmit="window.ownlineSubmitFeedback(event)">
@@ -3478,7 +3901,7 @@ details.maintenance-row[open] > :not(summary) {
           <label for="feedback-message" id="feedback-lbl-msg" style="font-size:12.5px;font-weight:600;margin:0" data-i18n="feedback_msg_lbl">描述（选填）</label>
           <span class="small muted" id="feedback-char-count" hidden style="font-size:11px">0/2000</span>
         </div>
-        <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
+        <textarea id="feedback-message" rows="3" maxlength="2000" placeholder="描述问题或建议（选填）" style="width:100%;box-sizing:border-box;resize:vertical;border-radius:10px;border:1px solid var(--line);padding:10px 12px;font-family:inherit;font-size:13px;background:var(--paper-card-subtle);color:var(--apple-fg);line-height:1.45" oninput="window.updateFeedbackCharCount(this.value)"></textarea>
       </div>
 
       <!-- Contact input -->
@@ -3588,8 +4011,9 @@ async function copySetupText(text) {
 }
 
 function _setSecretToggleState(btn, visible) {
+  var zh = typeof isZh === "function" ? isZh() : true;
   btn.setAttribute("aria-pressed", String(visible));
-  btn.setAttribute("aria-label", visible ? "隐藏密码" : "显示密码");
+  btn.setAttribute("aria-label", zh ? (visible ? "隐藏密码" : "显示密码") : (visible ? "Hide password" : "Show password"));
   const useEl = typeof btn.querySelector === "function" ? btn.querySelector("use") : null;
   if (useEl && typeof useEl.setAttribute === "function") {
     useEl.setAttribute("href", visible ? "#i-eye-off" : "#i-eye");
@@ -3771,6 +4195,7 @@ function initAccessibleValidation(root) {
       lbl_ssh_port: "SSH Port",
       lbl_ssh_passphrase: "Key Passphrase",
       btn_test_conn: "Test Connection",
+      status_web_test_ready: "Connection test only; node not installed yet.",
       status_web_test_unavail: "Web check unavailable.",
       install_ready_title: "Ready to Install",
       install_defaults_note: "A name is filled in and the role defaults to automatic detection. Start installation or expand the options below to customize.",
@@ -3796,7 +4221,7 @@ function initAccessibleValidation(root) {
       logs_loading: "Loading logs…",
       logs_core_summary: "Core service logs: sing-box · Caddy · Admin",
       backup_dialog_title: "Backup Encryption Passphrase",
-      backup_dialog_desc: "This passphrase is used strictly for in-browser encryption and decryption. If lost, it cannot be recovered.",
+      backup_dialog_desc: "Encrypted locally only; cannot be recovered if lost.",
       backup_pwd_lbl: "Backup Passphrase",
       backup_confirm_lbl: "Confirm Passphrase",
       backup_cancel: "Cancel",
@@ -3815,7 +4240,7 @@ function initAccessibleValidation(root) {
       feedback_type_suggest: "Suggestions",
       feedback_type_bug: "Bugs & Other",
       client_install_hint: "Need a client? Official downloads",
-      scan_qr_tip: "Use Shadowrocket or Clash in-app scanner, not WeChat.",
+      scan_qr_tip: "Scan in Shadowrocket or Clash, not WeChat.",
       author_email_lbl: "Author Email:",
       warp_toggle_btn: "WARP Clean Egress",
       tag_node_unreachable: "Node Unreachable",
@@ -3823,9 +4248,9 @@ function initAccessibleValidation(root) {
       tag_mobile_issue: "Mobile Connect Issue",
       tag_ux_suggestion: "UI / UX Idea",
       feedback_msg_lbl: "Description (Optional)",
-      feedback_msg_ph: "Describe what happened, or submit diagnostics directly with 1 click...",
-      feedback_msg_ph_bug: "What happened? (e.g. YouTube lag, connect timeout; or leave blank to send diagnostics)",
-      feedback_msg_ph_idea: "What new platform, protocol, or scenario would you like to see?",
+      feedback_msg_ph: "Describe issue or idea (optional)",
+      feedback_msg_ph_bug: "Describe issue or idea (optional)",
+      feedback_msg_ph_idea: "Describe new feature or scenario (optional)",
       feedback_contact_lbl: "Contact (Optional)",
       feedback_contact_ph: "Email / WeChat / Telegram (for replies)",
       feedback_attach_diag: "Attach system diagnostic snapshot (safe, zero secrets)",
@@ -4002,6 +4427,7 @@ function initAccessibleValidation(root) {
       lbl_ssh_port: "SSH 端口",
       lbl_ssh_passphrase: "私钥密码",
       btn_test_conn: "测试连接",
+      status_web_test_ready: "仅测试连接，尚未安装节点。",
       status_web_test_unavail: "网页测试不可用。",
       install_ready_title: "就绪，可开始安装",
       install_defaults_note: "名称已自动填写，用途默认自动判定。可直接开始安装，或展开下方选项修改。",
@@ -4027,7 +4453,7 @@ function initAccessibleValidation(root) {
       logs_loading: "正在加载日志流...",
       logs_core_summary: "核心服务日志：sing-box · Caddy · 管理员",
       backup_dialog_title: "备份加密口令",
-      backup_dialog_desc: "备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。",
+      backup_dialog_desc: "仅本机加密，遗失不可找回。",
       backup_pwd_lbl: "备份口令",
       backup_confirm_lbl: "确认备份口令",
       backup_cancel: "取消",
@@ -4046,7 +4472,7 @@ function initAccessibleValidation(root) {
       feedback_type_suggest: "功能建议",
       feedback_type_bug: "缺陷与其他",
       client_install_hint: "未安装客户端？查看官方下载",
-      scan_qr_tip: "请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。",
+      scan_qr_tip: "请用小火箭 / Clash 扫码，勿用微信",
       author_email_lbl: "作者邮箱：",
       warp_toggle_btn: "WARP 清洁出口",
       tag_node_unreachable: "节点连不上",
@@ -4054,9 +4480,9 @@ function initAccessibleValidation(root) {
       tag_mobile_issue: "手机端异常",
       tag_ux_suggestion: "界面与体验建议",
       feedback_msg_lbl: "描述（选填）",
-      feedback_msg_ph: "写一句大白话即可（不填也可直接一键提交现场诊断）...",
-      feedback_msg_ph_bug: "写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）",
-      feedback_msg_ph_idea: "希望支持什么新平台、新协议或新场景？",
+      feedback_msg_ph: "描述问题或建议（选填）",
+      feedback_msg_ph_bug: "描述问题或建议（选填）",
+      feedback_msg_ph_idea: "描述期望的新功能或场景（选填）",
       feedback_contact_lbl: "联系方式（选填）",
       feedback_contact_ph: "微信 / 邮箱 / Telegram（方便接收处理进展）",
       feedback_attach_diag: "附带系统诊断快照（已自动过滤密钥等敏感信息）",
@@ -4231,6 +4657,14 @@ function initAccessibleValidation(root) {
     if (offGb) offGb.placeholder = zh ? '云后台已用 GB' : 'Cloud Billed GB';
     var offRday = document.getElementById('billing-reset-day');
     if (offRday) offRday.placeholder = zh ? '重置日(选填)' : 'Reset Day (opt)';
+    var otherCred = document.getElementById('other-credential');
+    if (otherCred) otherCred.placeholder = zh ? '密码或完整 SSH 私钥' : 'Password or SSH private key';
+    if (typeof document.querySelectorAll === 'function') {
+      document.querySelectorAll('[data-toggle-secret]').forEach(function (btn) {
+        var visible = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-label', zh ? (visible ? '隐藏密码' : '显示密码') : (visible ? 'Hide password' : 'Show password'));
+      });
+    }
 
     if (typeof detectClient === 'function') detectClient();
     if (typeof updateHeaderLocalPingUI === 'function') updateHeaderLocalPingUI();
@@ -4655,6 +5089,7 @@ function initAccessibleValidation(root) {
       } else {
         // Clear unsaved credentials when leaving form without interrupting background operations.
         clearOtherSecret();
+        if (typeof resetSecretToggles === "function") resetSecretToggles(document);
         ["tc-sid", "tc-skey", "other-credential", "other-passphrase"].forEach(function (id) {
           var input = document.getElementById(id);
           if (input) { input.value = ""; input.classList.remove("has-val"); }
@@ -4968,7 +5403,7 @@ function initAccessibleValidation(root) {
       if (confirmBox) confirmBox.style.display = "none";
       pendingNodeInstall = null;
       if (note && note.style) note.style.color = "";
-      if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "仅测试连接，尚未安装节点。";
+      if (!otherCheckController && STATE.nodeCheckAvailable) note.textContent = "";
     }
     ["other-ip", "other-user", "other-ssh-port", "other-passphrase"].forEach(function (id) {
       document.getElementById(id).addEventListener("input", invalidateCheck);
@@ -5514,9 +5949,11 @@ function initAccessibleValidation(root) {
     var elRem = document.getElementById("quota-hero-rem");
     var elRemSub = document.getElementById("quota-runway-sub");
     var elAvg7 = document.getElementById("quota-avg-7d");
+    var elCycleLbl = document.getElementById("quota-cycle-lbl");
     var elCycleRem = document.getElementById("quota-cycle-rem");
     var elCyclePct = document.getElementById("quota-cycle-pct");
     var breakerPctLbl = runway && runway.breaker_pct != null ? Math.round(runway.breaker_pct) : 85;
+    if (elCycleLbl) elCycleLbl.textContent = zh ? "周期重置" : "Cycle Reset";
 
     if (elRem) {
       var safeVal = (runway && runway.safe_before_breaker_gb != null) ? runway.safe_before_breaker_gb : guide.remaining_gb;
@@ -5574,10 +6011,11 @@ function initAccessibleValidation(root) {
         maxGb = dailyBudget * 1.1;
       }
 
-      var svgW = 560, svgH = 56, padTop = 6, padBottom = 4, plotH = svgH - padTop - padBottom;
+      var svgW = 560, svgH = 72, padTop = 8, padBottom = 6, plotH = svgH - padTop - padBottom;
       var stepW = svgW / series.length;
-      var barW = Math.max(12, Math.floor(stepW * 0.56));
+      var barW = Math.max(10, Math.floor(stepW * 0.42));
       var svgParts = [];
+      svgParts.push('<line class="qbar-baseline" x1="0" y1="' + (svgH - padBottom) + '" x2="' + svgW + '" y2="' + (svgH - padBottom) + '"></line>');
 
       if (dailyBudget > 0 && dailyBudget <= maxGb) {
         var budY = Math.round((padTop + plotH - (dailyBudget / maxGb) * plotH) * 10) / 10;
@@ -5588,14 +6026,14 @@ function initAccessibleValidation(root) {
         var colX = Math.round(idx * stepW * 10) / 10;
         var rectX = Math.round((colX + (stepW - barW) / 2) * 10) / 10;
         var isToday = idx === series.length - 1;
-        var h = item.missing ? 3 : Math.max(3, Math.round((item.gb / maxGb) * plotH * 10) / 10);
+        var h = item.missing ? 3 : Math.max(4, Math.round((item.gb / maxGb) * plotH * 10) / 10);
         var y = Math.round((svgH - padBottom - h) * 10) / 10;
         var cls = item.missing ? "qbar qbar-missing" : (isToday ? "qbar qbar-today" : (dailyBudget > 0 && item.gb > dailyBudget ? "qbar qbar-over" : "qbar"));
         var ariaLbl = item.label + ": " + (item.missing ? (zh ? "无采样" : "no sample") : (item.gb + " GB"));
         svgParts.push(
           '<g class="qbar-col" tabindex="0" role="listitem" aria-label="' + esc(ariaLbl) + '" data-label="' + esc(item.label) + '" data-gb="' + esc(String(item.gb)) + '" data-missing="' + (item.missing ? "1" : "0") + '">' +
-            '<rect x="' + colX + '" y="0" width="' + stepW + '" height="' + svgH + '" fill="transparent"></rect>' +
-            '<rect class="' + cls + '" x="' + rectX + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="2"></rect>' +
+            '<rect class="qbar-hit" x="' + colX + '" y="0" width="' + stepW + '" height="' + svgH + '" rx="4" fill="transparent"></rect>' +
+            '<rect class="' + cls + '" x="' + rectX + '" y="' + y + '" width="' + barW + '" height="' + h + '" rx="3"></rect>' +
           '</g>'
         );
       });
@@ -5938,8 +6376,8 @@ function initAccessibleValidation(root) {
       STATE.nodeCheckAvailable = !!(settings && settings.node_check_supported === true);
       setOtherCheckBusy(!!otherCheckController);
       document.getElementById("other-connect-status").textContent = STATE.nodeCheckAvailable
-        ? (zh ? "仅测试连接，尚未安装节点。" : "Testing connection only, node not installed yet.")
-        : (zh ? "网页连接检测暂不可用，可核对后端状态或使用高级终端接入。" : "Web connection check unavailable; check backend status or use advanced terminal join.");
+        ? ""
+        : (zh ? "网页连接检测暂不可用，可使用免密终端接入。" : "Web connection check unavailable; use Terminal Join.");
       ["tc-sid", "tc-skey", "btn-tc-read"].forEach(function(id){ document.getElementById(id).disabled = !canDiscover; });
       document.getElementById("tc-credential-fields").style.display = "";
       if (STATE.tencentConfigured) {
@@ -6553,15 +6991,15 @@ function initAccessibleValidation(root) {
       var protoBadges = "";
       if (!canRemoteMutate) {
         if (hasHy2 && isHy2Active) {
-          protoBadges += '<span class="tag">' + (zh ? 'HY2 极速' : 'HY2 Turbo') + '</span>';
+          protoBadges += '<span class="drawer-meta-chip">' + (zh ? 'HY2 极速' : 'HY2 Turbo') + '</span>';
         }
         if (!isDomestic) {
-          protoBadges += '<span class="tag">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+          protoBadges += '<span class="drawer-meta-chip">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
         }
       } else if (hasHy2) {
-        protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+        protoBadges = '<button type="button" class="btn tiny' + (isHy2Active ? ' active' : '') + '" onclick="event.stopPropagation();window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</button><span class="drawer-meta-chip" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       } else if (!isDomestic && n.source !== "external") {
-        protoBadges = '<span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+        protoBadges = '<span class="drawer-meta-chip" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       }
 
       var relayPill = "";
@@ -6571,25 +7009,24 @@ function initAccessibleValidation(root) {
       if (isBondedRelay) {
         displayName = n.name;
         if (canRemoteMutate) {
-          var relayTagCls = isBad ? "tag" : "tag ok";
-          relayPill = '<span class="' + relayTagCls + '" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>' +
-            '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
+          relayPill = '<button type="button" class="btn tiny" onclick="event.stopPropagation();window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</button>' +
+            '<button class="btn tiny" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
         } else {
-          relayPill = '<span class="tag">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>';
+          relayPill = '<span class="drawer-meta-chip">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>';
         }
         detailLine = '<div class="relay-pipeline">' +
           '<span class="pipeline-hop">' + (zh ? '入口 ' : 'Entry ') + '<b>' + esc(n.host || n.ip) + '</b></span>' +
           '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg><span class="sr-only">' + (zh ? '专线跳板' : 'Relay Hop') + '</span></span>' +
           '<span class="pipeline-hop">' + (zh ? '落地 ' : 'Egress ') + '<b>' + esc(targetText) + '</b></span>' +
-          ' · ' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
+          '<span class="relay-tail">' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span></span>' +
         '</div>';
       } else if (isDomestic) {
         displayName = n.name;
         if (canRemoteMutate) {
           var isVantage = (st && st.self_probe);
           var vantageBtn = isVantage
-            ? ('<span class="tag ok" style="cursor:pointer;margin-left:6px" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</span>')
-            : ('<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:2px 7px;height:24px" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
+            ? ('<button type="button" class="btn tiny active" onclick="event.stopPropagation();window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</button>')
+            : ('<button class="btn tiny" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
           var exitCandidates = (nodes || []).filter(function (x) {
             var xHost = x.host || x.ip;
             var xIsDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN" || xHost === (n.host || n.ip));
@@ -6598,12 +7035,12 @@ function initAccessibleValidation(root) {
           var primaryExit = exitCandidates.length > 0 ? exitCandidates[0] : null;
           var autoPairBtn = "";
           if (primaryExit) {
-            autoPairBtn = '<button class="btn tiny primary" style="margin-left:6px;font-size:11px;padding:2px 8px;height:24px" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
+            autoPairBtn = '<button class="btn tiny primary" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
           }
-          relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
-            (autoPairBtn || ('<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
+          relayPill = '<span class="drawer-meta-chip">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
+            (autoPairBtn || ('<button class="btn tiny primary" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
         } else {
-          relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>';
+          relayPill = '<span class="drawer-meta-chip">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>';
         }
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');
       } else {
@@ -6692,25 +7129,25 @@ function initAccessibleValidation(root) {
           }
         } else if (st && st.reason === "port") {
           advTitle = zh ? "服务未响应 · 端口阻断" : "Port Blocked";
-          advReason = zh ? "无法连接节点 " + (n.port || 443) + " 端口。请确认服务器开机并在云安全组放行该端口。" : "Cannot reach port " + (n.port || 443) + ". Please check cloud firewall security group.";
+          advReason = zh ? ((n.port || 443) + " 端口未放行或服务未启动") : ("Port " + (n.port || 443) + " unreachable");
           advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineEditNodeByIndex(' + i + ')">' + (zh ? "修改端口" : "Edit Port") + '</button>');
         } else if (st && st.reason === "tls") {
           advTitle = zh ? "安全握手失败 · 证书异常" : "TLS Handshake Failed";
-          advReason = zh ? "TCP 端口已通但 TLS 握手失败。建议重置 Reality 密钥或同步服务器时钟。" : "TCP port reachable but TLS handshake failed. Resetting keys or syncing clock is recommended.";
+          advReason = zh ? "端口已通但握手失败" : "TCP reachable, TLS handshake failed";
           if (canRemoteMutate) {
             advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRotateKeyByIndex(' + i + ')">' + (zh ? "重置密钥" : "Reset Key") + '</button>');
           }
         } else {
           var reasonMapZh = {
-            proxy: "入口端口已通，但代理转发不通（可点击重新检测复核，或在下方日志区核验配置一致性）",
-            port: "节点端口未响应，请检查云安全组或尝试重新检测",
-            tls: "安全握手失败，请尝试重新检测或重置密钥",
+            proxy: "",
+            port: "节点端口未响应",
+            tls: "安全握手失败",
             landing: "国内中转无法连接海外落地节点",
             role_mismatch: "出口仍为国内地址",
             blocked: "网络探测受阻"
           };
           var reasonMapEn = {
-            proxy: "Entry reachable, but proxy forwarding failed",
+            proxy: "",
             port: "Node port unreachable",
             tls: "TLS handshake failed",
             landing: "Unable to reach landing egress node",
@@ -6719,9 +7156,9 @@ function initAccessibleValidation(root) {
           };
           var rKey = st && st.reason ? String(st.reason) : "";
           var rawTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
-          var rawReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          var rawReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || "";
           if (rawTitle === "机器活着但代理不通") rawTitle = "代理转发异常 · 入口可达";
-          if (/^自测[：:]/.test(rawReason)) rawReason = "入口端口可达，但代理转发未通过（可点击重新检测复核）";
+          if (/^自测[：:]/.test(rawReason)) rawReason = "";
           advTitle = rawTitle;
           advReason = rawReason;
         }
@@ -6733,7 +7170,7 @@ function initAccessibleValidation(root) {
         advHtml = '<div class="' + advCls + '">' +
           '<div class="adv-text">' +
             '<div class="adv-title"><svg class="ico" width="13" height="13" style="vertical-align:-2px"><use href="#i-alert"/></svg> ' + esc(advTitle) + '</div>' +
-            '<span>' + esc(advReason) + '</span>' +
+            (advReason ? ('<span>' + esc(advReason) + '</span>') : '') +
           '</div>' +
           (advBtns.length ? ('<div class="adv-actions">' + advBtns.join("") + '</div>') : '') +
         '</div>';
@@ -6769,15 +7206,15 @@ function initAccessibleValidation(root) {
       }
 
       htmlParts.push('<div class="node" id="node-row-' + i + '">' +
-        '<div class="node-main" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
+        '<div class="node-main" style="anchor-name:--node-anchor-' + i + '" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
           '<span class="dot" id="d' + i + '"></span>' +
           '<div class="nmeta"><b>' + esc(displayName) + capBadge + expBadge + statusBadges + "</b>" +
           "<small>" + detailLine + "</small>" +
           quotaRow +
           advHtml + "</div>" +
-          '<button class="more" type="button" aria-expanded="false" aria-controls="node-drawer-' + i + '" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+          '<button class="more" type="button" popovertarget="node-drawer-' + i + '" aria-expanded="false" aria-controls="node-drawer-' + i + '" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();if(!(typeof HTMLElement!==\'undefined\'&&Object.hasOwn(HTMLElement.prototype,\'popover\'))){window.ownlineToggleNodeDrawer(' + i + ');}"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
         '</div>' +
-        '<div class="node-drawer" id="node-drawer-' + i + '" hidden>' +
+        '<div class="node-drawer" id="node-drawer-' + i + '" popover="auto" style="position-anchor:--node-anchor-' + i + '">' +
           '<div class="drawer-group">' + drawerActions + '</div>' +
           '<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineNodeMenu(' + i + ')">' + (zh ? '更多选项…' : 'More…') + '</button>' +
         '</div>' +
@@ -6785,10 +7222,12 @@ function initAccessibleValidation(root) {
     });
 
     box.innerHTML = htmlParts.join("");
+    if (typeof bindNodePopovers === "function") bindNodePopovers(box);
     paintStatus();
   }
 
   function nodeMenu(i) {
+    if (typeof closeAllNodePopovers === "function") closeAllNodePopovers();
     var n = NODES[i], st = STATUS[n.name];
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var cap = n.capability || null;
@@ -7054,6 +7493,7 @@ function initAccessibleValidation(root) {
   }
 
   function mountIsp(i) {
+    if (typeof closeAllNodePopovers === "function") closeAllNodePopovers();
     var n = NODES[i];
     if (!n) return;
     var currentIsp = n.isp || null;
@@ -7530,6 +7970,7 @@ function initAccessibleValidation(root) {
   }
 
   function openRelayDialog(name, host) {
+    if (typeof closeAllNodePopovers === "function") closeAllNodePopovers();
     var dialog = document.getElementById("relay-dialog");
     var list = document.getElementById("relay-targets-list");
     var title = document.getElementById("relay-dialog-title");
@@ -8054,38 +8495,169 @@ function initAccessibleValidation(root) {
   }
   window.ownlineRefreshPing = refreshPing;
 
+  var _lastClosedPopover = { idx: -1, ts: 0 };
+  var _fallbackPopoverDismissBound = false;
+
+  function supportsNativePopover() {
+    return typeof HTMLElement !== "undefined" && Object.hasOwn(HTMLElement.prototype, "popover");
+  }
+
+  function syncNodePopoverRowState(i, isOpen) {
+    var row = document.getElementById("node-row-" + i);
+    if (!row) return;
+    if (isOpen) row.classList.add("active");
+    else row.classList.remove("active");
+    var btn = row.querySelector(".more");
+    if (btn) btn.setAttribute("aria-expanded", String(Boolean(isOpen)));
+  }
+
+  function closeAllNodePopovers() {
+    if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return;
+    document.querySelectorAll(".node-drawer").forEach(function (d) {
+      var id = d.id || "";
+      var idx = parseInt(id.replace("node-drawer-", ""), 10);
+      if (supportsNativePopover() && typeof d.hidePopover === "function") {
+        try {
+          if (d.matches(":popover-open")) d.hidePopover();
+        } catch (_) {}
+      }
+      d.classList.remove("is-popover-open");
+      if (!isNaN(idx)) syncNodePopoverRowState(idx, false);
+    });
+  }
+  if (typeof window !== "undefined") window.ownlineCloseAllNodePopovers = closeAllNodePopovers;
+
+  function bindNodePopovers(root) {
+    if (!root || typeof root.querySelectorAll !== "function") return;
+    root.querySelectorAll(".node-drawer[popover]").forEach(function (d) {
+      if (d.dataset.popoverBound) return;
+      d.dataset.popoverBound = "1";
+      var idx = parseInt((d.id || "").replace("node-drawer-", ""), 10);
+      d.addEventListener("beforetoggle", function (e) {
+        if (e && e.newState === "closed" && !isNaN(idx)) {
+          _lastClosedPopover = { idx: idx, ts: Date.now() };
+        }
+      });
+      d.addEventListener("toggle", function (e) {
+        var isOpen = e && e.newState === "open";
+        if (!isNaN(idx)) {
+          syncNodePopoverRowState(idx, isOpen);
+          if (!isOpen) _lastClosedPopover = { idx: idx, ts: Date.now() };
+        }
+      });
+    });
+  }
+
+  function ensureFallbackPopoverDismiss() {
+    if (_fallbackPopoverDismissBound || typeof document === "undefined" || typeof document.addEventListener !== "function") return;
+    _fallbackPopoverDismissBound = true;
+    document.addEventListener("click", function (e) {
+      if (supportsNativePopover()) return;
+      var target = e && e.target;
+      if (target && target.closest && (target.closest(".node-drawer") || target.closest(".node-main"))) return;
+      closeAllNodePopovers();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (supportsNativePopover()) return;
+      if (e && e.key === "Escape") closeAllNodePopovers();
+    });
+  }
+
   function toggleNodeDrawer(i) {
     var drawer = document.getElementById("node-drawer-" + i);
-    var row = document.getElementById("node-row-" + i);
     if (!drawer) return;
-    var isOpen = !drawer.hidden && drawer.style.display !== "none";
-    document.querySelectorAll(".node-drawer").forEach(function (d) {
-      d.hidden = true;
-      d.style.display = "";
-    });
-    document.querySelectorAll(".node").forEach(function (r) {
-      r.classList.remove("active");
-      var btn = r.querySelector(".more");
-      if (btn) btn.setAttribute("aria-expanded", "false");
-    });
-    if (!isOpen) {
-      drawer.hidden = false;
-      drawer.style.display = "";
-      if (row) {
-        row.classList.add("active");
-        var btn = row.querySelector(".more");
-        if (btn) btn.setAttribute("aria-expanded", "true");
+    if (supportsNativePopover() && typeof drawer.showPopover === "function") {
+      var isNativeOpen = false;
+      try { isNativeOpen = drawer.matches(":popover-open"); } catch (_) {}
+      if (isNativeOpen) {
+        drawer.hidePopover();
+        return;
       }
+      if (_lastClosedPopover.idx === i && (Date.now() - _lastClosedPopover.ts) < 260) {
+        _lastClosedPopover = { idx: -1, ts: 0 };
+        return;
+      }
+      drawer.showPopover();
+      return;
+    }
+    ensureFallbackPopoverDismiss();
+    var wasOpen = drawer.classList.contains("is-popover-open");
+    closeAllNodePopovers();
+    if (!wasOpen) {
+      drawer.classList.add("is-popover-open");
+      syncNodePopoverRowState(i, true);
     }
   }
   window.ownlineToggleNodeDrawer = toggleNodeDrawer;
 
+  function syncQuotaToggleState(isOpen) {
+    var toggleBtn = document.getElementById("quota-strip-toggle");
+    if (toggleBtn && typeof toggleBtn.setAttribute === "function") {
+      toggleBtn.setAttribute("aria-expanded", String(Boolean(isOpen)));
+    }
+  }
+
+  function closeQuotaDetailsPopover() {
+    var panel = document.getElementById("quota-details-panel");
+    if (!panel) return;
+    if (supportsNativePopover() && typeof panel.hidePopover === "function") {
+      if (typeof panel.matches === "function" && panel.matches(":popover-open")) {
+        try {
+          panel.hidePopover();
+        } catch (_) {}
+      }
+    } else if (panel.classList) {
+      panel.classList.remove("is-popover-open");
+    }
+    syncQuotaToggleState(false);
+  }
+
+  var _quotaPopoverBound = false;
+  function initQuotaPopover() {
+    if (_quotaPopoverBound) return;
+    _quotaPopoverBound = true;
+    var panel = document.getElementById("quota-details-panel");
+    if (!panel) return;
+    if (supportsNativePopover()) {
+      panel.addEventListener("toggle", function (e) {
+        syncQuotaToggleState(e && e.newState === "open");
+      });
+      return;
+    }
+    document.addEventListener("click", function (e) {
+      if (!panel.classList || !panel.classList.contains("is-popover-open")) return;
+      var target = e && e.target;
+      if (target && typeof target.closest === "function") {
+        if (target.closest("#quota-details-panel") || target.closest("#quota-strip-toggle")) return;
+      }
+      closeQuotaDetailsPopover();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (!e || e.key !== "Escape") return;
+      if (panel.classList && panel.classList.contains("is-popover-open")) {
+        closeQuotaDetailsPopover();
+      }
+    });
+  }
+  window.ownlineInitQuotaPopover = initQuotaPopover;
+
   function toggleQuotaDetails(btn) {
+    initQuotaPopover();
     var panel = document.getElementById("quota-details-panel");
     var toggleBtn = btn || document.getElementById("quota-strip-toggle");
     if (!panel) return;
-    var nextOpen = Boolean(panel.hidden);
-    panel.hidden = !nextOpen;
+    var nextOpen = false;
+    if (supportsNativePopover() && typeof panel.showPopover === "function") {
+      var currentlyOpen = typeof panel.matches === "function" && panel.matches(":popover-open");
+      nextOpen = !currentlyOpen;
+      try {
+        if (currentlyOpen && typeof panel.hidePopover === "function") panel.hidePopover();
+        else panel.showPopover();
+      } catch (_) {}
+    } else if (panel.classList) {
+      nextOpen = !panel.classList.contains("is-popover-open");
+      panel.classList.toggle("is-popover-open", nextOpen);
+    }
     if (toggleBtn && typeof toggleBtn.setAttribute === "function") {
       toggleBtn.setAttribute("aria-expanded", String(nextOpen));
     }
@@ -8093,6 +8665,7 @@ function initAccessibleValidation(root) {
   window.ownlineToggleQuotaDetails = toggleQuotaDetails;
 
   function toggleQuota() {
+    closeQuotaDetailsPopover();
     var qs = document.getElementById("quota-section");
     if (!qs) return;
     qs.open = true;
@@ -9060,7 +9633,7 @@ function initAccessibleValidation(root) {
         } else {
           setElementDisplay("settings-update-dot", "none");
           setElementText("update-status-title", t("update_status_latest"));
-          setElementText("update-status-desc", t("update_desc_latest"));
+          setElementText("update-status-desc", "");
           setElementDisplay("update-action-box", "none");
         }
       })
@@ -9754,6 +10327,7 @@ function initAccessibleValidation(root) {
   function init() {
     installClientErrorBuffer();
     initDialogLightDismiss();
+    if (typeof initSecretToggles === "function") initSecretToggles(document);
     applyLanguage();
     initNonSecretDrafts();
     fetchUserInfo();
@@ -9769,6 +10343,7 @@ function initAccessibleValidation(root) {
     initTencentPanel();
     initLogFilters();
     initQuotaSettings();
+    if (typeof window.ownlineInitQuotaPopover === "function") window.ownlineInitQuotaPopover();
     initBackup();
     if (typeof window.initUpdater === "function") window.initUpdater();
     if (typeof window.initLocalPing === "function") window.initLocalPing();

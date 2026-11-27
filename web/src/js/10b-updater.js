@@ -70,7 +70,7 @@
         } else {
           setElementDisplay("settings-update-dot", "none");
           setElementText("update-status-title", t("update_status_latest"));
-          setElementText("update-status-desc", t("update_desc_latest"));
+          setElementText("update-status-desc", "");
           setElementDisplay("update-action-box", "none");
         }
       })

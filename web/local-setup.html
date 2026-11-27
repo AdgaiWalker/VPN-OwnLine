@@ -690,8 +690,9 @@ async function copySetupText(text) {
 }
 
 function _setSecretToggleState(btn, visible) {
+  var zh = typeof isZh === "function" ? isZh() : true;
   btn.setAttribute("aria-pressed", String(visible));
-  btn.setAttribute("aria-label", visible ? "隐藏密码" : "显示密码");
+  btn.setAttribute("aria-label", zh ? (visible ? "隐藏密码" : "显示密码") : (visible ? "Hide password" : "Show password"));
   const useEl = typeof btn.querySelector === "function" ? btn.querySelector("use") : null;
   if (useEl && typeof useEl.setAttribute === "function") {
     useEl.setAttribute("href", visible ? "#i-eye-off" : "#i-eye");

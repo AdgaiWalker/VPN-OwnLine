@@ -406,7 +406,10 @@ test('dashboard, setup, and vault use Alpine Mist canvas theme, forced-colors fa
 });
 
 test('progressive disclosure: quota details and backup drawer stay hidden by default, and collapsed node rows hide raw ISP endpoints and inactive WARP tags', () => {
-  assert.match(indexHtml, /<div[^>]*id="quota-details-panel"[^>]*\shidden\b/);
+  assert.match(indexHtml, /<div[^>]*id="quota-details-panel"[^>]*popover="auto"/);
+  assert.match(indexHtml, /anchor-name:\s*--quota-hero-anchor/);
+  assert.match(indexHtml, /position-anchor:\s*--quota-hero-anchor/);
+  assert.match(indexHtml, /quota-details-panel[\s\S]*transition-property:\s*opacity,\s*transform,\s*display,\s*overlay/);
   const nodesSectionMatch = indexHtml.match(/<section[^>]*id="nodes-section"[^>]*>([\s\S]*?)<\/section>/);
   assert.ok(nodesSectionMatch, 'missing #nodes-section');
   assert.match(indexHtml, /<div[^>]*id="backup-drawer"[^>]*\shidden\b/);

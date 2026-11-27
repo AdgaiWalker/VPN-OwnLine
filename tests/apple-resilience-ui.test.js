@@ -159,7 +159,14 @@ test('just-in-time disclosure: node drawer and quota drawer only open upon user 
   assert(innerHTML.includes('id="node-row-0"'), 'node row id must exist');
   assert(innerHTML.includes('window.ownlineToggleNodeDrawer(0)'), 'toggleNodeDrawer(0) must be attached to node-main and more button');
   assert(innerHTML.includes('id="node-drawer-0"'), 'node-drawer-0 must exist');
-  assert(innerHTML.includes('id="node-drawer-0" hidden'), 'node drawer must be hidden by default until triggered');
+  assert(innerHTML.includes('popover="auto"'), 'node drawer must use native popover="auto"');
+  assert(innerHTML.includes('anchor-name:--node-anchor-0'), 'node-main must declare anchor-name for floating popover');
+  assert(innerHTML.includes('position-anchor:--node-anchor-0'), 'node-drawer must bind position-anchor');
+  assert.equal(innerHTML.includes('role="menu"'), false, 'button group in popover must not declare role="menu"');
+  assert.equal(innerHTML.includes('aria-haspopup'), false, 'button group in popover trigger must not declare aria-haspopup');
+  assert.ok(html.includes('@supports (position-area: block-end)'), 'anchor positioning must be gated by @supports');
+  assert.ok(html.includes('transition-property: opacity, transform, display, overlay;'), 'top-layer popover must transition overlay');
+  assert.ok(html.includes('transition-behavior: allow-discrete;'), 'top-layer popover must use discrete transition behavior');
 });
 
 test('apple hig: visual hierarchy, responsive topbar, and card interaction affordances', () => {
@@ -274,4 +281,37 @@ test('ux-motion-guard remediation: setup sibling DOM, honest QR copy, Chinese pl
     assert.equal(css.includes('var(--blue'), false, `${name} must not reference undefined var(--blue)`);
     assert.equal(/\b0\.15s\s+ease\b/.test(css), false, `${name} must use --dur-micro --ease-standard instead of 0.15s ease`);
   }
+});
+
+test('frontend redesign guards: mobile relay arrow preserved, setup cardized, uniform dialogs, crisp svg chart', () => {
+  const nodesCss = fs.readFileSync(path.join(__dirname, '../web/src/css/04-nodes.css'), 'utf8');
+  const varsCss = fs.readFileSync(path.join(__dirname, '../web/src/css/01-variables.css'), 'utf8');
+
+  // 1. Mobile 480px breakpoint must NOT hide .relay-pipeline .pipeline-arrow
+  assert.equal(/\.relay-pipeline\s+\.pipeline-arrow[\s\S]*?display:\s*none/.test(nodesCss), false, 'mobile breakpoint must keep .relay-pipeline .pipeline-arrow visible');
+
+  // 2. Setup stage card, secret toggle on #other-credential, and uniform .sheet backup dialog
+  assert.ok(html.includes('class="setup-stage-card"'), '#view-setup must wrap content in .setup-stage-card');
+  assert.ok(html.includes('data-toggle-secret="other-credential"'), '#other-credential must include password visibility toggle');
+  assert.match(html, /<dialog id="backup-dialog"[^>]*class="sheet apple-action-sheet"/, '#backup-dialog must share .sheet apple-action-sheet');
+
+  // 3. Quota SVG chart preserves aspect ratio and canvas background stays fixed without cutoff seams
+  assert.equal(html.includes('id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 56" preserveAspectRatio="none"'), false, '#quota-chart-svg must not distort bars with preserveAspectRatio="none"');
+  assert.ok(varsCss.includes('scrollbar-gutter: stable;'), '01-variables.css must reserve stable scrollbar gutter');
+  assert.ok(varsCss.includes('background-size: 100% 720px;'), '01-variables.css must avoid fullPage canvas gradient seam');
+
+  // 4. Audit P0/P1 guards: status_web_test_ready in both locales, #other-credential i18n, and adaptive .quota-chart-wrap height
+  const i18nSrc = fs.readFileSync(path.join(__dirname, '../web/src/js/01-i18n.js'), 'utf8');
+  const compCss = fs.readFileSync(path.join(__dirname, '../web/src/css/03-components.css'), 'utf8');
+  assert.ok(i18nSrc.includes('status_web_test_ready: "Connection test only;'), 'en i18n must define status_web_test_ready');
+  assert.ok(i18nSrc.includes('status_web_test_ready: "仅测试连接，尚未安装节点。"'), 'zh i18n must define status_web_test_ready');
+  assert.ok(i18nSrc.includes("getElementById('other-credential')"), 'applyLanguage must translate #other-credential placeholder');
+  assert.equal(/\.quota-chart-wrap\s*\{[^}]*min-height:\s*72px/.test(compCss), false, '.quota-chart-wrap must not force min-height: 72px');
+
+  // 5. Scene-speaks-for-itself copy subtraction guards: redundant crutch paragraphs eliminated
+  for (const removedId of ['ssh-defaults-note', 'account-auth-desc', 'account-hint-curr-pass', 'account-hint-opt-user', 'account-tip-username', 'feedback-dialog-subtitle']) {
+    assert.equal(html.includes(`id="${removedId}"`), false, `redundant explanation #${removedId} must be removed`);
+  }
+  assert.equal(html.includes('data-i18n="quota_threshold_desc"'), false, 'quota_threshold_desc paragraph must be removed');
+  assert.equal(html.includes('data-i18n="billing_reconcile_desc"'), false, 'billing_reconcile_desc paragraph must be removed');
 });

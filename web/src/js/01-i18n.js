@@ -109,6 +109,7 @@
       lbl_ssh_port: "SSH Port",
       lbl_ssh_passphrase: "Key Passphrase",
       btn_test_conn: "Test Connection",
+      status_web_test_ready: "Connection test only; node not installed yet.",
       status_web_test_unavail: "Web check unavailable.",
       install_ready_title: "Ready to Install",
       install_defaults_note: "A name is filled in and the role defaults to automatic detection. Start installation or expand the options below to customize.",
@@ -134,7 +135,7 @@
       logs_loading: "Loading logs…",
       logs_core_summary: "Core service logs: sing-box · Caddy · Admin",
       backup_dialog_title: "Backup Encryption Passphrase",
-      backup_dialog_desc: "This passphrase is used strictly for in-browser encryption and decryption. If lost, it cannot be recovered.",
+      backup_dialog_desc: "Encrypted locally only; cannot be recovered if lost.",
       backup_pwd_lbl: "Backup Passphrase",
       backup_confirm_lbl: "Confirm Passphrase",
       backup_cancel: "Cancel",
@@ -153,7 +154,7 @@
       feedback_type_suggest: "Suggestions",
       feedback_type_bug: "Bugs & Other",
       client_install_hint: "Need a client? Official downloads",
-      scan_qr_tip: "Use Shadowrocket or Clash in-app scanner, not WeChat.",
+      scan_qr_tip: "Scan in Shadowrocket or Clash, not WeChat.",
       author_email_lbl: "Author Email:",
       warp_toggle_btn: "WARP Clean Egress",
       tag_node_unreachable: "Node Unreachable",
@@ -161,9 +162,9 @@
       tag_mobile_issue: "Mobile Connect Issue",
       tag_ux_suggestion: "UI / UX Idea",
       feedback_msg_lbl: "Description (Optional)",
-      feedback_msg_ph: "Describe what happened, or submit diagnostics directly with 1 click...",
-      feedback_msg_ph_bug: "What happened? (e.g. YouTube lag, connect timeout; or leave blank to send diagnostics)",
-      feedback_msg_ph_idea: "What new platform, protocol, or scenario would you like to see?",
+      feedback_msg_ph: "Describe issue or idea (optional)",
+      feedback_msg_ph_bug: "Describe issue or idea (optional)",
+      feedback_msg_ph_idea: "Describe new feature or scenario (optional)",
       feedback_contact_lbl: "Contact (Optional)",
       feedback_contact_ph: "Email / WeChat / Telegram (for replies)",
       feedback_attach_diag: "Attach system diagnostic snapshot (safe, zero secrets)",
@@ -340,6 +341,7 @@
       lbl_ssh_port: "SSH 端口",
       lbl_ssh_passphrase: "私钥密码",
       btn_test_conn: "测试连接",
+      status_web_test_ready: "仅测试连接，尚未安装节点。",
       status_web_test_unavail: "网页测试不可用。",
       install_ready_title: "就绪，可开始安装",
       install_defaults_note: "名称已自动填写，用途默认自动判定。可直接开始安装，或展开下方选项修改。",
@@ -365,7 +367,7 @@
       logs_loading: "正在加载日志流...",
       logs_core_summary: "核心服务日志：sing-box · Caddy · 管理员",
       backup_dialog_title: "备份加密口令",
-      backup_dialog_desc: "备份口令仅用于浏览器本地加密与解密，遗失后无法找回，请妥善保管。",
+      backup_dialog_desc: "仅本机加密，遗失不可找回。",
       backup_pwd_lbl: "备份口令",
       backup_confirm_lbl: "确认备份口令",
       backup_cancel: "取消",
@@ -384,7 +386,7 @@
       feedback_type_suggest: "功能建议",
       feedback_type_bug: "缺陷与其他",
       client_install_hint: "未安装客户端？查看官方下载",
-      scan_qr_tip: "请使用 Shadowrocket（小火箭）或 Clash 内置扫码，勿用微信直接扫。",
+      scan_qr_tip: "请用小火箭 / Clash 扫码，勿用微信",
       author_email_lbl: "作者邮箱：",
       warp_toggle_btn: "WARP 清洁出口",
       tag_node_unreachable: "节点连不上",
@@ -392,9 +394,9 @@
       tag_mobile_issue: "手机端异常",
       tag_ux_suggestion: "界面与体验建议",
       feedback_msg_lbl: "描述（选填）",
-      feedback_msg_ph: "写一句大白话即可（不填也可直接一键提交现场诊断）...",
-      feedback_msg_ph_bug: "写一句大白话即可（如：油管打不开、小火箭报错；不填也可直接一键提交现场诊断）",
-      feedback_msg_ph_idea: "希望支持什么新平台、新协议或新场景？",
+      feedback_msg_ph: "描述问题或建议（选填）",
+      feedback_msg_ph_bug: "描述问题或建议（选填）",
+      feedback_msg_ph_idea: "描述期望的新功能或场景（选填）",
       feedback_contact_lbl: "联系方式（选填）",
       feedback_contact_ph: "微信 / 邮箱 / Telegram（方便接收处理进展）",
       feedback_attach_diag: "附带系统诊断快照（已自动过滤密钥等敏感信息）",
@@ -569,6 +571,14 @@
     if (offGb) offGb.placeholder = zh ? '云后台已用 GB' : 'Cloud Billed GB';
     var offRday = document.getElementById('billing-reset-day');
     if (offRday) offRday.placeholder = zh ? '重置日(选填)' : 'Reset Day (opt)';
+    var otherCred = document.getElementById('other-credential');
+    if (otherCred) otherCred.placeholder = zh ? '密码或完整 SSH 私钥' : 'Password or SSH private key';
+    if (typeof document.querySelectorAll === 'function') {
+      document.querySelectorAll('[data-toggle-secret]').forEach(function (btn) {
+        var visible = btn.getAttribute('aria-pressed') === 'true';
+        btn.setAttribute('aria-label', zh ? (visible ? '隐藏密码' : '显示密码') : (visible ? 'Hide password' : 'Show password'));
+      });
+    }
 
     if (typeof detectClient === 'function') detectClient();
     if (typeof updateHeaderLocalPingUI === 'function') updateHeaderLocalPingUI();

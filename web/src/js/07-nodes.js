@@ -306,15 +306,15 @@
       var protoBadges = "";
       if (!canRemoteMutate) {
         if (hasHy2 && isHy2Active) {
-          protoBadges += '<span class="tag">' + (zh ? 'HY2 极速' : 'HY2 Turbo') + '</span>';
+          protoBadges += '<span class="drawer-meta-chip">' + (zh ? 'HY2 极速' : 'HY2 Turbo') + '</span>';
         }
         if (!isDomestic) {
-          protoBadges += '<span class="tag">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+          protoBadges += '<span class="drawer-meta-chip">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
         }
       } else if (hasHy2) {
-        protoBadges = '<span class="tag ' + (isHy2Active ? 'ok' : 'muted') + '" style="cursor:pointer" onclick="window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</span><span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+        protoBadges = '<button type="button" class="btn tiny' + (isHy2Active ? ' active' : '') + '" onclick="event.stopPropagation();window.ownlineToggleHy2ByIndex(' + i + ',' + (!isHy2Active) + ')" title="' + (zh ? ('点击' + (isHy2Active ? '关闭' : '开启') + '该服务器的 HY2 极速通道') : ('Click to ' + (isHy2Active ? 'disable' : 'enable') + ' HY2 turbo for this server')) + '">' + (isHy2Active ? (zh ? 'HY2 极速: 开启' : 'HY2 Turbo: On') : (zh ? 'HY2 极速: 关闭' : 'HY2 Turbo: Off')) + '</button><span class="drawer-meta-chip" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       } else if (!isDomestic && n.source !== "external") {
-        protoBadges = '<span class="tag" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
+        protoBadges = '<span class="drawer-meta-chip" title="' + (zh ? 'VLESS Reality 稳定通道' : 'VLESS Reality Stable Channel') + '">' + (zh ? 'Reality 稳定' : 'Reality Stable') + '</span>';
       }
 
       var relayPill = "";
@@ -324,25 +324,24 @@
       if (isBondedRelay) {
         displayName = n.name;
         if (canRemoteMutate) {
-          var relayTagCls = isBad ? "tag" : "tag ok";
-          relayPill = '<span class="' + relayTagCls + '" style="cursor:pointer" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>' +
-            '<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:1px 6px;height:24px" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
+          relayPill = '<button type="button" class="btn tiny" onclick="event.stopPropagation();window.ownlineOpenRelayDialogByIndex(' + i + ')" title="' + (zh ? "点击更换中转落地目标" : "Click to change relay egress target") + '">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</button>' +
+            '<button class="btn tiny" type="button" onclick="window.ownlineUnbindRelayByIndex(' + i + ')" title="' + (zh ? "解除中转加速，恢复为独立服务器" : "Unbind relay acceleration, restore as standalone") + '">' + (zh ? '解除中转' : 'Unbind') + '</button>';
         } else {
-          relayPill = '<span class="tag">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>';
+          relayPill = '<span class="drawer-meta-chip">' + (zh ? '落地 ' : 'Egress ') + esc(targetText) + '</span>';
         }
         detailLine = '<div class="relay-pipeline">' +
           '<span class="pipeline-hop">' + (zh ? '入口 ' : 'Entry ') + '<b>' + esc(n.host || n.ip) + '</b></span>' +
           '<span class="pipeline-arrow"><svg class="ico" width="10" height="10" style="vertical-align:-1px"><use href="#i-arrow-right"/></svg><span class="sr-only">' + (zh ? '专线跳板' : 'Relay Hop') + '</span></span>' +
           '<span class="pipeline-hop">' + (zh ? '落地 ' : 'Egress ') + '<b>' + esc(targetText) + '</b></span>' +
-          ' · ' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span>' +
+          '<span class="relay-tail">' + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span></span>' +
         '</div>';
       } else if (isDomestic) {
         displayName = n.name;
         if (canRemoteMutate) {
           var isVantage = (st && st.self_probe);
           var vantageBtn = isVantage
-            ? ('<span class="tag ok" style="cursor:pointer;margin-left:6px" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</span>')
-            : ('<button class="btn tiny" style="margin-left:6px;font-size:11px;padding:2px 7px;height:24px" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
+            ? ('<button type="button" class="btn tiny active" onclick="event.stopPropagation();window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '当前为系统出海可用性探测基准机房' : 'Active probe vantage') + '">' + (zh ? '探测基准' : 'Probe Vantage') + '</button>')
+            : ('<button class="btn tiny" type="button" onclick="window.ownlineSetProbeVantageByIndex(' + i + ')" title="' + (zh ? '将该机房设为国内可用性探测基准' : 'Set as domestic probe vantage') + '">' + (zh ? '设为探测基准' : 'Set as Vantage') + '</button>');
           var exitCandidates = (nodes || []).filter(function (x) {
             var xHost = x.host || x.ip;
             var xIsDom = (x.role === "relay" || x.role === "standalone" || x.country === "CN" || xHost === (n.host || n.ip));
@@ -351,12 +350,12 @@
           var primaryExit = exitCandidates.length > 0 ? exitCandidates[0] : null;
           var autoPairBtn = "";
           if (primaryExit) {
-            autoPairBtn = '<button class="btn tiny primary" style="margin-left:6px;font-size:11px;padding:2px 8px;height:24px" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
+            autoPairBtn = '<button class="btn tiny primary" type="button" onclick="event.stopPropagation();window.ownlineAutoPairRelay()" title="' + (zh ? ('一键与落地【' + esc(primaryExit.name) + '】配对成加速专线') : 'Auto-pair with egress node') + '"><svg class="ico" width="11" height="11" style="vertical-align:-1px;margin-right:3px"><use href="#i-zap"/></svg>' + (zh ? ('配对 ' + esc(primaryExit.name) + ' 专线') : 'Pair Relay') + '</button>';
           }
-          relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
-            (autoPairBtn || ('<button class="btn tiny primary" style="margin-left:6px;font-size:11.5px;padding:2px 8px;height:24px" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
+          relayPill = '<span class="drawer-meta-chip">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>' +
+            (autoPairBtn || ('<button class="btn tiny primary" type="button" onclick="window.ownlineOpenRelayDialogByIndex(' + i + ')">' + (zh ? '＋ 设为中转加速' : '+ Enable Relay') + '</button>')) + vantageBtn;
         } else {
-          relayPill = '<span class="tag">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>';
+          relayPill = '<span class="drawer-meta-chip">' + (zh ? '国内独立服务器' : 'Domestic Standalone') + '</span>';
         }
         detailLine = (zh ? "国内入口: " : "Entry: ") + esc(n.host || n.ip) + " · " + (n.port || 443) + ' · <span id="s' + i + '">' + (zh ? "检测中..." : "Checking…") + '</span> · ' + (zh ? '尚未绑定海外落地' : 'Not bound to egress');
       } else {
@@ -445,25 +444,25 @@
           }
         } else if (st && st.reason === "port") {
           advTitle = zh ? "服务未响应 · 端口阻断" : "Port Blocked";
-          advReason = zh ? "无法连接节点 " + (n.port || 443) + " 端口。请确认服务器开机并在云安全组放行该端口。" : "Cannot reach port " + (n.port || 443) + ". Please check cloud firewall security group.";
+          advReason = zh ? ((n.port || 443) + " 端口未放行或服务未启动") : ("Port " + (n.port || 443) + " unreachable");
           advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineEditNodeByIndex(' + i + ')">' + (zh ? "修改端口" : "Edit Port") + '</button>');
         } else if (st && st.reason === "tls") {
           advTitle = zh ? "安全握手失败 · 证书异常" : "TLS Handshake Failed";
-          advReason = zh ? "TCP 端口已通但 TLS 握手失败。建议重置 Reality 密钥或同步服务器时钟。" : "TCP port reachable but TLS handshake failed. Resetting keys or syncing clock is recommended.";
+          advReason = zh ? "端口已通但握手失败" : "TCP reachable, TLS handshake failed";
           if (canRemoteMutate) {
             advBtns.push('<button type="button" class="adv-btn" onclick="window.ownlineRotateKeyByIndex(' + i + ')">' + (zh ? "重置密钥" : "Reset Key") + '</button>');
           }
         } else {
           var reasonMapZh = {
-            proxy: "入口端口已通，但代理转发不通（可点击重新检测复核，或在下方日志区核验配置一致性）",
-            port: "节点端口未响应，请检查云安全组或尝试重新检测",
-            tls: "安全握手失败，请尝试重新检测或重置密钥",
+            proxy: "",
+            port: "节点端口未响应",
+            tls: "安全握手失败",
             landing: "国内中转无法连接海外落地节点",
             role_mismatch: "出口仍为国内地址",
             blocked: "网络探测受阻"
           };
           var reasonMapEn = {
-            proxy: "Entry reachable, but proxy forwarding failed",
+            proxy: "",
             port: "Node port unreachable",
             tls: "TLS handshake failed",
             landing: "Unable to reach landing egress node",
@@ -472,9 +471,9 @@
           };
           var rKey = st && st.reason ? String(st.reason) : "";
           var rawTitle = (n.advice && n.advice.text) || (zh ? "连接异常" : "Connection Error");
-          var rawReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || (zh ? "请检查防火墙端口或节点运行状态" : "Please check firewall port or node status");
+          var rawReason = (n.advice && n.advice.reason) || (zh ? reasonMapZh[rKey] : reasonMapEn[rKey]) || "";
           if (rawTitle === "机器活着但代理不通") rawTitle = "代理转发异常 · 入口可达";
-          if (/^自测[：:]/.test(rawReason)) rawReason = "入口端口可达，但代理转发未通过（可点击重新检测复核）";
+          if (/^自测[：:]/.test(rawReason)) rawReason = "";
           advTitle = rawTitle;
           advReason = rawReason;
         }
@@ -486,7 +485,7 @@
         advHtml = '<div class="' + advCls + '">' +
           '<div class="adv-text">' +
             '<div class="adv-title"><svg class="ico" width="13" height="13" style="vertical-align:-2px"><use href="#i-alert"/></svg> ' + esc(advTitle) + '</div>' +
-            '<span>' + esc(advReason) + '</span>' +
+            (advReason ? ('<span>' + esc(advReason) + '</span>') : '') +
           '</div>' +
           (advBtns.length ? ('<div class="adv-actions">' + advBtns.join("") + '</div>') : '') +
         '</div>';
@@ -522,15 +521,15 @@
       }
 
       htmlParts.push('<div class="node" id="node-row-' + i + '">' +
-        '<div class="node-main" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
+        '<div class="node-main" style="anchor-name:--node-anchor-' + i + '" onclick="window.ownlineToggleNodeDrawer(' + i + ')">' +
           '<span class="dot" id="d' + i + '"></span>' +
           '<div class="nmeta"><b>' + esc(displayName) + capBadge + expBadge + statusBadges + "</b>" +
           "<small>" + detailLine + "</small>" +
           quotaRow +
           advHtml + "</div>" +
-          '<button class="more" type="button" aria-expanded="false" aria-controls="node-drawer-' + i + '" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();window.ownlineToggleNodeDrawer(' + i + ')"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
+          '<button class="more" type="button" popovertarget="node-drawer-' + i + '" aria-expanded="false" aria-controls="node-drawer-' + i + '" aria-label="' + (zh ? '展开操作' : 'Toggle drawer') + '" onclick="event.stopPropagation();if(!(typeof HTMLElement!==\'undefined\'&&Object.hasOwn(HTMLElement.prototype,\'popover\'))){window.ownlineToggleNodeDrawer(' + i + ');}"><svg class="ico node-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></button>' +
         '</div>' +
-        '<div class="node-drawer" id="node-drawer-' + i + '" hidden>' +
+        '<div class="node-drawer" id="node-drawer-' + i + '" popover="auto" style="position-anchor:--node-anchor-' + i + '">' +
           '<div class="drawer-group">' + drawerActions + '</div>' +
           '<button class="btn tiny" type="button" onclick="event.stopPropagation();window.ownlineNodeMenu(' + i + ')">' + (zh ? '更多选项…' : 'More…') + '</button>' +
         '</div>' +
@@ -538,10 +537,12 @@
     });
 
     box.innerHTML = htmlParts.join("");
+    if (typeof bindNodePopovers === "function") bindNodePopovers(box);
     paintStatus();
   }
 
   function nodeMenu(i) {
+    if (typeof closeAllNodePopovers === "function") closeAllNodePopovers();
     var n = NODES[i], st = STATUS[n.name];
     var zh = (typeof isZh === 'function') ? isZh() : true;
     var cap = n.capability || null;
@@ -807,6 +808,7 @@
   }
 
   function mountIsp(i) {
+    if (typeof closeAllNodePopovers === "function") closeAllNodePopovers();
     var n = NODES[i];
     if (!n) return;
     var currentIsp = n.isp || null;
@@ -1283,6 +1285,7 @@
   }
 
   function openRelayDialog(name, host) {
+    if (typeof closeAllNodePopovers === "function") closeAllNodePopovers();
     var dialog = document.getElementById("relay-dialog");
     var list = document.getElementById("relay-targets-list");
     var title = document.getElementById("relay-dialog-title");
@@ -1807,38 +1810,169 @@
   }
   window.ownlineRefreshPing = refreshPing;
 
+  var _lastClosedPopover = { idx: -1, ts: 0 };
+  var _fallbackPopoverDismissBound = false;
+
+  function supportsNativePopover() {
+    return typeof HTMLElement !== "undefined" && Object.hasOwn(HTMLElement.prototype, "popover");
+  }
+
+  function syncNodePopoverRowState(i, isOpen) {
+    var row = document.getElementById("node-row-" + i);
+    if (!row) return;
+    if (isOpen) row.classList.add("active");
+    else row.classList.remove("active");
+    var btn = row.querySelector(".more");
+    if (btn) btn.setAttribute("aria-expanded", String(Boolean(isOpen)));
+  }
+
+  function closeAllNodePopovers() {
+    if (typeof document === "undefined" || typeof document.querySelectorAll !== "function") return;
+    document.querySelectorAll(".node-drawer").forEach(function (d) {
+      var id = d.id || "";
+      var idx = parseInt(id.replace("node-drawer-", ""), 10);
+      if (supportsNativePopover() && typeof d.hidePopover === "function") {
+        try {
+          if (d.matches(":popover-open")) d.hidePopover();
+        } catch (_) {}
+      }
+      d.classList.remove("is-popover-open");
+      if (!isNaN(idx)) syncNodePopoverRowState(idx, false);
+    });
+  }
+  if (typeof window !== "undefined") window.ownlineCloseAllNodePopovers = closeAllNodePopovers;
+
+  function bindNodePopovers(root) {
+    if (!root || typeof root.querySelectorAll !== "function") return;
+    root.querySelectorAll(".node-drawer[popover]").forEach(function (d) {
+      if (d.dataset.popoverBound) return;
+      d.dataset.popoverBound = "1";
+      var idx = parseInt((d.id || "").replace("node-drawer-", ""), 10);
+      d.addEventListener("beforetoggle", function (e) {
+        if (e && e.newState === "closed" && !isNaN(idx)) {
+          _lastClosedPopover = { idx: idx, ts: Date.now() };
+        }
+      });
+      d.addEventListener("toggle", function (e) {
+        var isOpen = e && e.newState === "open";
+        if (!isNaN(idx)) {
+          syncNodePopoverRowState(idx, isOpen);
+          if (!isOpen) _lastClosedPopover = { idx: idx, ts: Date.now() };
+        }
+      });
+    });
+  }
+
+  function ensureFallbackPopoverDismiss() {
+    if (_fallbackPopoverDismissBound || typeof document === "undefined" || typeof document.addEventListener !== "function") return;
+    _fallbackPopoverDismissBound = true;
+    document.addEventListener("click", function (e) {
+      if (supportsNativePopover()) return;
+      var target = e && e.target;
+      if (target && target.closest && (target.closest(".node-drawer") || target.closest(".node-main"))) return;
+      closeAllNodePopovers();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (supportsNativePopover()) return;
+      if (e && e.key === "Escape") closeAllNodePopovers();
+    });
+  }
+
   function toggleNodeDrawer(i) {
     var drawer = document.getElementById("node-drawer-" + i);
-    var row = document.getElementById("node-row-" + i);
     if (!drawer) return;
-    var isOpen = !drawer.hidden && drawer.style.display !== "none";
-    document.querySelectorAll(".node-drawer").forEach(function (d) {
-      d.hidden = true;
-      d.style.display = "";
-    });
-    document.querySelectorAll(".node").forEach(function (r) {
-      r.classList.remove("active");
-      var btn = r.querySelector(".more");
-      if (btn) btn.setAttribute("aria-expanded", "false");
-    });
-    if (!isOpen) {
-      drawer.hidden = false;
-      drawer.style.display = "";
-      if (row) {
-        row.classList.add("active");
-        var btn = row.querySelector(".more");
-        if (btn) btn.setAttribute("aria-expanded", "true");
+    if (supportsNativePopover() && typeof drawer.showPopover === "function") {
+      var isNativeOpen = false;
+      try { isNativeOpen = drawer.matches(":popover-open"); } catch (_) {}
+      if (isNativeOpen) {
+        drawer.hidePopover();
+        return;
       }
+      if (_lastClosedPopover.idx === i && (Date.now() - _lastClosedPopover.ts) < 260) {
+        _lastClosedPopover = { idx: -1, ts: 0 };
+        return;
+      }
+      drawer.showPopover();
+      return;
+    }
+    ensureFallbackPopoverDismiss();
+    var wasOpen = drawer.classList.contains("is-popover-open");
+    closeAllNodePopovers();
+    if (!wasOpen) {
+      drawer.classList.add("is-popover-open");
+      syncNodePopoverRowState(i, true);
     }
   }
   window.ownlineToggleNodeDrawer = toggleNodeDrawer;
 
+  function syncQuotaToggleState(isOpen) {
+    var toggleBtn = document.getElementById("quota-strip-toggle");
+    if (toggleBtn && typeof toggleBtn.setAttribute === "function") {
+      toggleBtn.setAttribute("aria-expanded", String(Boolean(isOpen)));
+    }
+  }
+
+  function closeQuotaDetailsPopover() {
+    var panel = document.getElementById("quota-details-panel");
+    if (!panel) return;
+    if (supportsNativePopover() && typeof panel.hidePopover === "function") {
+      if (typeof panel.matches === "function" && panel.matches(":popover-open")) {
+        try {
+          panel.hidePopover();
+        } catch (_) {}
+      }
+    } else if (panel.classList) {
+      panel.classList.remove("is-popover-open");
+    }
+    syncQuotaToggleState(false);
+  }
+
+  var _quotaPopoverBound = false;
+  function initQuotaPopover() {
+    if (_quotaPopoverBound) return;
+    _quotaPopoverBound = true;
+    var panel = document.getElementById("quota-details-panel");
+    if (!panel) return;
+    if (supportsNativePopover()) {
+      panel.addEventListener("toggle", function (e) {
+        syncQuotaToggleState(e && e.newState === "open");
+      });
+      return;
+    }
+    document.addEventListener("click", function (e) {
+      if (!panel.classList || !panel.classList.contains("is-popover-open")) return;
+      var target = e && e.target;
+      if (target && typeof target.closest === "function") {
+        if (target.closest("#quota-details-panel") || target.closest("#quota-strip-toggle")) return;
+      }
+      closeQuotaDetailsPopover();
+    });
+    document.addEventListener("keydown", function (e) {
+      if (!e || e.key !== "Escape") return;
+      if (panel.classList && panel.classList.contains("is-popover-open")) {
+        closeQuotaDetailsPopover();
+      }
+    });
+  }
+  window.ownlineInitQuotaPopover = initQuotaPopover;
+
   function toggleQuotaDetails(btn) {
+    initQuotaPopover();
     var panel = document.getElementById("quota-details-panel");
     var toggleBtn = btn || document.getElementById("quota-strip-toggle");
     if (!panel) return;
-    var nextOpen = Boolean(panel.hidden);
-    panel.hidden = !nextOpen;
+    var nextOpen = false;
+    if (supportsNativePopover() && typeof panel.showPopover === "function") {
+      var currentlyOpen = typeof panel.matches === "function" && panel.matches(":popover-open");
+      nextOpen = !currentlyOpen;
+      try {
+        if (currentlyOpen && typeof panel.hidePopover === "function") panel.hidePopover();
+        else panel.showPopover();
+      } catch (_) {}
+    } else if (panel.classList) {
+      nextOpen = !panel.classList.contains("is-popover-open");
+      panel.classList.toggle("is-popover-open", nextOpen);
+    }
     if (toggleBtn && typeof toggleBtn.setAttribute === "function") {
       toggleBtn.setAttribute("aria-expanded", String(nextOpen));
     }
@@ -1846,6 +1980,7 @@
   window.ownlineToggleQuotaDetails = toggleQuotaDetails;
 
   function toggleQuota() {
+    closeQuotaDetailsPopover();
     var qs = document.getElementById("quota-section");
     if (!qs) return;
     qs.open = true;

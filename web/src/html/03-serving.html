@@ -44,7 +44,7 @@
 
         <!-- Quota Hero Summary Strip (1-line calm view; details collapsed until clicked) -->
         <div id="quota-hero-banner" class="quota-hero-card" style="display:none">
-          <button type="button" class="quota-strip-trigger" id="quota-strip-toggle" aria-expanded="false" aria-controls="quota-details-panel" onclick="window.ownlineToggleQuotaDetails(this)">
+          <button type="button" class="quota-strip-trigger" id="quota-strip-toggle" aria-expanded="false" aria-controls="quota-details-panel" popovertarget="quota-details-panel" onclick="if(!(typeof HTMLElement!=='undefined'&&Object.hasOwn(HTMLElement.prototype,'popover'))){window.ownlineToggleQuotaDetails(this);}">
             <span class="quota-strip-left">
               <span class="quota-strip-label" data-i18n="quota_hero_title">本月出海总流量</span>
               <span id="quota-hero-status" class="tag ok" style="font-size:11px;padding:1px 7px" data-i18n="quota_status_ok">充足</span>
@@ -62,8 +62,11 @@
           </button>
           <div id="quota-hero-nodes-safe" class="quota-strip-alert" style="display:none" data-i18n="quota_safe_lbl"></div>
 
-          <div id="quota-details-panel" class="quota-details-panel" hidden>
+          <div id="quota-details-panel" class="quota-details-panel" popover="auto">
             <div class="quota-runway-bar">
+              <div class="quota-runway-head">
+                <button type="button" class="quiet-inline-link" data-i18n="quota_rules_link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
+              </div>
               <div class="quota-runway-metrics">
                 <div class="quota-runway-item">
                   <span class="quota-runway-lbl" data-i18n="quota_safe_rem_lbl">安全可用</span>
@@ -75,11 +78,11 @@
                   <b id="quota-avg-7d" class="quota-runway-val">--</b>
                 </div>
                 <div class="quota-runway-item">
+                  <span class="quota-runway-lbl" id="quota-cycle-lbl">周期重置</span>
                   <b id="quota-cycle-rem" class="quota-runway-val">--</b>
                   <span id="quota-cycle-pct" class="quota-runway-sub"></span>
                 </div>
               </div>
-              <button type="button" class="quiet-inline-link" data-i18n="quota_rules_link" onclick="window.ownlineToggleQuota()">熔断阈值与账单核对</button>
             </div>
 
             <!-- 14-day Daily Burn Trend + Daily Budget Reference Line -->
@@ -92,7 +95,7 @@
                 </span>
               </div>
               <div id="quota-chart-wrap" class="quota-chart-wrap">
-                <svg id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 56" preserveAspectRatio="none" role="img" aria-label="14-day daily traffic trend"></svg>
+                <svg id="quota-chart-svg" class="quota-chart-svg" viewBox="0 0 560 72" preserveAspectRatio="xMidYMid meet" role="img" aria-label="14-day daily traffic trend"></svg>
               </div>
               <div id="quota-chart-cold" class="quota-chart-cold" hidden></div>
               <div id="quota-chart-axis" class="quota-chart-axis">
