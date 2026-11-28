@@ -366,7 +366,7 @@ def main(argv=None) -> int:
     parser.add_argument("--check-stage", action="store_true", help="Verify clean payload staging and emit_bundle offline")
     parser.add_argument("--build", action="store_true", help="Build standalone executable with PyInstaller")
     parser.add_argument("--smoke", help="Smoke-test built executable/.app with blank PATH")
-    parser.add_argument("--version", default=os.environ.get("GITHUB_REF_NAME") or "v0.9.2")
+    parser.add_argument("--version", default=os.environ.get("GITHUB_REF_NAME") or "v0.9.3")
     parser.add_argument("--out-dir", default="dist-installer")
     args = parser.parse_args(argv)
 

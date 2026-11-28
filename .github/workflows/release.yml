@@ -43,7 +43,7 @@ jobs:
 
       - name: Package Source Distribution Bundles (.tar.gz + .zip)
         run: |
-          VERSION="${GITHUB_REF_NAME:-v0.9.2}"
+          VERSION="${GITHUB_REF_NAME:-v0.9.3}"
           TAR_NAME="vpn-ownline-${VERSION}.tar.gz"
           ZIP_NAME="vpn-ownline-${VERSION}.zip"
           mkdir -p dist-release
@@ -58,7 +58,7 @@ jobs:
               requirements.lock README.md LICENSE ownline.py "启动安装.command" "启动安装.bat"
           python3 - <<'PY'
           import os, tarfile, zipfile
-          ver = os.environ.get("GITHUB_REF_NAME") or "v0.9.2"
+          ver = os.environ.get("GITHUB_REF_NAME") or "v0.9.3"
           tar_path = f"dist-release/vpn-ownline-{ver}.tar.gz"
           zip_path = f"dist-release/vpn-ownline-{ver}.zip"
           with tarfile.open(tar_path, "r:gz") as tf, zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:

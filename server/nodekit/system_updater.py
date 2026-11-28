@@ -18,7 +18,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-CURRENT_VERSION = "v0.9.2"
+CURRENT_VERSION = "v0.9.3"
 
 
 def _build_ssl_context():

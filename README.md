@@ -4,11 +4,11 @@
 > 💡 **核心成本**：搭建普通节点每年仅需 **0 ~ 99 元**（服务器可完全白嫖），在此基础上只需再加 **85 元/年**（12 美元）挂载美国家宽 IP，即可升级为彻底防封的家庭住宅节点。  
 > 资产 100% 自有，独享原生纯净 IP，非合租、非机场，不卖流量，2 分钟全自动装配，一个私有网页多端同步。
 
-[![Release: v0.9.2](https://img.shields.io/badge/Release-v0.9.2-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.2)
+[![Release: v0.9.3](https://img.shields.io/badge/Release-v0.9.3-blue.svg)](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.3)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Core: sing--box](https://img.shields.io/badge/Core-sing--box%201.11+-orange.svg)](https://github.com/SagerNet/sing-box)
 [![Gateway: Caddy](https://img.shields.io/badge/Gateway-Caddy%202.10-cyan.svg)](https://github.com/caddyserver/caddy)
-[![Tests: 1028 Passed](https://img.shields.io/badge/Tests-1028%20Passed%20(100%25)-success.svg)]()
+[![Tests: 1046 Passed](https://img.shields.io/badge/Tests-1046%20Passed%20(100%25)-success.svg)]()
 [![Delivery: Guarded](https://img.shields.io/badge/Delivery-Guarded-blue.svg)](docs/adr.md#adr-018)
 [![Production: Verified](https://img.shields.io/badge/Production-Verified-success.svg)](docs/adr.md#adr-018)
 [![Local Engine: Cross-Platform](https://img.shields.io/badge/Local%20Engine-macOS%20%7C%20Win%20%7C%20Linux-success.svg)](docs/adr.md#adr-032)
@@ -53,12 +53,12 @@ flowchart LR
 
 ### 方式 1：免 Python 独立安装包（零命令行 · 推荐小白）
 
-直接前往 [v0.9.2 发布页](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.2) 下载对应电脑的独立安装包（内置全部运行依赖，无需安装 Python）：
+直接前往 [v0.9.3 发布页](https://github.com/AdgaiWalker/VPN-OwnLine/releases/tag/v0.9.3) 下载对应电脑的独立安装包（内置全部运行依赖，无需安装 Python）：
 
-- **Apple Silicon Mac（M1 / M2 / M3 / M4 芯片）**：点左上角苹果图标「关于本机 -> 芯片」，显示 Apple M 系列芯片即下载 `OwnLine-Setup-v0.9.2-macOS-arm64.zip`，解压后双击 **`OwnLine-Setup.app`**
-- **Intel 芯片 Mac（旧款 Mac）**：若「关于本机」显示 Intel 处理器，下载 `OwnLine-Setup-v0.9.2-macOS-x64.zip`，解压后同样双击 **`OwnLine-Setup.app`**（免 Python 独立运行）
-- **Windows 10 / 11**：下载并解压 `OwnLine-Setup-v0.9.2-Windows-x64.zip`，双击 **`OwnLine-Setup.exe`**
-- **Linux / 源码备选**：下载源码包 `vpn-ownline-v0.9.2.zip`（需先安装 Python 3.10+）运行 `python3 ownline.py ui`，或展开下方改用「方式 3 一行命令」（`SHA256SUMS.txt` 仅供高阶校验，新手可忽略）
+- **Apple Silicon Mac（M1 / M2 / M3 / M4 芯片）**：点左上角苹果图标「关于本机 -> 芯片」，显示 Apple M 系列芯片即下载 `OwnLine-Setup-v0.9.3-macOS-arm64.zip`，解压后双击 **`OwnLine-Setup.app`**
+- **Intel 芯片 Mac（旧款 Mac）**：若「关于本机」显示 Intel 处理器，下载 `OwnLine-Setup-v0.9.3-macOS-x64.zip`，解压后同样双击 **`OwnLine-Setup.app`**（免 Python 独立运行）
+- **Windows 10 / 11**：下载并解压 `OwnLine-Setup-v0.9.3-Windows-x64.zip`，双击 **`OwnLine-Setup.exe`**
+- **Linux / 源码备选**：下载源码包 `vpn-ownline-v0.9.3.zip`（需先安装 Python 3.10+）运行 `python3 ownline.py ui`，或展开下方改用「方式 3 一行命令」（`SHA256SUMS.txt` 仅供高阶校验，新手可忽略）
 
 > 首次打开提示说明：因开源项目未采购商业签名证书，首次双击若被系统安全策略拦截属于正常现象：**macOS** 若提示“无法验证开发者”或建议“移至废纸篓”，先点取消，再打开「系统设置 -> 隐私与安全性」下拉点击「仍要打开」；**Windows** 在 Windows 安全警告弹窗（SmartScreen）点击「更多信息 -> 仍要运行」。
 
